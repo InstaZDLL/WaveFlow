@@ -1583,35 +1583,117 @@
     },
     "toggleNowPlayingPanel": "지금 재생 중 패널 표시 / 숨기기",
     "pipeline": {
-      "title": "오디오 파이프라인",
+      "title": "파일에서 귀까지",
       "openHint": "오디오 파이프라인 자세히 보기",
-      "source": "소스",
-      "processing": "처리",
-      "output": "출력",
-      "noProcessing": "처리 없음",
       "bitPerfect": "비트 퍼펙트",
-      "sharedOutput": "공유 출력(시스템 믹서)",
       "loading": "불러오는 중…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "리샘플링",
-        "downmix": "다운믹스",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "음량 평준화",
+      "bits": "{{value}}비트",
+      "kind": {
+        "lossless": "무손실",
+        "lossy": "손실",
+        "dsd": "DSD",
+        "fakeLossless": "가짜 무손실 의심"
+      },
+      "channels": {
         "mono": "모노",
-        "speed": "속도 {{value}}×",
-        "dopNative": "네이티브 DSD",
-        "volume": "볼륨 {{value}}%",
-        "balance": "밸런스",
-        "width": "폭 {{value}}%",
-        "pitch": "음정 {{value}}"
+        "stereo": "스테레오",
+        "other": "{{value}}채널"
+      },
+      "file": {
+        "title": "내 파일",
+        "lossless": "녹음된 모든 것이 그대로 있습니다. 용량을 줄이려고 뺀 것이 없습니다.",
+        "lossy": "용량을 줄이려고 압축했습니다. 귀가 거의 알아채지 못하는 세부가 빠졌습니다.",
+        "dsd": "SACD 형식입니다. 소리를 아주 빠른 1비트 흐름으로 나타냅니다.",
+        "fakeLossless": "분석 결과 MP3처럼 끊기는 고음이 발견되었습니다. 이 파일은 손실 파일에서 만들어졌을 가능성이 높으며, 그보다 더 담고 있지 않습니다."
+      },
+      "stage": {
+        "none": {
+          "title": "처리 없음",
+          "body": "WaveFlow가 파일에서 나온 소리를 그대로 보냅니다."
+        },
+        "dop": {
+          "title": "네이티브 DSD",
+          "body": "DSD가 그대로 나가며, 사용 중인 DAC가 직접 디코딩합니다."
+        },
+        "dsdToPcm": {
+          "title": "DSD 변환",
+          "body": "출력 장치가 DSD를 그대로 받지 못해 WaveFlow가 읽을 수 있는 형식으로 변환합니다. 들리는 손실은 없습니다."
+        },
+        "resample": {
+          "title": "샘플레이트 맞춤",
+          "body": "파일은 {{source}}, 출력 장치는 {{output}}로 동작합니다. WaveFlow가 변환하며 들리는 손실은 없습니다."
+        },
+        "downmix": {
+          "title": "채널 합치기",
+          "body": "파일은 {{source}}, 출력 장치는 {{output}}입니다. 빠지는 소리가 없도록 WaveFlow가 채널을 섞습니다."
+        },
+        "eq": {
+          "title": "이퀄라이저",
+          "body": "저음, 중음, 고음이 설정에 맞게 조절됩니다."
+        },
+        "replayGain": {
+          "title": "음량 균일화 (ReplayGain)",
+          "body": "모든 곡이 비슷한 크기로 들리도록 음량을 맞춥니다."
+        },
+        "normalize": {
+          "title": "노멀라이즈",
+          "body": "너무 큰 곡의 음량을 낮춰 고른 레벨을 유지합니다."
+        },
+        "mono": {
+          "title": "모노",
+          "body": "왼쪽과 오른쪽을 하나의 신호로 섞어 스테레오 효과가 사라집니다."
+        },
+        "balance": {
+          "title": "밸런스",
+          "bodyLeft": "소리가 왼쪽으로 치우쳐 있습니다.",
+          "bodyRight": "소리가 오른쪽으로 치우쳐 있습니다."
+        },
+        "width": {
+          "title": "스테레오 폭",
+          "bodyNarrower": "왼쪽과 오른쪽을 가깝게 모아 음장이 좁아집니다.",
+          "bodyWider": "왼쪽과 오른쪽을 넓게 벌려 음장이 넓어집니다."
+        },
+        "volume": {
+          "title": "음량",
+          "body": "WaveFlow가 보내기 전에 소리를 {{value}}%로 낮춥니다."
+        },
+        "speed": {
+          "title": "속도",
+          "body": "원래 속도의 {{value}}×로 재생 중입니다."
+        },
+        "pitch": {
+          "title": "음높이",
+          "bodyUp": "원곡보다 높게 재생 중입니다.",
+          "bodyDown": "원곡보다 낮게 재생 중입니다.",
+          "figures": "조옮김 {{value}}"
+        }
+      },
+      "impact": {
+        "none": "소리가 바뀌지 않음",
+        "inaudible": "들리는 손실 없음",
+        "level": "음량만 바뀜",
+        "changes": "소리가 바뀜"
+      },
+      "verdict": {
+        "bitPerfect": "소리가 파일 그대로 출력 장치에 도달합니다.",
+        "shared": "WaveFlow는 아무것도 바꾸지 않지만, 시스템이 다른 앱의 소리와 섞고 있습니다."
+      },
+      "output": {
+        "title": "출력",
+        "shared": "공유 모드: 시스템이 WaveFlow를 컴퓨터의 다른 소리와 섞습니다. 일상적인 감상에 적합합니다.",
+        "exclusive": "독점 모드: WaveFlow가 출력을 혼자 쓰며 다른 소리가 섞이지 않습니다.",
+        "dop": "독점 모드: WaveFlow가 출력을 혼자 쓰며 DSD를 그대로 보냅니다.",
+        "exclusiveRefused": "출력 장치가 독점 모드를 거부했습니다. WaveFlow는 공유 모드로 재생합니다."
       }
     },
     "outputMode": {
       "exclusive": "독점",
       "dop": "네이티브 DSD",
       "exclusiveRefused": "독점 거부됨"
+    },
+    "quality": {
+      "converted": "출력에 맞춰 변환",
+      "details": "자세히"
     }
   },
   "miniPlayer": {
@@ -2710,8 +2792,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD 배지",
-      "subtitle": "해당 곡 옆과 플레이어 바의 아티스트 이름 아래에 ‘Hi-Res 24-bit’ 또는 ‘DSD128’ 배지를 표시합니다. 기본적으로 켜져 있습니다."
+      "title": "Hi-Res / DSD / Lossless 배지",
+      "subtitle": "해당 곡 옆과 플레이어 바의 아티스트 이름 아래에 ‘Hi-Res 24-bit’, ‘DSD128’ 또는 ‘Lossless’(무손실, CD 품질) 배지를 표시합니다. 기본적으로 켜져 있습니다."
     },
     "serverAccount": {
       "title": "WaveFlow 서버 계정",
@@ -3081,7 +3163,8 @@
         "diskUsage": "디스크 공간",
         "globalShortcuts": "전역 단축키",
         "enrichment": "정보 보강",
-        "podcasts": "팟캐스트"
+        "podcasts": "팟캐스트",
+        "understanding": "오디오 이해하기"
       },
       "navHints": {
         "general": "언어, 시작, 재생",
@@ -3133,7 +3216,8 @@
         "diskUsage": "WaveFlow가 이 컴퓨터에 보관하는 것",
         "globalShortcuts": "어떤 앱에서든",
         "enrichment": "MusicBrainz의 장르, 날짜, 크레딧, 커버",
-        "podcasts": "동의한 뒤에 피드 구독하기"
+        "podcasts": "동의한 뒤에 피드 구독하기",
+        "understanding": "소리에 관한 용어를 짧게"
       }
     },
     "desktopLyrics": {
@@ -3449,6 +3533,35 @@
       "seeStays": "남는 것 보기",
       "downloadQuota": "다운로드한 에피소드의 최대 공간",
       "downloadQuotaHint": "이 용량에 도달하면 다운로드가 멈춥니다. 이미 있는 파일은 그대로 남습니다. 사용 중: {{used}}"
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "샘플레이트",
+        "body": "1초에 소리를 몇 번 측정하는지입니다. CD 품질인 44.1kHz로도 귀에 들리는 모든 범위를 담습니다. 96이나 192kHz는 주로 스튜디오에서 씁니다."
+      },
+      "bitDepth": {
+        "term": "비트 심도",
+        "body": "각 측정이 얼마나 정밀한지입니다. CD 품질인 16비트면 감상에 충분하고, 24비트는 녹음과 믹싱에 여유를 더 줍니다."
+      },
+      "lossless": {
+        "term": "무손실과 손실",
+        "body": "무손실 파일(FLAC, WAV, ALAC…)은 녹음을 모두 담습니다. 손실 파일(MP3, AAC, Opus…)은 귀가 거의 알아채지 못하는 부분을 덜어 훨씬 가볍습니다. 비트레이트가 넉넉하면 차이는 거의 들리지 않습니다."
+      },
+      "resampling": {
+        "term": "리샘플링",
+        "body": "출력 장치가 파일과 다른 샘플레이트로 동작하면 WaveFlow가 변환합니다. 제대로 하면 들리지 않습니다."
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "곡마다의 소리 크기 값으로, 파일에서 읽거나 WaveFlow가 계산합니다. 켜 두면 곡마다 음량을 다시 맞출 필요가 없고 다른 소리는 바뀌지 않습니다."
+      },
+      "exclusive": {
+        "term": "독점 모드",
+        "body": "보통 시스템은 모든 앱의 소리를 섞습니다. 독점 모드에서는 WaveFlow가 출력을 독차지해 시스템이 소리를 건드리지 않지만, 다른 앱의 소리는 그 출력으로 들리지 않습니다."
+      },
+      "stripShown": "플레이어 아래의 품질 바가 지금 재생 중인 곡에 이 용어를 적용합니다. 마우스를 올리면 WaveFlow가 무엇을 하는지 볼 수 있습니다.",
+      "stripHidden": "품질 바는 지금 재생 중인 곡에 이 용어를 적용합니다. 플레이어 아래에 표시한 뒤 마우스를 올리면 WaveFlow가 무엇을 하는지 볼 수 있습니다.",
+      "showStrip": "품질 바 표시"
     }
   },
   "scanProgress": {

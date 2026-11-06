@@ -1583,35 +1583,117 @@
     },
     "toggleNowPlayingPanel": "再生中パネルの表示 / 非表示",
     "pipeline": {
-      "title": "オーディオパイプライン",
+      "title": "ファイルから耳まで",
       "openHint": "オーディオパイプラインの詳細を表示",
-      "source": "ソース",
-      "processing": "処理",
-      "output": "出力",
-      "noProcessing": "処理は適用されていません",
       "bitPerfect": "ビットパーフェクト",
-      "sharedOutput": "共有出力（システムミキサー経由）",
       "loading": "読み込み中…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "リサンプル",
-        "downmix": "ダウンミックス",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "ノーマライズ",
+      "bits": "{{value}}ビット",
+      "kind": {
+        "lossless": "ロスレス",
+        "lossy": "非可逆",
+        "dsd": "DSD",
+        "fakeLossless": "偽ロスレスの可能性"
+      },
+      "channels": {
         "mono": "モノラル",
-        "speed": "速度 {{value}}×",
-        "dopNative": "ネイティブ DSD",
-        "volume": "音量 {{value}}%",
-        "balance": "バランス",
-        "width": "幅 {{value}}%",
-        "pitch": "音程 {{value}}"
+        "stereo": "ステレオ",
+        "other": "{{value}}チャンネル"
+      },
+      "file": {
+        "title": "ファイル",
+        "lossless": "録音されたものがすべて入っています。容量のために削られたものはありません。",
+        "lossy": "容量を減らすために圧縮されています。耳がほとんど気づかない細部が削られています。",
+        "dsd": "SACD の形式です。音はとても速い 1 ビットの信号で表されます。",
+        "fakeLossless": "解析で、MP3 のように途中で途切れる高音が見つかりました。このファイルはおそらく非可逆のファイルから作られており、それ以上の情報は含みません。"
+      },
+      "stage": {
+        "none": {
+          "title": "処理なし",
+          "body": "WaveFlow はファイルから出たままの音を送ります。"
+        },
+        "dop": {
+          "title": "ネイティブ DSD",
+          "body": "DSD はそのまま送られ、お使いの DAC がデコードします。"
+        },
+        "dsdToPcm": {
+          "title": "DSD を変換",
+          "body": "出力先が DSD をそのまま受け取れないため、WaveFlow が読める形式に変換します。聞き取れる劣化はありません。"
+        },
+        "resample": {
+          "title": "サンプリング周波数を調整",
+          "body": "ファイルは {{source}}、出力先は {{output}} で動作しています。WaveFlow が変換します。聞き取れる劣化はありません。"
+        },
+        "downmix": {
+          "title": "チャンネルをまとめる",
+          "body": "ファイルは {{source}}、出力先は {{output}} です。何も欠けないよう WaveFlow がチャンネルを混ぜます。"
+        },
+        "eq": {
+          "title": "イコライザー",
+          "body": "低音・中音・高音が設定どおりに調整されます。"
+        },
+        "replayGain": {
+          "title": "音量の均一化（ReplayGain）",
+          "body": "どの曲も同じくらいの大きさで聞こえるよう音量を調整します。"
+        },
+        "normalize": {
+          "title": "ノーマライズ",
+          "body": "大きすぎる曲の音量を下げて、レベルをそろえます。"
+        },
+        "mono": {
+          "title": "モノラル",
+          "body": "左右を 1 つの信号に混ぜるため、ステレオ感はなくなります。"
+        },
+        "balance": {
+          "title": "バランス",
+          "bodyLeft": "音が左に寄っています。",
+          "bodyRight": "音が右に寄っています。"
+        },
+        "width": {
+          "title": "ステレオの広がり",
+          "bodyNarrower": "左右を近づけています。音場が狭くなります。",
+          "bodyWider": "左右を広げています。音場が広くなります。"
+        },
+        "volume": {
+          "title": "音量",
+          "body": "WaveFlow は送る前に音量を {{value}} % に下げています。"
+        },
+        "speed": {
+          "title": "再生速度",
+          "body": "元の速さの {{value}}× で再生しています。"
+        },
+        "pitch": {
+          "title": "ピッチ",
+          "bodyUp": "原曲より高く再生しています。",
+          "bodyDown": "原曲より低く再生しています。",
+          "figures": "移調 {{value}}"
+        }
+      },
+      "impact": {
+        "none": "音は変わりません",
+        "inaudible": "聞き取れる劣化なし",
+        "level": "音量だけが変わります",
+        "changes": "音が変わります"
+      },
+      "verdict": {
+        "bitPerfect": "音はファイルのとおり、そのまま出力に届いています。",
+        "shared": "WaveFlow は何も変えていませんが、システムが他のアプリの音と混ぜています。"
+      },
+      "output": {
+        "title": "出力",
+        "shared": "共有モード：システムが WaveFlow をパソコンの他の音と混ぜます。普段使いに最適です。",
+        "exclusive": "排他モード：WaveFlow が出力を独占し、他の音は混ざりません。",
+        "dop": "排他モード：WaveFlow が出力を独占し、DSD をそのまま送ります。",
+        "exclusiveRefused": "出力先が排他モードを拒否しました。WaveFlow は共有モードで再生しています。"
       }
     },
     "outputMode": {
       "exclusive": "排他",
       "dop": "ネイティブ DSD",
       "exclusiveRefused": "排他モードを利用不可"
+    },
+    "quality": {
+      "converted": "出力に合わせて変換",
+      "details": "詳細"
     }
   },
   "miniPlayer": {
@@ -2710,8 +2792,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD バッジ",
-      "subtitle": "対象となる曲の横と、プレーヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。既定はオン。"
+      "title": "Hi-Res / DSD / Lossless バッジ",
+      "subtitle": "対象となる曲の横と、プレーヤーバーのアーティスト名の下に「Hi-Res 24-bit」「DSD128」または「Lossless」（ロスレス、CD 品質）のラベルを表示します。既定はオン。"
     },
     "serverAccount": {
       "title": "WaveFlow サーバーアカウント",
@@ -3081,7 +3163,8 @@
         "diskUsage": "ディスク容量",
         "globalShortcuts": "グローバルショートカット",
         "enrichment": "情報の補完",
-        "podcasts": "ポッドキャスト"
+        "podcasts": "ポッドキャスト",
+        "understanding": "オーディオを知る"
       },
       "navHints": {
         "general": "言語、起動、再生",
@@ -3133,7 +3216,8 @@
         "diskUsage": "WaveFlow がこのコンピューターに保存しているもの",
         "globalShortcuts": "どのアプリからでも",
         "enrichment": "MusicBrainz からジャンル・日付・クレジット・ジャケット",
-        "podcasts": "同意のうえでフィードを登録"
+        "podcasts": "同意のうえでフィードを登録",
+        "understanding": "音の用語を短く解説"
       }
     },
     "desktopLyrics": {
@@ -3449,6 +3533,35 @@
       "seeStays": "残るものを見る",
       "downloadQuota": "ダウンロードしたエピソードの最大容量",
       "downloadQuotaHint": "この上限に達するとダウンロードは止まります。すでにあるファイルは残ります。使用量: {{used}}"
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "サンプリング周波数",
+        "body": "1 秒間に音を何回測るか。CD 品質の 44.1 kHz で、耳に聞こえる範囲はすでにカバーされています。96 や 192 kHz は主にスタジオ向けです。"
+      },
+      "bitDepth": {
+        "term": "ビット深度",
+        "body": "1 回の測定の細かさ。CD 品質の 16 ビットで聴くには十分です。24 ビットは録音やミックスの余裕を広げます。"
+      },
+      "lossless": {
+        "term": "ロスレスと非可逆",
+        "body": "ロスレスのファイル（FLAC、WAV、ALAC…）は録音をすべて保ちます。非可逆のファイル（MP3、AAC、Opus…）は耳がほとんど気づかない部分を削ってずっと軽くなります。十分なビットレートなら違いはまず聞き取れません。"
+      },
+      "resampling": {
+        "term": "リサンプリング",
+        "body": "出力先がファイルと違う周波数で動作しているとき、WaveFlow が変換します。きちんと行えば聞き取れません。"
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "曲ごとの音の大きさの値で、ファイルから読むか WaveFlow が計算します。オンにすると曲ごとに音量を直す必要がなくなり、それ以外の音は変わりません。"
+      },
+      "exclusive": {
+        "term": "排他モード",
+        "body": "通常、システムはすべてのアプリの音を混ぜます。排他モードでは WaveFlow が出力を独占するため、システムは音に手を加えませんが、他のアプリの音はその出力から聞こえなくなります。"
+      },
+      "stripShown": "プレーヤーの下にある品質バーが、再生中の曲にこれらの用語を当てはめます。マウスを重ねると、WaveFlow が何をしているかがわかります。",
+      "stripHidden": "品質バーは、再生中の曲にこれらの用語を当てはめます。プレーヤーの下に表示して、マウスを重ねると WaveFlow が何をしているかがわかります。",
+      "showStrip": "品質バーを表示"
     }
   },
   "scanProgress": {

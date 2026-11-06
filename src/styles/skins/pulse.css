@@ -388,7 +388,8 @@
   color: var(--fe-accent) !important;
   background-color: var(--pu-fill-accent) !important;
 }
-:root[data-skin="pulse"] [data-topbar-popover] {
+:root[data-skin="pulse"] [data-topbar-popover],
+:root[data-skin="pulse"] [data-audio-pipeline] {
   background-color: var(--fe-surface) !important;
   box-shadow:
     var(--pu-ring-strong),

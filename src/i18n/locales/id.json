@@ -1583,35 +1583,117 @@
     },
     "toggleNowPlayingPanel": "Tampilkan / sembunyikan Sedang diputar",
     "pipeline": {
-      "title": "Pipeline audio",
+      "title": "Dari file ke telingamu",
       "openHint": "Lihat pipeline audio secara rinci",
-      "source": "Sumber",
-      "processing": "Pemrosesan",
-      "output": "Keluaran",
-      "noProcessing": "Tidak ada pemrosesan aktif",
       "bitPerfect": "Bit-perfect",
-      "sharedOutput": "Keluaran bersama (mixer sistem)",
       "loading": "Memuat…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "Resample",
-        "downmix": "Downmix",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "Normalisasi",
+      "bits": "{{value}} bit",
+      "kind": {
+        "lossless": "Lossless",
+        "lossy": "Lossy",
+        "dsd": "DSD",
+        "fakeLossless": "Kemungkinan lossless palsu"
+      },
+      "channels": {
         "mono": "Mono",
-        "speed": "Kecepatan {{value}}×",
-        "dopNative": "DSD asli",
-        "volume": "Volume {{value}}%",
-        "balance": "Keseimbangan",
-        "width": "Lebar {{value}}%",
-        "pitch": "Nada {{value}}"
+        "stereo": "Stereo",
+        "other": "{{value}} kanal"
+      },
+      "file": {
+        "title": "File-mu",
+        "lossless": "Semua yang direkam ada di sini: tidak ada yang dibuang untuk menghemat ruang.",
+        "lossy": "Dikompresi agar lebih hemat ruang: detail yang nyaris tak terdengar telinga telah dibuang.",
+        "dsd": "Format SACD: suara dijelaskan oleh aliran satu bit yang sangat cepat.",
+        "fakeLossless": "Analisis menemukan nada tinggi yang terpotong seperti pada MP3: file ini kemungkinan dibuat dari file lossy dan tidak menyimpan lebih dari itu."
+      },
+      "stage": {
+        "none": {
+          "title": "Tanpa pemrosesan",
+          "body": "WaveFlow mengirim suara persis seperti keluar dari file."
+        },
+        "dop": {
+          "title": "DSD asli",
+          "body": "DSD dikirim apa adanya: konvertermu yang mendekodekannya."
+        },
+        "dsdToPcm": {
+          "title": "DSD dikonversi",
+          "body": "Output-mu tidak menerima DSD apa adanya: WaveFlow mengonversinya ke format yang bisa dibacanya, tanpa kehilangan yang terdengar."
+        },
+        "resample": {
+          "title": "Frekuensi disesuaikan",
+          "body": "File-mu {{source}}, output-mu berjalan di {{output}}: WaveFlow mengonversi dari satu ke yang lain, tanpa kehilangan yang terdengar."
+        },
+        "downmix": {
+          "title": "Kanal digabung",
+          "body": "File-mu {{source}}, output-mu {{output}}: WaveFlow mencampur kanal agar tidak ada yang hilang."
+        },
+        "eq": {
+          "title": "Equalizer",
+          "body": "Bass, mid, dan treble diatur sesuai pengaturanmu."
+        },
+        "replayGain": {
+          "title": "Volume diseimbangkan (ReplayGain)",
+          "body": "Volume disesuaikan agar setiap lagu terdengar sama keras."
+        },
+        "normalize": {
+          "title": "Normalisasi",
+          "body": "Lagu yang terlalu keras diturunkan agar levelnya tetap merata."
+        },
+        "mono": {
+          "title": "Mono",
+          "body": "Kiri dan kanan dicampur menjadi satu sinyal: efek stereo hilang."
+        },
+        "balance": {
+          "title": "Balans",
+          "bodyLeft": "Suara condong ke kiri.",
+          "bodyRight": "Suara condong ke kanan."
+        },
+        "width": {
+          "title": "Lebar stereo",
+          "bodyNarrower": "Kiri dan kanan didekatkan: panggung suara lebih sempit.",
+          "bodyWider": "Kiri dan kanan dijauhkan: panggung suara lebih lebar."
+        },
+        "volume": {
+          "title": "Volume",
+          "body": "WaveFlow menurunkan suara ke {{value}} % sebelum mengirimnya."
+        },
+        "speed": {
+          "title": "Kecepatan",
+          "body": "Lagu diputar pada {{value}}× kecepatan aslinya."
+        },
+        "pitch": {
+          "title": "Nada",
+          "bodyUp": "Lagu terdengar lebih tinggi dari aslinya.",
+          "bodyDown": "Lagu terdengar lebih rendah dari aslinya.",
+          "figures": "Transposisi {{value}}"
+        }
+      },
+      "impact": {
+        "none": "Tidak mengubah suara",
+        "inaudible": "Tanpa kehilangan yang terdengar",
+        "level": "Hanya volume yang berubah",
+        "changes": "Mengubah suara"
+      },
+      "verdict": {
+        "bitPerfect": "Suara tiba di output-mu persis seperti di dalam file.",
+        "shared": "WaveFlow tidak mengubah apa pun; sistem masih mencampur suara dengan suara aplikasi lain."
+      },
+      "output": {
+        "title": "Output",
+        "shared": "Mode bersama: sistem mencampur WaveFlow dengan suara lain di komputer. Ideal untuk sehari-hari.",
+        "exclusive": "Mode eksklusif: output hanya untuk WaveFlow, tidak ada suara lain yang ikut tercampur.",
+        "dop": "Mode eksklusif: output hanya untuk WaveFlow dan DSD dikirim ke sana apa adanya.",
+        "exclusiveRefused": "Output menolak mode eksklusif: WaveFlow memutar dalam mode bersama."
       }
     },
     "outputMode": {
       "exclusive": "Eksklusif",
       "dop": "DSD asli",
       "exclusiveRefused": "Eksklusif ditolak"
+    },
+    "quality": {
+      "converted": "Disesuaikan ke output",
+      "details": "Detail"
     }
   },
   "miniPlayer": {
@@ -2710,8 +2792,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Lencana Hi-Res / DSD",
-      "subtitle": "Tampilkan lencana \"Hi-Res 24-bit\" atau \"DSD128\" di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara bawaan."
+      "title": "Lencana Hi-Res / DSD / Lossless",
+      "subtitle": "Tampilkan lencana \"Hi-Res 24-bit\", \"DSD128\", atau \"Lossless\" (kualitas CD) di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara bawaan."
     },
     "serverAccount": {
       "title": "Akun server WaveFlow",
@@ -3081,7 +3163,8 @@
         "diskUsage": "Ruang disk",
         "globalShortcuts": "Pintasan global",
         "enrichment": "Pengayaan",
-        "podcasts": "Podcast"
+        "podcasts": "Podcast",
+        "understanding": "Memahami audio"
       },
       "navHints": {
         "general": "Bahasa, mulai, pemutaran",
@@ -3133,7 +3216,8 @@
         "diskUsage": "Apa yang disimpan WaveFlow di komputer ini",
         "globalShortcuts": "Dari aplikasi mana pun",
         "enrichment": "Genre, tanggal, kredit, dan sampul dari MusicBrainz",
-        "podcasts": "Ikuti umpan, setelah kamu setuju"
+        "podcasts": "Ikuti umpan, setelah kamu setuju",
+        "understanding": "Istilah suara, dalam beberapa kalimat"
       }
     },
     "desktopLyrics": {
@@ -3449,6 +3533,35 @@
       "seeStays": "Lihat yang tetap ada",
       "downloadQuota": "Ruang maksimum untuk episode yang diunduh",
       "downloadQuotaHint": "Unduhan berhenti pada kuota ini. Berkas yang sudah ada tetap tersimpan. Terpakai: {{used}}."
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "Frekuensi sampel",
+        "body": "Berapa kali per detik suara diukur. 44,1 kHz, kualitas CD, sudah mencakup semua yang bisa didengar telinga; 96 atau 192 kHz terutama untuk studio."
+      },
+      "bitDepth": {
+        "term": "Kedalaman bit",
+        "body": "Seberapa presisi setiap pengukuran. 16 bit, kualitas CD, sudah cukup untuk mendengarkan; 24 bit memberi ruang lebih untuk rekaman dan mixing."
+      },
+      "lossless": {
+        "term": "Lossless atau lossy",
+        "body": "File lossless (FLAC, WAV, ALAC…) menyimpan seluruh rekaman. File lossy (MP3, AAC, Opus…) membuang yang nyaris tak terdengar telinga agar jauh lebih ringan; pada bitrate yang baik, perbedaannya jarang terdengar."
+      },
+      "resampling": {
+        "term": "Resampling",
+        "body": "Saat output-mu tidak berjalan di frekuensi file, WaveFlow mengonversi satu ke yang lain. Jika dilakukan dengan baik, tidak terdengar."
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "Ukuran kekerasan suara setiap lagu, dibaca dari file atau dihitung oleh WaveFlow. Jika aktif, kamu tak perlu lagi mengatur volume dari lagu ke lagu, dan suara lainnya tidak berubah."
+      },
+      "exclusive": {
+        "term": "Mode eksklusif",
+        "body": "Biasanya sistem mencampur suara semua aplikasi. Dalam mode eksklusif, WaveFlow memesan output: sistem tidak lagi menyentuh suara, tetapi aplikasi lain tidak terdengar di output itu."
+      },
+      "stripShown": "Bilah kualitas di bawah pemutar menerapkan istilah ini ke lagu yang sedang diputar: arahkan kursor ke atasnya untuk melihat apa yang dilakukan WaveFlow.",
+      "stripHidden": "Bilah kualitas menerapkan istilah ini ke lagu yang sedang diputar. Tampilkan di bawah pemutar, lalu arahkan kursor ke atasnya untuk melihat apa yang dilakukan WaveFlow.",
+      "showStrip": "Tampilkan bilah kualitas"
     }
   },
   "scanProgress": {

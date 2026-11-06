@@ -1,19 +1,51 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { FileAudio, Cpu, Speaker, Sparkles } from "lucide-react";
-import type { QueueTrackPayload } from "../../lib/tauri/player";
+import {
+  AudioWaveform,
+  Disc3,
+  FileAudio,
+  Gauge,
+  Merge,
+  Music2,
+  Scale,
+  SlidersHorizontal,
+  Sparkles,
+  Speaker,
+  Volume1,
+  Volume2,
+  type LucideIcon,
+} from "lucide-react";
+import type {
+  OutputMode,
+  QueueTrackPayload,
+  ReplayGainMode,
+} from "../../lib/tauri/player";
 import { playerGetAudioSettings, playerGetState } from "../../lib/tauri/player";
 import { playerGetEq } from "../../lib/tauri/eq";
 import { usePlayer } from "../../hooks/usePlayer";
 import { isPodcastTrack } from "../../lib/playerSources";
+import {
+  fileKind,
+  formatBitrate,
+  formatKHz,
+  surroundLayout,
+} from "../../lib/audioQuality";
+import { HiResBadge } from "../common/HiResBadge";
+import { AudioPipelineCard, type StageImpact } from "./AudioPipelineCard";
 
 interface AudioPipelinePopoverProps {
   track: QueueTrackPayload;
-  /** Mounted only while open — the caller toggles it on pointerenter
-   *  / pointerleave with a short delay so brushing the footer doesn't
-   *  flicker the popover open. */
-  onClose?: () => void;
+  /** The strip it opens from. The popover is portalled into `body` and
+   *  placed above this element, right-aligned with it. */
+  anchor: HTMLElement | null;
+  /** Hover handlers of the strip, carried over to the popover so the
+   *  pointer can travel from one to the other without closing it. */
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  /** The analysis caught the track as a probable fake lossless. */
+  probableFakeLossless?: boolean;
 }
 
 interface PipelineSnapshot {
@@ -22,6 +54,7 @@ interface PipelineSnapshot {
   eqEnabled: boolean;
   normalize: boolean;
   replaygain: boolean;
+  replaygainMode: ReplayGainMode;
   mono: boolean;
   /** Left / right balance in percent; 0 is the centre. */
   balance: number;
@@ -31,62 +64,33 @@ interface PipelineSnapshot {
   dopActive: boolean;
   /** The output really owns the device (WASAPI Exclusive today). */
   exclusiveActive: boolean;
+  /** What the output engaged as, read in the same snapshot as the rest. */
+  outputMode: OutputMode;
   /** Which track was playing when this was read. See `snap` below. */
   forTrackId: number;
 }
 
-/**
- * Maps a channel count (1-8) onto the layout strings audiophile
- * players use (Mono / Stereo / 3.0 / 4.0 / 5.0 / 5.1 / 6.1 / 7.1).
- * Unknown counts fall back to `${n}ch` so we never silently drop the
- * information.
- */
-function formatChannelLayout(channels: number | null | undefined): string {
-  if (channels == null || channels <= 0) return "—";
-  switch (channels) {
-    case 1:
-      return "Mono";
-    case 2:
-      return "Stereo";
-    case 3:
-      return "3.0";
-    case 4:
-      return "4.0";
-    case 5:
-      return "5.0";
-    case 6:
-      return "5.1";
-    case 7:
-      return "6.1";
-    case 8:
-      return "7.1";
-    default:
-      return `${channels}ch`;
-  }
+/** One stage card, before it is rendered. */
+interface StageCard {
+  key: string;
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  figures?: string | null;
+  impact: StageImpact;
 }
 
-/** Bitrate as kb/s under 1000, Mb/s with one decimal otherwise. */
-function formatBitrate(kbps: number | null | undefined): string | null {
-  if (kbps == null || kbps <= 0) return null;
-  if (kbps >= 1000) {
-    const mbps = kbps / 1000;
-    return `${mbps.toFixed(mbps >= 10 ? 1 : 2).replace(/\.?0+$/, "")} Mb/s`;
-  }
-  return `${kbps} kb/s`;
-}
-
-function formatSampleRate(hz: number | null | undefined): string | null {
-  if (hz == null || hz <= 0) return null;
-  const khz = hz / 1000;
-  // Drop a trailing ".0" so 48000 reads "48 kHz" rather than "48.0 kHz",
-  // but keep the decimal for 44.1 / 88.2 / 176.4 family.
-  return `${khz.toFixed(1).replace(/\.0$/, "")} kHz`;
-}
+/** Room kept between the strip and the popover, and around the window. */
+const POPOVER_GAP_PX = 8;
+const POPOVER_EDGE_PX = 16;
 
 /**
- * Hover popover that surfaces the full audio pipeline (Source →
- * Pipeline DSP chips → Output) for the currently playing track. Lives
- * above [`AudioQualityFooter`] which is its only trigger today.
+ * Hover popover that walks the currently playing track through the
+ * engine as a column of cards: the file, one card per stage that
+ * touches the samples, the output. Each card says in plain words what
+ * happens and whether it changes the sound, with the figures under it.
+ * Opens above [`AudioQualityFooter`], its only trigger today, through a
+ * portal: the player bar is a stacking context under the glassy skins.
  *
  * Strategy on data freshness: reads the output-side + DSP flags from
  * the engine via `playerGetState` / `playerGetAudioSettings` /
@@ -105,9 +109,17 @@ function formatSampleRate(hz: number | null | undefined): string | null {
  * PCM track after it would have exempted that one from the rate check
  * and badged it bit-perfect.
  */
-export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
-  const { t } = useTranslation();
-  const { playbackSpeed, pitchSemitones, volume, currentTrack } = usePlayer();
+export function AudioPipelinePopover({
+  track,
+  anchor,
+  onPointerEnter,
+  onPointerLeave,
+  probableFakeLossless,
+}: AudioPipelinePopoverProps) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const { playbackSpeed, pitchSemitones, volume, currentTrack, outputDevices } =
+    usePlayer();
   const [rawSnap, setRawSnap] = useState<PipelineSnapshot | null>(null);
   // A track change and an output rebuild can put two reads in flight at
   // once; the older one resolving second would pin a stale output
@@ -159,11 +171,13 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           eqEnabled: eqSnap.enabled,
           normalize: audioSettings.normalize,
           replaygain: audioSettings.replaygain,
+          replaygainMode: audioSettings.replaygain_mode,
           mono: audioSettings.mono,
           balance: audioSettings.balance,
           stereoWidth: audioSettings.stereo_width,
           dopActive: stateSnap.dop_active,
           exclusiveActive: stateSnap.exclusive_active,
+          outputMode: stateSnap.output_mode,
           forTrackId: trackId,
         });
       } catch (err) {
@@ -210,17 +224,6 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   // which is exactly the right behaviour for the moment between a
   // track change and the read that follows it.
   const snap = rawSnap?.forTrackId === trackId ? rawSnap : null;
-
-  const sourceCodec = track.codec ?? "—";
-  const sourceRateLabel = formatSampleRate(track.sample_rate);
-  const sourceBitDepth = track.bit_depth ? `${track.bit_depth} bit` : null;
-  const sourceBitrateLabel = formatBitrate(track.bitrate);
-  const sourceChannelsLabel = formatChannelLayout(track.channels);
-
-  const outputRateLabel = snap ? formatSampleRate(snap.outputSampleRate) : null;
-  const outputChannelsLabel = snap
-    ? formatChannelLayout(snap.outputChannels)
-    : null;
 
   // Pipeline-effect detection. Anything in this set means the stream
   // isn't bit-perfect — used to decide whether to surface the green
@@ -322,221 +325,340 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isBitPerfect =
     isUnprocessed && (isDopNative || (snap?.exclusiveActive ?? false));
 
-  const chips: Array<{ key: string; label: string; tone: "dsp" | "convert" }> =
-    [];
+  const sourceRate = formatKHz(track.sample_rate, lang);
+  const outputRate = snap ? formatKHz(snap.outputSampleRate, lang) : null;
+  const channelLabel = (n: number | null | undefined): string | null => {
+    if (n == null || n <= 0) return null;
+    if (n === 1) return t("playerBar.pipeline.channels.mono");
+    if (n === 2) return t("playerBar.pipeline.channels.stereo");
+    return (
+      surroundLayout(n) ?? t("playerBar.pipeline.channels.other", { value: n })
+    );
+  };
+
+  // ── The file ────────────────────────────────────────────────────
+  const kind = fileKind(track.codec, track.bit_depth);
+  // A lossless file the analysis caught stopping at a lossy encoder's
+  // wall is described as what it probably is, and earns no badge.
+  const fileText =
+    kind === "lossless" && probableFakeLossless === true
+      ? "fakeLossless"
+      : kind;
+  const fileFigures = [
+    track.codec,
+    track.bit_depth
+      ? t("playerBar.pipeline.bits", { value: track.bit_depth })
+      : null,
+    sourceRate,
+    formatBitrate(track.bitrate, lang),
+    channelLabel(track.channels),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // ── What the engine does, one card per stage ───────────────────
+  const stages: StageCard[] = [];
   if (isDopNative)
-    chips.push({
+    stages.push({
       key: "dop",
-      label: t("playerBar.pipeline.chip.dopNative"),
-      tone: "dsp",
+      icon: Disc3,
+      title: t("playerBar.pipeline.stage.dop.title"),
+      body: t("playerBar.pipeline.stage.dop.body"),
+      impact: "none",
     });
   else if (isDsd)
-    chips.push({
+    stages.push({
       key: "dsd",
-      label: t("playerBar.pipeline.chip.dsdToPcm"),
-      tone: "convert",
+      icon: Disc3,
+      title: t("playerBar.pipeline.stage.dsdToPcm.title"),
+      body: t("playerBar.pipeline.stage.dsdToPcm.body"),
+      impact: "inaudible",
     });
-  if (isResampling)
-    chips.push({
+  if (isResampling && sourceRate && outputRate)
+    stages.push({
       key: "resample",
-      // Surface the actual from→to rates so the chip mirrors the
-      // footer's `48 kHz → 44.1 kHz` arrow. Stripped of the unit on
-      // the left side since the `kHz` suffix on the right reads for
-      // both (matches the way audio devices are usually labelled).
-      label: `${t("playerBar.pipeline.chip.resample")} ${(
-        track.sample_rate! / 1000
-      )
-        .toFixed(1)
-        .replace(/\.0$/, "")} → ${formatSampleRate(snap!.outputSampleRate)}`,
-      tone: "convert",
+      icon: AudioWaveform,
+      title: t("playerBar.pipeline.stage.resample.title"),
+      body: t("playerBar.pipeline.stage.resample.body", {
+        source: sourceRate,
+        output: outputRate,
+      }),
+      figures: `${sourceRate} → ${outputRate}`,
+      impact: "inaudible",
     });
-  if (isDownmixing)
-    chips.push({
+  if (isDownmixing) {
+    const from = channelLabel(track.channels);
+    const to = channelLabel(snap?.outputChannels);
+    stages.push({
       key: "downmix",
-      label: `${t("playerBar.pipeline.chip.downmix")} ${formatChannelLayout(track.channels)} → ${formatChannelLayout(snap!.outputChannels)}`,
-      tone: "convert",
+      icon: Merge,
+      title: t("playerBar.pipeline.stage.downmix.title"),
+      body: t("playerBar.pipeline.stage.downmix.body", {
+        source: from,
+        output: to,
+      }),
+      figures: `${from} → ${to}`,
+      impact: "changes",
     });
+  }
   if (isEq)
-    chips.push({
+    stages.push({
       key: "eq",
-      label: t("playerBar.pipeline.chip.eq"),
-      tone: "dsp",
+      icon: SlidersHorizontal,
+      title: t("playerBar.pipeline.stage.eq.title"),
+      body: t("playerBar.pipeline.stage.eq.body"),
+      impact: "changes",
     });
-  if (isReplayGain)
-    chips.push({
+  if (isReplayGain && snap)
+    stages.push({
       key: "rg",
-      label: t("playerBar.pipeline.chip.replayGain"),
-      tone: "dsp",
+      icon: Volume2,
+      title: t("playerBar.pipeline.stage.replayGain.title"),
+      body: t("playerBar.pipeline.stage.replayGain.body"),
+      figures: t(`settings.replayGain.mode.${snap.replaygainMode}`),
+      impact: "level",
     });
   if (isNormalize)
-    chips.push({
+    stages.push({
       key: "norm",
-      label: t("playerBar.pipeline.chip.normalize"),
-      tone: "dsp",
+      icon: Volume2,
+      title: t("playerBar.pipeline.stage.normalize.title"),
+      body: t("playerBar.pipeline.stage.normalize.body"),
+      impact: "level",
     });
   if (isMono)
-    chips.push({
+    stages.push({
       key: "mono",
-      label: t("playerBar.pipeline.chip.mono"),
-      tone: "dsp",
+      icon: Merge,
+      title: t("playerBar.pipeline.stage.mono.title"),
+      body: t("playerBar.pipeline.stage.mono.body"),
+      impact: "changes",
     });
-  if (isBalanced)
-    chips.push({
+  if (isBalanced && snap)
+    stages.push({
       key: "balance",
-      label: t("playerBar.pipeline.chip.balance"),
-      tone: "dsp",
+      icon: Scale,
+      title: t("playerBar.pipeline.stage.balance.title"),
+      body: t(
+        snap.balance < 0
+          ? "playerBar.pipeline.stage.balance.bodyLeft"
+          : "playerBar.pipeline.stage.balance.bodyRight",
+      ),
+      figures: `${Math.abs(snap.balance)} %`,
+      impact: "changes",
     });
-  if (isWidened)
-    chips.push({
+  if (isWidened && snap)
+    stages.push({
       key: "width",
-      label: t("playerBar.pipeline.chip.width", {
-        value: snap?.stereoWidth ?? 100,
-      }),
-      tone: "dsp",
+      icon: Speaker,
+      title: t("playerBar.pipeline.stage.width.title"),
+      body: t(
+        snap.stereoWidth < 100
+          ? "playerBar.pipeline.stage.width.bodyNarrower"
+          : "playerBar.pipeline.stage.width.bodyWider",
+      ),
+      figures: `${snap.stereoWidth} %`,
+      impact: "changes",
     });
   if (isAttenuated)
-    chips.push({
+    stages.push({
       key: "volume",
-      label: t("playerBar.pipeline.chip.volume", { value: Math.round(volume) }),
-      tone: "dsp",
-    });
-  if (isSpeedShifted)
-    chips.push({
-      key: "speed",
-      label: t("playerBar.pipeline.chip.speed", {
-        value: playbackSpeed.toFixed(2).replace(/\.?0+$/, ""),
+      icon: Volume1,
+      title: t("playerBar.pipeline.stage.volume.title"),
+      body: t("playerBar.pipeline.stage.volume.body", {
+        value: Math.round(volume),
       }),
-      tone: "dsp",
+      figures: `${Math.round(volume)} %`,
+      impact: "level",
     });
+  if (isSpeedShifted) {
+    const speed = playbackSpeed.toFixed(2).replace(/\.?0+$/, "");
+    stages.push({
+      key: "speed",
+      icon: Gauge,
+      title: t("playerBar.pipeline.stage.speed.title"),
+      body: t("playerBar.pipeline.stage.speed.body", { value: speed }),
+      figures: `${speed}×`,
+      impact: "changes",
+    });
+  }
   if (isTransposed)
-    chips.push({
+    stages.push({
       key: "pitch",
-      label: t("playerBar.pipeline.chip.pitch", {
+      icon: Music2,
+      title: t("playerBar.pipeline.stage.pitch.title"),
+      body: t(
+        pitchSemitones > 0
+          ? "playerBar.pipeline.stage.pitch.bodyUp"
+          : "playerBar.pipeline.stage.pitch.bodyDown",
+      ),
+      figures: t("playerBar.pipeline.stage.pitch.figures", {
         value: `${pitchSemitones > 0 ? "+" : ""}${pitchSemitones}`,
       }),
-      tone: "dsp",
+      impact: "changes",
     });
 
-  return (
+  // ── The output ─────────────────────────────────────────────────
+  // The device the sound really comes out of (`is_active`, #612), not
+  // the one picked: they differ while a pinned device is missing.
+  const activeDevice = outputDevices.find((d) => d.is_active) ?? null;
+  const outputBody = snap
+    ? t(
+        snap.outputMode === "dop"
+          ? "playerBar.pipeline.output.dop"
+          : snap.outputMode === "exclusive"
+            ? "playerBar.pipeline.output.exclusive"
+            : snap.outputMode === "exclusive-refused"
+              ? "playerBar.pipeline.output.exclusiveRefused"
+              : "playerBar.pipeline.output.shared",
+      )
+    : t("playerBar.pipeline.loading");
+  const outputFigures = snap
+    ? [outputRate, channelLabel(snap.outputChannels)]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+
+  // ── Placement ──────────────────────────────────────────────────
+  // Above the strip, flush with its end edge, measured once it is laid
+  // out and again whenever the window is resized under it.
+  const [place, setPlace] = useState<{
+    right: number;
+    bottom: number;
+    maxHeight: number;
+  } | null>(null);
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    const measure = () => {
+      const rect = anchor.getBoundingClientRect();
+      setPlace({
+        right: Math.max(
+          POPOVER_EDGE_PX,
+          window.innerWidth - rect.right + POPOVER_EDGE_PX,
+        ),
+        bottom: window.innerHeight - rect.top + POPOVER_GAP_PX,
+        maxHeight: Math.max(160, rect.top - POPOVER_GAP_PX - POPOVER_EDGE_PX),
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [anchor]);
+
+  if (!place) return null;
+
+  return createPortal(
     // Hover-triggered informational popover — not a dialog. Skipping
     // `role="dialog"` (and the associated `useModalA11y` focus trap)
     // by design: the popover holds no actionable controls, dismisses
     // automatically on hover-leave, and trapping focus inside it
     // would feel broken when the user only meant to glance at the
-    // specs. `role="group"` keeps the heading + chip structure
-    // grouped for assistive tech without claiming dialog semantics.
+    // specs. `role="group"` keeps the heading and the cards grouped
+    // for assistive tech without claiming dialog semantics.
     <div
       role="group"
       aria-label={t("playerBar.pipeline.title")}
-      className="absolute bottom-full right-4 mb-3 w-80 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50 text-left"
+      data-audio-pipeline
+      onMouseEnter={onPointerEnter}
+      onMouseLeave={onPointerLeave}
+      style={{
+        right: place.right,
+        bottom: place.bottom,
+        maxHeight: place.maxHeight,
+      }}
+      className="fixed z-[100] w-[22rem] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-xl animate-fade-in dark:border-zinc-800 dark:bg-zinc-900"
     >
-      <div className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">
+      <div className="mb-3 text-xs font-bold uppercase tracking-widest text-zinc-400">
         {t("playerBar.pipeline.title")}
       </div>
 
-      {/* Source */}
-      <div className="flex gap-3 items-start">
-        <FileAudio
-          size={16}
-          className="mt-0.5 shrink-0 text-zinc-400"
-          aria-hidden="true"
+      <ol className="flex flex-col gap-2">
+        <AudioPipelineCard
+          icon={FileAudio}
+          title={t("playerBar.pipeline.file.title")}
+          badge={
+            <HiResBadge
+              bitDepth={track.bit_depth}
+              sampleRate={track.sample_rate}
+              codec={track.codec}
+              probableFakeLossless={probableFakeLossless}
+              variant="inline"
+            />
+          }
+          subtitle={fileText ? t(`playerBar.pipeline.kind.${fileText}`) : null}
+          body={fileText ? t(`playerBar.pipeline.file.${fileText}`) : null}
+          figures={fileFigures || null}
         />
-        <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            {t("playerBar.pipeline.source")}
-          </div>
-          <div className="text-sm text-zinc-800 dark:text-zinc-100 truncate">
-            {sourceCodec}
-          </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-            {[
-              sourceRateLabel,
-              sourceBitDepth,
-              sourceBitrateLabel,
-              sourceChannelsLabel,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </div>
-        </div>
-      </div>
 
-      {/* Pipeline DSP chips */}
-      <div className="flex gap-3 items-start mt-3">
-        <Cpu
-          size={16}
-          className="mt-0.5 shrink-0 text-zinc-400"
-          aria-hidden="true"
+        {stages.length === 0
+          ? // "Untouched" is only said once the engine has answered;
+            // before that the stages are not known yet.
+            snap && (
+              <AudioPipelineCard
+                icon={Sparkles}
+                title={t("playerBar.pipeline.stage.none.title")}
+                body={t("playerBar.pipeline.stage.none.body")}
+                impact="none"
+              />
+            )
+          : stages.map((stage) => (
+              <AudioPipelineCard
+                key={stage.key}
+                icon={stage.icon}
+                title={stage.title}
+                body={stage.body}
+                figures={stage.figures}
+                impact={stage.impact}
+              />
+            ))}
+
+        <AudioPipelineCard
+          icon={Speaker}
+          title={t("playerBar.pipeline.output.title")}
+          subtitle={activeDevice?.name ?? null}
+          body={outputBody}
+          figures={outputFigures || null}
         />
-        <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            {t("playerBar.pipeline.processing")}
-          </div>
-          {chips.length === 0 ? (
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 italic mt-0.5">
-              {t("playerBar.pipeline.noProcessing")}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {chips.map((chip) => (
-                <span
-                  key={chip.key}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                    chip.tone === "convert"
-                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
-                      : "bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30"
-                  }`}
-                >
-                  {chip.label}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      </ol>
 
-      {/* Output */}
-      <div className="flex gap-3 items-start mt-3">
-        <Speaker
-          size={16}
-          className="mt-0.5 shrink-0 text-zinc-400"
-          aria-hidden="true"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            {t("playerBar.pipeline.output")}
-          </div>
-          <div className="text-sm text-zinc-800 dark:text-zinc-100 truncate">
-            {outputRateLabel ?? t("playerBar.pipeline.loading")}
-          </div>
-          {outputChannelsLabel && (
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-              {outputChannelsLabel}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Verdict pill — the last thing the audiophile reads, so it has
-          to be the one we can actually stand behind: bit-perfect when
-          the stream owns the device, "no processing" when our pipeline
-          is transparent but the OS mixer still sits in the path. */}
+      {/* The verdict — the last thing read, so it has to be the one we
+          can actually stand behind: bit-perfect when the stream owns
+          the device, "untouched by WaveFlow" when our pipeline is
+          transparent but the system mixer still sits in the path. */}
       {isBitPerfect && (
-        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
-          <Sparkles size={14} className="text-emerald-500" aria-hidden="true" />
-          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            {t("playerBar.pipeline.bitPerfect")}
+        <div
+          data-pipeline-verdict="bit-perfect"
+          className="mt-3 flex items-start gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800"
+        >
+          <Sparkles
+            size={14}
+            className="mt-0.5 shrink-0 text-emerald-500"
+            aria-hidden="true"
+          />
+          <span className="text-xs text-zinc-600 dark:text-zinc-300">
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {t("playerBar.pipeline.bitPerfect")}
+            </span>{" "}
+            {t("playerBar.pipeline.verdict.bitPerfect")}
           </span>
         </div>
       )}
       {!isBitPerfect && isUnprocessed && (
-        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
-          <Speaker size={14} className="text-zinc-400" aria-hidden="true" />
-          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-            {t("playerBar.pipeline.sharedOutput")}
+        <div
+          data-pipeline-verdict="shared"
+          className="mt-3 flex items-start gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800"
+        >
+          <Speaker
+            size={14}
+            className="mt-0.5 shrink-0 text-zinc-400"
+            aria-hidden="true"
+          />
+          <span className="text-xs text-zinc-600 dark:text-zinc-300">
+            {t("playerBar.pipeline.verdict.shared")}
           </span>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
