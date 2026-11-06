@@ -372,6 +372,9 @@ release-macos:
 publish:
   extends: [.release-rules, .linux-medium]
   stage: publish
+  # One publish at a time across tags, as on GitHub: each reads the channel's
+  # manifest before writing it.
+  resource_group: r2-publish
   image: ubuntu:24.04
   needs: [release-linux, release-windows, release-macos]
   variables:

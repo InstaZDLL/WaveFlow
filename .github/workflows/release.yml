@@ -798,6 +798,12 @@ jobs:
     if: ${{ !cancelled() && needs.updater-manifest.result != 'skipped' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # One mirror at a time across every tag: the release's own group is per
+    # ref, and two tags published together would each read the channel's
+    # manifest before either wrote it, the older one possibly writing last.
+    concurrency:
+      group: r2-mirror
+      cancel-in-progress: false
     permissions:
       contents: read
     env:
