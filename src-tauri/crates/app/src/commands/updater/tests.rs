@@ -1,5 +1,5 @@
 use super::{
-    is_newer, UpdateChannel, BETA_ENDPOINT, BETA_MIRROR_ENDPOINT, STABLE_ENDPOINT,
+    install_order, is_newer, UpdateChannel, BETA_ENDPOINT, BETA_MIRROR_ENDPOINT, STABLE_ENDPOINT,
     STABLE_MIRROR_ENDPOINT,
 };
 
@@ -26,6 +26,38 @@ fn build_metadata_does_not_make_a_version_newer() {
 fn a_version_that_does_not_parse_never_wins() {
     assert!(!is_newer("not-a-version", "1.8.0"));
     assert!(is_newer("1.8.0", "not-a-version"));
+}
+
+/// GitHub first, its mirror second: when both announce the same release,
+/// both are kept, in the order they were read, so a payload GitHub cannot
+/// deliver is fetched from R2 instead.
+#[test]
+fn the_same_version_from_both_hosts_is_kept_in_reading_order() {
+    assert_eq!(install_order(&["2.0.1", "2.0.1"]), [0, 1]);
+}
+
+/// A host behind is no fallback: installing its older release after the
+/// newer one failed would offer an update the user did not choose.
+#[test]
+fn an_older_version_is_never_a_fallback() {
+    assert_eq!(install_order(&["2.0.0", "2.0.1"]), [1]);
+    assert_eq!(install_order(&["2.0.1", "2.0.0"]), [0]);
+    // The beta channel's four manifests: a newer stable outranks the
+    // beta on both hosts, and both copies of it are kept.
+    assert_eq!(
+        install_order(&["2.1.0-beta.2", "2.1.0-beta.2", "2.1.0", "2.1.0"]),
+        [2, 3]
+    );
+}
+
+#[test]
+fn build_metadata_does_not_split_the_candidates() {
+    assert_eq!(install_order(&["2.0.1+gh", "2.0.1+r2"]), [0, 1]);
+}
+
+#[test]
+fn nothing_found_is_nothing_to_install() {
+    assert!(install_order(&[]).is_empty());
 }
 
 #[test]

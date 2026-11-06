@@ -142,6 +142,29 @@ fn is_newer(candidate: &str, current: &str) -> bool {
     }
 }
 
+/// Which answers to try installing, and in what order: every one that
+/// announces the newest version, in the order the manifests were read.
+/// The two hosts serve the same release with the same signatures, so
+/// when the first one's payload cannot be downloaded or does not verify,
+/// the same version from the other host is still the update — a GitHub
+/// that answers its small manifest but not its 100 MB payload is the
+/// case. An older version is never a fallback for a newer one.
+#[allow(dead_code)] // used only by the release-gated `imp` module
+fn install_order(versions: &[&str]) -> Vec<usize> {
+    let mut newest: Option<usize> = None;
+    for (i, version) in versions.iter().enumerate() {
+        if newest.map_or(true, |best| is_newer(version, versions[best])) {
+            newest = Some(i);
+        }
+    }
+    let Some(newest) = newest else {
+        return Vec::new();
+    };
+    (0..versions.len())
+        .filter(|&i| !is_newer(versions[newest], versions[i]))
+        .collect()
+}
+
 async fn read_channel(db: &SqlitePool) -> UpdateChannel {
     let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
         .bind(KEY_CHANNEL)
@@ -203,11 +226,13 @@ mod imp {
     use tauri_plugin_updater::{Update, UpdaterExt};
     use tokio::sync::Mutex;
 
-    /// Holds the [`Update`] between [`check_for_update`] and
-    /// [`install_update`] — the object owns the verified download URL +
-    /// signature and can't cross the IPC boundary, so it lives here.
+    /// Holds the [`Update`]s between [`check_for_update`] and
+    /// [`install_update`] — each owns a download URL + signature and can't
+    /// cross the IPC boundary, so they live here. Every answer announcing
+    /// the newest version, in the order to try them ([`install_order`]);
+    /// empty when there is nothing to install.
     #[derive(Default)]
-    pub struct PendingUpdate(pub Mutex<Option<Update>>);
+    pub struct PendingUpdate(pub Mutex<Vec<Update>>);
 
     /// How long one manifest may take to answer.
     const CHECK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -250,21 +275,14 @@ mod imp {
         // Each manifest only answers with a version newer than this build,
         // so the newest answer is the update. One manifest failing does not
         // hide what another found; only all of them failing is an error.
-        let mut newest: Option<Update> = None;
+        let mut found_updates: Vec<Update> = Vec::new();
         let mut first_err = None;
         let mut any_ok = false;
         for endpoint in channel.endpoints() {
             match check_endpoint(app, endpoint).await {
                 Ok(found) => {
                     any_ok = true;
-                    if let Some(update) = found {
-                        if newest
-                            .as_ref()
-                            .map_or(true, |best| is_newer(&update.version, &best.version))
-                        {
-                            newest = Some(update);
-                        }
-                    }
+                    found_updates.extend(found);
                 }
                 Err(err) => {
                     tracing::warn!(%err, endpoint, "update check failed for one manifest");
@@ -278,54 +296,63 @@ mod imp {
             }
         }
 
-        let pending = app.state::<PendingUpdate>();
-        match newest {
-            Some(update) => {
-                let info = UpdateInfo {
-                    version: update.version.clone(),
-                    notes: update.body.clone(),
-                };
-                *pending.0.lock().await = Some(update);
-                Ok(Some(info))
-            }
-            None => {
-                *pending.0.lock().await = None;
-                Ok(None)
-            }
-        }
+        let versions: Vec<&str> = found_updates.iter().map(|u| u.version.as_str()).collect();
+        let order = install_order(&versions);
+        let mut slots: Vec<Option<Update>> = found_updates.into_iter().map(Some).collect();
+        let candidates: Vec<Update> = order.into_iter().filter_map(|i| slots[i].take()).collect();
+
+        let info = candidates.first().map(|update| UpdateInfo {
+            version: update.version.clone(),
+            notes: update.body.clone(),
+        });
+        *app.state::<PendingUpdate>().0.lock().await = candidates;
+        Ok(info)
     }
 
     pub async fn install(app: &AppHandle) -> AppResult<()> {
-        let update = {
-            let pending = app.state::<PendingUpdate>();
-            let mut slot = pending.0.lock().await;
-            slot.take()
-        };
-        let Some(update) = update else {
+        let candidates = std::mem::take(&mut *app.state::<PendingUpdate>().0.lock().await);
+        if candidates.is_empty() {
             return Err(AppError::Other("updater: no pending update".into()));
-        };
+        }
 
-        let emitter = app.clone();
-        let mut downloaded: u64 = 0;
-        update
-            .download_and_install(
-                move |chunk_len, content_len| {
-                    downloaded = downloaded.saturating_add(chunk_len as u64);
-                    let _ = emitter.emit(
-                        "updater:progress",
-                        UpdateProgress {
-                            downloaded,
-                            total: content_len.unwrap_or(0),
-                        },
-                    );
-                },
-                || {},
-            )
-            .await
-            .map_err(updater_err)?;
-        // On Windows the NSIS installer launches here and the app exits
-        // via the builder's on_before_exit hook, so this rarely returns.
-        Ok(())
+        // The next host is tried only when a download fails or its bytes do
+        // not verify (`download` checks the signature). Once an installer
+        // has been started, its error is final: it may have changed things.
+        let mut first_err = None;
+        for (attempt, update) in candidates.iter().enumerate() {
+            let emitter = app.clone();
+            let mut downloaded: u64 = 0;
+            let bytes = update
+                .download(
+                    move |chunk_len, content_len| {
+                        downloaded = downloaded.saturating_add(chunk_len as u64);
+                        let _ = emitter.emit(
+                            "updater:progress",
+                            UpdateProgress {
+                                downloaded,
+                                total: content_len.unwrap_or(0),
+                            },
+                        );
+                    },
+                    || {},
+                )
+                .await;
+            match bytes {
+                Ok(bytes) => {
+                    update.install(bytes).map_err(updater_err)?;
+                    // On Windows the NSIS installer launches here and the app
+                    // exits via the builder's on_before_exit hook, so this
+                    // rarely returns.
+                    return Ok(());
+                }
+                Err(err) => {
+                    let err = updater_err(err);
+                    tracing::warn!(%err, attempt, "update download failed, trying the next host");
+                    first_err.get_or_insert(err);
+                }
+            }
+        }
+        Err(first_err.unwrap_or_else(|| AppError::Other("updater: no pending update".into())))
     }
 }
 
