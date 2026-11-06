@@ -1556,6 +1556,26 @@
     background-color 180ms var(--fe-ease),
     transform 320ms var(--fe-ease);
 }
+/* A control that is on (shuffle, repeat, an open panel, the A-B loop)
+   writes its state as `text-emerald-500/600`: it wears the skin's
+   accent, tuned for its ground, at rest and under the pointer, which is
+   still on it right after the click. A skin's resting ink and hover
+   colour on the footer's buttons are `!important`, so this is too, and
+   more specific: without it, Liquid's ink painted every state away and
+   the hover colour of Pulse and Editorial hid the click that had just
+   changed it. Matched on the whole class token (`~=`), so a `hover:`
+   variant on a button that is off does not count. A button that also
+   carries an accent ground (`bg-emerald-*`: the EQ and device triggers
+   when open, the active EQ preset) is left out: Liquid and Pulse fill
+   it with the accent and write it in the accent's ink, which the accent
+   here would turn into accent on accent. */
+:root[data-layout="fluid"]
+  footer
+  button:is([class~="text-emerald-500"], [class~="text-emerald-600"]):not(
+    [class*="bg-emerald-"]
+  ) {
+  color: var(--fe-accent) !important;
+}
 
 /* Main: the editorial gutters; the Home brings its own container. */
 :root[data-layout="fluid"] main {

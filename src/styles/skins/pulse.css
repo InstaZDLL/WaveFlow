@@ -471,7 +471,9 @@
   letter-spacing: 0.04em;
 }
 /* The transport: ink, the accent on hover, a snap on press; the play
-   button the accent filled and lit. */
+   button the accent filled and lit. A toggle that is off (shuffle,
+   repeat) keeps its own hover, the ink: the accent is what says it is
+   on, and the pointer is still on it right after the click. */
 :root[data-skin="pulse"] footer :where(button) {
   transition:
     color 180ms var(--fe-ease),
@@ -479,7 +481,9 @@
     box-shadow 180ms var(--fe-ease),
     transform 180ms var(--fe-ease);
 }
-:root[data-skin="pulse"] footer :where(button:hover:not(:disabled)) {
+:root[data-skin="pulse"]
+  footer
+  :where(button:hover:not(:disabled):not([aria-pressed="false"])) {
   color: var(--fe-accent) !important;
 }
 :root[data-skin="pulse"] footer :where(button:active:not(:disabled)) {
