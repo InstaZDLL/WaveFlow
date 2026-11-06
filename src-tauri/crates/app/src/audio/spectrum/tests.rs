@@ -127,3 +127,127 @@ fn only_the_channels_carrying_something_count_in_the_mono_mix() {
     assert_eq!(channels_in_use(&[0.0; 16], 8), 1);
     assert_eq!(channels_in_use(&[], 8), 1);
 }
+
+/// A verse after the chorus: the reference must still remember the
+/// chorus ten seconds in, so the verse is drawn lower than the chorus
+/// was. With the old three-second release it was back at the floor by
+/// then, and the verse filled the display as the chorus had.
+#[test]
+fn a_quiet_passage_stays_quiet() {
+    let mut level = MIN_LEVEL;
+    for _ in 0..90 {
+        level = follow_level(level, 230.0, EMIT_INTERVAL);
+    }
+    let mut chorus = [0.0; 1];
+    scale_bands(&[230.0], level, &mut chorus);
+    for _ in 0..300 {
+        level = follow_level(level, 46.0, EMIT_INTERVAL);
+    }
+    let mut verse = [0.0; 1];
+    scale_bands(&[46.0], level, &mut verse);
+    assert!(verse[0] < 0.7, "got {}", verse[0]);
+    assert!(verse[0] < chorus[0] - 0.25, "{verse:?} vs {chorus:?}");
+}
+
+/// A band that alternates between two values, frame after frame, is
+/// how the estimate of a steady noise looks: it settles between them
+/// rather than swinging the full distance on every frame.
+#[test]
+fn smoothing_steadies_a_band_that_flickers() {
+    let mut power = [0.0; 1];
+    let mut swing = 0.0f32;
+    let mut last = 0.0f32;
+    for i in 0..60 {
+        let mut band = [if i % 2 == 0 { 100.0 } else { 50.0 }];
+        smooth_bands(&mut power, &mut band, EMIT_INTERVAL, i == 0);
+        if i >= 30 {
+            swing = swing.max((band[0] - last).abs());
+        }
+        last = band[0];
+    }
+    assert!(swing < 25.0, "swing {swing}");
+}
+
+/// A sustained hit is not held back: within a few frames it is at its
+/// own height, and the first frame after a reset takes the band as is.
+#[test]
+fn smoothing_lets_a_sustained_hit_through() {
+    let mut power = [0.0; 1];
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, true);
+    assert_eq!(band[0], 100.0);
+
+    let mut power = [0.0; 1];
+    let mut band = [0.0];
+    for _ in 0..5 {
+        band = [100.0];
+        smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    }
+    assert!(band[0] > 95.0, "got {}", band[0]);
+}
+
+/// A NaN that reaches a band is drawn as 0 for that frame and does not
+/// stay in the average: the next frame reads the music again, and a reset
+/// replaces an average that is not finite.
+#[test]
+fn a_band_that_is_not_finite_does_not_stick() {
+    let mut power = [400.0; 1];
+    let mut band = [f32::NAN];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert_eq!(band[0], 0.0);
+    assert_eq!(power[0], 0.0);
+
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert!(band[0].is_finite() && band[0] > 50.0, "got {}", band[0]);
+
+    let mut power = [f32::NAN; 1];
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, true);
+    assert_eq!(band[0], 100.0);
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert_eq!(band[0], 100.0);
+
+    // Without a reset too: an average that is not finite takes the band.
+    let mut power = [f32::NAN; 1];
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert_eq!(band[0], 100.0);
+    assert_eq!(power[0], 10_000.0);
+}
+
+/// End to end on the analyzer: steady white noise, a fresh window every
+/// frame. Each band's estimate wanders on its own from one window to the
+/// next; the frames that reach the display must not.
+#[test]
+fn steady_noise_does_not_flicker() {
+    let mut a = SpectrumAnalyzer::new();
+    let mut seed = 0x2545_f491_u32;
+    let mut noise = move || {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        (seed as f32 / u32::MAX as f32 * 2.0 - 1.0) * 0.25
+    };
+    let mut previous = vec![0.0; BAND_COUNT];
+    let mut moved = 0.0f32;
+    let mut counted = 0;
+    for frame in 0..120 {
+        a.pending.clear();
+        a.pending.extend((0..FFT_SIZE).map(|_| noise()));
+        a.run_one_frame(44_100.0, EMIT_INTERVAL, frame == 0);
+        if frame >= 30 {
+            moved += a
+                .bands
+                .iter()
+                .zip(&previous)
+                .map(|(b, p)| (b - p).abs())
+                .sum::<f32>();
+            counted += BAND_COUNT;
+        }
+        previous.copy_from_slice(&a.bands);
+    }
+    let mean_move = moved / counted as f32;
+    assert!(mean_move < 0.04, "bands moved {mean_move} per frame");
+}
