@@ -25,12 +25,16 @@ mod notice;
 mod output_switch;
 mod rebuild;
 mod resume;
+mod turns;
 
 pub use command::{AudioCmd, LoadIntent};
 pub use notice::{ExclusiveRefusal, OutputMode};
 pub(super) use rebuild::{FollowOutcome, REBUILD_SETTLE_WINDOW};
 pub(crate) use resume::LastLoadSource;
 pub use resume::{DetachedOrigin, LastLoad};
+#[cfg(test)]
+pub(crate) use turns::TestEngine;
+pub(crate) use turns::Turns;
 
 use notice::PlaybackNotice;
 use rebuild::{lets_go_of_readers, pause_pending_after, FlapWindow, RebuildGate};

@@ -124,3 +124,177 @@ fn a_file_without_tags_reads_as_its_name() {
     assert_eq!(facts.artist, None);
     assert_eq!(facts.cover, None);
 }
+
+// Moving through the queue, on the engine's real arbitration.
+
+mod turns {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use super::*;
+    use crate::audio::engine::TestEngine;
+    use crate::queue::RepeatMode;
+
+    const MOVE: LoadIntent = LoadIntent::from_raw(5);
+    const NEWER: LoadIntent = LoadIntent::from_raw(6);
+
+    fn session(names: &[&str]) -> ExternalPlayback {
+        let session = ExternalPlayback::default();
+        session.set(DetachedQueue {
+            entries: names
+                .iter()
+                .map(|name| ExternalEntry { path: name.into() })
+                .collect(),
+            index: 0,
+        });
+        session
+    }
+
+    fn current(session: &ExternalPlayback) -> Option<String> {
+        session
+            .current()
+            .map(|entry| entry.path.display().to_string())
+    }
+
+    fn unreadable() -> AppError {
+        AppError::Other("the file could not be read".into())
+    }
+
+    async fn step(
+        engine: &TestEngine,
+        session: &ExternalPlayback,
+        play: impl std::future::Future<Output = AppResult<()>>,
+    ) -> AppResult<bool> {
+        step_and_play(
+            engine,
+            session,
+            Direction::Next,
+            RepeatMode::Off,
+            MOVE,
+            play,
+        )
+        .await
+    }
+
+    /// `is_active` is read before the repeat mode, and the session can go in
+    /// that gap. A library track doing that has its load on the way: a `Stop`
+    /// here would land behind it, and a claim here would have the decoder drop it.
+    #[tokio::test]
+    async fn a_step_finding_no_session_stops_and_claims_nothing() {
+        let engine = TestEngine::new();
+        let session = ExternalPlayback::default();
+        let played = step(&engine, &session, async { Ok(()) }).await;
+        assert!(matches!(played, Ok(false)), "{played:?}");
+        assert_eq!(engine.stops(), 0);
+        assert_eq!(engine.newest_claim(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_jump_finding_no_session_claims_nothing() {
+        let engine = TestEngine::new();
+        let session = ExternalPlayback::default();
+        let played = jump_and_play(&engine, &session, 1, MOVE, async { Ok(()) }).await;
+        assert!(played.is_ok());
+        assert_eq!(engine.stops(), 0);
+        assert_eq!(engine.newest_claim(), 0);
+    }
+
+    /// A profile switch drops the session without the lock: what it left is
+    /// nobody's to stop.
+    #[tokio::test]
+    async fn a_failed_step_stops_nothing_once_the_session_is_gone() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        let played = step(&engine, &session, async {
+            session.clear();
+            Err(unreadable())
+        })
+        .await;
+        assert!(matches!(played, Ok(false)), "{played:?}");
+        assert_eq!(engine.stops(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_failed_jump_stops_nothing_once_the_session_is_gone() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        let played = jump_and_play(&engine, &session, 1, MOVE, async {
+            session.clear();
+            Err(unreadable())
+        })
+        .await;
+        assert!(played.is_ok(), "{played:?}");
+        assert_eq!(engine.stops(), 0);
+    }
+
+    #[tokio::test]
+    async fn an_overtaken_step_moves_nothing() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        engine.claims(NEWER);
+        let read = AtomicBool::new(false);
+        let played = step(&engine, &session, async {
+            read.store(true, Ordering::SeqCst);
+            Ok(())
+        })
+        .await;
+        assert!(matches!(played, Ok(false)), "{played:?}");
+        assert_eq!(current(&session).as_deref(), Some("a"));
+        assert!(!read.load(Ordering::SeqCst), "the file was read");
+    }
+
+    #[tokio::test]
+    async fn an_overtaken_jump_moves_nothing() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        engine.claims(NEWER);
+        let played = jump_and_play(&engine, &session, 1, MOVE, async { Ok(()) }).await;
+        assert!(played.is_ok());
+        assert_eq!(current(&session).as_deref(), Some("a"));
+    }
+
+    #[tokio::test]
+    async fn running_off_the_end_stops_the_player() {
+        let engine = TestEngine::new();
+        let session = session(&["a"]);
+        let played = step(&engine, &session, async { Ok(()) }).await;
+        assert!(matches!(played, Ok(false)), "{played:?}");
+        assert_eq!(engine.stops(), 1);
+        assert!(!session.is_active());
+    }
+
+    /// Nothing else took over: no cursor is left on a file nothing plays.
+    #[tokio::test]
+    async fn a_failed_step_still_its_own_stops_and_drops_the_session() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        let played = step(&engine, &session, async { Err(unreadable()) }).await;
+        assert!(played.is_err());
+        assert_eq!(engine.stops(), 1);
+        assert!(!session.is_active());
+    }
+
+    #[tokio::test]
+    async fn a_failed_jump_still_its_own_stops_and_drops_the_session() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        let played = jump_and_play(&engine, &session, 1, MOVE, async { Err(unreadable()) }).await;
+        assert!(played.is_err());
+        assert_eq!(engine.stops(), 1);
+        assert!(!session.is_active());
+    }
+
+    /// Unlike the remote queue: reading a file is local and quick, so the lock
+    /// stays held, and nothing can overtake a move while it reads.
+    #[tokio::test]
+    async fn the_file_is_read_under_the_publish_lock() {
+        let engine = TestEngine::new();
+        let session = session(&["a", "b"]);
+        let played = step(&engine, &session, async {
+            assert!(engine.publish.try_lock().is_err(), "the lock was let go");
+            assert_eq!(current(&session).as_deref(), Some("b"));
+            Ok(())
+        })
+        .await;
+        assert!(matches!(played, Ok(true)), "{played:?}");
+    }
+}

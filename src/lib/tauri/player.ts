@@ -267,14 +267,15 @@ export interface PlayUrlArgs {
 /**
  * Play a live HTTP(S) audio stream through the cpal engine.
  * Returns the negative sentinel track id assigned to this session —
- * useful for distinguishing back-to-back radio loads.
+ * useful for distinguishing back-to-back radio loads — or `null` when a
+ * newer pick overtook this station: nothing of it was published.
  *
  * Distinct from `playerPlayTracks`: there's no queue insertion, no
  * library row, no `play_event` credit. Metadata supplied here drives
  * the PlayerBar / OS overlay via the `player:radio-metadata` event.
  */
-export function playerPlayUrl(args: PlayUrlArgs): Promise<number> {
-  return invoke<number>("player_play_url", {
+export function playerPlayUrl(args: PlayUrlArgs): Promise<number | null> {
+  return invoke<number | null>("player_play_url", {
     url: args.url,
     title: args.title,
     artist: args.artist,

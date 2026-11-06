@@ -152,6 +152,17 @@ impl std::fmt::Display for RemoteFailure {
 }
 
 impl RemoteFailure {
+    /// Transient: offline is a state the user toggles back, not a reason to
+    /// give up on a queued write.
+    fn offline() -> Self {
+        Self {
+            kind: FailureKind::Transient,
+            status: None,
+            code: None,
+            message: "offline mode is on".into(),
+        }
+    }
+
     fn transport(error: reqwest::Error) -> Self {
         Self {
             // A transport error is a statement about the link, never
@@ -435,12 +446,7 @@ impl<'a> RemoteClient<'a> {
         builder: reqwest::RequestBuilder,
     ) -> Result<reqwest::Response, RemoteFailure> {
         if offline::is_offline() {
-            return Err(RemoteFailure {
-                kind: FailureKind::Transient,
-                status: None,
-                code: None,
-                message: "offline mode is on".into(),
-            });
+            return Err(RemoteFailure::offline());
         }
 
         let request = builder.build().map_err(RemoteFailure::transport)?;
@@ -486,6 +492,11 @@ impl<'a> RemoteClient<'a> {
         // (a drain reuses one across the batch) don't 401 on the stale one.
         if let Ok(mut guard) = self.access_token.write() {
             guard.clone_from(&fresh.access_token);
+        }
+        // The first request left before this could be tested again, and a
+        // refresh that adopted a stored pair asked the network nothing.
+        if offline::is_offline() {
+            return Err(RemoteFailure::offline());
         }
         let Ok(bearer) =
             reqwest::header::HeaderValue::from_str(&format!("Bearer {}", fresh.access_token))

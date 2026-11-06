@@ -313,6 +313,14 @@ async fn exchange_code(
     verifier: &str,
     redirect_uri: &str,
 ) -> AppResult<AuthTokensResponse> {
+    // Tested again here: `begin_login` asked before opening the browser, and
+    // the person can spend minutes there.
+    if offline::is_offline() {
+        return Err(AppError::Other(
+            "offline mode is on; turn it off to sign in".into(),
+        ));
+    }
+
     let http = reqwest::Client::builder()
         .timeout(EXCHANGE_TIMEOUT)
         .build()

@@ -10,8 +10,23 @@
 //! layer — both the manual next/previous seams and the auto-advance on
 //! end query the SQLite pool already, so minting a ticket (one HTTP
 //! round-trip) at advance time adds no work to the real-time callback.
+//!
+//! ## Whose turn it is
+//!
+//! That round-trip is also the window a newer pick lands in, and the lock that
+//! orders every other producer cannot be held across it: it would park every
+//! surface for the length of a network call. So a move takes the publish lock
+//! twice. Once to claim its turn and move the cursor, then, only if the request
+//! failed, to undo what it did, unless something newer has taken over: then
+//! that is what the person can hear. A start and a jump leave things as they
+//! found them. A step has nothing to go back to and stops the player.
+//!
+//! Both are under the lock because a local producer claims and sends its load
+//! as one move. Deciding outside it could read "nothing newer", let that move
+//! happen, and then send a `Stop` that lands after its load.
 
 use crate::audio::replay_gain::TrackGain;
+use std::future::Future;
 use std::sync::Arc;
 
 use sqlx::Row;
@@ -19,12 +34,14 @@ use tauri::{AppHandle, Manager};
 
 use crate::{
     audio::{
-        engine::{AudioCmd, LoadIntent},
+        engine::{AudioCmd, LoadIntent, Turns},
         AudioEngine,
     },
     error::AppResult,
-    queue::Direction,
-    remote_playback::{RemoteEntry, RemoteQueue},
+    external_playback::{ExternalEntry, ExternalPlayback},
+    podcast::playback::{EpisodeEntry, PodcastPlayback},
+    queue::{Direction, RepeatMode},
+    remote_playback::{DetachedQueue, RemoteEntry, RemotePlayback, RemoteQueue},
     state::AppState,
 };
 
@@ -45,6 +62,7 @@ pub async fn play_entries(
         return Err(crate::error::AppError::Other("no tracks to play".into()));
     }
     let index = start_index.min(entries.len() - 1);
+    let state = app.state::<AppState>();
     let engine = app.state::<Arc<AudioEngine>>();
 
     // Installing a session is not a neutral act: while one is active it
@@ -56,36 +74,85 @@ pub async fn play_entries(
     // and a superseded intent says that is exactly what this one is (#622).
     // Nothing has been mutated yet, so giving up here is total.
     //
-    // No publish lock here, unlike every local producer (#632): what
-    // follows the claim is an HTTP round-trip to mint a ticket, and
+    // The publish lock covers the install and not what follows, unlike every
+    // local producer (#632): that is an HTTP round-trip to mint a ticket, and
     // holding the lock across it would park every other surface for the
     // length of a network call. This path arbitrates by rolling back
-    // instead — see the `clear_if` below.
-    if !engine.claim_dispatch(intent) {
-        tracing::debug!("remote session superseded before it started; not installing it");
-        return Ok(());
-    }
-
-    // One detached queue at a time: the remote one now drives next /
-    // previous, not files played without importing them, nor episodes.
-    app.state::<AppState>().external_playback.clear();
-    app.state::<AppState>().podcast_playback.clear();
-    let revision = app
-        .state::<AppState>()
-        .remote_playback
-        .set(RemoteQueue { entries, index });
+    // instead — see `settle_start`.
+    let (revision, before) = {
+        let _publish = engine.lock_publish().await;
+        if !engine.claim_dispatch(intent) {
+            tracing::debug!("remote session superseded before it started; not installing it");
+            return Ok(());
+        }
+        let before = SessionsBefore {
+            remote: state.remote_playback.queue(),
+            files: state.external_playback.queue(),
+            episodes: state.podcast_playback.queue(),
+        };
+        // One detached queue at a time: the remote one now drives next /
+        // previous, not files played without importing them, nor episodes.
+        state.external_playback.clear();
+        state.podcast_playback.clear();
+        let revision = state.remote_playback.set(RemoteQueue { entries, index });
+        (revision, before)
+    };
     let played = play_current(app, intent).await;
+    let _publish = engine.lock_publish().await;
+    settle_start(
+        &state.remote_playback,
+        &state.external_playback,
+        &state.podcast_playback,
+        revision,
+        engine.load_intent_superseded(intent),
+        before,
+        played,
+    )
+}
 
-    // The check above cannot cover `play_current` itself: minting a ticket
-    // is an HTTP round-trip, and a local pick landing during it leaves the
-    // session installed over a track it never played. Undo it — but only
-    // the session as we installed it: `clear_if` no longer matches once
-    // someone else has installed another, or the user has navigated inside
-    // this one, and either of those is the queue they can now hear.
-    if engine.load_intent_superseded(intent)
-        && app.state::<AppState>().remote_playback.clear_if(revision)
-    {
-        tracing::debug!("remote session superseded while starting; rolled it back");
+/// The queues a start replaced, for when it turns out it could not play.
+struct SessionsBefore {
+    remote: Option<RemoteQueue>,
+    files: Option<DetachedQueue<ExternalEntry>>,
+    episodes: Option<DetachedQueue<EpisodeEntry>>,
+}
+
+/// What a start leaves behind once its first load is settled.
+///
+/// The claim in [`play_entries`] cannot cover `play_current` itself: minting a
+/// ticket is an HTTP round-trip, and a local pick landing during it leaves the
+/// session installed over a track it never played. Undo it — but only the
+/// session as we installed it: the revision no longer matches once someone else
+/// has installed another, or the user has navigated inside this one, and either
+/// of those is the queue they can now hear.
+///
+/// A failed start, with nothing newer, puts back the queues it replaced. What
+/// they were driving is still playing, and left installed, a queue nothing plays
+/// from would take over Next.
+fn settle_start(
+    remote: &RemotePlayback,
+    files: &ExternalPlayback,
+    episodes: &PodcastPlayback,
+    revision: u64,
+    overtaken: bool,
+    before: SessionsBefore,
+    played: AppResult<()>,
+) -> AppResult<()> {
+    if overtaken {
+        if remote.clear_if(revision) {
+            tracing::debug!("remote session superseded while starting; rolled it back");
+        }
+    } else if played.is_err() && remote.restore_if(revision, before.remote) {
+        tracing::debug!("remote session could not start; put back what it replaced");
+        if let Some(queue) = before.files {
+            files.set(queue);
+        }
+        if let Some(queue) = before.episodes {
+            episodes.set(queue);
+            // The position of the episode still playing is saved again: the
+            // watcher went to sleep when the start cleared its session.
+            crate::podcast::playback::notify_session_started();
+        }
     }
     played
 }
@@ -171,24 +238,67 @@ pub async fn play_track_ids(
 }
 
 /// Move the cursor to an absolute position and play it. Backs the queue
-/// panel's click-to-jump on a remote session.
+/// panel's click-to-jump on a remote session. A jump that cannot play changes
+/// nothing: what was playing goes on, and the cursor goes back to it.
 pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     let state = app.state::<AppState>();
-    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
-    match state.remote_playback.seek_to(index) {
-        Some(_) => play_current(app, intent).await,
-        None => Ok(()),
+    let engine = app.state::<Arc<AudioEngine>>();
+    let intent = engine.next_load_intent();
+    jump_and_play(
+        &**engine,
+        &state.remote_playback,
+        index,
+        intent,
+        play_current(app, intent),
+    )
+    .await
+}
+
+async fn jump_and_play<E: Turns>(
+    engine: &E,
+    session: &RemotePlayback,
+    index: usize,
+    intent: LoadIntent,
+    play: impl Future<Output = AppResult<()>>,
+) -> AppResult<()> {
+    let from = {
+        let _publish = engine.lock_publish().await;
+        // Looked at before the claim: a claim with no load behind it would
+        // have the decoder drop an older load still on its way.
+        let Some(from) = session.cursor() else {
+            return Ok(());
+        };
+        // Claimed even though a click is as new as it gets: a step still
+        // waiting on its ticket has to see that it was overtaken.
+        if !engine.claim_dispatch(intent) || session.seek_to(index).is_none() {
+            return Ok(());
+        }
+        from
+    };
+    let Err(err) = play.await else {
+        return Ok(());
+    };
+    let _publish = engine.lock_publish().await;
+    if engine.load_intent_superseded(intent) || !session.is_active() {
+        tracing::debug!(%err, "remote jump overtaken before it failed");
+        return Ok(());
     }
+    session.seek_to(from);
+    Err(err)
 }
 
 /// Step the remote cursor and play what it lands on. Returns `Ok(true)`
-/// when a track was loaded, `Ok(false)` when the queue ran off the end with
-/// repeat off (the session is already cleared, so the engine is stopped).
+/// when a load was sent, `Ok(false)` when nothing new plays: the queue ran
+/// off the end with repeat off (the session is already cleared, so the engine
+/// is stopped), or something newer took over and this step is nobody's
+/// business any more.
 ///
 /// A failure to mint the ticket for the stepped-to entry must not strand
-/// the session on a track it never played: the engine is stopped and the
-/// session cleared before the error propagates, so the next action starts
-/// clean rather than acting on a phantom cursor.
+/// the session on a track it never played: unless something newer has taken
+/// over, the engine is stopped and the session cleared before the error
+/// propagates, so the next action starts clean rather than acting on a
+/// phantom cursor.
+///
 /// `intent` comes from the caller, not from here (#622): a Next claims it
 /// when the key is pressed and the auto-advance when the track ended, both
 /// of which are earlier than this call and are what has to be ordered.
@@ -198,22 +308,64 @@ pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) 
         let pool = state.require_profile_pool().await?;
         crate::queue::read_repeat_mode(&pool).await
     };
-    match state.remote_playback.step(direction, repeat) {
-        Some(_) => {
-            if let Err(err) = play_current(app, intent).await {
-                let engine = app.state::<Arc<AudioEngine>>();
-                let _ = engine.send(AudioCmd::Stop);
-                state.remote_playback.clear();
-                return Err(err);
-            }
-            Ok(true)
+    let engine = app.state::<Arc<AudioEngine>>();
+    step_and_play(
+        &**engine,
+        &state.remote_playback,
+        direction,
+        repeat,
+        intent,
+        play_current(app, intent),
+    )
+    .await
+}
+
+async fn step_and_play<E: Turns>(
+    engine: &E,
+    session: &RemotePlayback,
+    direction: Direction,
+    repeat: RepeatMode,
+    intent: LoadIntent,
+    play: impl Future<Output = AppResult<()>>,
+) -> AppResult<bool> {
+    {
+        let _publish = engine.lock_publish().await;
+        // A step overtaken by a newer pick moves nothing (#632), and neither
+        // of these is a queue that ran out: `step` cannot tell, and running
+        // out is what stops the player. In this order: a claim with no load
+        // behind it would have the decoder drop an older load still on its way.
+        if !session.is_active() || !engine.claim_dispatch(intent) {
+            return Ok(false);
         }
-        None => {
-            let engine = app.state::<Arc<AudioEngine>>();
-            let _ = engine.send(AudioCmd::Stop);
+        if session.step(direction, repeat).is_none() {
+            engine.stop();
+            return Ok(false);
+        }
+    }
+    match play.await {
+        Ok(()) => Ok(true),
+        Err(err) if give_up(engine, session, intent).await => Err(err),
+        Err(err) => {
+            tracing::debug!(%err, "remote step overtaken before it failed");
             Ok(false)
         }
     }
+}
+
+/// A step whose load could not be prepared stops the player and drops the
+/// session, unless something newer has taken over meanwhile. `true` when it was
+/// still this step's to give up.
+///
+/// The session being gone counts as well as the intent: a profile switch and
+/// the hand-off of a crossfade drop it without claiming anything first.
+async fn give_up<E: Turns>(engine: &E, session: &RemotePlayback, intent: LoadIntent) -> bool {
+    let _publish = engine.lock_publish().await;
+    if engine.load_intent_superseded(intent) || !session.is_active() {
+        return false;
+    }
+    engine.stop();
+    session.clear();
+    true
 }
 
 /// Prefer a confirmed local reconciliation link for the entry under the
@@ -416,3 +568,6 @@ async fn cached_format(
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

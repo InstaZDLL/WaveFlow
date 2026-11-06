@@ -66,3 +66,46 @@ fn a_short_name_is_left_alone() {
         "WaveFlow on nas"
     );
 }
+
+/// A local server that counts connections and refuses each one.
+async fn counting_server() -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let count = std::sync::Arc::new(AtomicUsize::new(0));
+    let counted = std::sync::Arc::clone(&count);
+    tokio::spawn(async move {
+        while let Ok((mut socket, _)) = listener.accept().await {
+            counted.fetch_add(1, Ordering::SeqCst);
+            let mut request = [0_u8; 2048];
+            let _ = socket.read(&mut request).await;
+            let _ = socket
+                .write_all(b"HTTP/1.1 400 Bad Request\r\ncontent-length: 0\r\n\r\n")
+                .await;
+        }
+    });
+    (url, count)
+}
+
+/// The control for the test below: online, the same call does reach the server.
+#[tokio::test]
+async fn online_redeeming_the_code_reaches_the_server() {
+    let (url, count) = counting_server().await;
+    let _online = offline::scoped_to_this_thread(false);
+    let redeemed = exchange_code(&url, "code", "verifier", "http://127.0.0.1/cb").await;
+    assert!(redeemed.is_err());
+    assert_eq!(count.load(std::sync::atomic::Ordering::SeqCst), 1);
+}
+
+/// `begin_login` tests offline mode when it opens the browser, and the person
+/// can take minutes there, toggle included.
+#[tokio::test]
+async fn offline_since_the_browser_opened_the_code_is_not_redeemed() {
+    let (url, count) = counting_server().await;
+    let _offline = offline::scoped_to_this_thread(true);
+    let redeemed = exchange_code(&url, "code", "verifier", "http://127.0.0.1/cb").await;
+    assert!(redeemed.is_err());
+    assert_eq!(count.load(std::sync::atomic::Ordering::SeqCst), 0);
+}
