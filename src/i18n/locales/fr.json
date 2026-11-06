@@ -2867,6 +2867,8 @@
       "legend": "Visibilité du bandeau Wrapped",
       "seasonActive": "Saison Wrapped en cours — le bandeau s'affiche.",
       "seasonIdle": "Hors saison — le bandeau réapparaîtra automatiquement le 1er décembre.",
+      "dismissed": "Vous avez fermé la rétro {{year}} depuis l'accueil.",
+      "showAgain": "Le réafficher",
       "modes": {
         "auto": {
           "label": "Automatique",

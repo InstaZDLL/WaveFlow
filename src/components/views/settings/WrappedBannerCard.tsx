@@ -12,13 +12,15 @@ import {
  *   - `always`: visible year-round
  *   - `never`: never on Home (the view itself stays reachable)
  *
- * The Home banner also exposes a per-recap-year dismiss button; this
- * card lets the user reset the underlying preference without touching
- * a recap that's been dismissed.
+ * The Home banner also exposes a per-recap-year dismiss button. Picking
+ * a mode here lifts that dismissal, and while one stands the card says
+ * so with a button that lifts it: the radio already on `always` cannot
+ * be picked again, and the banner would otherwise stay hidden all year.
  */
 export function WrappedBannerCard() {
   const { t } = useTranslation();
-  const { mode, setMode, inSeason } = useWrappedBannerVisibility();
+  const { mode, setMode, inSeason, dismissedYear, undismiss } =
+    useWrappedBannerVisibility();
 
   const options: Array<{
     value: WrappedBannerMode;
@@ -67,6 +69,22 @@ export function WrappedBannerCard() {
               {inSeason
                 ? t("settings.wrappedBanner.seasonActive")
                 : t("settings.wrappedBanner.seasonIdle")}
+            </p>
+          )}
+          {dismissedYear != null && mode !== "never" && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+              <span>
+                {t("settings.wrappedBanner.dismissed", { year: dismissedYear })}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  void undismiss();
+                }}
+                className="rounded font-medium text-emerald-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-400"
+              >
+                {t("settings.wrappedBanner.showAgain")}
+              </button>
             </p>
           )}
         </div>

@@ -2776,6 +2776,8 @@
       "legend": "Wrapped 배너 표시",
       "seasonActive": "Wrapped 시즌이 진행 중입니다 — 배너가 표시됩니다.",
       "seasonIdle": "시즌이 아닙니다 — 배너는 12월 1일에 자동으로 다시 나타납니다.",
+      "dismissed": "홈에서 {{year}}년 결산을 닫았습니다.",
+      "showAgain": "다시 표시",
       "modes": {
         "auto": {
           "label": "자동",
