@@ -419,6 +419,25 @@ pub(crate) async fn mark_lossless_unmeasured(pool: &SqlitePool) -> Result<u64, s
         .filter(|(_, path)| crate::netlib::local_copy(path).is_some())
         .map(|(id, _)| id)
         .collect();
+    // The one write here, so it takes the turn every background writer
+    // takes: behind a scan in flight, and again on a busy database.
+    const MAX_ATTEMPTS: usize = 6;
+    let mut backoff = Duration::from_millis(50);
+    for attempt in 1..=MAX_ATTEMPTS {
+        wait_out_active_scan().await;
+        match mark_once(pool, &ids).await {
+            Err(e) if is_busy(&e) && attempt < MAX_ATTEMPTS => {
+                tokio::time::sleep(backoff).await;
+                backoff = (backoff * 2).min(Duration::from_secs(2));
+            }
+            done => return done,
+        }
+    }
+    unreachable!("the last attempt returns")
+}
+
+/// One transaction of [`mark_lossless_unmeasured`].
+async fn mark_once(pool: &SqlitePool, ids: &[i64]) -> Result<u64, sqlx::Error> {
     let mut marked = 0;
     let mut tx = pool.begin().await?;
     // Under SQLite's bound-parameter limit.

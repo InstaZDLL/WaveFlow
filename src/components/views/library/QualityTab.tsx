@@ -199,7 +199,12 @@ export function QualityTab({
     libraryQualityTracks(verdict, format || null, rows.length, PAGE)
       .then((page) => {
         if (id !== request.current) return;
-        setRows((prev) => prev.concat(page.items));
+        // While the analysis runs, a file can move between two pages and
+        // arrive twice; the first place it was shown is kept.
+        setRows((prev) => {
+          const seen = new Set(prev.map((row) => row.id));
+          return prev.concat(page.items.filter((row) => !seen.has(row.id)));
+        });
         setTotal(page.total);
       })
       .catch((err) => {
