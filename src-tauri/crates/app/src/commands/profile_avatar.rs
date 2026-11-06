@@ -8,8 +8,8 @@
 //! which is what tells the webview a new picture from the one it cached
 //! under the same file name.
 
-use std::io::Read;
-use std::path::Path;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 
 use waveflow_core::artwork::avatar::{normalize_avatar, AvatarRefusal, MAX_AVATAR_SOURCE_BYTES};
 use waveflow_core::repository::{profile::ProfileRepository, sqlite::SqliteProfileRepository};
@@ -54,7 +54,8 @@ fn picture_from_file(file_path: &Path) -> AppResult<Vec<u8>> {
 }
 
 /// Write an already-normalised PNG as the profile's picture and return
-/// its hash. The file is replaced whole or not at all. Blocking.
+/// its hash. The file is replaced whole or not at all. Used by an import,
+/// whose row is rolled back whole when anything after it fails. Blocking.
 pub(crate) fn store_picture(paths: &AppPaths, profile_id: i64, png: &[u8]) -> AppResult<String> {
     let target = paths.profile_avatar(profile_id);
     waveflow_core::atomic_write::write_bytes(&target, png)?;
@@ -80,22 +81,76 @@ pub async fn set_profile_avatar(
         return Err(AppError::ProfileNotFound(profile_id));
     }
 
+    let previous: Option<String> =
+        sqlx::query_scalar("SELECT avatar_hash FROM profile WHERE id = ?")
+            .bind(profile_id)
+            .fetch_one(&state.app_db)
+            .await?;
+
+    // The new picture is written beside the current one and put in place
+    // only once the row names it, so a failure at any step leaves the file
+    // and the row agreeing on the picture the profile had: the interface
+    // shows it, and an export carries it.
     let paths = state.paths.clone();
-    let hash = tokio::task::spawn_blocking(move || -> AppResult<String> {
+    let (staged, hash) = tokio::task::spawn_blocking(move || -> AppResult<(PathBuf, String)> {
         let png = picture_from_file(Path::new(&file_path))?;
-        std::fs::create_dir_all(paths.profile_dir(profile_id))?;
-        store_picture(&paths, profile_id, &png)
+        stage_picture(&paths, profile_id, &png)
     })
     .await
     .map_err(|e| AppError::Other(format!("avatar task join: {e}")))?
     .inspect_err(|e| tracing::warn!(profile_id, error = %e, "profile picture refused"))?;
 
-    sqlx::query("UPDATE profile SET avatar_hash = ? WHERE id = ?")
+    if let Err(err) = sqlx::query("UPDATE profile SET avatar_hash = ? WHERE id = ?")
         .bind(&hash)
         .bind(profile_id)
         .execute(&state.app_db)
-        .await?;
+        .await
+    {
+        let _ = std::fs::remove_file(&staged);
+        return Err(err.into());
+    }
+    let target = state.paths.profile_avatar(profile_id);
+    let staged_for_blocking = staged.clone();
+    let placed = tokio::task::spawn_blocking(move || std::fs::rename(&staged_for_blocking, target))
+        .await
+        .map_err(|e| AppError::Other(format!("avatar task join: {e}")))?;
+    if let Err(err) = placed {
+        let _ = std::fs::remove_file(&staged);
+        if let Err(revert) = sqlx::query("UPDATE profile SET avatar_hash = ? WHERE id = ?")
+            .bind(&previous)
+            .bind(profile_id)
+            .execute(&state.app_db)
+            .await
+        {
+            tracing::warn!(profile_id, %revert, "profile picture: the row could not be put back");
+        }
+        return Err(err.into());
+    }
     profile_view(&state, profile_id).await
+}
+
+/// Write an already-normalised PNG beside the profile's picture, under a
+/// name of its own, and return that path with the PNG's hash. Flushed to
+/// disk, so the rename that puts it in place cannot expose a file the
+/// disk did not keep. Blocking.
+fn stage_picture(paths: &AppPaths, profile_id: i64, png: &[u8]) -> AppResult<(PathBuf, String)> {
+    let dir = paths.profile_dir(profile_id);
+    std::fs::create_dir_all(&dir)?;
+    let staged = dir.join(format!(
+        "{}.{}.partial",
+        crate::paths::PROFILE_AVATAR_FILE,
+        uuid::Uuid::new_v4().simple()
+    ));
+    let written = (|| -> std::io::Result<()> {
+        let mut file = std::fs::File::create_new(&staged)?;
+        file.write_all(png)?;
+        file.sync_all()
+    })();
+    if let Err(err) = written {
+        let _ = std::fs::remove_file(&staged);
+        return Err(err.into());
+    }
+    Ok((staged, blake3::hash(png).to_hex().to_string()))
 }
 
 /// Remove the picture of `profile_id`; its initial is drawn again.
@@ -173,6 +228,23 @@ mod tests {
             .map(|e| e.unwrap().file_name())
             .collect();
         assert_eq!(names, vec![std::ffi::OsString::from("avatar.png")]);
+    }
+
+    #[test]
+    fn a_staged_picture_leaves_the_current_one_in_place() {
+        let root = tempfile::tempdir().unwrap();
+        let paths = AppPaths::from_root(root.path().to_path_buf(), None);
+        std::fs::create_dir_all(paths.profile_dir(3)).unwrap();
+        std::fs::write(paths.profile_avatar(3), b"current").unwrap();
+
+        let (staged, hash) = stage_picture(&paths, 3, b"next").unwrap();
+        assert_eq!(std::fs::read(paths.profile_avatar(3)).unwrap(), b"current");
+        assert_eq!(std::fs::read(&staged).unwrap(), b"next");
+        assert_eq!(staged.parent(), Some(paths.profile_dir(3).as_path()));
+        assert_eq!(hash, blake3::hash(b"next").to_hex().to_string());
+
+        std::fs::rename(&staged, paths.profile_avatar(3)).unwrap();
+        assert_eq!(std::fs::read(paths.profile_avatar(3)).unwrap(), b"next");
     }
 
     #[test]

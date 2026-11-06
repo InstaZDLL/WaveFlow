@@ -8,10 +8,10 @@
 //! - its size is capped ([`MAX_AVATAR_SOURCE_BYTES`]);
 //! - its format is read from its bytes, never from its name, and only
 //!   PNG, JPEG, WebP and GIF are accepted;
-//! - a canvas over [`MAX_AVATAR_PIXELS`] is refused from its header,
-//!   before a pixel is read, and the decoder runs under [`image::Limits`]
-//!   (at most [`MAX_AVATAR_DIMENSION`] pixels a side and a bounded
-//!   allocation), so a small file that announces a huge canvas is never
+//! - a canvas over [`MAX_AVATAR_DIMENSION`] pixels a side, over
+//!   [`MAX_AVATAR_PIXELS`], or whose decoded bytes are over
+//!   `MAX_AVATAR_DECODE_BYTES` is refused from its header, before a pixel
+//!   is read, so a small file that announces a huge canvas is never
 //!   allocated;
 //! - only the centre square is kept past the decode, and it is turned
 //!   upright after it is cut out, so what is held at once stays within
@@ -45,9 +45,12 @@ pub const MAX_AVATAR_DIMENSION: u32 = 10_000;
 /// its decode is 144 MB in RGB, which bounds everything after it.
 pub const MAX_AVATAR_PIXELS: u64 = 50_000_000;
 
-/// The most the decoder may allocate at once: the pixel budget in RGBA,
-/// so a 16-bit picture of that size is refused rather than doubled.
-const MAX_AVATAR_DECODE_ALLOC: u64 = MAX_AVATAR_PIXELS * 4 + 16 * 1024 * 1024;
+/// The most bytes the decoded picture may take: the pixel budget in 8-bit
+/// RGBA. Checked against the header's `total_bytes` before decoding,
+/// since `DynamicImage::from_decoder` does not apply `Limits::max_alloc`
+/// to the buffer it fills: a 16-bit picture is refused at half the
+/// pixels rather than decoded at twice the memory.
+const MAX_AVATAR_DECODE_BYTES: u64 = MAX_AVATAR_PIXELS * 4;
 
 /// Why a file could not become a picture. Each one is a sentence the
 /// interface shows, so they stay few and say what the user can do.
@@ -101,12 +104,14 @@ pub fn normalize_avatar(bytes: &[u8]) -> Result<Vec<u8>, AvatarRefusal> {
     let mut limits = Limits::default();
     limits.max_image_width = Some(MAX_AVATAR_DIMENSION);
     limits.max_image_height = Some(MAX_AVATAR_DIMENSION);
-    limits.max_alloc = Some(MAX_AVATAR_DECODE_ALLOC);
+    limits.max_alloc = Some(MAX_AVATAR_DECODE_BYTES);
     reader.limits(limits);
 
     let mut decoder = reader.into_decoder().map_err(refusal_of)?;
     let (width, height) = decoder.dimensions();
-    if u64::from(width) * u64::from(height) > MAX_AVATAR_PIXELS {
+    if u64::from(width) * u64::from(height) > MAX_AVATAR_PIXELS
+        || decoder.total_bytes() > MAX_AVATAR_DECODE_BYTES
+    {
         return Err(AvatarRefusal::TooLarge);
     }
     if width == 0 || height == 0 {
@@ -298,21 +303,32 @@ mod tests {
         // 8 000 × 7 000 = 56 megapixels, each side under the limit. Only
         // the header is there: a decode would fail as unreadable, so the
         // refusal can only come from the header's size.
-        let png = png_header_only(8_000, 7_000);
+        let png = png_header_only(8_000, 7_000, 8, 2);
         assert_eq!(normalize_avatar(&png), Err(AvatarRefusal::TooLarge));
         // The same header within the budget is read past, and fails on
         // the missing pixels instead.
-        let within = png_header_only(7_000, 7_000);
+        let within = png_header_only(7_000, 7_000, 8, 2);
         assert_eq!(normalize_avatar(&within), Err(AvatarRefusal::Unreadable));
+    }
+
+    #[test]
+    fn a_16_bit_canvas_is_refused_by_its_bytes_not_only_its_pixels() {
+        // 49 megapixels, under the pixel budget, but 16-bit RGBA: 392 MB
+        // once decoded, which `from_decoder` would allocate whatever
+        // `max_alloc` says.
+        let deep = png_header_only(7_000, 7_000, 16, 6);
+        assert_eq!(normalize_avatar(&deep), Err(AvatarRefusal::TooLarge));
     }
 
     /// A PNG whose `IHDR` announces `width` × `height` and whose `IDAT`
     /// holds no pixel at all: a few dozen bytes.
-    fn png_header_only(width: u32, height: u32) -> Vec<u8> {
+    /// `depth` is the bit depth, `colour` the PNG colour type (2 RGB,
+    /// 6 RGBA).
+    fn png_header_only(width: u32, height: u32, depth: u8, colour: u8) -> Vec<u8> {
         let mut ihdr = Vec::new();
         ihdr.extend_from_slice(&width.to_be_bytes());
         ihdr.extend_from_slice(&height.to_be_bytes());
-        ihdr.extend_from_slice(&[8, 2, 0, 0, 0]);
+        ihdr.extend_from_slice(&[depth, colour, 0, 0, 0]);
         let mut png = vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
         for (kind, data) in [
             (*b"IHDR", ihdr),

@@ -530,8 +530,9 @@ export function ProfileSelectorModal({
 /**
  * What a profile tile shows: the picture filling it, or the initial. The
  * picture is laid over the tile rather than clipped by it, so the "active"
- * badge that overhangs the corner stays whole; a picture that fails to
- * load gives the initial back.
+ * badge that overhangs the corner stays whole, and takes the tile's own
+ * radius, so a skin that squares the tile squares the picture too; a
+ * picture that fails to load gives the initial back.
  */
 function ProfileTileFace({ profile }: { profile: Profile }) {
   const src = profileAvatarSrc(profile);
@@ -543,7 +544,7 @@ function ProfileTileFace({ profile }: { profile: Profile }) {
       alt=""
       draggable={false}
       onError={() => setFailed(src)}
-      className="absolute inset-0 h-full w-full rounded-[14px] object-cover"
+      className="absolute inset-0 h-full w-full rounded-[inherit] object-cover"
     />
   );
 }
