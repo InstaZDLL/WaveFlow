@@ -998,3 +998,5 @@ At most a few, each in the place it is about and shown **once per profile** ([`u
 ## Auto-updater
 
 Tauri updater plugin with a signed update flow. The update banner offers "Install now" without forcing a relaunch interruption. **Wired in release builds only** — in `tauri dev` the local source tree wouldn't have a signed manifest to fetch, so the plugin would just spam errors. See [`lib.rs`](../../src-tauri/crates/app/src/lib.rs) for the `#[cfg(not(debug_assertions))]` gate.
+
+Each check reads the channel's manifest on GitHub and its mirror on `download.waveflow.app` and keeps the newest answer, so a release stays reachable when one host is down — [`RELEASING.md`](../RELEASING.md#second-download-source-cloudflare-r2).

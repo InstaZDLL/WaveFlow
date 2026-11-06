@@ -132,8 +132,10 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/InstaZDLL/WaveFlow/releases/latest/download/latest.json"
+        "https://github.com/InstaZDLL/WaveFlow/releases/latest/download/latest.json",
+        "https://download.waveflow.app/stable/latest.json"
       ],
+      "requireSignedVersion": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY3QkUyODExMTcwQjVFM0MKUldROFhnc1hFU2krWitudmcvdHNIamo5RHVjV0tzaWJsS2ZVa3g5QUdKa3B0NXJ1dzF1QU1oNGgK",
       "windows": {
         "installMode": "passive"

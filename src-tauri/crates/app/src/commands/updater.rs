@@ -19,6 +19,18 @@
 //!     1.8.0-beta.3 used to read the beta manifest alone and never saw
 //!     1.8.0 (#793).
 //!
+//! Every manifest has a **mirror** on `download.waveflow.app`, a
+//! Cloudflare R2 bucket `release.yml` fills with the same signed
+//! payloads. The endpoints are compiled into the binary, so a build
+//! that knew only GitHub could never follow the releases anywhere else.
+//! Both copies are read and the newest answer wins, which also survives
+//! one host being down, answering 404 or serving a page that is not
+//! JSON (`docs/RELEASING.md#second-download-source-cloudflare-r2`).
+//! Keeping the newest is safe only because `requireSignedVersion` is on
+//! in `tauri.conf.json`: a manifest is not signed, and without the
+//! version bound into the payload's signature, either host could pair a
+//! high version number with an older signed build.
+//!
 //! The actual updater calls are compiled only into release builds with
 //! the `updater` feature (same gate as the plugin registration in
 //! `lib.rs`) — `app.updater_builder()` reads `self.state::<UpdaterState>()`
@@ -52,6 +64,19 @@ const STABLE_ENDPOINT: &str =
 const BETA_ENDPOINT: &str =
     "https://github.com/InstaZDLL/WaveFlow/releases/download/beta-channel/latest-beta.json";
 
+/// The stable manifest's mirror on R2, rewritten by `release.yml` to
+/// point at the payloads copied next to it. The signatures are the same
+/// bytes, so the updater accepts either copy under the one public key.
+#[allow(dead_code)]
+const STABLE_MIRROR_ENDPOINT: &str = "https://download.waveflow.app/stable/latest.json";
+
+/// The beta manifest's mirror on R2. Only a pre-release tag writes it:
+/// a stable newer than the last beta reaches testers through
+/// [`STABLE_MIRROR_ENDPOINT`], which the beta channel reads too, so the
+/// copy `release.yml` makes onto `beta-channel` has no mirror twin.
+#[allow(dead_code)]
+const BETA_MIRROR_ENDPOINT: &str = "https://download.waveflow.app/beta/latest.json";
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum UpdateChannel {
     Stable,
@@ -79,11 +104,23 @@ impl UpdateChannel {
     /// releases too: one that is newer than the last beta is an update
     /// for them, and `release.yml` only copies it onto the beta channel
     /// from now on, which a build without this list never learns of.
+    ///
+    /// Each GitHub manifest is followed by its R2 mirror. They are read
+    /// one at a time by `imp::check`, never handed to the plugin as one
+    /// list: its own loop (2.14) stops at the first manifest that parses
+    /// without comparing versions, and gives up on the spot when a host
+    /// answers 200 with a body that is not JSON — a suspended account's
+    /// page, a captive portal.
     #[allow(dead_code)] // used only by the release-gated `imp` module
     fn endpoints(self) -> &'static [&'static str] {
         match self {
-            UpdateChannel::Stable => &[STABLE_ENDPOINT],
-            UpdateChannel::Beta => &[BETA_ENDPOINT, STABLE_ENDPOINT],
+            UpdateChannel::Stable => &[STABLE_ENDPOINT, STABLE_MIRROR_ENDPOINT],
+            UpdateChannel::Beta => &[
+                BETA_ENDPOINT,
+                BETA_MIRROR_ENDPOINT,
+                STABLE_ENDPOINT,
+                STABLE_MIRROR_ENDPOINT,
+            ],
         }
     }
 }
@@ -103,6 +140,29 @@ fn is_newer(candidate: &str, current: &str) -> bool {
         (Ok(_), Err(_)) => true,
         _ => false,
     }
+}
+
+/// Which answers to try installing, and in what order: every one that
+/// announces the newest version, in the order the manifests were read.
+/// The two hosts serve the same release with the same signatures, so
+/// when the first one's payload cannot be downloaded or does not verify,
+/// the same version from the other host is still the update — a GitHub
+/// that answers its small manifest but not its 100 MB payload is the
+/// case. An older version is never a fallback for a newer one.
+#[allow(dead_code)] // used only by the release-gated `imp` module
+fn install_order(versions: &[&str]) -> Vec<usize> {
+    let mut newest: Option<usize> = None;
+    for (i, version) in versions.iter().enumerate() {
+        if newest.map_or(true, |best| is_newer(version, versions[best])) {
+            newest = Some(i);
+        }
+    }
+    let Some(newest) = newest else {
+        return Vec::new();
+    };
+    (0..versions.len())
+        .filter(|&i| !is_newer(versions[newest], versions[i]))
+        .collect()
 }
 
 async fn read_channel(db: &SqlitePool) -> UpdateChannel {
@@ -166,11 +226,23 @@ mod imp {
     use tauri_plugin_updater::{Update, UpdaterExt};
     use tokio::sync::Mutex;
 
-    /// Holds the [`Update`] between [`check_for_update`] and
-    /// [`install_update`] — the object owns the verified download URL +
-    /// signature and can't cross the IPC boundary, so it lives here.
+    /// Holds the [`Update`]s between [`check_for_update`] and
+    /// [`install_update`] — each owns a download URL + signature and can't
+    /// cross the IPC boundary, so they live here. Every answer announcing
+    /// the newest version, in the order to try them ([`install_order`]);
+    /// empty when there is nothing to install.
     #[derive(Default)]
-    pub struct PendingUpdate(pub Mutex<Option<Update>>);
+    pub struct PendingUpdate(pub Mutex<Vec<Update>>);
+
+    /// How long one manifest may take to answer.
+    const CHECK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+    /// How long a download may go without a byte before the next host is
+    /// tried. Silence, not the whole download: a slow link still finishes.
+    const DOWNLOAD_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+    /// How often a download is looked at for that silence.
+    const DOWNLOAD_IDLE_POLL: std::time::Duration = std::time::Duration::from_secs(1);
 
     /// The cause chain too: the plugin's `Reqwest` variant is transparent,
     /// and its message alone reads "error sending request" — offline, DNS,
@@ -190,28 +262,34 @@ mod imp {
             .map_err(updater_err)?
             .build()
             .map_err(updater_err)?;
-        updater.check().await.map_err(updater_err)
+        // The plugin sets no timeout of its own, and a host that accepts
+        // the connection and never answers would hold back every manifest
+        // after it — the mirror is only worth something if it is asked.
+        // Around the check alone: the builder's `timeout` would also cap
+        // the download of the payload.
+        tokio::time::timeout(CHECK_TIMEOUT, updater.check())
+            .await
+            .map_err(|_| {
+                AppError::Other(format!(
+                    "updater: no answer within {} s",
+                    CHECK_TIMEOUT.as_secs()
+                ))
+            })?
+            .map_err(updater_err)
     }
 
     pub async fn check(app: &AppHandle, channel: UpdateChannel) -> AppResult<Option<UpdateInfo>> {
         // Each manifest only answers with a version newer than this build,
         // so the newest answer is the update. One manifest failing does not
         // hide what another found; only all of them failing is an error.
-        let mut newest: Option<Update> = None;
+        let mut found_updates: Vec<Update> = Vec::new();
         let mut first_err = None;
         let mut any_ok = false;
         for endpoint in channel.endpoints() {
             match check_endpoint(app, endpoint).await {
                 Ok(found) => {
                     any_ok = true;
-                    if let Some(update) = found {
-                        if newest
-                            .as_ref()
-                            .map_or(true, |best| is_newer(&update.version, &best.version))
-                        {
-                            newest = Some(update);
-                        }
-                    }
+                    found_updates.extend(found);
                 }
                 Err(err) => {
                     tracing::warn!(%err, endpoint, "update check failed for one manifest");
@@ -225,38 +303,43 @@ mod imp {
             }
         }
 
-        let pending = app.state::<PendingUpdate>();
-        match newest {
-            Some(update) => {
-                let info = UpdateInfo {
-                    version: update.version.clone(),
-                    notes: update.body.clone(),
-                };
-                *pending.0.lock().await = Some(update);
-                Ok(Some(info))
-            }
-            None => {
-                *pending.0.lock().await = None;
-                Ok(None)
-            }
-        }
+        let versions: Vec<&str> = found_updates.iter().map(|u| u.version.as_str()).collect();
+        let order = install_order(&versions);
+        let mut slots: Vec<Option<Update>> = found_updates.into_iter().map(Some).collect();
+        let candidates: Vec<Update> = order.into_iter().filter_map(|i| slots[i].take()).collect();
+
+        let info = candidates.first().map(|update| UpdateInfo {
+            version: update.version.clone(),
+            notes: update.body.clone(),
+        });
+        *app.state::<PendingUpdate>().0.lock().await = candidates;
+        Ok(info)
     }
 
     pub async fn install(app: &AppHandle) -> AppResult<()> {
-        let update = {
-            let pending = app.state::<PendingUpdate>();
-            let mut slot = pending.0.lock().await;
-            slot.take()
-        };
-        let Some(update) = update else {
+        let candidates = std::mem::take(&mut *app.state::<PendingUpdate>().0.lock().await);
+        if candidates.is_empty() {
             return Err(AppError::Other("updater: no pending update".into()));
-        };
+        }
 
-        let emitter = app.clone();
-        let mut downloaded: u64 = 0;
-        update
-            .download_and_install(
+        // The next host is tried only when a download fails, falls silent
+        // for `DOWNLOAD_IDLE_TIMEOUT` or its bytes do not verify (`download`
+        // checks the signature). Once an installer has been started, its
+        // error is final: it may have changed things.
+        let mut first_err = None;
+        for (attempt, update) in candidates.iter().enumerate() {
+            let emitter = app.clone();
+            let mut downloaded: u64 = 0;
+            // Milliseconds from `started` to the last chunk, read by the
+            // watch below; the start itself counts as a chunk, so a host
+            // that never answers falls silent like one that stops.
+            let started = std::time::Instant::now();
+            let last_chunk_ms = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+            let chunk_mark = std::sync::Arc::clone(&last_chunk_ms);
+            let download = update.download(
                 move |chunk_len, content_len| {
+                    let now = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+                    chunk_mark.store(now, std::sync::atomic::Ordering::Relaxed);
                     downloaded = downloaded.saturating_add(chunk_len as u64);
                     let _ = emitter.emit(
                         "updater:progress",
@@ -267,12 +350,40 @@ mod imp {
                     );
                 },
                 || {},
-            )
-            .await
-            .map_err(updater_err)?;
-        // On Windows the NSIS installer launches here and the app exits
-        // via the builder's on_before_exit hook, so this rarely returns.
-        Ok(())
+            );
+            tokio::pin!(download);
+            // Dropping the download on silence cancels its request.
+            let bytes = loop {
+                tokio::select! {
+                    result = &mut download => break result.map_err(updater_err),
+                    _ = tokio::time::sleep(DOWNLOAD_IDLE_POLL) => {
+                        let last = std::time::Duration::from_millis(
+                            last_chunk_ms.load(std::sync::atomic::Ordering::Relaxed),
+                        );
+                        if started.elapsed().saturating_sub(last) >= DOWNLOAD_IDLE_TIMEOUT {
+                            break Err(AppError::Other(format!(
+                                "updater: no data for {} s",
+                                DOWNLOAD_IDLE_TIMEOUT.as_secs()
+                            )));
+                        }
+                    }
+                }
+            };
+            match bytes {
+                Ok(bytes) => {
+                    update.install(bytes).map_err(updater_err)?;
+                    // On Windows the NSIS installer launches here and the app
+                    // exits via the builder's on_before_exit hook, so this
+                    // rarely returns.
+                    return Ok(());
+                }
+                Err(err) => {
+                    tracing::warn!(%err, attempt, "update download failed, trying the next host");
+                    first_err.get_or_insert(err);
+                }
+            }
+        }
+        Err(first_err.unwrap_or_else(|| AppError::Other("updater: no pending update".into())))
     }
 }
 

@@ -5,7 +5,7 @@ name: Release
 # minisign key, signs the Windows installer with Authenticode, codesigns
 # (and optionally notarizes) the macOS bundle, and attaches everything
 # plus a merged latest.json updater manifest to the matching GitHub
-# release.
+# release, then mirrors the lot onto Cloudflare R2 when configured.
 #
 # Required repository secrets:
 #   TAURI_SIGNING_PRIVATE_KEY            — raw contents of ~/.tauri/waveflow.key
@@ -22,6 +22,14 @@ name: Release
 #   APPLE_SIGNING_IDENTITY               — e.g. "Developer ID Application: Name (TEAMID)"
 #   APPLE_ID / APPLE_PASSWORD            — Apple ID + app-specific password
 #   APPLE_TEAM_ID                        — 10-char team identifier
+#
+# Optional R2 mirror secrets — the second download source the updater
+# reads. None set skips the mirror; some but not all fails its job only:
+#   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY — an R2 API token's S3 keys
+#   R2_ACCOUNT_ID                        — the Cloudflare account id
+#   R2_BUCKET                            — the bucket's name
+# and the repository variable R2_PUBLIC_URL when the bucket's domain is
+# not https://download.waveflow.app (it must match commands/updater.rs).
 
 on:
   push:
@@ -106,6 +114,19 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
           ref: ${{ env.TAG_NAME }}
+
+      - name: Checkout the release scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        # From this workflow's own commit, not from the tag: a patch release
+        # cut from an older maintenance branch is built by main's workflow,
+        # and its tag predates scripts/release/. The scripts and the
+        # workflow calling them then always come from the same commit, as
+        # the inline steps they replace did.
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts/release
+          persist-credentials: false
 
       - name: Sync app version to the release tag
         shell: bash
@@ -440,40 +461,7 @@ jobs:
           # 24.04's. A newer one means the runner image moved under us.
           GLIBC_FLOOR: "2.39"
         # After the two steps above, so it reads the AppImage that ships.
-        # The binary is the one the .deb and .rpm carry; the AppImage adds
-        # the runner's own libraries (WebKitGTK, GStreamer, …), each of
-        # which can raise the floor on its own.
-        run: |
-          set -euo pipefail
-          img=$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -n 1)
-          work=$(mktemp -d)
-          trap 'rm -rf "$work"' EXIT
-          ( cd "$work" && "$OLDPWD/$img" --appimage-extract >/dev/null )
-          # Empty for an ELF with no glibc symbols (a static one).
-          newest_of() {
-            { objdump -T "$1" 2>/dev/null || true; } \
-              | { grep -o 'GLIBC_[0-9.]*' || true; } | sed 's/GLIBC_//' | sort -uV | tail -n 1
-          }
-          above() { [ "$(printf '%s\n%s\n' "$1" "$GLIBC_FLOOR" | sort -V | tail -n 1)" != "$GLIBC_FLOOR" ]; }
-          binary=$(newest_of src-tauri/target/release/waveflow)
-          echo "waveflow needs glibc $binary (floor $GLIBC_FLOOR)."
-          if [ -z "$binary" ] || above "$binary"; then
-            echo "::error::waveflow needs glibc ${binary:-?}, newer than $GLIBC_FLOOR: it would not start on older distributions."
-            exit 1
-          fi
-          failed=0
-          checked=0
-          while IFS= read -r -d '' f; do
-            [ "$(head -c 4 "$f" | od -An -c | tr -d ' ')" = '177ELF' ] || continue
-            checked=$((checked + 1))
-            v=$(newest_of "$f")
-            if [ -n "$v" ] && above "$v"; then
-              echo "::error::${f#"$work"/} needs glibc $v, newer than $GLIBC_FLOOR"
-              failed=1
-            fi
-          done < <(find "$work/squashfs-root" -type f -print0)
-          echo "Checked $checked ELF files in the AppImage."
-          exit "$failed"
+        run: bash .release-tools/scripts/release/check-glibc-floor.sh
 
       - name: Scrub Authenticode secrets (Windows)
         if: always() && matrix.platform == 'windows'
@@ -496,101 +484,12 @@ jobs:
       - name: Prepare release assets (Linux)
         if: matrix.platform == 'linux'
         shell: bash
+        # The names, the payload and its signature are one contract shared
+        # with .gitlab-ci.yml, so the script holds it; only the host the
+        # manifest points at differs, and it is the argument.
         run: |
-          mkdir -p dist-release dist-manifest
-          python - <<'PY'
-          import json
-          import os
-          import pathlib
-          import shutil
-          import sys
-          from datetime import datetime, timezone
-
-          root = pathlib.Path("src-tauri/target/release/bundle")
-          dist_release = pathlib.Path("dist-release")
-          dist_manifest = pathlib.Path("dist-manifest")
-          version = os.environ["VERSION"]
-          repo = os.environ.get("GITHUB_REPOSITORY", "")
-          tag_name = os.environ["TAG_NAME"]
-
-          # AppImage is the updater's payload format on Linux. The
-          # .deb and .rpm are end-user installers for native package
-          # managers (apt/dnf) — they don't carry an updater payload.
-          appimage_dir = root / "appimage"
-          if not appimage_dir.exists():
-              print("::error::No AppImage bundle directory found", file=sys.stderr)
-              sys.exit(1)
-
-          appimages = sorted(appimage_dir.glob("*.AppImage"))
-          if not appimages:
-              print("::error::No .AppImage produced under bundle/appimage/", file=sys.stderr)
-              sys.exit(1)
-          appimage = appimages[0]
-          renamed = f"WaveFlow_{version}_linux-x86_64.AppImage"
-          shutil.copy2(appimage, dist_release / renamed)
-
-          # Tauri 2 signs the AppImage directly — no .tar.gz wrapper.
-          # The AppImage *is* the updater payload; the .sig sits next
-          # to it. (Older Tauri 1.x produced an extra .AppImage.tar.gz;
-          # we keep a fallback for forward-compat if Tauri ever brings
-          # it back.)
-          updater_sig = appimage_dir / f"{appimage.name}.sig"
-          legacy_payload = appimage_dir / f"{appimage.name}.tar.gz"
-          legacy_sig = appimage_dir / f"{appimage.name}.tar.gz.sig"
-
-          if updater_sig.exists():
-              sig_renamed = f"{renamed}.sig"
-              shutil.copy2(updater_sig, dist_release / sig_renamed)
-              payload_filename = renamed  # the AppImage itself
-              sig_path_for_manifest = updater_sig
-          elif legacy_payload.exists() and legacy_sig.exists():
-              payload_renamed = f"{renamed}.tar.gz"
-              sig_renamed = f"{renamed}.tar.gz.sig"
-              shutil.copy2(legacy_payload, dist_release / payload_renamed)
-              shutil.copy2(legacy_sig, dist_release / sig_renamed)
-              payload_filename = payload_renamed
-              sig_path_for_manifest = legacy_sig
-          else:
-              print("::error::Missing AppImage updater signature (looked for .AppImage.sig and .AppImage.tar.gz.sig)", file=sys.stderr)
-              sys.exit(1)
-
-          for folder, pattern, suffix in [
-              ("deb", "*.deb", "deb"),
-              ("rpm", "*.rpm", "rpm"),
-          ]:
-              folder_path = root / folder
-              matches = sorted(folder_path.glob(pattern)) if folder_path.exists() else []
-              if not matches:
-                  print(f"::error::No {pattern} produced under bundle/{folder}/", file=sys.stderr)
-                  sys.exit(1)
-              dest = dist_release / f"WaveFlow_{version}_linux-x86_64.{suffix}"
-              shutil.copy2(matches[0], dest)
-
-          signature = sig_path_for_manifest.read_text(encoding="utf-8").strip()
-          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_filename}"
-          manifest = {
-              "version": version,
-              "notes": "",
-              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-              "platforms": {
-                  "linux-x86_64": {
-                      "signature": signature,
-                      "url": download_url,
-                  }
-              },
-          }
-          (dist_manifest / "latest-linux.json").write_text(
-              json.dumps(manifest, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          print(json.dumps({
-              "appimage": renamed,
-              "deb": f"WaveFlow_{version}_linux-x86_64.deb",
-              "rpm": f"WaveFlow_{version}_linux-x86_64.rpm",
-              "updater_payload": payload_filename,
-              "updater_sig": sig_renamed,
-          }, indent=2))
-          PY
+          python .release-tools/scripts/release/prepare-assets.py linux \
+            --base-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG_NAME"
           ls -la dist-release/
 
       - name: Build the AppImage zsync control file (Linux)
@@ -646,85 +545,8 @@ jobs:
         if: matrix.platform == 'windows'
         shell: bash
         run: |
-          mkdir -p dist-release dist-manifest
-          python - <<'PY'
-          import json
-          import os
-          import pathlib
-          import shutil
-          import sys
-          from datetime import datetime, timezone
-
-          root = pathlib.Path("src-tauri/target/release/bundle")
-          dist_release = pathlib.Path("dist-release")
-          dist_manifest = pathlib.Path("dist-manifest")
-          version = os.environ["VERSION"]
-          repo = os.environ.get("GITHUB_REPOSITORY", "")
-          tag_name = os.environ["TAG_NAME"]
-
-          # NSIS is the updater's payload format (per-user install
-          # under %LOCALAPPDATA%). The MSI is the system-wide
-          # installer (Program Files) for IT/corporate deployment —
-          # it's signed by the same Authenticode pass but doesn't
-          # carry an updater signature.
-          nsis_dir = root / "nsis"
-          if not nsis_dir.exists():
-              print("::error::No NSIS bundle directory found", file=sys.stderr)
-              sys.exit(1)
-
-          installers = sorted(nsis_dir.glob("*-setup.exe"))
-          if not installers:
-              print("::error::No NSIS *-setup.exe produced", file=sys.stderr)
-              sys.exit(1)
-          installer = installers[0]
-          renamed = f"WaveFlow_{version}_windows-x86_64-setup.exe"
-          shutil.copy2(installer, dist_release / renamed)
-
-          updater_sig = installer.with_suffix(installer.suffix + ".sig")
-          if not updater_sig.exists():
-              print("::error::Missing .sig next to NSIS installer", file=sys.stderr)
-              sys.exit(1)
-          sig_renamed = f"{renamed}.sig"
-          shutil.copy2(updater_sig, dist_release / sig_renamed)
-
-          # Beta builds ship NSIS only — WiX/MSI can't take a non-numeric
-          # pre-release version, so the MSI is expected to be absent there.
-          is_prerelease = os.environ.get("IS_PRERELEASE") == "true"
-          msi_dir = root / "msi"
-          msi_files = sorted(msi_dir.glob("*.msi")) if msi_dir.exists() else []
-          msi_renamed = None
-          if msi_files:
-              msi_renamed = f"WaveFlow_{version}_windows-x86_64.msi"
-              shutil.copy2(msi_files[0], dist_release / msi_renamed)
-          elif is_prerelease:
-              print("No MSI on the beta channel (NSIS-only Windows build) — skipping.")
-          else:
-              print("::error::No MSI produced under bundle/msi/", file=sys.stderr)
-              sys.exit(1)
-
-          signature = updater_sig.read_text(encoding="utf-8").strip()
-          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{renamed}"
-          manifest = {
-              "version": version,
-              "notes": "",
-              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-              "platforms": {
-                  "windows-x86_64": {
-                      "signature": signature,
-                      "url": download_url,
-                  }
-              },
-          }
-          (dist_manifest / "latest-windows.json").write_text(
-              json.dumps(manifest, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          print(json.dumps({
-              "nsis_setup": renamed,
-              "msi": msi_renamed,
-              "updater_sig": sig_renamed,
-          }, indent=2))
-          PY
+          python .release-tools/scripts/release/prepare-assets.py windows \
+            --base-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG_NAME"
           ls -la dist-release/
 
       - name: Verify macOS signature
@@ -771,80 +593,8 @@ jobs:
         if: matrix.platform == 'macos'
         shell: bash
         run: |
-          mkdir -p dist-release dist-manifest
-          python - <<'PY'
-          import json
-          import os
-          import pathlib
-          import shutil
-          import sys
-          from datetime import datetime, timezone
-
-          # When --target universal-apple-darwin is passed, bundles
-          # land under target/<triple>/release/bundle/ instead of the
-          # default target/release/bundle/.
-          target_dir = pathlib.Path("src-tauri/target/universal-apple-darwin/release/bundle")
-          if not target_dir.exists():
-              target_dir = pathlib.Path("src-tauri/target/release/bundle")
-          dist_release = pathlib.Path("dist-release")
-          dist_manifest = pathlib.Path("dist-manifest")
-          version = os.environ["VERSION"]
-          repo = os.environ.get("GITHUB_REPOSITORY", "")
-          tag_name = os.environ["TAG_NAME"]
-
-          # The DMG is what humans download for installation.
-          dmg_dir = target_dir / "dmg"
-          if not dmg_dir.exists():
-              print("::error::No DMG bundle directory found", file=sys.stderr)
-              sys.exit(1)
-          dmgs = sorted(dmg_dir.glob("*.dmg"))
-          if not dmgs:
-              print("::error::No .dmg produced under bundle/dmg/", file=sys.stderr)
-              sys.exit(1)
-          dmg = dmgs[0]
-          renamed_dmg = f"WaveFlow_{version}_macos-universal.dmg"
-          shutil.copy2(dmg, dist_release / renamed_dmg)
-
-          # The .app.tar.gz + .sig is what the updater consumes.
-          macos_dir = target_dir / "macos"
-          if not macos_dir.exists():
-              print("::error::No macos bundle directory found", file=sys.stderr)
-              sys.exit(1)
-          payloads = sorted(macos_dir.glob("*.app.tar.gz"))
-          sigs = sorted(macos_dir.glob("*.app.tar.gz.sig"))
-          if not payloads or not sigs:
-              print("::error::Missing updater payload/signature for macOS", file=sys.stderr)
-              sys.exit(1)
-          payload_renamed = f"WaveFlow_{version}_macos-universal.app.tar.gz"
-          sig_renamed = f"{payload_renamed}.sig"
-          shutil.copy2(payloads[0], dist_release / payload_renamed)
-          shutil.copy2(sigs[0], dist_release / sig_renamed)
-
-          signature = sigs[0].read_text(encoding="utf-8").strip()
-          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_renamed}"
-          # Tauri 2's updater accepts a single darwin-universal entry
-          # for universal binaries.
-          manifest = {
-              "version": version,
-              "notes": "",
-              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-              "platforms": {
-                  "darwin-x86_64": {
-                      "signature": signature,
-                      "url": download_url,
-                  },
-                  "darwin-aarch64": {
-                      "signature": signature,
-                      "url": download_url,
-                  },
-              },
-          }
-          (dist_manifest / "latest-macos.json").write_text(
-              json.dumps(manifest, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          print(json.dumps({"dmg": renamed_dmg, "payload": payload_renamed, "sig": sig_renamed}, indent=2))
-          PY
+          python .release-tools/scripts/release/prepare-assets.py macos \
+            --base-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG_NAME"
           ls -la dist-release/
 
       - name: Upload updater manifest part
@@ -923,49 +673,26 @@ jobs:
           path: manifest-parts
           merge-multiple: true
 
+      - name: Checkout the release scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts/release
+          persist-credentials: false
+
       - name: Merge updater manifests
         shell: bash
         run: |
-          mkdir -p dist-release
-          python - <<'PY'
-          import json
-          import pathlib
-          import sys
-
-          paths = sorted(pathlib.Path("manifest-parts").glob("latest-*.json"))
-          if not paths:
-              print("::error::No per-platform manifests found", file=sys.stderr)
-              sys.exit(1)
-
-          merged = None
-          platforms = {}
-          for path in paths:
-              data = json.loads(path.read_text(encoding="utf-8"))
-              if merged is None:
-                  merged = {k: v for k, v in data.items() if k != "platforms"}
-              elif data.get("version") != merged.get("version"):
-                  print(
-                      f"::error::Manifest version mismatch: "
-                      f"{merged.get('version')!r} != {data.get('version')!r}",
-                      file=sys.stderr,
-                  )
-                  sys.exit(1)
-              platform_dict = data.get("platforms")
-              if not isinstance(platform_dict, dict) or not platform_dict:
-                  print(f"::error::Manifest {path} has no platforms entry", file=sys.stderr)
-                  sys.exit(1)
-              overlap = set(platforms).intersection(platform_dict)
-              if overlap:
-                  print(f"::error::Duplicate platform entries: {sorted(overlap)}", file=sys.stderr)
-                  sys.exit(1)
-              platforms.update(platform_dict)
-
-          merged["platforms"] = platforms
-          output = pathlib.Path("dist-release/latest.json")
-          output.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
-          print(f"Merged manifest -> {output}")
-          PY
+          python .release-tools/scripts/release/merge-manifests.py manifest-parts dist-release/latest.json
           cat dist-release/latest.json
+
+      - name: Keep the merged manifest for the R2 mirror
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: merged-updater-manifest
+          path: dist-release/latest.json
+          if-no-files-found: error
 
       - name: Upload merged manifest
         shell: bash
@@ -1011,29 +738,20 @@ jobs:
               echo "::warning::Could not download the beta channel manifest. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
             elif ! BETA_VERSION=$(python3 -c 'import json; print(json.load(open("current-beta.json"))["version"])'); then
               echo "::warning::The beta channel manifest has no readable version. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
-            elif python3 - "${TAG_NAME#v}" "$BETA_VERSION" <<'PY'
-          import sys
-
-          def key(version):
-              core, _, pre = version.partition("-")
-              numbers = tuple(int(part) for part in core.split("."))
-              # A release sorts after every pre-release of the same core;
-              # pre-release identifiers compare numerically where they can.
-              parts = tuple(
-                  (0, int(p), "") if p.isdigit() else (1, 0, p)
-                  for p in pre.split(".")
-              ) if pre else ()
-              return numbers, (1,) if not pre else (0,) + parts
-
-          stable, beta = sys.argv[1], sys.argv[2]
-          sys.exit(0 if key(stable) > key(beta) else 1)
-          PY
-            then
-              echo "Stable $TAG_NAME is newer than the beta channel's $BETA_VERSION: publishing it there too."
-              cp dist-release/latest.json dist-release/latest-beta.json
-              gh release upload beta-channel dist-release/latest-beta.json --clobber
             else
-              echo "Beta channel keeps $BETA_VERSION, not older than $TAG_NAME."
+              # The comparison publish-r2.sh makes too: 0 newer, 1 not, 2 not
+              # a version — the last never taken for "not newer" in silence.
+              rc=0
+              python .release-tools/scripts/release/version-newer.py "${TAG_NAME#v}" "$BETA_VERSION" || rc=$?
+              if [ "$rc" -eq 0 ]; then
+                echo "Stable $TAG_NAME is newer than the beta channel's $BETA_VERSION: publishing it there too."
+                cp dist-release/latest.json dist-release/latest-beta.json
+                gh release upload beta-channel dist-release/latest-beta.json --clobber
+              elif [ "$rc" -eq 1 ]; then
+                echo "Beta channel keeps $BETA_VERSION, not older than $TAG_NAME."
+              else
+                echo "::warning::Could not compare $TAG_NAME with the beta channel's $BETA_VERSION. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
+              fi
             fi
           fi
 
@@ -1059,3 +777,113 @@ jobs:
           gh workflow run winget.yml      -f tag_name="$TAG_NAME"
           gh workflow run copr.yml        -f tag_name="$TAG_NAME"
           gh workflow run apt-publish.yml -f tag_name="$TAG_NAME"
+
+  # The second download source (docs/RELEASING.md#second-download-source-cloudflare-r2):
+  # the same files and a manifest pointing at them, on an R2 bucket under
+  # the project's own domain. The app reads both hosts, so a release
+  # stays reachable for every build that knows the mirror the day the
+  # GitHub one is not.
+  #
+  # Its own job, after everything else: it starts from what GitHub holds,
+  # and a mirror failing marks the run red without holding back the
+  # release, its manifest or the downstream dispatches. "Re-run failed
+  # jobs" then retries the mirror alone.
+  r2-mirror:
+    name: Mirror to R2
+    needs: updater-manifest
+    # Also when that job went red after the merge: its last step dispatches
+    # the downstream workflows, and one of them failing to start says
+    # nothing about the release. If the merge itself failed, the manifest
+    # artifact is missing and this job fails on it.
+    if: ${{ !cancelled() && needs.updater-manifest.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # One mirror at a time per channel across tags: the release's own group
+    # is per ref, and two tags published together would each read the
+    # channel's manifest before either wrote it, the older one possibly
+    # writing last. GitHub keeps one pending run per group and cancels the
+    # one before it, so the group is the channel: only an older release of
+    # the same channel can be dropped, never the other channel's.
+    concurrency:
+      group: r2-mirror-${{ contains(github.event.inputs.tag_name || github.ref_name, '-') && 'beta' || 'stable' }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      # The domain compiled into the app (commands/updater.rs). A variable,
+      # not a secret: it is printed in every manifest.
+      R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL || 'https://download.waveflow.app' }}
+
+    steps:
+      - name: Resolve tag
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ -n "$MANUAL_TAG" ]; then
+            TAG="$MANUAL_TAG"
+          else
+            TAG="${GIT_REF#refs/tags/}"
+          fi
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          VERSION="${TAG#v}"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Checkout the release scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts/release
+          persist-credentials: false
+
+      # No secret set is a repository without a mirror — a fork, or this one
+      # before the bucket exists — and the job ends green right here, before
+      # downloading anything. Some but not all of them set fails.
+      - name: Check the R2 configuration
+        shell: bash
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          state=$(bash .release-tools/scripts/release/publish-r2.sh --check)
+          echo "R2 mirror: $state"
+          if [ "$state" != "configured" ]; then
+            echo "::notice title=R2 mirror::No R2_* secret set, $TAG_NAME is not mirrored."
+          fi
+          echo "R2_STATE=$state" >> "$GITHUB_ENV"
+
+      - name: Download the merged manifest
+        if: env.R2_STATE == 'configured'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: merged-updater-manifest
+          path: manifest
+
+      - name: Download the release assets
+        if: env.R2_STATE == 'configured'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        # From the release, not from the build jobs: the mirror holds what
+        # GitHub published, byte for byte, and needs no artefact upload of
+        # every installer to get it.
+        run: gh release download "$TAG_NAME" --dir assets
+
+      - name: Publish to R2
+        if: env.R2_STATE == 'configured'
+        shell: bash
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: bash .release-tools/scripts/release/publish-r2.sh assets manifest/latest.json
