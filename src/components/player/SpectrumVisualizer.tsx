@@ -48,7 +48,7 @@ const RAINBOW_AREA_ALPHA = 0.35;
  * and twice as nervously.
  */
 const ATTACK_MS = 21;
-const RELEASE_MS = 90;
+const RELEASE_MS = 80;
 /** Under reduced motion both halves are damped: the ask there is for calm,
  *  and a curve that eases into place is calmer than one that stops moving. */
 const REDUCED_ATTACK_MS = 70;

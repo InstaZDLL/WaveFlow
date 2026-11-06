@@ -52,14 +52,15 @@ const HOP: usize = 1024;
 const LEVEL_ATTACK: Duration = Duration::from_millis(250);
 const LEVEL_RELEASE: Duration = Duration::from_secs(15);
 
-/// How long each band's power is averaged over, a little over one frame.
-/// One window's estimate of a steady sound wanders on its own from one
-/// window to the next (a single bin of noise swings by half its value),
-/// and drawn as is it made the whole shape tremble on every frame. A kick
-/// holds its energy for about 100 ms, so it comes through the average at
-/// nearly its full height. At 60 ms the shape was steady but read as slow
-/// against the music; 40 ms keeps most of the steadying.
-const BAND_SMOOTHING: Duration = Duration::from_millis(40);
+/// How long each band's power is averaged over, about one frame. One
+/// window's estimate of a steady sound wanders on its own from one window
+/// to the next (a single bin of noise swings by half its value), and drawn
+/// as is it made the whole shape tremble on every frame. A kick holds its
+/// energy for about 100 ms, so it comes through the average at nearly its
+/// full height. At 60 ms, then 40, the shape was steady but read as slow
+/// against the music; 30 ms still settles a band that flickers to half
+/// its swing.
+const BAND_SMOOTHING: Duration = Duration::from_millis(30);
 
 /// The level reference never drops below this magnitude. Without a floor
 /// a fade-out or a silent gap would be scaled up until its noise filled
