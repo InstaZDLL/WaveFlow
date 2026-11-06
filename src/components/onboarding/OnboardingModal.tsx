@@ -9,6 +9,7 @@ import { ScanStrip } from "./ScanStrip";
 import { useOnboardingScan } from "./useOnboardingScan";
 import { usePluginCatalogue } from "./usePluginCatalogue";
 import { WelcomeStep } from "./steps/WelcomeStep";
+import { PhotoStep } from "./steps/PhotoStep";
 import { FolderStep } from "./steps/FolderStep";
 import { LookStep } from "./steps/LookStep";
 import { ListeningStep } from "./steps/ListeningStep";
@@ -29,7 +30,7 @@ import "../discovery/discovery.css";
 const AUTO_BOOTSTRAP_PROFILE_NAME = "Default";
 
 /** Getting started: about a minute, then the scan runs on its own. */
-const SETUP_STEPS = ["welcome", "folder"] as const;
+const SETUP_STEPS = ["welcome", "photo", "folder"] as const;
 /** "Make WaveFlow yours", one theme a screen, while the library fills. */
 const COMPOSE_STEPS = [
   "look",
@@ -56,7 +57,8 @@ interface OnboardingModalProps {
  * The first-run journey, in three movements:
  *
  * 1. **Getting started** — welcome and language (the auto-created
- *    profile is named here too), then the music folder. Picking it, or
+ *    profile is named here too), an optional picture for the profile,
+ *    then the music folder. Picking it, or
  *    dropping one on the window, starts the scan at once.
  * 2. **Make WaveFlow yours** — while the scan runs in the background,
  *    one screen per theme (look, listening, lyrics, plugins,
@@ -88,6 +90,7 @@ export function OnboardingModal({
   );
   const steps: StepId[] = [
     "welcome",
+    "photo",
     ...(hasLibrary ? [] : (["folder"] as const)),
     ...COMPOSE_STEPS,
     "done",
@@ -163,7 +166,7 @@ export function OnboardingModal({
 
   const composeIndex = COMPOSE_STEPS.indexOf(step as ComposeStep);
   const setupIndex = SETUP_STEPS.indexOf(step as SetupStep);
-  const setupCount = hasLibrary ? 1 : SETUP_STEPS.length;
+  const setupCount = hasLibrary ? SETUP_STEPS.length - 1 : SETUP_STEPS.length;
   const kicker =
     composeIndex >= 0
       ? t("onboarding.phase.compose", {
@@ -211,7 +214,9 @@ export function OnboardingModal({
           </div>
           <ScanStrip
             scan={scan}
-            visible={step !== "welcome" && step !== "folder"}
+            visible={
+              step !== "welcome" && step !== "photo" && step !== "folder"
+            }
           />
           <button
             type="button"
@@ -239,6 +244,7 @@ export function OnboardingModal({
                 nameError={nameError}
               />
             )}
+            {step === "photo" && <PhotoStep onTouch={touch} />}
             {step === "folder" && (
               <FolderStep
                 startFolder={startFolder}
@@ -286,6 +292,20 @@ export function OnboardingModal({
                 onClick={() => void handleStart()}
                 disabled={busy || (askName && !profileName.trim())}
                 label={t("onboarding.actions.start")}
+              />
+            </>
+          )}
+          {step === "photo" && (
+            <>
+              <BackButton onClick={back} />
+              <span className="flex-1" />
+              <PrimaryButton
+                onClick={next}
+                label={
+                  touched.has(step)
+                    ? t("onboarding.actions.continue")
+                    : t("onboarding.actions.skip")
+                }
               />
             </>
           )}

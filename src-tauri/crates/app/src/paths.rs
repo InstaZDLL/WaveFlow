@@ -6,6 +6,9 @@ use waveflow_core::plugin::PluginPaths;
 
 use crate::error::{AppError, AppResult};
 
+/// File name of a profile's picture, in its directory and in its archive.
+pub const PROFILE_AVATAR_FILE: &str = "avatar.png";
+
 /// Resolved filesystem paths for the application.
 ///
 /// Layout (on Windows example, equivalent on macOS/Linux via Tauri's data dir):
@@ -13,10 +16,11 @@ use crate::error::{AppError, AppResult};
 /// ```text
 /// <app_data>/waveflow/                 <- `root`
 /// ├── app.db                    (global registry + app settings)
-/// ├── avatars/                  (shared profile avatars, hash-addressed)
+/// ├── avatars/                  (created, never written: see `profile_avatar`)
 /// └── profiles/
 ///     └── <profile_id>/
 ///         ├── data.db           (per-profile database)
+///         ├── avatar.png        (the profile's picture, when it has one)
 ///         ├── motion/           (per-profile manual motion covers, never evicted)
 ///         ├── canvas/           (per-profile manual Canvas clips, never evicted)
 ///         └── remote-downloads/ (offline copies the user asked for)
@@ -65,6 +69,10 @@ pub struct AppPaths {
     /// the user moved them (issue #619).
     pub cache_root: PathBuf,
     pub app_db: PathBuf,
+    /// Created at startup since the first schema and never written: a
+    /// profile's picture lives in its own directory
+    /// ([`Self::profile_avatar`]). Kept so an install that has it is not
+    /// left with a folder nothing accounts for.
     pub avatars_dir: PathBuf,
     pub metadata_artwork_dir: PathBuf,
     /// App-wide, opt-in LRU cache of downloaded animated-album-artwork
@@ -224,6 +232,17 @@ impl AppPaths {
     /// Per-profile database file (`<profile_dir>/data.db`).
     pub fn profile_db(&self, profile_id: i64) -> PathBuf {
         self.profile_dir(profile_id).join("data.db")
+    }
+
+    /// The profile's picture (`<profile_dir>/avatar.png`), a square PNG
+    /// made from the file the user picked
+    /// ([`waveflow_core::artwork::avatar`]). Under the profile's own
+    /// directory rather than the shared `avatars/` one: it is deleted with
+    /// the profile, travels in its archive, and the asset protocol already
+    /// serves `profiles/**`. One name per profile, so `profile.avatar_hash`
+    /// is what tells a new picture from the last one.
+    pub fn profile_avatar(&self, profile_id: i64) -> PathBuf {
+        self.profile_dir(profile_id).join(PROFILE_AVATAR_FILE)
     }
 
     /// Directory holding a profile's *caches* (e.g.

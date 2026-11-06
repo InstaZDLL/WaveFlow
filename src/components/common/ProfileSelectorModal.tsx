@@ -5,6 +5,7 @@ import { X, Plus, ArrowLeft, Check, Pencil, Trash2 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useProfile } from "../../hooks/useProfile";
 import type { Profile } from "../../lib/tauri/profile";
+import { profileAvatarSrc } from "../../lib/profileAvatar";
 import {
   PROFILE_COLORS,
   DEFAULT_PROFILE_COLOR_ID,
@@ -248,7 +249,7 @@ export function ProfileSelectorModal({
                                   : "border-zinc-700 group-hover:border-zinc-500"
                               } ${showManageControls && isActive ? "opacity-60" : ""}`}
                             >
-                              {profileInitial(profile.name)}
+                              <ProfileTileFace profile={profile} />
                               {isActive && !showManageControls && (
                                 <div
                                   className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full ${color.avatarBg} text-white flex items-center justify-center shadow-lg ring-4 ring-zinc-900`}
@@ -523,5 +524,26 @@ export function ProfileSelectorModal({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/**
+ * What a profile tile shows: the picture filling it, or the initial. The
+ * picture is laid over the tile rather than clipped by it, so the "active"
+ * badge that overhangs the corner stays whole; a picture that fails to
+ * load gives the initial back.
+ */
+function ProfileTileFace({ profile }: { profile: Profile }) {
+  const src = profileAvatarSrc(profile);
+  const [failed, setFailed] = useState<string | null>(null);
+  if (src == null || failed === src) return <>{profileInitial(profile.name)}</>;
+  return (
+    <img
+      src={src}
+      alt=""
+      draggable={false}
+      onError={() => setFailed(src)}
+      className="absolute inset-0 h-full w-full rounded-[14px] object-cover"
+    />
   );
 }

@@ -1311,3 +1311,134 @@ async fn an_export_after_unsubscribing_holds_no_trace_of_the_address() {
         );
     }
 }
+
+/// A small picture, as `set_profile_avatar` stores one.
+fn a_picture() -> Vec<u8> {
+    let img = image::RgbaImage::from_pixel(40, 30, image::Rgba([200, 30, 90, 255]));
+    let mut png = std::io::Cursor::new(Vec::new());
+    img.write_to(&mut png, image::ImageFormat::Png).unwrap();
+    waveflow_core::artwork::avatar::normalize_avatar(png.get_ref()).unwrap()
+}
+
+/// The picture travels: an export carries `avatar.png`, and the imported
+/// profile comes back with it, stored under its own directory and named
+/// in its row.
+#[tokio::test]
+async fn a_profile_picture_travels_with_the_archive() {
+    let dir = tempfile::tempdir().unwrap();
+    let profile = dir.path().join("profile");
+    std::fs::create_dir_all(profile.join("artwork")).unwrap();
+    let db = extracted(&profile).await;
+    let picture = a_picture();
+    std::fs::write(profile.join(crate::paths::PROFILE_AVATAR_FILE), &picture).unwrap();
+    let archive = dir.path().join("pictured.waveflow");
+    write_archive(
+        &archive,
+        &profile,
+        &db,
+        &profile.join("artwork"),
+        None,
+        &manifest(ARCHIVE_VERSION),
+    )
+    .unwrap();
+    assert_eq!(
+        read_avatar_entry(&archive).unwrap().as_deref(),
+        Some(picture.as_slice())
+    );
+
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None);
+    let app_db = app_db(&root).await;
+    let imported = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let stored = std::fs::read(paths.profile_avatar(imported.id)).unwrap();
+    let image = image::load_from_memory(&stored).unwrap();
+    assert_eq!(image.width(), waveflow_core::artwork::avatar::AVATAR_SIZE);
+    let hash: Option<String> = sqlx::query_scalar("SELECT avatar_hash FROM profile WHERE id = ?")
+        .bind(imported.id)
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    assert_eq!(hash, Some(blake3::hash(&stored).to_hex().to_string()));
+}
+
+/// An archive without a picture imports a profile without one.
+#[tokio::test]
+async fn an_archive_without_a_picture_imports_none() {
+    let dir = tempfile::tempdir().unwrap();
+    let (archive, _) = profile_archive(dir.path(), ARCHIVE_VERSION).await;
+    assert!(read_avatar_entry(&archive).unwrap().is_none());
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None);
+    let app_db = app_db(&root).await;
+    let imported = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await
+    .unwrap();
+    assert!(!paths.profile_avatar(imported.id).exists());
+    let hash: Option<String> = sqlx::query_scalar("SELECT avatar_hash FROM profile WHERE id = ?")
+        .bind(imported.id)
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    assert_eq!(hash, None);
+}
+
+/// An `avatar.png` written by hand is no more trusted than a file on the
+/// disk: one that is not a picture is left out, and the profile is
+/// imported all the same.
+#[tokio::test]
+async fn a_handmade_picture_that_is_none_is_left_out() {
+    let dir = tempfile::tempdir().unwrap();
+    let (archive, _) = profile_archive_with_setting(dir.path(), "SELECT 1;").await;
+    // Append the entry to the handmade archive.
+    let mut zip = ZipWriter::new_append(
+        std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&archive)
+            .unwrap(),
+    )
+    .unwrap();
+    zip.start_file(
+        crate::paths::PROFILE_AVATAR_FILE,
+        SimpleFileOptions::default(),
+    )
+    .unwrap();
+    zip.write_all(b"\x89PNG\r\n\x1a\nthis is no picture")
+        .unwrap();
+    zip.finish().unwrap();
+
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None);
+    let app_db = app_db(&root).await;
+    let imported = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await
+    .unwrap();
+    assert!(!paths.profile_avatar(imported.id).exists());
+    let hash: Option<String> = sqlx::query_scalar("SELECT avatar_hash FROM profile WHERE id = ?")
+        .bind(imported.id)
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    assert_eq!(hash, None);
+}

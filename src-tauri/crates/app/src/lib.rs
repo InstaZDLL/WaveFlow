@@ -245,6 +245,8 @@ pub fn run() {
             commands::profile::get_active_profile,
             commands::profile::create_profile,
             commands::profile::rename_profile,
+            commands::profile_avatar::set_profile_avatar,
+            commands::profile_avatar::clear_profile_avatar,
             commands::profile::switch_profile,
             commands::profile::deactivate_profile,
             commands::profile::delete_profile,

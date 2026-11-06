@@ -89,6 +89,10 @@
       "namePlaceholder": "Namamu",
       "nameRequired": "Masukkan nama untuk profil ini."
     },
+    "photo": {
+      "title": "Foto untuk profil ini",
+      "lede": "Opsional: foto menggantikan huruf awal di bilah samping dan menu profil. Kamu bisa mengganti atau menghapusnya nanti di Pengaturan → Umum."
+    },
     "folder": {
       "title": "Di mana musikmu?",
       "lede": "Pilih folder yang berisi album-albummu. Pembacaannya langsung dimulai di latar belakang, sementara kamu melanjutkan tur.",
@@ -1223,6 +1227,22 @@
       "warning": "Semua pustaka, daftar putar, dan riwayat dengar profil ini akan hilang. Tindakan ini tidak dapat dibatalkan.",
       "submit": "Hapus profil",
       "submitting": "Menghapus…"
+    },
+    "picture": {
+      "title": "Foto profil",
+      "subtitle": "Gambar dari komputermu, dipotong menjadi persegi. Foto ini menggantikan huruf awal di mana pun profil ditampilkan.",
+      "choose": "Pilih foto",
+      "change": "Ganti foto",
+      "remove": "Hapus",
+      "pickerTitle": "Pilih foto profil",
+      "formats": "PNG, JPEG, WebP, atau GIF, maksimal 20 MB. Hanya salinan yang sudah dipotong yang disimpan.",
+      "errors": {
+        "tooLarge": "Gambar ini terlalu besar: maksimal 20 MB dan 10.000 piksel per sisi.",
+        "unsupported": "Berkas ini bukan gambar PNG, JPEG, WebP, atau GIF.",
+        "unreadable": "Gambar ini rusak atau tidak lengkap sehingga tidak bisa dibaca.",
+        "failed": "Foto tidak bisa disimpan.",
+        "removeFailed": "Foto tidak bisa dihapus."
+      }
     }
   },
   "libraryModal": {
@@ -3172,6 +3192,7 @@
         "diagnostics": "Pembaruan, pemecahan masalah, dan pengaturan ulang aplikasi."
       },
       "groups": {
+        "profile": "Profil",
         "language": "Bahasa",
         "startup": "Proses mulai dan notifikasi",
         "scanning": "Impor dan pemindaian",
@@ -3226,6 +3247,7 @@
         "diagnostics": "Pembaruan, log, atur ulang"
       },
       "groupHints": {
+        "profile": "Cara profil tampil di aplikasi",
         "language": "Langsung berlaku, tanpa memulai ulang",
         "startup": "Yang terjadi saat WaveFlow dibuka dan ditutup",
         "listening": "Cara lagu dimulai dan apa yang diputar berikutnya",

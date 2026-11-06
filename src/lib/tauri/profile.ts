@@ -10,16 +10,20 @@ export interface Profile {
   id: number;
   name: string;
   color_id: string;
+  /** BLAKE3 of the stored picture, or `null` when the profile has none.
+   *  Changes with every new picture, so it keys the image URL. */
   avatar_hash: string | null;
   data_dir: string;
   created_at: number;
   last_used_at: number;
+  /** Absolute path of the profile's picture (`profiles/<id>/avatar.png`),
+   *  resolved by the backend; `null` when there is none. */
+  avatar_path: string | null;
 }
 
 export interface CreateProfileInput {
   name: string;
   color_id?: string;
-  avatar_hash?: string | null;
 }
 
 export function listProfiles(): Promise<Profile[]> {
@@ -45,6 +49,47 @@ export function renameProfile(
   name: string,
 ): Promise<Profile> {
   return invoke<Profile>("rename_profile", { profileId, name });
+}
+
+/**
+ * Make the image at `filePath` the profile's picture. The backend reads
+ * it (PNG, JPEG, WebP or GIF, 20 MB at most), keeps the centre square at
+ * 256 px and stores that copy only; the original's path is not kept.
+ * Rejects with `avatar: too-large`, `avatar: unsupported` or
+ * `avatar: unreadable` when the file cannot be one — see
+ * [`avatarRefusalKey`].
+ */
+export function setProfileAvatar(
+  profileId: number,
+  filePath: string,
+): Promise<Profile> {
+  return invoke<Profile>("set_profile_avatar", { profileId, filePath });
+}
+
+/** Remove the profile's picture; its initial is drawn again. */
+export function clearProfileAvatar(profileId: number): Promise<Profile> {
+  return invoke<Profile>("clear_profile_avatar", { profileId });
+}
+
+/** The extensions the picture picker offers. The backend reads the
+ *  format from the bytes, so this only filters the dialog. */
+export const PROFILE_PICTURE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
+
+/** The i18n key of the sentence for a refused picture, from the
+ *  backend's `avatar: <code>` error, or `null` for any other failure. */
+export function avatarRefusalKey(err: unknown): string | null {
+  const message = err instanceof Error ? err.message : String(err);
+  const code = /^avatar: (too-large|unsupported|unreadable)/.exec(message)?.[1];
+  switch (code) {
+    case "too-large":
+      return "profiles.picture.errors.tooLarge";
+    case "unsupported":
+      return "profiles.picture.errors.unsupported";
+    case "unreadable":
+      return "profiles.picture.errors.unreadable";
+    default:
+      return null;
+  }
 }
 
 export function switchProfile(profileId: number): Promise<Profile> {

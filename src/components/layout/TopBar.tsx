@@ -36,7 +36,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useRecentSearches } from "../../hooks/useRecentSearches";
 import { useWhatsNewButton } from "../../hooks/useWhatsNew";
 import { FOCUS_SEARCH_EVENT } from "../../lib/shortcuts";
-import { getProfileColor, profileInitial } from "../../lib/profileColors";
+import { ProfileAvatar } from "../common/ProfileAvatar";
 import { MenuActionItem } from "../common/MenuActionItem";
 import { Artwork } from "../common/Artwork";
 import {
@@ -94,9 +94,7 @@ export function TopBar({
   const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
   const { activeProfile } = useProfile();
-  const profileColor = getProfileColor(activeProfile?.color_id);
   const profileName = activeProfile?.name ?? "";
-  const profileLetter = activeProfile ? profileInitial(activeProfile.name) : "";
   const { playTracks } = usePlayer();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -968,11 +966,10 @@ export function TopBar({
                   : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200"
               }`}
           >
-            <div
-              className={`w-6 h-6 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center text-xs font-bold`}
-            >
-              {profileLetter}
-            </div>
+            <ProfileAvatar
+              profile={activeProfile}
+              className="w-6 h-6 rounded-full text-xs font-bold"
+            />
             <span className="text-sm font-medium">{profileName}</span>
             {isProfileOpen ? (
               <ChevronUp size={14} className="text-zinc-400" />
@@ -999,11 +996,10 @@ export function TopBar({
               >
                 {/* Profile Header */}
                 <div className="p-4 flex items-center space-x-3">
-                  <div
-                    className={`w-10 h-10 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center font-bold text-lg shadow-sm`}
-                  >
-                    {profileLetter}
-                  </div>
+                  <ProfileAvatar
+                    profile={activeProfile}
+                    className="w-10 h-10 rounded-full font-bold text-lg shadow-sm"
+                  />
                   <div className="flex flex-col text-left min-w-0">
                     <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
                       {profileName}

@@ -5,10 +5,11 @@
 ```bash
 <app_data_dir>/waveflow/                 # AppPaths::root
 ├── app.db                       (global registry + app settings)
-├── avatars/                     (shared profile avatars, blake3-hash-addressed)
+├── avatars/                     (created at startup, never written)
 └── profiles/
     └── <profile_id>/
         ├── data.db              (per-profile database)
+        ├── avatar.png           (the profile's picture, 256 px square, when it has one)
         ├── motion/              (motion covers the user picked, never evicted)
         ├── canvas/              (Canvas clips the user picked, never evicted)
         └── remote-downloads/    (offline copies the user asked for)
@@ -62,7 +63,7 @@ The databases and the backups are counted one level deep, by name — `app.db*` 
 
 ### `app.db` (global)
 
-- `profile` — profile list (one row per profile).
+- `profile` — profile list (one row per profile): name, `color_id`, `avatar_hash` (the BLAKE3 of the profile's picture at `profiles/<id>/avatar.png`, `NULL` without one — in the initial schema and unused until the [picture](../features/ui.md#picture) was added, so no migration), `data_dir`, timestamps.
 - `app_setting` — typed key/value: `app.last_profile_id`, `lastfm_api_key`, `lastfm_session_key`, `app.theme`, `integrations.discord_rpc`, …
 - `deezer_artist` / `deezer_album` — shared metadata cache (Deezer enrichment + Last.fm bios), 30-day TTL via `expires_at`.
 - `lyrics` — shared lyrics cache, kept for good except a partial miss, which carries a `retry_after` date ([integrations](../features/integrations.md#which-providers-are-asked-for-which-tracks)).
@@ -195,7 +196,7 @@ Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`va
 
 ## Asset protocol scope
 
-Files under `metadata_artwork/`, `avatars/` and `profiles/<id>/artwork/` are served to the renderer via Tauri's asset protocol (`tauri.conf.json::app.security.assetProtocol`). Frontend code uses [`convertFileSrc()`](https://tauri.app/v2/api/js/core#convertfilesrc) to map an absolute path to an `asset://` URL the `<img>` tag can load.
+Files under `metadata_artwork/` and `profiles/**` (the per-profile artwork and the profile's `avatar.png`) are served to the renderer via Tauri's asset protocol (`tauri.conf.json::app.security.assetProtocol`). Frontend code uses [`convertFileSrc()`](https://tauri.app/v2/api/js/core#convertfilesrc) to map an absolute path to an `asset://` URL the `<img>` tag can load.
 
 Smart-playlist covers reuse `metadata_artwork/` (no extra scope needed).
 

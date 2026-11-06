@@ -89,6 +89,10 @@
       "namePlaceholder": "Seu nome",
       "nameRequired": "Informe um nome para este perfil."
     },
+    "photo": {
+      "title": "Uma foto para este perfil",
+      "lede": "Opcional: ela substitui a inicial na barra lateral e no menu do perfil. Você pode trocá-la ou removê-la depois em Configurações → Geral."
+    },
     "folder": {
       "title": "Onde está a sua música?",
       "lede": "Escolha a pasta com os seus álbuns. A leitura começa na hora, em segundo plano: enquanto isso, você continua o tour.",
@@ -1269,6 +1273,22 @@
       "warning": "Todas as bibliotecas, playlists e o histórico de reprodução deste perfil serão perdidos. Esta ação não pode ser desfeita.",
       "submit": "Excluir perfil",
       "submitting": "Excluindo…"
+    },
+    "picture": {
+      "title": "Foto do perfil",
+      "subtitle": "Uma imagem do seu computador, recortada em quadrado. Ela substitui a inicial em todo lugar onde o perfil aparece.",
+      "choose": "Escolher uma foto",
+      "change": "Trocar a foto",
+      "remove": "Remover",
+      "pickerTitle": "Escolher uma foto de perfil",
+      "formats": "PNG, JPEG, WebP ou GIF, até 20 MB. Só uma cópia recortada é guardada.",
+      "errors": {
+        "tooLarge": "Esta imagem é grande demais: no máximo 20 MB e 10.000 pixels por lado.",
+        "unsupported": "Este arquivo não é uma imagem PNG, JPEG, WebP ou GIF.",
+        "unreadable": "Esta imagem está danificada ou incompleta e não pode ser lida.",
+        "failed": "Não foi possível salvar a foto.",
+        "removeFailed": "Não foi possível remover a foto."
+      }
     }
   },
   "libraryModal": {
@@ -3242,6 +3262,7 @@
         "diagnostics": "Atualizações, diagnóstico e redefinição do aplicativo."
       },
       "groups": {
+        "profile": "Perfil",
         "language": "Idioma",
         "startup": "Inicialização e notificações",
         "scanning": "Importação e escaneamento",
@@ -3296,6 +3317,7 @@
         "diagnostics": "Atualizações, registros, redefinição"
       },
       "groupHints": {
+        "profile": "Como ele aparece no app",
         "language": "Aplica-se na hora, sem reiniciar",
         "startup": "O que acontece ao abrir e fechar o WaveFlow",
         "listening": "Como as faixas começam e o que toca em seguida",

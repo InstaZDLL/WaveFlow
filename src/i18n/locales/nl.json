@@ -89,6 +89,10 @@
       "namePlaceholder": "Je naam",
       "nameRequired": "Vul een naam in voor dit profiel."
     },
+    "photo": {
+      "title": "Een foto voor dit profiel",
+      "lede": "Optioneel: ze vervangt de beginletter in de zijbalk en het profielmenu. Je kunt haar later wijzigen of verwijderen via Instellingen → Algemeen."
+    },
     "folder": {
       "title": "Waar staat je muziek?",
       "lede": "Kies de map met je albums. WaveFlow begint die meteen op de achtergrond in te lezen, terwijl jij verdergaat met de rondleiding.",
@@ -1225,6 +1229,22 @@
       "warning": "Alle bibliotheken, afspeellijsten en luistergeschiedenis van dit profiel gaan verloren. Deze actie kan niet ongedaan worden gemaakt.",
       "submit": "Profiel verwijderen",
       "submitting": "Bezig met verwijderen…"
+    },
+    "picture": {
+      "title": "Profielfoto",
+      "subtitle": "Een afbeelding van je computer, vierkant bijgesneden. Ze vervangt de beginletter overal waar het profiel verschijnt.",
+      "choose": "Foto kiezen",
+      "change": "Foto wijzigen",
+      "remove": "Verwijderen",
+      "pickerTitle": "Kies een profielfoto",
+      "formats": "PNG, JPEG, WebP of GIF, maximaal 20 MB. Alleen een bijgesneden kopie wordt bewaard.",
+      "errors": {
+        "tooLarge": "Deze afbeelding is te groot: maximaal 20 MB en 10.000 pixels per zijde.",
+        "unsupported": "Dit bestand is geen PNG-, JPEG-, WebP- of GIF-afbeelding.",
+        "unreadable": "Deze afbeelding is beschadigd of onvolledig en kan niet worden gelezen.",
+        "failed": "De foto kon niet worden opgeslagen.",
+        "removeFailed": "De foto kon niet worden verwijderd."
+      }
     }
   },
   "libraryModal": {
@@ -3174,6 +3194,7 @@
         "diagnostics": "Updates, probleemoplossing en de app resetten."
       },
       "groups": {
+        "profile": "Profiel",
         "language": "Taal",
         "startup": "Opstarten en meldingen",
         "scanning": "Importeren en scannen",
@@ -3228,6 +3249,7 @@
         "diagnostics": "Updates, logs, resetten"
       },
       "groupHints": {
+        "profile": "Hoe het in de app verschijnt",
         "language": "Direct toegepast, zonder herstart",
         "startup": "Wat er gebeurt als WaveFlow opent en sluit",
         "listening": "Hoe nummers starten en wat er daarna speelt",

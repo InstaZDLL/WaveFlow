@@ -25,7 +25,10 @@ import {
   Minimize2,
   MousePointerClick,
   Power,
+  UserRound,
 } from "lucide-react";
+import { useProfile } from "../../../../hooks/useProfile";
+import { ProfilePictureEditor } from "../../../common/ProfilePictureEditor";
 
 interface GeneralSectionProps {
   autoStart: boolean;
@@ -46,6 +49,28 @@ interface GeneralSectionProps {
   singleClickPlay: boolean;
   targetGroup: string | null;
   trackChangeNotif: boolean;
+}
+
+/** The active profile's picture: chosen, changed or removed here. */
+function ProfilePictureRow() {
+  const { t } = useTranslation();
+  const { activeProfile } = useProfile();
+  return (
+    <div className="settings-row flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center space-x-4">
+        <UserRound size={16} className="settings-row-icon" aria-hidden="true" />
+        <div>
+          <div className="text-sm font-medium text-zinc-900 dark:text-white">
+            {t("profiles.picture.title")}
+          </div>
+          <div className="text-xs settings-description">
+            {t("profiles.picture.subtitle")}
+          </div>
+        </div>
+      </div>
+      <ProfilePictureEditor profile={activeProfile} />
+    </div>
+  );
 }
 
 /** Opens the panel, and holds the two choices about it. Stays here when the
@@ -145,6 +170,9 @@ export function GeneralSection({
       className="settings-category"
     >
       <SettingsCategoryHeader category="general" />
+      <SettingsGroup id="profile" reveal={targetGroup === "profile"}>
+        <ProfilePictureRow />
+      </SettingsGroup>
       <SettingsGroup id="language" reveal={targetGroup === "language"}>
         <div className="settings-row flex items-center justify-between">
           <div className="flex items-center space-x-4">
