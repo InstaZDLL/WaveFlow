@@ -33,6 +33,8 @@ import {
   surroundLayout,
 } from "../../lib/audioQuality";
 import { HiResBadge } from "../common/HiResBadge";
+import { useHiResBadgeVisibility } from "../../hooks/useHiResBadgeVisibility";
+import { qualityBadge } from "../../lib/hiRes";
 import { AudioPipelineCard, type StageImpact } from "./AudioPipelineCard";
 
 interface AudioPipelinePopoverProps {
@@ -344,6 +346,17 @@ export function AudioPipelinePopover({
     kind === "lossless" && probableFakeLossless === true
       ? "fakeLossless"
       : kind;
+  // The badge and the word say the same thing; the card shows the word
+  // only where no badge is drawn, as the strip does.
+  const { visible: badgesVisible } = useHiResBadgeVisibility();
+  const showsBadge =
+    badgesVisible &&
+    qualityBadge(
+      track.bit_depth,
+      track.sample_rate,
+      track.codec,
+      probableFakeLossless,
+    ) != null;
   const fileFigures = [
     track.codec,
     track.bit_depth
@@ -585,7 +598,11 @@ export function AudioPipelinePopover({
               variant="inline"
             />
           }
-          subtitle={fileText ? t(`playerBar.pipeline.kind.${fileText}`) : null}
+          subtitle={
+            fileText && !showsBadge
+              ? t(`playerBar.pipeline.kind.${fileText}`)
+              : null
+          }
           body={fileText ? t(`playerBar.pipeline.file.${fileText}`) : null}
           figures={fileFigures || null}
         />

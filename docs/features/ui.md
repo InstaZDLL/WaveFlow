@@ -689,7 +689,7 @@ Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../
 
 Each card says in a sentence what happens, then the figures in a quieter ink, and carries a tag for whether the sound changes: **Doesn't change the sound**, **No audible loss**, **Only the volume changes** or **Changes the sound**.
 
-- **Your file** — its quality badge beside the title, Lossless / Lossy / DSD / Probably fake lossless and what that means, then codec, bit depth, rate, bitrate and channel layout (`Mono` / `Stereo` / `5.1` / `7.1`…).
+- **Your file** — its quality badge beside the title, or the word when no badge is drawn (Lossy, Probably fake lossless, or anything with badges hidden), a sentence on what that means, then codec, bit depth, rate, bitrate and channel layout (`Mono` / `Stereo` / `5.1` / `7.1`…).
 - **One card per stage the engine runs**, only the ones that are on: native DSD (no change), DSD converted to PCM and the rate adapted (no audible loss — the resample card reads "your file is at 48 kHz, your output runs at 44.1 kHz"), channels combined, the equalizer, mono, balance, stereo width, speed and pitch (changes the sound), ReplayGain with its mode, normalization and a volume under 100 % (only the volume changes). With none and the engine's answer in, a single **No processing** card.
 - **Output** — the device the sound really comes out of (`OutputDevice.is_active`), what shared, exclusive, native-DSD or refused-exclusive mode means for the listener, and the rate and layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels` / `output_mode`), not the track row.
 

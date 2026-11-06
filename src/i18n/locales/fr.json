@@ -1657,10 +1657,10 @@
       },
       "file": {
         "title": "Votre fichier",
-        "lossless": "Tout ce qui a été enregistré est là : rien n'a été retiré pour gagner de la place.",
-        "lossy": "Compressé pour prendre moins de place : des détails que l'oreille remarque peu ont été retirés.",
-        "dsd": "Le format des SACD : le son y est décrit par un flux très rapide d'un seul bit.",
-        "fakeLossless": "L'analyse a trouvé des aigus qui s'arrêtent comme ceux d'un MP3 : ce fichier vient probablement d'un fichier avec perte, et n'en garde pas plus."
+        "lossless": "Tout ce qui a été enregistré est là : rien n'a été retiré pour gagner de la place.",
+        "lossy": "Compressé pour prendre moins de place : des détails que l'oreille remarque peu ont été retirés.",
+        "dsd": "Le format des SACD : le son y est décrit par un flux très rapide d'un seul bit.",
+        "fakeLossless": "L'analyse a trouvé des aigus qui s'arrêtent comme ceux d'un MP3 : ce fichier vient probablement d'un fichier avec perte, et n'en garde pas plus."
       },
       "stage": {
         "none": {
@@ -1669,19 +1669,19 @@
         },
         "dop": {
           "title": "DSD natif",
-          "body": "Le DSD part tel quel : c'est votre convertisseur qui le décode."
+          "body": "Le DSD part tel quel : c'est votre convertisseur qui le décode."
         },
         "dsdToPcm": {
           "title": "DSD converti",
-          "body": "Votre sortie ne reçoit pas le DSD tel quel : WaveFlow le convertit dans un format qu'elle lit, sans perte audible."
+          "body": "Votre sortie ne reçoit pas le DSD tel quel : WaveFlow le convertit dans un format qu'elle lit, sans perte audible."
         },
         "resample": {
           "title": "Fréquence adaptée",
-          "body": "Votre fichier est en {{source}}, votre sortie tourne en {{output}} : WaveFlow convertit de l'un à l'autre, sans perte audible."
+          "body": "Votre fichier est en {{source}}, votre sortie tourne en {{output}} : WaveFlow convertit de l'un à l'autre, sans perte audible."
         },
         "downmix": {
           "title": "Canaux réunis",
-          "body": "Votre fichier est en {{source}}, votre sortie en {{output}} : WaveFlow mélange les canaux pour que rien ne manque."
+          "body": "Votre fichier est en {{source}}, votre sortie en {{output}} : WaveFlow mélange les canaux pour que rien ne manque."
         },
         "eq": {
           "title": "Égaliseur",
@@ -1697,7 +1697,7 @@
         },
         "mono": {
           "title": "Mono",
-          "body": "Gauche et droite sont mélangés en un seul signal : l'effet stéréo disparaît."
+          "body": "Gauche et droite sont mélangés en un seul signal : l'effet stéréo disparaît."
         },
         "balance": {
           "title": "Balance",
@@ -1706,12 +1706,12 @@
         },
         "width": {
           "title": "Largeur stéréo",
-          "bodyNarrower": "Gauche et droite sont rapprochés : la scène sonore est plus étroite.",
-          "bodyWider": "Gauche et droite sont écartés : la scène sonore est plus large."
+          "bodyNarrower": "Gauche et droite sont rapprochés : la scène sonore est plus étroite.",
+          "bodyWider": "Gauche et droite sont écartés : la scène sonore est plus large."
         },
         "volume": {
           "title": "Volume",
-          "body": "WaveFlow baisse le son à {{value}} % avant de l'envoyer."
+          "body": "WaveFlow baisse le son à {{value}} % avant de l'envoyer."
         },
         "speed": {
           "title": "Vitesse",
@@ -1732,14 +1732,14 @@
       },
       "verdict": {
         "bitPerfect": "Le son arrive à votre sortie exactement tel qu'il est dans le fichier.",
-        "shared": "WaveFlow ne modifie rien ; le système mélange encore le son avec celui des autres applications."
+        "shared": "WaveFlow ne modifie rien ; le système mélange encore le son avec celui des autres applications."
       },
       "output": {
         "title": "Sortie",
-        "shared": "Mode partagé : le système mélange WaveFlow avec les autres sons de l'ordinateur. Idéal au quotidien.",
-        "exclusive": "Mode exclusif : WaveFlow a la sortie pour lui seul, aucun autre son ne s'y mêle.",
-        "dop": "Mode exclusif : WaveFlow a la sortie pour lui seul et y envoie le DSD tel quel.",
-        "exclusiveRefused": "La sortie a refusé le mode exclusif : WaveFlow joue en mode partagé."
+        "shared": "Mode partagé : le système mélange WaveFlow avec les autres sons de l'ordinateur. Idéal au quotidien.",
+        "exclusive": "Mode exclusif : WaveFlow a la sortie pour lui seul, aucun autre son ne s'y mêle.",
+        "dop": "Mode exclusif : WaveFlow a la sortie pour lui seul et y envoie le DSD tel quel.",
+        "exclusiveRefused": "La sortie a refusé le mode exclusif : WaveFlow joue en mode partagé."
       }
     },
     "outputMode": {
@@ -3611,15 +3611,15 @@
     "understandingAudio": {
       "sampleRate": {
         "term": "Fréquence d'échantillonnage",
-        "body": "Le nombre de mesures du son prises chaque seconde. 44,1 kHz, la qualité CD, couvre déjà tout ce que l'oreille entend ; 96 ou 192 kHz servent surtout en studio."
+        "body": "Le nombre de mesures du son prises chaque seconde. 44,1 kHz, la qualité CD, couvre déjà tout ce que l'oreille entend ; 96 ou 192 kHz servent surtout en studio."
       },
       "bitDepth": {
         "term": "Profondeur de bits",
-        "body": "La précision de chaque mesure. 16 bits, la qualité CD, suffisent à l'écoute ; 24 bits laissent plus de marge à l'enregistrement et au mixage."
+        "body": "La précision de chaque mesure. 16 bits, la qualité CD, suffisent à l'écoute ; 24 bits laissent plus de marge à l'enregistrement et au mixage."
       },
       "lossless": {
         "term": "Sans perte ou avec perte",
-        "body": "Un fichier sans perte (FLAC, WAV, ALAC…) garde tout l'enregistrement. Un fichier avec perte (MP3, AAC, Opus…) retire ce que l'oreille remarque peu pour être bien plus léger ; à bon débit, la différence s'entend rarement."
+        "body": "Un fichier sans perte (FLAC, WAV, ALAC…) garde tout l'enregistrement. Un fichier avec perte (MP3, AAC, Opus…) retire ce que l'oreille remarque peu pour être bien plus léger ; à bon débit, la différence s'entend rarement."
       },
       "resampling": {
         "term": "Rééchantillonnage",
@@ -3631,9 +3631,9 @@
       },
       "exclusive": {
         "term": "Mode exclusif",
-        "body": "D'habitude, le système mélange les sons de toutes les applications. En mode exclusif, WaveFlow réserve la sortie : le système ne retouche plus le son, mais les autres applications n'y sont plus entendues."
+        "body": "D'habitude, le système mélange les sons de toutes les applications. En mode exclusif, WaveFlow réserve la sortie : le système ne retouche plus le son, mais les autres applications n'y sont plus entendues."
       },
-      "stripShown": "La barre de qualité, sous le lecteur, applique ces mots au titre en cours : survolez-la pour voir ce que WaveFlow en fait.",
+      "stripShown": "La barre de qualité, sous le lecteur, applique ces mots au titre en cours : survolez-la pour voir ce que WaveFlow en fait.",
       "stripHidden": "La barre de qualité applique ces mots au titre en cours. Affichez-la sous le lecteur, puis survolez-la pour voir ce que WaveFlow en fait.",
       "showStrip": "Afficher la barre de qualité"
     }
