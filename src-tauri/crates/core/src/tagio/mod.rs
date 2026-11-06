@@ -22,9 +22,23 @@ mod id3v2;
 mod rewrite;
 
 pub use dsf::{read_dsf_layout, write_dsf_id3v2, DsfLayout};
-pub use flac::try_flac_in_place;
+pub use flac::{save_flac_comments, save_flac_pictures, try_flac_in_place};
 pub use id3v2::{fit_id3v2_padding, read_id3v2_span, try_id3v2_in_place, Id3v2Span};
 pub use rewrite::rewrite_via_temp;
+
+/// An error's message with its causes after it. lofty's top-level message is
+/// "failed to write to file" and its reason is in `source`, which a message
+/// shown to the user would otherwise never reach.
+pub fn with_causes(err: &(dyn std::error::Error + 'static)) -> String {
+    let mut message = err.to_string();
+    let mut source = err.source();
+    while let Some(cause) = source {
+        message.push_str(": ");
+        message.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    message
+}
 
 /// How many times a locked file is re-opened before giving up, and how
 /// long to wait between attempts.

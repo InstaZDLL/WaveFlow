@@ -916,6 +916,15 @@ fn decoder_loop(
                 }
             }
             AudioCmd::Shutdown => return,
+            AudioCmd::Stop => {
+                if let Some((state, track_id)) = idle_stop_transition(&shared) {
+                    // An end declared on an output that stopped taking samples
+                    // leaves them in the ring: dropped here as a `Stop` on a
+                    // track drops them, or a returning output would play them.
+                    unpause_and_drain_ring(producer, &shared);
+                    transition_state(&shared, &app, state, Some(track_id));
+                }
+            }
             // A setting still lands while nothing plays: it is what the
             // next track starts with. Dropping it here left the engine on
             // the old value until the next launch restored the row, while
@@ -964,6 +973,33 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     true
 }
 
+/// What a `Stop` reaching the idle loop publishes, if anything: no track is left
+/// for it to stop, so all it can still change is the state, and what a stalled
+/// output left in the ring, which the caller drops before publishing.
+///
+/// `Ended` is the one state it moves. A track that ran out stays on `Ended`, here,
+/// with its stream already gone, and a `Stop` then means what it means anywhere:
+/// a queue with nothing after that track sends one, and
+/// `AudioEngine::stop_and_wait` waits for the `Idle` it lands on.
+///
+/// Every other state is left alone. `Idle` has nothing to announce again. The rest
+/// are found here only on their way to something else, and what takes them there
+/// settles them: a rebuild between its `Unload` and the load or park it owes the
+/// session, which it decides by reading them; a lost device ahead of that rebuild;
+/// a resume that published `Loading` ahead of its load. A `Stop` for a track still
+/// decoding never gets here: [`control::drain_commands`] answers it.
+///
+/// The id is the live one: past a gapless hand-off, the track that ran out is not
+/// the one that was loaded.
+fn idle_stop_transition(shared: &SharedPlayback) -> Option<(PlayerState, i64)> {
+    (shared.state() == PlayerState::Ended).then(|| {
+        (
+            PlayerState::Idle,
+            shared.current_track_id.load(Ordering::Acquire),
+        )
+    })
+}
+
 /// [`drain_ring_silent`] from the idle loop, where the output may still
 /// be paused: a lingering `paused_output` is cleared first, or the output
 /// would never pop the ring and the drain would only end at its timeout.
@@ -1006,6 +1042,9 @@ mod tail_drain_tests;
 
 #[cfg(test)]
 mod apply_setting_tests;
+
+#[cfg(test)]
+mod idle_stop_tests;
 
 #[cfg(test)]
 mod load_ordering_tests;

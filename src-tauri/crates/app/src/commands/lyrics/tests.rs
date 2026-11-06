@@ -1661,3 +1661,62 @@ fn no_lyrics_are_read_from_a_tag_that_nests_chapters() {
     std::fs::write(&path, bytes).unwrap();
     assert!(local::read_embedded_lyrics(&path).is_none());
 }
+
+/// The second pass of a save, the one that stamps the synced key: it rewrites
+/// the file every time, so on a FLAC with all the room it needs it used to
+/// fail with a warning in the log and no stamp.
+#[test]
+fn timed_lyrics_saved_into_a_flac_with_room_get_their_synced_key() {
+    use lofty::file::AudioFile;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("track.flac");
+    std::fs::copy(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/tags/silence.flac"),
+        &path,
+    )
+    .expect("seed");
+    let content = "[00:01.00]placeholder line\n";
+
+    assert!(write_lyrics_to_file(&path, content, &LyricsFormat::Lrc).expect("save"));
+
+    let mut file = std::fs::File::open(&path).expect("open");
+    let flac = lofty::flac::FlacFile::read_from(&mut file, Default::default()).expect("read");
+    let comments = flac.vorbis_comments().expect("comments");
+    assert!(
+        SYNCED_LYRICS_KEYS
+            .iter()
+            .any(|key| comments.get(key) == Some(content)),
+        "the synced key holds the document"
+    );
+}
+
+/// The same, with the first pass outgrowing the room too.
+#[test]
+fn timed_lyrics_saved_into_a_flac_with_no_room_get_their_synced_key() {
+    use lofty::file::AudioFile;
+    use lofty::ogg::OggPictureStorage;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("track.flac");
+    std::fs::write(
+        &path,
+        crate::commands::edit::flac_rewrite_files::flac_without_room(),
+    )
+    .expect("seed");
+    let content = "[00:01.00]placeholder line\n".repeat(2_000);
+
+    assert!(write_lyrics_to_file(&path, &content, &LyricsFormat::Lrc).expect("save"));
+
+    let mut file = std::fs::File::open(&path).expect("open");
+    let flac = lofty::flac::FlacFile::read_from(&mut file, Default::default()).expect("read");
+    let comments = flac.vorbis_comments().expect("comments");
+    assert!(
+        SYNCED_LYRICS_KEYS
+            .iter()
+            .any(|key| comments.get(key) == Some(content.as_str())),
+        "the synced key holds the whole document"
+    );
+    assert_eq!(comments.get("MY_OWN_FIELD"), Some("kept"));
+    assert_eq!(flac.pictures().len(), 2, "both images");
+}

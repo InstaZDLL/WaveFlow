@@ -59,5 +59,10 @@ mod album_artist_and_composer_files;
 #[cfg(test)]
 mod ape_tag_files;
 
+/// Edits that outgrow the room a real FLAC has for its tags, and what they
+/// must leave of everything else in it.
+#[cfg(test)]
+pub(crate) mod flac_rewrite_files;
+
 #[cfg(test)]
 mod sync_db_tests;
