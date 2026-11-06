@@ -1,6 +1,6 @@
 # Contributing to WaveFlow
 
-Thanks for wanting to help. WaveFlow is a local music player built with **Tauri 2 + React 19 + TypeScript** on a **Rust** audio engine, using the **bun** toolchain. This file is the canonical contributing guide for the WaveFlow family — the satellite repos (server, Android, iOS) link back here and add their own specifics on top.
+Thanks for wanting to help. WaveFlow is a local music player built with **Tauri 2 + React 19 + TypeScript** on a **Rust** audio engine, using the **bun** toolchain. This file is the canonical contributing guide for the WaveFlow family — the satellite repos (the server, the mobile app and the tools around the player) link back here and add their own specifics on top.
 
 By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -95,7 +95,18 @@ Examples:
 UI copy ships in **17 locales** (`src/i18n/locales/<code>.json`), with **`fr`**
 as the source of truth and every locale carrying every key. When you add a key,
 propagate it to all locales and leave brand tokens (`WaveFlow`, `Deezer`,
-`Last.fm`, `ReplayGain`, `BPM`…) and `{{placeholder}}` tokens untouched.
+`Last.fm`, `ReplayGain`, `BPM`…), the smart playlist names `Daily Mix` and
+`On Repeat`, and `{{placeholder}}` tokens untouched.
+
+A plural key carries every form its language has, not only `_one` and
+`_other`: French, Spanish, Italian and Portuguese also need `_many`, Russian
+`_few` and `_many`, Arabic all six (`_zero`, `_one`, `_two`, `_few`, `_many`,
+`_other`), while Japanese, Korean, Chinese and Indonesian use `_other` alone.
+`Intl.PluralRules(<code>).resolvedOptions().pluralCategories` lists them. A
+missing form falls back to English for the counts that need it.
+
+Translations are reviewed by native speakers: keep a key's meaning stable
+when you reword it, so a review is not silently undone.
 
 ## Reporting bugs and security issues
 

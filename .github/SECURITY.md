@@ -5,13 +5,15 @@ disclosure.
 
 ## Supported Versions
 
-WaveFlow does not have long-term version support yet. The main branch and the
-latest published release should be considered the only supported versions for
-security fixes.
+WaveFlow does not have long-term version support yet. Security fixes land on
+`main` and ship in the next release of each update channel; an installation is
+expected to follow its channel's updates.
 
 | Version                                           | Supported |
 | ------------------------------------------------- | --------- |
-| `main` / latest published release                 | Yes       |
+| `main`                                            | Yes       |
+| Latest stable release                             | Yes       |
+| Latest beta, on the in-app beta channel           | Yes       |
 | Older versions, snapshots, and unmaintained forks | No        |
 
 ## Reporting a Vulnerability
@@ -24,8 +26,9 @@ repository:
 1. **GitHub Security Advisories**: open the repository's _Security_ tab, then
    choose _Report a vulnerability_. This is the recommended confidential
    channel.
-2. Contact the maintainers privately if GitHub Security Advisories are not
-   available.
+2. If GitHub Security Advisories are not available, or GitHub itself is not,
+   write to the maintainer at the address given in
+   [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md#reporting-an-issue).
 
 Your report should include:
 
@@ -50,14 +53,27 @@ Your report should include:
 
 The most sensitive WaveFlow surfaces are:
 
-- access to local files and audio library folders;
-- M3U/M3U8 playlist import and export;
-- metadata and artwork extraction from audio files;
-- Tauri commands exposed to the frontend;
-- local SQLite databases, profiles, and metadata caches;
-- Deezer, Last.fm, and LRCLIB integrations;
-- Last.fm authentication, session tokens, and the scrobbling queue;
-- the signed Tauri update mechanism.
+- access to local files and audio library folders, and what WaveFlow writes
+  there (tags, lyrics, covers);
+- parsing of untrusted files: audio containers and their tags (ID3v2 chapters
+  included), artwork, lyrics (LRC, TTML, VTT, SRT), M3U/M3U8, CSV and JSON
+  playlist imports, OPML;
+- WebDAV and SMB shares read as library folders, and their stored credentials;
+- podcast feeds, enclosures, chapters and transcripts, which are read as
+  hostile input, and the download folder and its quota;
+- the plugin host: WebAssembly plugins run in a wasmtime sandbox, the plugin
+  store and its registry (blake3-pinned), plugin options and credentials;
+- Tauri commands exposed to the frontend, and the webview's Content Security
+  Policy;
+- local SQLite databases, profiles, backups and profile export archives;
+- the optional LAN servers (DLNA MediaServer, MPD) and the WaveFlow server
+  connection (sync, streaming, uploads);
+- online integrations: Deezer, Last.fm, ListenBrainz, MusicBrainz and the Cover
+  Art Archive, TheAudioDB, LRCLIB and other lyrics providers, Discord Rich
+  Presence, web radio;
+- Last.fm and ListenBrainz tokens, and the scrobbling queue;
+- the signed update mechanism, read from GitHub and from its mirror on
+  `download.waveflow.app`.
 
 ## Out of Scope
 

@@ -100,7 +100,7 @@ its manifest and the downstream dispatches are already out by then.
 | ---------------------- | -------------------------------------------------------------------------------------------------------- |
 | `R2_ACCESS_KEY_ID`     | Access Key ID of an R2 API token with **Object Read & Write** on the bucket alone                        |
 | `R2_SECRET_ACCESS_KEY` | its Secret Access Key, shown once when the token is created                                              |
-| `R2_ACCOUNT_ID`        | the Cloudflare account id (R2 overview page); the S3 endpoint is `https://<id>.r2.cloudflarestorage.com` |
+| `R2_ACCOUNT_ID`        | the Cloudflare account id (R2 overview page), 32 hex characters; the S3 endpoint shown beside it, `https://<id>.r2.cloudflarestorage.com`, is read as the same id, and anything else stops the mirror job with an error naming the secret |
 | `R2_BUCKET`            | the bucket's name                                                                                        |
 
 The bucket's public domain is a repository **variable**, `R2_PUBLIC_URL`,
