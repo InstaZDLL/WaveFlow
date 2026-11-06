@@ -364,6 +364,12 @@ fn check_chunks<R: Read + Seek>(
         if !seen.insert((at, big_endian)) {
             continue;
         }
+        // Counted here too: a walk that queues nothing still adds its first position.
+        // The byte budget stops those walks first today, since each one rereads a
+        // block of the head; the limit should not rest on that.
+        if seen.len() > MAX_CHUNKS {
+            return Err(NestedChapters);
+        }
         let mut header = [0_u8; 8];
         if reader.seek(SeekFrom::Start(at)).is_err() || reader.read_exact(&mut header).is_err() {
             continue;

@@ -1369,6 +1369,6 @@ fn many_forms_in_front_of_the_same_chunks_walk_them_once() {
         inner: Cursor::new(bytes),
         reads: 0,
     };
-    let _ = check_reader(&mut file);
+    assert_eq!(check_reader(&mut file), Ok(()));
     assert!(file.reads < 300_000, "{} reads", file.reads);
 }
