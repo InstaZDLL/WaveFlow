@@ -178,14 +178,25 @@ export function Heatmap({ data, weeks = 53, emptyText }: HeatmapProps) {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-baseline mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-        <span>
+      {/*
+        The readout line holds one line of text whatever it shows. It
+        used to be baseline-aligned, and an empty readout (the cursor
+        between two cells) is baseline-aligned on its bottom edge: the
+        line grew by 3 px and the whole grid dropped with it, then rose
+        again on the next cell — the grid shook at every change of day.
+        A fixed height, centred items and truncation keep it still.
+      */}
+      <div className="flex justify-between items-center gap-4 h-4 mb-3 text-xs leading-4 text-zinc-500 dark:text-zinc-400">
+        <span className="min-w-0 truncate">
           {t("statistics.heatmap.summary", {
             time: formatListenTime(totalMs),
             plays: totalPlays,
           })}
         </span>
-        <span aria-live="polite" className="min-h-4">
+        <span
+          aria-live="polite"
+          className="min-w-0 truncate text-right tabular-nums"
+        >
           {hovered?.date
             ? `${dateFmt.format(hovered.date)} — ${formatListenTime(hovered.listenedMs)} (${hovered.plays})`
             : ""}
@@ -227,8 +238,13 @@ export function Heatmap({ data, weeks = 53, emptyText }: HeatmapProps) {
               ))}
             </div>
 
-            {/* Grid */}
-            <div className="flex gap-0.5">
+            {/*
+              Grid. A cell sets the hovered day on entry, but only
+              leaving the whole grid clears it: the 2 px gutters
+              between cells would otherwise blank the readout on every
+              move from one day to the next.
+            */}
+            <div className="flex gap-0.5" onMouseLeave={() => setHovered(null)}>
               {columns.map((col, ci) => (
                 <div key={ci} className="flex flex-col gap-0.5">
                   {col.map((cell, ri) => {
@@ -237,13 +253,20 @@ export function Heatmap({ data, weeks = 53, emptyText }: HeatmapProps) {
                         <div key={ri} className="w-3.5 h-3.5" aria-hidden />
                       );
                     }
+                    // The ring follows the hovered state rather than
+                    // :hover, so it marks the day the readout names
+                    // even while the cursor crosses a gutter. It moves
+                    // without a transition: a fade out and in at every
+                    // day was motion the readout does not need.
+                    const active = hovered?.key === cell.key;
                     return (
                       <div
                         key={ri}
-                        className={`w-3.5 h-3.5 rounded-[3px] ${LEVEL_CLASSES[cell.level]} hover:ring-1 hover:ring-emerald-500 cursor-default transition-shadow`}
+                        className={`w-3.5 h-3.5 rounded-[3px] ${LEVEL_CLASSES[cell.level]} ${
+                          active ? "ring-1 ring-emerald-500" : ""
+                        } cursor-default`}
                         title={`${dateFmt.format(cell.date)} — ${formatListenTime(cell.listenedMs)} (${cell.plays})`}
                         onMouseEnter={() => setHovered(cell)}
-                        onMouseLeave={() => setHovered(null)}
                       />
                     );
                   })}

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface BarDatum {
   /** Stable key for React + tooltip lookup. */
@@ -25,9 +25,19 @@ interface BarChartProps {
 /**
  * Minimal SVG bar chart — no external chart library.
  *
- * Bars are sized by ratio against the dataset max; tooltip shows on hover
- * via a positioned div. Renders responsively via `viewBox` so it scales
+ * Bars are sized by ratio against the dataset max; the tooltip is the
+ * bar's SVG `<title>`. Renders responsively via `viewBox` so it scales
  * with the parent container.
+ *
+ * Each bar is hovered through its whole column, gutters included, and
+ * only leaving the chart clears the highlight. Hovering the painted bar
+ * alone blanked the highlight in every gutter, so the chart blinked at
+ * each move from one day to the next, and a near-empty day (a bar a
+ * pixel high) could not be hovered at all.
+ *
+ * The values reach assistive technology as a visually hidden list, one
+ * item per bar: a bar's `<title>` shows on hover only, and an SVG under
+ * `role="img"` reads as one picture, not as its bars.
  */
 export function BarChart({
   data,
@@ -36,7 +46,6 @@ export function BarChart({
   emptyText,
   ariaLabel,
 }: BarChartProps) {
-  const titleId = useId();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const max = useMemo(
@@ -62,38 +71,44 @@ export function BarChart({
 
   return (
     <div className="relative">
+      <ul className="sr-only" aria-label={ariaLabel}>
+        {data.map((d) => (
+          <li key={d.key}>{d.tooltip ?? `${d.label}: ${d.value}`}</li>
+        ))}
+      </ul>
       <svg
         viewBox={`0 0 100 ${height}`}
         preserveAspectRatio="none"
         className="w-full"
         style={{ height }}
-        role="img"
-        aria-labelledby={titleId}
+        aria-hidden="true"
+        onMouseLeave={() => setHoverIdx(null)}
       >
-        <title id={titleId}>{ariaLabel}</title>
         {data.map((d, i) => {
           const h = (d.value / max) * (height - 4);
           const x = i * barWidthPct + barOffsetPct;
           const y = height - h;
           const active = hoverIdx === i;
           return (
-            <rect
-              key={d.key}
-              x={x}
-              y={y}
-              width={innerBarWidthPct}
-              height={h}
-              rx={0.5}
-              className={
-                active
-                  ? "fill-emerald-500"
-                  : "fill-emerald-500/70 hover:fill-emerald-500"
-              }
-              onMouseEnter={() => setHoverIdx(i)}
-              onMouseLeave={() => setHoverIdx(null)}
-            >
+            <g key={d.key} onMouseEnter={() => setHoverIdx(i)}>
               <title>{d.tooltip ?? `${d.label}: ${d.value}`}</title>
-            </rect>
+              {/* The column's hit area: transparent, full width and height. */}
+              <rect
+                x={i * barWidthPct}
+                y={0}
+                width={barWidthPct}
+                height={height}
+                fill="transparent"
+              />
+              <rect
+                x={x}
+                y={y}
+                width={innerBarWidthPct}
+                height={h}
+                rx={0.5}
+                className={active ? "fill-emerald-500" : "fill-emerald-500/70"}
+              />
+            </g>
           );
         })}
       </svg>
