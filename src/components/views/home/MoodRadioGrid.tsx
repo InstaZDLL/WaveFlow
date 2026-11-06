@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Brain,
@@ -7,6 +7,7 @@ import {
   Sparkles,
   Moon,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import {
   startMoodRadio,
@@ -26,49 +27,86 @@ import { MoodTuner } from "./MoodTuner";
 interface MoodTile {
   mood: Mood;
   icon: typeof Brain;
-  /** Tailwind classes for the card surface (light + dark). */
-  cardClass: string;
-  /** Tailwind classes for the icon chip. */
-  iconClass: string;
+  /** The mood's one colour, a Tailwind palette variable: the tint of the
+   *  tile, its icon and its wave. Everything else on the tile is ink. */
+  color: string;
+  /** How fast the tile's static wave swings — calm moods slow, lively
+   *  ones fast — so the five read apart at a glance. */
+  waveCycles: number;
 }
 
 const TILES: MoodTile[] = [
   {
     mood: "focus",
     icon: Brain,
-    cardClass:
-      "bg-gradient-to-br from-violet-500 to-indigo-600 dark:from-violet-700 dark:to-indigo-800",
-    iconClass: "bg-white/15 text-white",
+    color: "var(--color-violet-500)",
+    waveCycles: 2,
   },
   {
     mood: "chill",
     icon: Coffee,
-    cardClass:
-      "bg-gradient-to-br from-amber-400 to-orange-500 dark:from-amber-600 dark:to-orange-700",
-    iconClass: "bg-white/15 text-white",
+    color: "var(--color-amber-500)",
+    waveCycles: 1.5,
   },
   {
     mood: "workout",
     icon: Dumbbell,
-    cardClass:
-      "bg-gradient-to-br from-rose-500 to-pink-600 dark:from-rose-700 dark:to-pink-800",
-    iconClass: "bg-white/15 text-white",
+    color: "var(--color-rose-500)",
+    waveCycles: 4,
   },
   {
     mood: "party",
     icon: Sparkles,
-    cardClass:
-      "bg-gradient-to-br from-fuchsia-500 to-purple-600 dark:from-fuchsia-700 dark:to-purple-800",
-    iconClass: "bg-white/15 text-white",
+    color: "var(--color-fuchsia-500)",
+    waveCycles: 5,
   },
   {
     mood: "sleep",
     icon: Moon,
-    cardClass:
-      "bg-gradient-to-br from-sky-600 to-slate-700 dark:from-sky-800 dark:to-slate-900",
-    iconClass: "bg-white/15 text-white",
+    color: "var(--color-sky-500)",
+    waveCycles: 1,
   },
 ];
+
+const WAVE_BARS = 14;
+
+/** The bar heights of a tile's wave, computed once per mood: a sine at
+ *  the mood's pace under a soft envelope. Drawn as a static SVG — it
+ *  never moves. */
+function waveHeights(cycles: number): number[] {
+  return Array.from({ length: WAVE_BARS }, (_, i) => {
+    const x = i / (WAVE_BARS - 1);
+    const swing = Math.abs(Math.sin(x * Math.PI * cycles + 0.4));
+    return 0.25 + 0.75 * swing * (0.55 + 0.45 * Math.sin(x * Math.PI));
+  });
+}
+
+const WAVES: Record<Mood, number[]> = Object.fromEntries(
+  TILES.map(({ mood, waveCycles }) => [mood, waveHeights(waveCycles)]),
+) as Record<Mood, number[]>;
+
+function MoodWave({ heights }: { heights: number[] }) {
+  const width = WAVE_BARS * 4 - 2;
+  return (
+    <svg
+      viewBox={`0 0 ${width} 16`}
+      aria-hidden="true"
+      className="h-4 w-14 shrink-0 text-[var(--mood)] opacity-70"
+    >
+      {heights.map((h, i) => (
+        <rect
+          key={i}
+          x={i * 4}
+          y={(16 - h * 16) / 2}
+          width={2}
+          height={h * 16}
+          rx={1}
+          fill="currentColor"
+        />
+      ))}
+    </svg>
+  );
+}
 
 export function MoodRadioGrid() {
   const { t } = useTranslation();
@@ -199,12 +237,12 @@ export function MoodRadioGrid() {
 
   return (
     <section>
-      <div className="flex items-end justify-between gap-4 mb-6">
-        <h2 className="text-2xl font-bold inline-block border-b-4 border-rose-500 pb-1 text-zinc-900 dark:text-white">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold tracking-[-0.01em] text-zinc-900 dark:text-white">
           {t("home.moodRadio.title")}
         </h2>
-        <div className="flex items-end gap-3">
-          <span className="text-xs text-zinc-500 dark:text-zinc-400 text-right">
+        <div className="flex items-center gap-3">
+          <span className="text-end text-xs text-zinc-500 dark:text-zinc-400">
             {t("home.moodRadio.subtitle")}
             {partlyAnalysed && (
               <>
@@ -232,8 +270,8 @@ export function MoodRadioGrid() {
         </div>
       </div>
       <MoodCurationModal isOpen={curating} onClose={() => setCurating(false)} />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {TILES.map(({ mood, icon: Icon, cardClass, iconClass }) => {
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {TILES.map(({ mood, icon: Icon, color }) => {
           const count = counts?.[mood] ?? 0;
           const disabled = counts != null && count === 0;
           const isLoading = loadingMood === mood;
@@ -243,27 +281,38 @@ export function MoodRadioGrid() {
               type="button"
               onClick={() => handleStart(mood)}
               disabled={disabled || isLoading}
-              className={`relative overflow-hidden rounded-2xl p-5 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm ${cardClass}`}
+              aria-busy={isLoading || undefined}
+              style={{ "--mood": color } as CSSProperties}
+              className="group flex min-w-0 flex-col rounded-xl border border-zinc-200 bg-[color-mix(in_srgb,var(--mood)_5%,white)] p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--mood)_45%,transparent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-200 dark:border-zinc-800 dark:bg-[color-mix(in_srgb,var(--mood)_7%,var(--color-zinc-900))] dark:disabled:hover:border-zinc-800"
               aria-label={t(`home.moodRadio.${mood}.title`)}
             >
-              <div
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${iconClass}`}
-              >
-                <Icon size={20} />
-              </div>
-              <div className="font-semibold mb-1 text-base">
+              <span className="mb-3 flex items-center justify-between gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--mood)_14%,transparent)] text-[color-mix(in_srgb,var(--mood)_80%,black)] dark:text-[color-mix(in_srgb,var(--mood)_70%,white)]">
+                  {isLoading ? (
+                    <Loader2
+                      size={16}
+                      className="animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Icon size={16} aria-hidden="true" />
+                  )}
+                </span>
+                <MoodWave heights={WAVES[mood]} />
+              </span>
+              <span className="mb-0.5 text-sm font-semibold text-zinc-900 dark:text-white">
                 {t(`home.moodRadio.${mood}.title`)}
-              </div>
-              <div className="text-xs text-white/80 line-clamp-2 min-h-8">
+              </span>
+              <span className="line-clamp-2 min-h-8 text-xs text-zinc-600 dark:text-zinc-300">
                 {t(`home.moodRadio.${mood}.subtitle`)}
-              </div>
-              <div className="text-[11px] font-medium text-white/70 mt-3">
+              </span>
+              <span className="mt-3 text-[11px] font-medium tabular-nums text-zinc-500 dark:text-zinc-400">
                 {disabled
                   ? t("home.moodRadio.empty")
                   : isLoading
                     ? t("home.moodRadio.loading")
                     : t("home.moodRadio.trackCount", { count })}
-              </div>
+              </span>
             </button>
           );
         })}

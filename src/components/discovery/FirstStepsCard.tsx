@@ -106,7 +106,7 @@ export function FirstStepsCard() {
       className={`first-steps @container relative ${
         fluid
           ? "rounded-[1.125rem] bg-[var(--fe-surface)] px-6 py-5"
-          : "rounded-3xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+          : "rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"
       }`}
     >
       <div className="flex items-start gap-4">
@@ -125,7 +125,7 @@ export function FirstStepsCard() {
             className={
               fluid
                 ? "fe-title fe-ink mt-1 text-[1.375rem]"
-                : "mt-1 text-xl font-bold text-zinc-900 dark:text-white"
+                : "mt-0.5 text-base font-semibold text-zinc-900 dark:text-white"
             }
           >
             {t("firstSteps.title")}
@@ -134,7 +134,7 @@ export function FirstStepsCard() {
             className={
               fluid
                 ? "fe-ink-3 mt-1 text-[0.8125rem]"
-                : "mt-1 text-sm text-zinc-500 dark:text-zinc-400"
+                : "mt-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400"
             }
           >
             {t("firstSteps.progress", {
@@ -151,7 +151,7 @@ export function FirstStepsCard() {
           className={
             fluid
               ? "fe-icon-btn shrink-0"
-              : "shrink-0 rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              : "shrink-0 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
           }
         >
           <X size={16} />

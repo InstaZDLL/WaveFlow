@@ -484,6 +484,10 @@
 @import "./styles/skins/pulse.css";
 @import "./styles/skins/editorial.css";
 @import "./styles/skins/lounge.css";
+/* Studio, the classic layout's material (Studio Refined). Flat by
+   rule: it is the skin recovery lands on, so nothing in it may cost a
+   frame without a GPU — see the file's header. */
+@import "./styles/skins/studio.css";
 @import "./styles/podcasts.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and

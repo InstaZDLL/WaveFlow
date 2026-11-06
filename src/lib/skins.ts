@@ -190,8 +190,9 @@ export interface SkinPreset {
 /** The skin a profile gets until it picks one: Fluid, since 2.0. */
 export const DEFAULT_SKIN_ID: SkinId = "fluid";
 /** The skin safe mode and the crash marker fall back to: Studio, the
- *  one with no stylesheet of its own, so a skin that makes the webview
- *  unusable can never be the one the recovery lands on. */
+ *  one whose stylesheet (`studio.css`) draws only flat boxes — no blur,
+ *  filter, gradient or loop — so a skin that makes the webview unusable
+ *  can never be the one the recovery lands on. */
 export const RECOVERY_SKIN_ID: SkinId = "studio";
 
 export const SKIN_PRESETS: SkinPreset[] = [
@@ -249,6 +250,10 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "studio",
+    // The classic layout, refined: a neutral canvas, flat surfaces and
+    // 1 px lines, the covers as the only colour. `studio.css` draws the
+    // chrome with nothing a renderer without a GPU pays for; the
+    // direction is written in `docs/design/studio-refined.md`.
     layout: "classic",
     labelKey: "settings.appearance.skins.studio.label",
     descriptionKey: "settings.appearance.skins.studio.description",
