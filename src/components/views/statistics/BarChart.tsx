@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface BarDatum {
   /** Stable key for React + tooltip lookup. */
@@ -34,6 +34,10 @@ interface BarChartProps {
  * alone blanked the highlight in every gutter, so the chart blinked at
  * each move from one day to the next, and a near-empty day (a bar a
  * pixel high) could not be hovered at all.
+ *
+ * The values reach assistive technology as a visually hidden list, one
+ * item per bar: a bar's `<title>` shows on hover only, and an SVG under
+ * `role="img"` reads as one picture, not as its bars.
  */
 export function BarChart({
   data,
@@ -42,7 +46,6 @@ export function BarChart({
   emptyText,
   ariaLabel,
 }: BarChartProps) {
-  const titleId = useId();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const max = useMemo(
@@ -68,16 +71,19 @@ export function BarChart({
 
   return (
     <div className="relative">
+      <ul className="sr-only" aria-label={ariaLabel}>
+        {data.map((d) => (
+          <li key={d.key}>{d.tooltip ?? `${d.label}: ${d.value}`}</li>
+        ))}
+      </ul>
       <svg
         viewBox={`0 0 100 ${height}`}
         preserveAspectRatio="none"
         className="w-full"
         style={{ height }}
-        role="img"
-        aria-labelledby={titleId}
+        aria-hidden="true"
         onMouseLeave={() => setHoverIdx(null)}
       >
-        <title id={titleId}>{ariaLabel}</title>
         {data.map((d, i) => {
           const h = (d.value / max) * (height - 4);
           const x = i * barWidthPct + barOffsetPct;
