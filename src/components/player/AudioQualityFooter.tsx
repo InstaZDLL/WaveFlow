@@ -124,8 +124,11 @@ export function AudioQualityFooter({
   // Otherwise a source like 44 056 Hz (rare non-standard CD rip) on a
   // 44 100 Hz device would silently round to "44.1" on both sides and
   // hide the resampling. `track.sample_rate` and `deviceSampleRate`
-  // are both already integers from the engine.
+  // are both already integers from the engine. A DoP stream ships at
+  // dsd_rate / 16, which never equals the stored DSD rate, and reaches the
+  // DAC untouched: not a conversion, as the pipeline popover already says.
   const isResampling =
+    outputMode !== "dop" &&
     track.sample_rate != null &&
     track.sample_rate > 0 &&
     deviceSampleRate != null &&
