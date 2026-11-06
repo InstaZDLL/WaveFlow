@@ -17,6 +17,7 @@ import {
 } from "../settingsPreviews";
 import { StereoImageCard } from "../StereoImageCard";
 import { TestToneCard } from "../TestToneCard";
+import { UnderstandingAudioCard } from "../UnderstandingAudioCard";
 import { ToggleSwitch } from "../ToggleSwitch";
 import {
   AudioWaveform,
@@ -116,6 +117,12 @@ export function AudioSection({
       className="settings-category"
     >
       <SettingsCategoryHeader category="playback" />
+      <SettingsGroup
+        id="understanding"
+        reveal={targetGroup === "understanding"}
+      >
+        <UnderstandingAudioCard />
+      </SettingsGroup>
       <SettingsGroup id="output" reveal={targetGroup === "output"}>
         <ExclusiveModeCard />
         {dopPlatformSupported && (

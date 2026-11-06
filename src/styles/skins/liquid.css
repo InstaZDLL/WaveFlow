@@ -1287,7 +1287,8 @@
 :root[data-skin="liquid"] [role="dialog"]:not([data-immersive]),
 :root[data-skin="liquid"] [role="menu"],
 :root[data-skin="liquid"] [role="listbox"],
-:root[data-skin="liquid"] [data-topbar-popover] {
+:root[data-skin="liquid"] [data-topbar-popover],
+:root[data-skin="liquid"] [data-audio-pipeline] {
   background-color: var(--glass-overlay-bg) !important;
   background-image: var(--glass-specular);
   backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-sat));
@@ -1296,7 +1297,8 @@
   box-shadow: var(--glass-floating) !important;
 }
 :root[data-skin="liquid"] [role="dialog"]:not([data-immersive]),
-:root[data-skin="liquid"] [data-topbar-popover] {
+:root[data-skin="liquid"] [data-topbar-popover],
+:root[data-skin="liquid"] [data-audio-pipeline] {
   border-radius: 1.25rem !important;
 }
 :root[data-skin="liquid"] [role="menu"] {
@@ -1438,7 +1440,8 @@
   :root[data-skin="liquid"] [role="dialog"],
   :root[data-skin="liquid"] [role="menu"],
   :root[data-skin="liquid"] [role="listbox"],
-  :root[data-skin="liquid"] [data-topbar-popover] {
+  :root[data-skin="liquid"] [data-topbar-popover],
+  :root[data-skin="liquid"] [data-audio-pipeline] {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }

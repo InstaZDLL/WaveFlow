@@ -275,7 +275,8 @@
   box-shadow: var(--lg-rim);
   border-radius: 9999px;
 }
-:root[data-skin="lounge"] [data-topbar-popover] {
+:root[data-skin="lounge"] [data-topbar-popover],
+:root[data-skin="lounge"] [data-audio-pipeline] {
   background-color: var(--lg-glass-dense) !important;
   box-shadow: var(--lg-rim), var(--lg-drop) !important;
 }

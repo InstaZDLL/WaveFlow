@@ -1585,35 +1585,117 @@
     },
     "toggleNowPlayingPanel": "Speelt nu tonen / verbergen",
     "pipeline": {
-      "title": "Audiopipeline",
+      "title": "Van bestand tot oor",
       "openHint": "Volledige audiopipeline tonen",
-      "source": "Bron",
-      "processing": "Verwerking",
-      "output": "Uitvoer",
-      "noProcessing": "Geen verwerking actief",
       "bitPerfect": "Bit-perfect",
-      "sharedOutput": "Gedeelde uitvoer (systeemmixer)",
       "loading": "Laden…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "Hersamplen",
-        "downmix": "Downmix",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "Normaliseren",
+      "bits": "{{value}} bit",
+      "kind": {
+        "lossless": "Verliesvrij",
+        "lossy": "Met verlies",
+        "dsd": "DSD",
+        "fakeLossless": "Waarschijnlijk nep-lossless"
+      },
+      "channels": {
         "mono": "Mono",
-        "speed": "Snelheid {{value}}×",
-        "dopNative": "Native DSD",
-        "volume": "Volume {{value}} %",
-        "balance": "Balans",
-        "width": "Breedte {{value}}%",
-        "pitch": "Toonhoogte {{value}}"
+        "stereo": "Stereo",
+        "other": "{{value}} kanalen"
+      },
+      "file": {
+        "title": "Je bestand",
+        "lossless": "Alles wat is opgenomen zit erin: er is niets weggelaten om ruimte te besparen.",
+        "lossy": "Gecomprimeerd om minder ruimte in te nemen: details die het oor nauwelijks opmerkt zijn weggelaten.",
+        "dsd": "Het formaat van sacd's: het geluid wordt beschreven door een zeer snelle stroom van één bit.",
+        "fakeLossless": "De analyse vond hoge tonen die stoppen zoals bij een MP3: dit bestand komt waarschijnlijk van een bestand met verlies en bevat niet meer dan dat."
+      },
+      "stage": {
+        "none": {
+          "title": "Geen bewerking",
+          "body": "WaveFlow stuurt het geluid zoals het uit het bestand komt."
+        },
+        "dop": {
+          "title": "Native DSD",
+          "body": "De DSD gaat ongewijzigd naar buiten: je converter decodeert hem zelf."
+        },
+        "dsdToPcm": {
+          "title": "DSD omgezet",
+          "body": "Je uitvoer neemt DSD niet zo aan: WaveFlow zet het om naar een formaat dat hij kan lezen, zonder hoorbaar verlies."
+        },
+        "resample": {
+          "title": "Frequentie aangepast",
+          "body": "Je bestand is {{source}}, je uitvoer draait op {{output}}: WaveFlow rekent om, zonder hoorbaar verlies."
+        },
+        "downmix": {
+          "title": "Kanalen samengevoegd",
+          "body": "Je bestand is in {{source}}, je uitvoer in {{output}}: WaveFlow mengt de kanalen zodat er niets ontbreekt."
+        },
+        "eq": {
+          "title": "Equalizer",
+          "body": "Lage, middentonen en hoge tonen worden volgens je instellingen afgesteld."
+        },
+        "replayGain": {
+          "title": "Gelijk volume (ReplayGain)",
+          "body": "Het volume wordt aangepast zodat nummers even luid klinken."
+        },
+        "normalize": {
+          "title": "Normalisatie",
+          "body": "Te luide nummers worden zachter gezet voor een gelijkmatig niveau."
+        },
+        "mono": {
+          "title": "Mono",
+          "body": "Links en rechts worden tot één signaal gemengd: het stereo-effect verdwijnt."
+        },
+        "balance": {
+          "title": "Balans",
+          "bodyLeft": "Het geluid helt naar links.",
+          "bodyRight": "Het geluid helt naar rechts."
+        },
+        "width": {
+          "title": "Stereobreedte",
+          "bodyNarrower": "Links en rechts komen dichter bij elkaar: het geluidsbeeld is smaller.",
+          "bodyWider": "Links en rechts gaan verder uit elkaar: het geluidsbeeld is breder."
+        },
+        "volume": {
+          "title": "Volume",
+          "body": "WaveFlow zet het geluid op {{value}} % voordat het wordt verstuurd."
+        },
+        "speed": {
+          "title": "Snelheid",
+          "body": "Het nummer speelt op {{value}}× de oorspronkelijke snelheid."
+        },
+        "pitch": {
+          "title": "Toonhoogte",
+          "bodyUp": "Het nummer klinkt hoger dan het origineel.",
+          "bodyDown": "Het nummer klinkt lager dan het origineel.",
+          "figures": "Getransponeerd {{value}}"
+        }
+      },
+      "impact": {
+        "none": "Verandert het geluid niet",
+        "inaudible": "Zonder hoorbaar verlies",
+        "level": "Alleen het volume verandert",
+        "changes": "Verandert het geluid"
+      },
+      "verdict": {
+        "bitPerfect": "Het geluid bereikt je uitvoer precies zoals het in het bestand staat.",
+        "shared": "WaveFlow verandert niets; het systeem mengt het geluid nog wel met dat van andere apps."
+      },
+      "output": {
+        "title": "Uitvoer",
+        "shared": "Gedeelde modus: het systeem mengt WaveFlow met de andere geluiden van de computer. Ideaal voor dagelijks gebruik.",
+        "exclusive": "Exclusieve modus: WaveFlow heeft de uitvoer voor zichzelf, er mengt zich geen ander geluid in.",
+        "dop": "Exclusieve modus: WaveFlow heeft de uitvoer voor zichzelf en stuurt de DSD ongewijzigd door.",
+        "exclusiveRefused": "De uitvoer weigerde de exclusieve modus: WaveFlow speelt in gedeelde modus."
       }
     },
     "outputMode": {
       "exclusive": "Exclusief",
       "dop": "Native DSD",
       "exclusiveRefused": "Exclusief geweigerd"
+    },
+    "quality": {
+      "converted": "Aangepast aan de uitvoer",
+      "details": "Details"
     }
   },
   "miniPlayer": {
@@ -2712,8 +2794,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD-badge",
-      "subtitle": "Toon de ‘Hi-Res 24-bit’- of ‘DSD128’-pil naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
+      "title": "Hi-Res / DSD / Lossless-badges",
+      "subtitle": "Toon de ‘Hi-Res 24-bit’-, ‘DSD128’- of ‘Lossless’-pil (verliesvrij, cd-kwaliteit) naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
     },
     "serverAccount": {
       "title": "WaveFlow-serveraccount",
@@ -3083,7 +3165,8 @@
         "diskUsage": "Schijfruimte",
         "globalShortcuts": "Globale sneltoetsen",
         "enrichment": "Verrijking",
-        "podcasts": "Podcasts"
+        "podcasts": "Podcasts",
+        "understanding": "Audio begrijpen"
       },
       "navHints": {
         "general": "Taal, opstarten, afspelen",
@@ -3135,7 +3218,8 @@
         "diskUsage": "Wat WaveFlow op deze computer bewaart",
         "globalShortcuts": "Vanuit elke toepassing",
         "enrichment": "Genres, datums, credits en hoezen van MusicBrainz",
-        "podcasts": "Feeds volgen, met jouw toestemming"
+        "podcasts": "Feeds volgen, met jouw toestemming",
+        "understanding": "De woorden van geluid, in een paar zinnen"
       }
     },
     "desktopLyrics": {
@@ -3451,6 +3535,35 @@
       "seeStays": "Bekijken wat blijft",
       "downloadQuota": "Maximale ruimte voor gedownloade afleveringen",
       "downloadQuotaHint": "Een download stopt bij dit quotum. Bestanden die er al zijn blijven staan. In gebruik: {{used}}."
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "Samplefrequentie",
+        "body": "Hoe vaak per seconde het geluid wordt gemeten. 44,1 kHz, cd-kwaliteit, dekt al alles wat het oor hoort; 96 of 192 kHz is vooral voor de studio."
+      },
+      "bitDepth": {
+        "term": "Bitdiepte",
+        "body": "Hoe nauwkeurig elke meting is. 16 bit, cd-kwaliteit, is ruim genoeg om te luisteren; 24 bit laat meer ruimte bij opnemen en mixen."
+      },
+      "lossless": {
+        "term": "Verliesvrij of met verlies",
+        "body": "Een verliesvrij bestand (FLAC, WAV, ALAC…) bewaart de hele opname. Een bestand met verlies (MP3, AAC, Opus…) laat weg wat het oor nauwelijks opmerkt en is veel kleiner; bij een goede bitrate hoor je het verschil zelden."
+      },
+      "resampling": {
+        "term": "Resampling",
+        "body": "Als je uitvoer niet op de frequentie van het bestand draait, rekent WaveFlow om. Goed gedaan is dat onhoorbaar."
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "Een meting van de luidheid van elk nummer, uit het bestand gelezen of door WaveFlow berekend. Staat het aan, dan hoef je het volume niet meer per nummer bij te stellen, en verder verandert er niets aan het geluid."
+      },
+      "exclusive": {
+        "term": "Exclusieve modus",
+        "body": "Normaal mengt het systeem de geluiden van alle apps. In exclusieve modus reserveert WaveFlow de uitvoer: het systeem raakt het geluid niet meer aan, maar andere apps zijn er niet meer op te horen."
+      },
+      "stripShown": "De kwaliteitsbalk onder de speler past deze woorden toe op het huidige nummer: beweeg erover om te zien wat WaveFlow ermee doet.",
+      "stripHidden": "De kwaliteitsbalk past deze woorden toe op het huidige nummer. Toon hem onder de speler en beweeg erover om te zien wat WaveFlow ermee doet.",
+      "showStrip": "Kwaliteitsbalk tonen"
     }
   },
   "scanProgress": {

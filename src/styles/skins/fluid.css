@@ -1513,9 +1513,11 @@
   color: var(--fe-ink-3);
 }
 
-/* The bar's popovers (results, filters, the profile menu): the panel
-   tone, no border, rows on a tone when hovered. */
-:root[data-layout="fluid"] [data-topbar-popover] {
+/* The bar's popovers (results, filters, the profile menu) and the audio
+   pipeline over the player bar: the panel tone, no border, rows on a
+   tone when hovered. */
+:root[data-layout="fluid"] [data-topbar-popover],
+:root[data-layout="fluid"] [data-audio-pipeline] {
   border-color: transparent !important;
   border-radius: 0.875rem !important;
   background-color: var(--fe-surface-2) !important;
@@ -1575,6 +1577,23 @@
     [class*="bg-emerald-"]
   ) {
   color: var(--fe-accent) !important;
+}
+
+/* The audio pipeline's stage cards: one tone up from the sheet, no
+   outline; the figures in the third ink, under the sentence that
+   explains them. The strip under the bar names the file in body ink,
+   unless the word is a warning (a probable fake lossless). */
+:root[data-layout="fluid"] [data-pipeline-card] {
+  border-color: transparent !important;
+  border-radius: 0.75rem !important;
+  background-color: var(--fe-tone-1) !important;
+}
+:root[data-layout="fluid"] [data-pipeline-figures],
+:root[data-layout="fluid"] footer [data-quality-figures] {
+  color: var(--fe-ink-3) !important;
+}
+:root[data-layout="fluid"] footer [data-quality-word]:not([data-quality-warn]) {
+  color: var(--fe-ink) !important;
 }
 
 /* Main: the editorial gutters; the Home brings its own container. */

@@ -1,20 +1,30 @@
-import { dsdLabel, isHiRes } from "../../lib/hiRes";
+import { qualityBadge } from "../../lib/hiRes";
 import { useHiResBadgeVisibility } from "../../hooks/useHiResBadgeVisibility";
 
 /**
- * Hi-Res Audio badge — shown when the source file is delivered at a
- * better-than-CD spec (≥ 24-bit, ≥ 44.1 kHz) OR when the codec is
- * DSD (in which case the badge says "DSD64", "DSD128", etc. instead
- * of "Hi-Res 24-bit").
+ * Quality badge — three tiers, best first ([`qualityBadge`]):
+ *
+ * - **DSD** — the codec is DSD, and the badge says "DSD64", "DSD128"…;
+ * - **Hi-Res** — the file is delivered at a better-than-CD spec
+ *   (≥ 24-bit, ≥ 44.1 kHz): "Hi-Res 24-bit";
+ * - **Lossless** — a lossless file at CD quality (16-bit FLAC, ALAC, WAV,
+ *   AIFF, APE, WavPack): "Lossless". Drawn quieter than the two above,
+ *   so the better tier still reads as better. Withheld when the caller
+ *   knows the analysis found a probable fake lossless
+ *   (`probableFakeLossless`), and when no codec is passed (an album
+ *   tile only knows its best depth and rate).
+ *
+ * The labels stay as they are in every language, like the "Hi-Res" mark
+ * itself.
  *
  * Three visual variants:
  * - `overlay` (default) sits on top of an album cover (top-left
  *   corner, drop shadow);
  * - `inline` is for sidebar / row contexts where the badge sits next
  *   to text;
- * - `text` is the minimal Spotify-style green text label used under
- *   the artist name in the player bar — no background pill so it
- *   nests cleanly inside dense metadata.
+ * - `text` is the minimal green text label used under the artist name
+ *   in the player bar — no background pill so it nests cleanly inside
+ *   dense metadata.
  *
  * Globally hidden by the per-profile
  * `profile_setting['ui.show_hi_res_badge']` toggle — flipping that off
@@ -25,8 +35,12 @@ interface HiResBadgeProps {
   sampleRate: number | null;
   /** Codec label from the scanner (e.g. "FLAC", "DSD128"). */
   codec?: string | null;
+  /** The track's analysis found a lossless file whose highs stop at a
+   *  lossy encoder's wall. Pass it where the analysis has been read. */
+  probableFakeLossless?: boolean;
   variant?: "overlay" | "inline" | "text";
-  /** Override the visible text. Default is "Hi-Res {bitDepth}-bit". */
+  /** Override the visible text of the Hi-Res tier. Default is
+   *  "Hi-Res {bitDepth}-bit". */
   label?: string;
 }
 
@@ -34,33 +48,55 @@ export function HiResBadge({
   bitDepth,
   sampleRate,
   codec,
+  probableFakeLossless,
   variant = "overlay",
   label,
 }: HiResBadgeProps) {
   const { visible } = useHiResBadgeVisibility();
-  // DSD wins over the generic Hi-Res check — a DSF/DFF file reports
-  // bit_depth=1 but is anything but lossy, and the user expects the
-  // rate label (DSD64/128/...) rather than "Hi-Res 1-bit".
-  const dsd = dsdLabel(codec);
-  const isVisible = dsd !== null || isHiRes(bitDepth, sampleRate);
-  if (!isVisible || !visible) return null;
-  const text = label ?? dsd ?? `Hi-Res ${bitDepth}-bit`;
+  const badge = qualityBadge(bitDepth, sampleRate, codec, probableFakeLossless);
+  if (!badge || !visible) return null;
+  const quiet = badge.kind === "lossless";
+  const text =
+    badge.kind === "dsd"
+      ? (label ?? badge.label)
+      : badge.kind === "hiRes"
+        ? (label ?? `Hi-Res ${bitDepth}-bit`)
+        : "Lossless";
   if (variant === "text") {
     return (
-      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 dark:text-emerald-400">
+      <span
+        data-quality-badge={badge.kind}
+        className={`text-[10px] font-bold uppercase tracking-wider ${
+          quiet
+            ? "text-zinc-500 dark:text-zinc-400"
+            : "text-emerald-500 dark:text-emerald-400"
+        }`}
+      >
         {text}
       </span>
     );
   }
   if (variant === "inline") {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white tracking-wide">
+      <span
+        data-quality-badge={badge.kind}
+        className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${
+          quiet
+            ? "bg-transparent text-emerald-700 ring-1 ring-inset ring-emerald-500/60 dark:text-emerald-300"
+            : "bg-emerald-500 text-white"
+        }`}
+      >
         {text}
       </span>
     );
   }
   return (
-    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white shadow-md tracking-wide pointer-events-none select-none">
+    <div
+      data-quality-badge={badge.kind}
+      className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md tracking-wide pointer-events-none select-none ${
+        quiet ? "bg-white/90 text-zinc-900" : "bg-emerald-500 text-white"
+      }`}
+    >
       {text}
     </div>
   );

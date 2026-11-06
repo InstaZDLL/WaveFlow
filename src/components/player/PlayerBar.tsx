@@ -17,6 +17,7 @@ import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
+import { useProbableFakeLossless } from "../../hooks/useProbableFakeLossless";
 import { MarqueeText } from "../common/MarqueeText";
 import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
 import { PlaybackControls } from "./PlaybackControls";
@@ -106,6 +107,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // user might have liked from a library view), and kept in step with
   // the mini-player's own copy through `track:liked-changed` (#523).
   const { likedIds, toggleLike } = useLikedTracks(currentTrack?.id);
+  // Read once per track, here, for both places that badge the file: the
+  // label under the artist and the audio-quality strip.
+  const probableFakeLossless = useProbableFakeLossless(currentTrack?.id);
 
   const isLiked = currentTrack != null && likedIds.has(currentTrack.id);
   const stationFavorited =
@@ -183,16 +187,17 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   (currentTrack?.album_title ?? t("player.inactive"))
                 )}
               </span>
-              {/* Spotify-style minimal quality label under the artist.
-                  HiResBadge renders null when the track isn't Hi-Res /
-                  DSD OR when the user has hidden the badge from
-                  Settings → Appearance, so the row collapses naturally
-                  for lossy / lossless-16-bit content. */}
+              {/* Minimal quality label under the artist. HiResBadge
+                  renders null when the track is neither DSD, Hi-Res nor
+                  lossless (or a probable fake lossless) OR when the user
+                  has hidden the badge from Settings → Appearance, so the
+                  row collapses naturally for lossy content. */}
               {currentTrack && (
                 <HiResBadge
                   bitDepth={currentTrack.bit_depth}
                   sampleRate={currentTrack.sample_rate}
                   codec={currentTrack.codec}
+                  probableFakeLossless={probableFakeLossless}
                   variant="text"
                 />
               )}
@@ -399,7 +404,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           </div>
         </div>
         {layout.showAudioQualityFooter && (
-          <AudioQualityFooter track={currentTrack ?? null} />
+          <AudioQualityFooter
+            track={currentTrack ?? null}
+            probableFakeLossless={probableFakeLossless}
+          />
         )}
       </footer>
       {immersiveOpen && (

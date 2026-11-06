@@ -248,6 +248,19 @@ export const SETTINGS_CATEGORIES = [
     hintKey: "settings.organization.navHints.playback",
     groups: [
       {
+        id: "understanding",
+        labelKey: "settings.organization.groups.understanding",
+        hintKey: "settings.organization.groupHints.understanding",
+        searchKeys: [
+          "settings.understandingAudio.sampleRate.term",
+          "settings.understandingAudio.bitDepth.term",
+          "settings.understandingAudio.lossless.term",
+          "settings.understandingAudio.resampling.term",
+          "settings.understandingAudio.replayGain.term",
+          "settings.understandingAudio.exclusive.term",
+        ],
+      },
+      {
         id: "output",
         labelKey: "settings.organization.groups.output",
         hintKey: "settings.organization.groupHints.output",

@@ -324,6 +324,7 @@
 :root[data-skin="editorial"] [data-topbar-search-field],
 :root[data-skin="editorial"] [data-topbar-search-field] > button,
 :root[data-skin="editorial"] [data-topbar-popover],
+:root[data-skin="editorial"] :is([data-audio-pipeline], [data-pipeline-card]),
 :root[data-skin="editorial"] footer img,
 :root[data-skin="editorial"] footer :where(button),
 :root[data-skin="editorial"] footer [role="slider"],
@@ -825,6 +826,7 @@
 /* ── Floating sheets: menus, popovers, dialogs ──────────────── */
 /* Paper, a 1 px ink frame, the proof's hard shadow. */
 :root[data-skin="editorial"] [data-topbar-popover],
+:root[data-skin="editorial"] [data-audio-pipeline],
 :root[data-skin="editorial"] [role="dialog"]:not([data-immersive]),
 :root[data-skin="editorial"] [role="menu"],
 :root[data-skin="editorial"] [role="listbox"] {
@@ -845,6 +847,11 @@
 }
 :root[data-skin="editorial"] [role="menu"] [role="separator"] {
   background-color: var(--ed-rule) !important;
+}
+/* The audio pipeline's stage cards: boxes ruled on the paper, not tones. */
+:root[data-skin="editorial"] [data-pipeline-card] {
+  background-color: transparent !important;
+  border-color: var(--ed-rule) !important;
 }
 
 /* ── The player bar: the foot of the page, the ruler ────────── */

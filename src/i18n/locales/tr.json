@@ -1585,35 +1585,117 @@
     },
     "toggleNowPlayingPanel": "Şimdi Çalıyor panelini göster / gizle",
     "pipeline": {
-      "title": "Ses zinciri",
+      "title": "Dosyadan kulağınıza",
       "openHint": "Ses zincirini ayrıntılı görüntüle",
-      "source": "Kaynak",
-      "processing": "İşlem",
-      "output": "Çıkış",
-      "noProcessing": "İşlem uygulanmıyor",
       "bitPerfect": "Bit-perfect",
-      "sharedOutput": "Paylaşımlı çıkış (sistem karıştırıcısı)",
       "loading": "Yükleniyor…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "Yeniden örnekleme",
-        "downmix": "Kanal düşürme",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "Normalleştirme",
+      "bits": "{{value}} bit",
+      "kind": {
+        "lossless": "Kayıpsız",
+        "lossy": "Kayıplı",
+        "dsd": "DSD",
+        "fakeLossless": "Muhtemelen sahte kayıpsız"
+      },
+      "channels": {
         "mono": "Mono",
-        "speed": "Hız {{value}}×",
-        "dopNative": "Doğrudan DSD",
-        "volume": "Ses %{{value}}",
-        "balance": "Denge",
-        "width": "Genişlik %{{value}}",
-        "pitch": "Perde {{value}}"
+        "stereo": "Stereo",
+        "other": "{{value}} kanal"
+      },
+      "file": {
+        "title": "Dosyanız",
+        "lossless": "Kaydedilen her şey yerinde: yer kazanmak için hiçbir şey çıkarılmadı.",
+        "lossy": "Daha az yer kaplaması için sıkıştırıldı: kulağın pek fark etmediği ayrıntılar çıkarıldı.",
+        "dsd": "SACD'lerin biçimi: ses, çok hızlı tek bitlik bir akışla tanımlanır.",
+        "fakeLossless": "Analiz, tizlerin bir MP3'teki gibi kesildiğini buldu: bu dosya büyük olasılıkla kayıplı bir dosyadan yapıldı ve ondan fazlasını taşımıyor."
+      },
+      "stage": {
+        "none": {
+          "title": "İşlem yok",
+          "body": "WaveFlow sesi dosyadan çıktığı gibi gönderir."
+        },
+        "dop": {
+          "title": "Yerel DSD",
+          "body": "DSD olduğu gibi gider: onu dönüştürücünüz kendisi çözer."
+        },
+        "dsdToPcm": {
+          "title": "DSD dönüştürüldü",
+          "body": "Çıkışınız DSD'yi olduğu gibi almıyor: WaveFlow onu çıkışın okuyabildiği bir biçime, duyulur kayıp olmadan dönüştürür."
+        },
+        "resample": {
+          "title": "Frekans uyarlandı",
+          "body": "Dosyanız {{source}}, çıkışınız {{output}} hızında çalışıyor: WaveFlow birinden diğerine duyulur kayıp olmadan dönüştürür."
+        },
+        "downmix": {
+          "title": "Kanallar birleştirildi",
+          "body": "Dosyanız {{source}}, çıkışınız {{output}}: WaveFlow hiçbir şey eksik kalmasın diye kanalları karıştırır."
+        },
+        "eq": {
+          "title": "Ekolayzer",
+          "body": "Bas, orta ve tiz ayarlarınıza göre düzenlenir."
+        },
+        "replayGain": {
+          "title": "Dengelenmiş ses düzeyi (ReplayGain)",
+          "body": "Ses düzeyi, parçalar birbiri kadar yüksek duyulsun diye ayarlanır."
+        },
+        "normalize": {
+          "title": "Normalleştirme",
+          "body": "Fazla yüksek parçalar, düzey eşit kalsın diye kısılır."
+        },
+        "mono": {
+          "title": "Mono",
+          "body": "Sol ve sağ tek bir sinyalde karıştırılır: stereo etkisi kaybolur."
+        },
+        "balance": {
+          "title": "Denge",
+          "bodyLeft": "Ses sola kayıyor.",
+          "bodyRight": "Ses sağa kayıyor."
+        },
+        "width": {
+          "title": "Stereo genişliği",
+          "bodyNarrower": "Sol ve sağ birbirine yaklaştırıldı: ses sahnesi daha dar.",
+          "bodyWider": "Sol ve sağ birbirinden uzaklaştırıldı: ses sahnesi daha geniş."
+        },
+        "volume": {
+          "title": "Ses düzeyi",
+          "body": "WaveFlow sesi göndermeden önce %{{value}} düzeyine indirir."
+        },
+        "speed": {
+          "title": "Hız",
+          "body": "Parça, özgün hızının {{value}}× katında çalıyor."
+        },
+        "pitch": {
+          "title": "Perde",
+          "bodyUp": "Parça özgününden daha ince çalıyor.",
+          "bodyDown": "Parça özgününden daha kalın çalıyor.",
+          "figures": "Transpoze {{value}}"
+        }
+      },
+      "impact": {
+        "none": "Sesi değiştirmez",
+        "inaudible": "Duyulur kayıp yok",
+        "level": "Yalnızca ses düzeyi değişir",
+        "changes": "Sesi değiştirir"
+      },
+      "verdict": {
+        "bitPerfect": "Ses, çıkışınıza tam olarak dosyadaki gibi ulaşır.",
+        "shared": "WaveFlow hiçbir şeyi değiştirmez; ancak sistem sesi hâlâ diğer uygulamalarınkiyle karıştırır."
+      },
+      "output": {
+        "title": "Çıkış",
+        "shared": "Paylaşımlı mod: sistem WaveFlow'u bilgisayarın diğer sesleriyle karıştırır. Günlük kullanım için ideal.",
+        "exclusive": "Özel mod: çıkış yalnızca WaveFlow'a ait, başka hiçbir ses karışmaz.",
+        "dop": "Özel mod: çıkış yalnızca WaveFlow'a ait ve DSD ona olduğu gibi gönderilir.",
+        "exclusiveRefused": "Çıkış özel modu reddetti: WaveFlow paylaşımlı modda çalıyor."
       }
     },
     "outputMode": {
       "exclusive": "Özel",
       "dop": "Doğrudan DSD",
       "exclusiveRefused": "Özel reddedildi"
+    },
+    "quality": {
+      "converted": "Çıkışa uyarlandı",
+      "details": "Ayrıntılar"
     }
   },
   "miniPlayer": {
@@ -2712,8 +2794,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD rozeti",
-      "subtitle": "Uygun parçaların yanında ve çalar çubuğunda sanatçı adının altında “Hi-Res 24-bit” veya “DSD128” rozetini gösterir. Varsayılan olarak açık."
+      "title": "Hi-Res / DSD / Lossless rozetleri",
+      "subtitle": "Uygun parçaların yanında ve çalar çubuğunda sanatçı adının altında “Hi-Res 24-bit”, “DSD128” veya “Lossless” (kayıpsız, CD kalitesi) rozetini gösterir. Varsayılan olarak açık."
     },
     "serverAccount": {
       "title": "WaveFlow sunucu hesabı",
@@ -3083,7 +3165,8 @@
         "diskUsage": "Disk alanı",
         "globalShortcuts": "Genel kısayollar",
         "enrichment": "Zenginleştirme",
-        "podcasts": "Podcast'ler"
+        "podcasts": "Podcast'ler",
+        "understanding": "Sesi anlamak"
       },
       "navHints": {
         "general": "Dil, başlangıç, oynatma",
@@ -3135,7 +3218,8 @@
         "diskUsage": "WaveFlow'un bu bilgisayarda tuttukları",
         "globalShortcuts": "Herhangi bir uygulamadan",
         "enrichment": "MusicBrainz'den türler, tarihler, katkıda bulunanlar ve kapaklar",
-        "podcasts": "Sen izin verince akışları takip et"
+        "podcasts": "Sen izin verince akışları takip et",
+        "understanding": "Sesin kavramları, birkaç cümlede"
       }
     },
     "desktopLyrics": {
@@ -3451,6 +3535,35 @@
       "seeStays": "Nelerin kaldığını gör",
       "downloadQuota": "İndirilen bölümler için en fazla alan",
       "downloadQuotaHint": "İndirme bu kotada durur. Zaten burada olan dosyalar kalır. Kullanılan: {{used}}."
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "Örnekleme frekansı",
+        "body": "Sesin saniyede kaç kez ölçüldüğü. CD kalitesi olan 44,1 kHz, kulağın duyduğu her şeyi zaten kapsar; 96 veya 192 kHz daha çok stüdyoda işe yarar."
+      },
+      "bitDepth": {
+        "term": "Bit derinliği",
+        "body": "Her ölçümün ne kadar hassas olduğu. CD kalitesi olan 16 bit dinlemek için yeterli; 24 bit kayıt ve miksaj için daha fazla pay bırakır."
+      },
+      "lossless": {
+        "term": "Kayıpsız veya kayıplı",
+        "body": "Kayıpsız bir dosya (FLAC, WAV, ALAC…) kaydın tamamını saklar. Kayıplı bir dosya (MP3, AAC, Opus…) çok daha hafif olmak için kulağın pek fark etmediğini atar; iyi bir bit hızında fark nadiren duyulur."
+      },
+      "resampling": {
+        "term": "Yeniden örnekleme",
+        "body": "Çıkışınız dosyanın frekansında çalışmadığında WaveFlow birini diğerine dönüştürür. İyi yapıldığında duyulmaz."
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "Her parçanın ses yüksekliğinin ölçüsü; dosyadan okunur ya da WaveFlow tarafından hesaplanır. Açıkken parçadan parçaya ses düzeyini ayarlamanız gerekmez ve sesin geri kalanı değişmez."
+      },
+      "exclusive": {
+        "term": "Özel mod",
+        "body": "Normalde sistem tüm uygulamaların seslerini karıştırır. Özel modda WaveFlow çıkışı ayırır: sistem sese artık dokunmaz, ancak diğer uygulamalar bu çıkıştan duyulmaz."
+      },
+      "stripShown": "Oynatıcının altındaki ses kalitesi şeridi bu kavramları çalan parçaya uygular: WaveFlow'un onunla ne yaptığını görmek için üzerine gelin.",
+      "stripHidden": "Ses kalitesi şeridi bu kavramları çalan parçaya uygular. Onu oynatıcının altında gösterin, ardından WaveFlow'un ne yaptığını görmek için üzerine gelin.",
+      "showStrip": "Ses kalitesi şeridini göster"
     }
   },
   "scanProgress": {

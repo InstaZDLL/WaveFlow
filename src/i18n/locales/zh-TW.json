@@ -1583,35 +1583,117 @@
     },
     "toggleNowPlayingPanel": "顯示 / 隱藏正在播放",
     "pipeline": {
-      "title": "音訊管線",
+      "title": "從檔案到你的耳朵",
       "openHint": "查看音訊管線詳情",
-      "source": "來源",
-      "processing": "處理",
-      "output": "輸出",
-      "noProcessing": "無處理",
       "bitPerfect": "位元完美",
-      "sharedOutput": "共用輸出（系統混音器）",
       "loading": "載入中…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "重新取樣",
-        "downmix": "下混",
-        "eq": "等化器",
-        "replayGain": "ReplayGain",
-        "normalize": "正規化",
+      "bits": "{{value}} 位元",
+      "kind": {
+        "lossless": "無損",
+        "lossy": "有損",
+        "dsd": "DSD",
+        "fakeLossless": "疑似假無損"
+      },
+      "channels": {
         "mono": "單聲道",
-        "speed": "速度 {{value}}×",
-        "dopNative": "原生 DSD",
-        "volume": "音量 {{value}}%",
-        "balance": "平衡",
-        "width": "寬度 {{value}}%",
-        "pitch": "音高 {{value}}"
+        "stereo": "立體聲",
+        "other": "{{value}} 聲道"
+      },
+      "file": {
+        "title": "你的檔案",
+        "lossless": "錄下的一切都在：沒有為了節省空間而刪掉任何內容。",
+        "lossy": "經過壓縮以節省空間：去掉了耳朵幾乎察覺不到的細節。",
+        "dsd": "SACD 的格式：聲音由一條極快的 1 位元訊號流來描述。",
+        "fakeLossless": "分析發現高頻像 MP3 一樣被截斷：這個檔案很可能由有損檔案轉換而來，並不比原檔案包含更多內容。"
+      },
+      "stage": {
+        "none": {
+          "title": "無處理",
+          "body": "WaveFlow 依檔案原樣送出聲音。"
+        },
+        "dop": {
+          "title": "原生 DSD",
+          "body": "DSD 原樣送出，由你的 DAC 自行解碼。"
+        },
+        "dsdToPcm": {
+          "title": "DSD 已轉換",
+          "body": "你的輸出裝置無法直接接收 DSD：WaveFlow 將其轉換為裝置能讀取的格式，聽不出損失。"
+        },
+        "resample": {
+          "title": "取樣率已調整",
+          "body": "你的檔案是 {{source}}，輸出裝置以 {{output}} 運作：WaveFlow 在兩者之間轉換，聽不出損失。"
+        },
+        "downmix": {
+          "title": "聲道已合併",
+          "body": "你的檔案是 {{source}}，輸出裝置是 {{output}}：WaveFlow 混合各聲道，不會遺漏任何聲音。"
+        },
+        "eq": {
+          "title": "等化器",
+          "body": "低音、中音和高音依你的設定調整。"
+        },
+        "replayGain": {
+          "title": "音量平衡（ReplayGain）",
+          "body": "調整音量，讓每首歌聽起來一樣大聲。"
+        },
+        "normalize": {
+          "title": "響度標準化",
+          "body": "調低過大聲的歌曲，保持音量一致。"
+        },
+        "mono": {
+          "title": "單聲道",
+          "body": "左右聲道混合為一路訊號：立體聲效果消失。"
+        },
+        "balance": {
+          "title": "平衡",
+          "bodyLeft": "聲音偏向左側。",
+          "bodyRight": "聲音偏向右側。"
+        },
+        "width": {
+          "title": "立體聲寬度",
+          "bodyNarrower": "左右聲道靠攏：音場變窄。",
+          "bodyWider": "左右聲道拉開：音場變寬。"
+        },
+        "volume": {
+          "title": "音量",
+          "body": "WaveFlow 在送出前將聲音降至 {{value}}%。"
+        },
+        "speed": {
+          "title": "速度",
+          "body": "歌曲以原速的 {{value}}× 播放。"
+        },
+        "pitch": {
+          "title": "音高",
+          "bodyUp": "歌曲播放得比原曲高。",
+          "bodyDown": "歌曲播放得比原曲低。",
+          "figures": "移調 {{value}}"
+        }
+      },
+      "impact": {
+        "none": "不改變聲音",
+        "inaudible": "聽不出損失",
+        "level": "只改變音量",
+        "changes": "改變聲音"
+      },
+      "verdict": {
+        "bitPerfect": "聲音與檔案中的完全一致地到達你的輸出裝置。",
+        "shared": "WaveFlow 沒有做任何修改，但系統仍會將聲音與其他應用程式的聲音混合。"
+      },
+      "output": {
+        "title": "輸出",
+        "shared": "共享模式：系統將 WaveFlow 與電腦上的其他聲音混合。適合日常使用。",
+        "exclusive": "獨佔模式：WaveFlow 獨佔輸出，不混入其他任何聲音。",
+        "dop": "獨佔模式：WaveFlow 獨佔輸出，並將 DSD 原樣送出。",
+        "exclusiveRefused": "輸出裝置拒絕了獨佔模式：WaveFlow 以共享模式播放。"
       }
     },
     "outputMode": {
       "exclusive": "獨佔",
       "dop": "原生 DSD",
       "exclusiveRefused": "獨佔遭拒"
+    },
+    "quality": {
+      "converted": "已配合輸出",
+      "details": "詳細資訊"
     }
   },
   "miniPlayer": {
@@ -2710,8 +2792,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD 標籤",
-      "subtitle": "在符合條件的曲目旁以及播放列的藝人名稱下方顯示「Hi-Res 24-bit」或「DSD128」標籤。預設開啟。"
+      "title": "Hi-Res / DSD / Lossless 標籤",
+      "subtitle": "在符合條件的曲目旁以及播放列的藝人名稱下方顯示「Hi-Res 24-bit」、「DSD128」或「Lossless」（無損，CD 音質）標籤。預設開啟。"
     },
     "serverAccount": {
       "title": "WaveFlow 伺服器帳號",
@@ -3081,7 +3163,8 @@
         "diskUsage": "磁碟空間",
         "globalShortcuts": "全域快速鍵",
         "enrichment": "資訊補全",
-        "podcasts": "Podcast"
+        "podcasts": "Podcast",
+        "understanding": "認識音訊"
       },
       "navHints": {
         "general": "語言、啟動、播放",
@@ -3133,7 +3216,8 @@
         "diskUsage": "WaveFlow 在這台電腦上保存的內容",
         "globalShortcuts": "在任何應用程式中",
         "enrichment": "來自 MusicBrainz 的曲風、日期、製作人員與封面",
-        "podcasts": "經你同意後訂閱訂閱來源"
+        "podcasts": "經你同意後訂閱訂閱來源",
+        "understanding": "幾句話講清聲音的術語"
       }
     },
     "desktopLyrics": {
@@ -3449,6 +3533,35 @@
       "seeStays": "查看保留的內容",
       "downloadQuota": "已下載單集的最大空間",
       "downloadQuotaHint": "下載達到此配額時會停止。已有的檔案會保留。已用：{{used}}。"
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "取樣率",
+        "body": "每秒測量聲音的次數。CD 音質的 44.1 kHz 已涵蓋人耳能聽到的全部；96 或 192 kHz 主要用於錄音室。"
+      },
+      "bitDepth": {
+        "term": "位元深度",
+        "body": "每次測量的精細程度。CD 音質的 16 位元足以欣賞；24 位元為錄音和混音留出更多餘裕。"
+      },
+      "lossless": {
+        "term": "無損與有損",
+        "body": "無損檔案（FLAC、WAV、ALAC…）保留完整錄音。有損檔案（MP3、AAC、Opus…）去掉耳朵幾乎察覺不到的部分，體積小得多；位元率足夠時，差別很少聽得出來。"
+      },
+      "resampling": {
+        "term": "重新取樣",
+        "body": "當輸出裝置的取樣率與檔案不同時，WaveFlow 會進行轉換。做得好就聽不出來。"
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "每首歌響度的測量值，從檔案中讀取或由 WaveFlow 計算。開啟後，不必在歌曲之間反覆調音量，聲音的其他方面也不會改變。"
+      },
+      "exclusive": {
+        "term": "獨佔模式",
+        "body": "通常系統會混合所有應用程式的聲音。在獨佔模式下，WaveFlow 獨佔輸出：系統不再更動聲音，但其他應用程式的聲音不會從該輸出播放。"
+      },
+      "stripShown": "播放器下方的音質資訊列會把這些術語用在目前的歌曲上：將滑鼠停在上面，即可查看 WaveFlow 做了什麼。",
+      "stripHidden": "音質資訊列會把這些術語用在目前的歌曲上。在播放器下方顯示它，再將滑鼠停在上面，即可查看 WaveFlow 做了什麼。",
+      "showStrip": "顯示音質資訊列"
     }
   },
   "scanProgress": {

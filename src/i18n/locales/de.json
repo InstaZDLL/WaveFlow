@@ -1585,35 +1585,117 @@
     },
     "toggleNowPlayingPanel": "Aktuelle Wiedergabe ein-/ausblenden",
     "pipeline": {
-      "title": "Audio-Pipeline",
+      "title": "Von der Datei bis zum Ohr",
       "openHint": "Audio-Pipeline anzeigen",
-      "source": "Quelle",
-      "processing": "Verarbeitung",
-      "output": "Ausgabe",
-      "noProcessing": "Keine Verarbeitung aktiv",
       "bitPerfect": "Bit-perfect",
-      "sharedOutput": "Gemeinsame Ausgabe (System-Mixer)",
       "loading": "Wird geladen…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "Resampling",
-        "downmix": "Downmix",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "Normalisierung",
+      "bits": "{{value}} Bit",
+      "kind": {
+        "lossless": "Verlustfrei",
+        "lossy": "Verlustbehaftet",
+        "dsd": "DSD",
+        "fakeLossless": "Vermutlich falsches Lossless"
+      },
+      "channels": {
         "mono": "Mono",
-        "speed": "Geschwindigkeit {{value}}×",
-        "dopNative": "Natives DSD",
-        "volume": "Lautstärke {{value}} %",
-        "balance": "Balance",
-        "width": "Breite {{value}} %",
-        "pitch": "Tonhöhe {{value}}"
+        "stereo": "Stereo",
+        "other": "{{value}} Kanäle"
+      },
+      "file": {
+        "title": "Deine Datei",
+        "lossless": "Alles, was aufgenommen wurde, ist da: Nichts wurde entfernt, um Platz zu sparen.",
+        "lossy": "Komprimiert, um weniger Platz zu brauchen: Details, die das Ohr kaum bemerkt, wurden entfernt.",
+        "dsd": "Das Format der SACD: Der Klang wird durch einen sehr schnellen Ein-Bit-Strom beschrieben.",
+        "fakeLossless": "Die Analyse hat Höhen gefunden, die wie bei einer MP3 enden: Diese Datei stammt wahrscheinlich aus einer verlustbehafteten und enthält nicht mehr als diese."
+      },
+      "stage": {
+        "none": {
+          "title": "Keine Bearbeitung",
+          "body": "WaveFlow gibt den Klang so aus, wie er aus der Datei kommt."
+        },
+        "dop": {
+          "title": "Natives DSD",
+          "body": "Das DSD geht unverändert hinaus: Dein Wandler dekodiert es selbst."
+        },
+        "dsdToPcm": {
+          "title": "DSD umgewandelt",
+          "body": "Deine Ausgabe nimmt DSD nicht direkt an: WaveFlow wandelt es in ein Format um, das sie lesen kann, ohne hörbaren Verlust."
+        },
+        "resample": {
+          "title": "Abtastrate angepasst",
+          "body": "Deine Datei hat {{source}}, deine Ausgabe läuft mit {{output}}: WaveFlow rechnet um, ohne hörbaren Verlust."
+        },
+        "downmix": {
+          "title": "Kanäle zusammengeführt",
+          "body": "Deine Datei ist in {{source}}, deine Ausgabe in {{output}}: WaveFlow mischt die Kanäle, damit nichts fehlt."
+        },
+        "eq": {
+          "title": "Equalizer",
+          "body": "Bässe, Mitten und Höhen werden nach deinen Einstellungen geformt."
+        },
+        "replayGain": {
+          "title": "Angeglichene Lautstärke (ReplayGain)",
+          "body": "Die Lautstärke wird angepasst, damit alle Titel gleich laut klingen."
+        },
+        "normalize": {
+          "title": "Normalisierung",
+          "body": "Zu laute Titel werden leiser gemacht, damit der Pegel gleichmäßig bleibt."
+        },
+        "mono": {
+          "title": "Mono",
+          "body": "Links und rechts werden zu einem Signal gemischt: Der Stereoeffekt verschwindet."
+        },
+        "balance": {
+          "title": "Balance",
+          "bodyLeft": "Der Klang neigt sich nach links.",
+          "bodyRight": "Der Klang neigt sich nach rechts."
+        },
+        "width": {
+          "title": "Stereobreite",
+          "bodyNarrower": "Links und rechts rücken zusammen: Die Klangbühne wird schmaler.",
+          "bodyWider": "Links und rechts rücken auseinander: Die Klangbühne wird breiter."
+        },
+        "volume": {
+          "title": "Lautstärke",
+          "body": "WaveFlow senkt den Klang auf {{value}} %, bevor es ihn ausgibt."
+        },
+        "speed": {
+          "title": "Geschwindigkeit",
+          "body": "Der Titel läuft mit dem {{value}}-Fachen seiner ursprünglichen Geschwindigkeit."
+        },
+        "pitch": {
+          "title": "Tonhöhe",
+          "bodyUp": "Der Titel klingt höher als das Original.",
+          "bodyDown": "Der Titel klingt tiefer als das Original.",
+          "figures": "Transponiert {{value}}"
+        }
+      },
+      "impact": {
+        "none": "Verändert den Klang nicht",
+        "inaudible": "Ohne hörbaren Verlust",
+        "level": "Nur die Lautstärke ändert sich",
+        "changes": "Verändert den Klang"
+      },
+      "verdict": {
+        "bitPerfect": "Der Klang erreicht deine Ausgabe genau so, wie er in der Datei steht.",
+        "shared": "WaveFlow verändert nichts; das System mischt den Klang aber noch mit dem anderer Apps."
+      },
+      "output": {
+        "title": "Ausgabe",
+        "shared": "Geteilter Modus: Das System mischt WaveFlow mit den anderen Klängen des Computers. Ideal für den Alltag.",
+        "exclusive": "Exklusiver Modus: WaveFlow hat die Ausgabe für sich allein, kein anderer Klang mischt sich ein.",
+        "dop": "Exklusiver Modus: WaveFlow hat die Ausgabe für sich allein und schickt ihr das DSD unverändert.",
+        "exclusiveRefused": "Die Ausgabe hat den exklusiven Modus abgelehnt: WaveFlow spielt im geteilten Modus."
       }
     },
     "outputMode": {
       "exclusive": "Exklusiv",
       "dop": "Natives DSD",
       "exclusiveRefused": "Exklusiv verweigert"
+    },
+    "quality": {
+      "converted": "An die Ausgabe angepasst",
+      "details": "Details"
     }
   },
   "miniPlayer": {
@@ -2712,8 +2794,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res-/DSD-Badge",
-      "subtitle": "Zeigt das Badge „Hi-Res 24-bit“ oder „DSD128“ neben entsprechenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
+      "title": "Hi-Res-/DSD-/Lossless-Badges",
+      "subtitle": "Zeigt das Badge „Hi-Res 24-bit“, „DSD128“ oder „Lossless“ (verlustfrei, CD-Qualität) neben entsprechenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
     },
     "serverAccount": {
       "title": "WaveFlow-Server-Konto",
@@ -3083,7 +3165,8 @@
         "diskUsage": "Speicherplatz",
         "globalShortcuts": "Globale Tastenkürzel",
         "enrichment": "Anreicherung",
-        "podcasts": "Podcasts"
+        "podcasts": "Podcasts",
+        "understanding": "Audio verstehen"
       },
       "navHints": {
         "general": "Sprache, Start, Wiedergabe",
@@ -3135,7 +3218,8 @@
         "diskUsage": "Was WaveFlow auf diesem Computer speichert",
         "globalShortcuts": "Aus jeder Anwendung",
         "enrichment": "Genres, Daten, Credits und Cover von MusicBrainz",
-        "podcasts": "Feeds abonnieren, wenn du zustimmst"
+        "podcasts": "Feeds abonnieren, wenn du zustimmst",
+        "understanding": "Die Begriffe des Klangs, in wenigen Sätzen"
       }
     },
     "desktopLyrics": {
@@ -3451,6 +3535,35 @@
       "seeStays": "Ansehen, was bleibt",
       "downloadQuota": "Maximaler Platz für heruntergeladene Folgen",
       "downloadQuotaHint": "Ein Download stoppt bei diesem Kontingent. Vorhandene Dateien bleiben. Belegt: {{used}}."
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "Abtastrate",
+        "body": "Wie oft pro Sekunde der Klang gemessen wird. 44,1 kHz, CD-Qualität, deckt schon alles ab, was das Ohr hört; 96 oder 192 kHz dienen vor allem im Studio."
+      },
+      "bitDepth": {
+        "term": "Bittiefe",
+        "body": "Wie genau jede Messung ist. 16 Bit, CD-Qualität, reichen zum Hören; 24 Bit lassen mehr Spielraum für Aufnahme und Mischung."
+      },
+      "lossless": {
+        "term": "Verlustfrei oder verlustbehaftet",
+        "body": "Eine verlustfreie Datei (FLAC, WAV, ALAC…) behält die ganze Aufnahme. Eine verlustbehaftete (MP3, AAC, Opus…) lässt weg, was das Ohr kaum bemerkt, und ist viel kleiner; bei guter Bitrate hört man den Unterschied selten."
+      },
+      "resampling": {
+        "term": "Resampling",
+        "body": "Wenn deine Ausgabe nicht mit der Abtastrate der Datei läuft, rechnet WaveFlow um. Gut gemacht ist das unhörbar."
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "Ein Maß für die Lautheit jedes Titels, aus der Datei gelesen oder von WaveFlow berechnet. Eingeschaltet musst du die Lautstärke nicht mehr von Titel zu Titel nachregeln, und sonst ändert sich nichts am Klang."
+      },
+      "exclusive": {
+        "term": "Exklusiver Modus",
+        "body": "Normalerweise mischt das System die Klänge aller Apps. Im exklusiven Modus reserviert WaveFlow die Ausgabe: Das System verändert den Klang nicht mehr, aber andere Apps sind darauf nicht mehr zu hören."
+      },
+      "stripShown": "Die Audioqualitätsleiste unter dem Player wendet diese Begriffe auf den aktuellen Titel an: Fahre mit der Maus darüber, um zu sehen, was WaveFlow damit macht.",
+      "stripHidden": "Die Audioqualitätsleiste wendet diese Begriffe auf den aktuellen Titel an. Blende sie unter dem Player ein und fahre mit der Maus darüber, um zu sehen, was WaveFlow damit macht.",
+      "showStrip": "Audioqualitätsleiste anzeigen"
     }
   },
   "scanProgress": {

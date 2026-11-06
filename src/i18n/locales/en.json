@@ -1585,35 +1585,117 @@
     },
     "toggleNowPlayingPanel": "Show / hide Now Playing",
     "pipeline": {
-      "title": "Audio pipeline",
+      "title": "From your file to your ears",
       "openHint": "Show the full audio pipeline",
-      "source": "Source",
-      "processing": "Processing",
-      "output": "Output",
-      "noProcessing": "No processing applied",
       "bitPerfect": "Bit-perfect",
-      "sharedOutput": "Shared output (system mixer)",
       "loading": "Loading…",
-      "chip": {
-        "dsdToPcm": "DSD → PCM",
-        "resample": "Resample",
-        "downmix": "Downmix",
-        "eq": "EQ",
-        "replayGain": "ReplayGain",
-        "normalize": "Normalise",
+      "bits": "{{value}}-bit",
+      "kind": {
+        "lossless": "Lossless",
+        "lossy": "Lossy",
+        "dsd": "DSD",
+        "fakeLossless": "Probably fake lossless"
+      },
+      "channels": {
         "mono": "Mono",
-        "speed": "Speed {{value}}×",
-        "dopNative": "Native DSD",
-        "volume": "Volume {{value}}%",
-        "balance": "Balance",
-        "width": "Width {{value}}%",
-        "pitch": "Pitch {{value}}"
+        "stereo": "Stereo",
+        "other": "{{value}} channels"
+      },
+      "file": {
+        "title": "Your file",
+        "lossless": "Everything that was recorded is there: nothing was removed to save space.",
+        "lossy": "Compressed to take less space: details the ear barely notices were removed.",
+        "dsd": "The SACD format: the sound is described by a very fast one-bit stream.",
+        "fakeLossless": "The analysis found highs that stop like an MP3's: this file was probably made from a lossy one, and holds no more than it did."
+      },
+      "stage": {
+        "none": {
+          "title": "No processing",
+          "body": "WaveFlow sends the sound exactly as it comes out of the file."
+        },
+        "dop": {
+          "title": "Native DSD",
+          "body": "The DSD goes out as it is: your converter decodes it itself."
+        },
+        "dsdToPcm": {
+          "title": "DSD converted",
+          "body": "Your output can't take DSD as it is: WaveFlow converts it to a format the output reads, with no audible loss."
+        },
+        "resample": {
+          "title": "Rate adapted",
+          "body": "Your file is at {{source}}, your output runs at {{output}}: WaveFlow converts from one to the other, with no audible loss."
+        },
+        "downmix": {
+          "title": "Channels combined",
+          "body": "Your file is in {{source}}, your output in {{output}}: WaveFlow mixes the channels together so nothing is missing."
+        },
+        "eq": {
+          "title": "Equalizer",
+          "body": "Bass, mids and treble are shaped by your settings."
+        },
+        "replayGain": {
+          "title": "Levelled volume (ReplayGain)",
+          "body": "The volume is adjusted so tracks sound as loud as one another."
+        },
+        "normalize": {
+          "title": "Normalization",
+          "body": "Tracks that are too loud are turned down to keep an even level."
+        },
+        "mono": {
+          "title": "Mono",
+          "body": "Left and right are mixed into a single signal: the stereo effect is gone."
+        },
+        "balance": {
+          "title": "Balance",
+          "bodyLeft": "The sound leans to the left.",
+          "bodyRight": "The sound leans to the right."
+        },
+        "width": {
+          "title": "Stereo width",
+          "bodyNarrower": "Left and right are drawn together: the sound stage is narrower.",
+          "bodyWider": "Left and right are spread apart: the sound stage is wider."
+        },
+        "volume": {
+          "title": "Volume",
+          "body": "WaveFlow turns the sound down to {{value}} % before sending it."
+        },
+        "speed": {
+          "title": "Speed",
+          "body": "The track plays at {{value}}× its original speed."
+        },
+        "pitch": {
+          "title": "Pitch",
+          "bodyUp": "The track plays higher than the original.",
+          "bodyDown": "The track plays lower than the original.",
+          "figures": "Transposed {{value}}"
+        }
+      },
+      "impact": {
+        "none": "Doesn't change the sound",
+        "inaudible": "No audible loss",
+        "level": "Only the volume changes",
+        "changes": "Changes the sound"
+      },
+      "verdict": {
+        "bitPerfect": "The sound reaches your output exactly as it is in the file.",
+        "shared": "WaveFlow changes nothing; your system still mixes the sound with other apps'."
+      },
+      "output": {
+        "title": "Output",
+        "shared": "Shared mode: your system mixes WaveFlow with the computer's other sounds. Ideal for everyday use.",
+        "exclusive": "Exclusive mode: WaveFlow has the output to itself, and no other sound is mixed in.",
+        "dop": "Exclusive mode: WaveFlow has the output to itself and sends it the DSD as it is.",
+        "exclusiveRefused": "The output refused exclusive mode: WaveFlow plays in shared mode."
       }
     },
     "outputMode": {
       "exclusive": "Exclusive",
       "dop": "Native DSD",
       "exclusiveRefused": "Exclusive refused"
+    },
+    "quality": {
+      "converted": "Adapted to the output",
+      "details": "Details"
     }
   },
   "miniPlayer": {
@@ -2712,8 +2794,8 @@
       }
     },
     "hiResBadge": {
-      "title": "Hi-Res / DSD badge",
-      "subtitle": "Show the “Hi-Res 24-bit” or “DSD128” pill next to qualifying tracks and under the artist name in the player bar. On by default."
+      "title": "Hi-Res / DSD / Lossless badges",
+      "subtitle": "Show the “Hi-Res 24-bit”, “DSD128” or “Lossless” (CD quality) pill next to qualifying tracks and under the artist name in the player bar. On by default."
     },
     "serverAccount": {
       "title": "WaveFlow server account",
@@ -3083,7 +3165,8 @@
         "diskUsage": "Disk space",
         "globalShortcuts": "Global shortcuts",
         "enrichment": "Enrichment",
-        "podcasts": "Podcasts"
+        "podcasts": "Podcasts",
+        "understanding": "Understanding audio"
       },
       "navHints": {
         "general": "Language, startup, playback",
@@ -3135,7 +3218,8 @@
         "diskUsage": "What WaveFlow keeps on this computer",
         "globalShortcuts": "From any application",
         "enrichment": "Genres, dates, credits and covers from MusicBrainz",
-        "podcasts": "Follow feeds, once you agree"
+        "podcasts": "Follow feeds, once you agree",
+        "understanding": "The words of sound, in a few sentences"
       }
     },
     "desktopLyrics": {
@@ -3451,6 +3535,35 @@
       "seeStays": "See what stays",
       "downloadQuota": "Maximum space for downloaded episodes",
       "downloadQuotaHint": "A download stops at this quota. Files already here stay. Used: {{used}}."
+    },
+    "understandingAudio": {
+      "sampleRate": {
+        "term": "Sample rate",
+        "body": "How many times per second the sound is measured. 44.1 kHz, CD quality, already covers everything the ear can hear; 96 or 192 kHz are mostly for the studio."
+      },
+      "bitDepth": {
+        "term": "Bit depth",
+        "body": "How precise each measurement is. 16-bit, CD quality, is plenty for listening; 24-bit leaves more headroom for recording and mixing."
+      },
+      "lossless": {
+        "term": "Lossless or lossy",
+        "body": "A lossless file (FLAC, WAV, ALAC…) keeps the whole recording. A lossy file (MP3, AAC, Opus…) drops what the ear barely notices to be much smaller; at a good bitrate, the difference is rarely heard."
+      },
+      "resampling": {
+        "term": "Resampling",
+        "body": "When your output doesn't run at the file's rate, WaveFlow converts one to the other. Done well, it's inaudible."
+      },
+      "replayGain": {
+        "term": "ReplayGain",
+        "body": "A measure of each track's loudness, read from the file or worked out by WaveFlow. When it's on, you no longer have to adjust the volume from one track to the next, and nothing else about the sound changes."
+      },
+      "exclusive": {
+        "term": "Exclusive mode",
+        "body": "Usually, your system mixes the sounds of every app. In exclusive mode, WaveFlow reserves the output: the system no longer touches the sound, but other apps can't be heard on it."
+      },
+      "stripShown": "The quality strip under the player applies these words to the current track: hover over it to see what WaveFlow does with it.",
+      "stripHidden": "The quality strip applies these words to the current track. Show it under the player, then hover over it to see what WaveFlow does with it.",
+      "showStrip": "Show the quality strip"
     }
   },
   "scanProgress": {

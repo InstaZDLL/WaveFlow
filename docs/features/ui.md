@@ -76,7 +76,14 @@ Extensions left Settings for a page of their own in the sidebar
 playback behaves (single click, autoplay, album sessions, keeping the computer
 awake); Appearance the skin, the theme and accent, readability (contrast,
 visual effects, zoom), the player bar, the windows, the immersive view and the
-library pages; Audio the output (shared or exclusive, DoP, DSD precision, the
+library pages; Audio first explains itself — "Understanding audio" puts sample
+rate, bit depth, lossless and lossy, resampling, ReplayGain and exclusive mode
+in two plain sentences each
+([`UnderstandingAudioCard`](../../src/components/views/settings/UnderstandingAudioCard.tsx),
+stateless, so nothing for the reset count), and ends on the
+[audio-quality strip](#audio-quality-footer--pipeline-popover) that applies
+those words to the playing track, with a button that pins the strip when it is
+hidden — then the output (shared or exclusive, DoP, DSD precision, the
 test tone), transitions, volume, the equaliser and the stereo image, with
 sample-rate matching and mono under a closed "Advanced output"; Lyrics where
 lyrics come from, how they show and the desktop overlay; Library scanning,
@@ -656,11 +663,17 @@ The overflow popover itself is capped at `max-h-[calc(100dvh-7rem)]` with `overf
 
 ### Audio-quality footer + pipeline popover
 
-The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/player/AudioQualityFooter.tsx), pinned via Settings → Appearance → Player bar → Player bar layout) is a thin strip below the player bar that surfaces the source file specs in compact form (`48 kHz · 256 kb/s · 6 Mo` on the left, `AAC · 24bit · 48kHz` on the right; bitrates ≥ 1000 kbps render as `Mb/s`). When the engine is resampling — source rate ≠ output device rate — the left chunk renders an arrow instead: `48 kHz → 44.1 kHz · …`, so the user can spot the conversion at a glance without opening the popover. The arrow is gated on the device rate being known (the engine reports `0` before the first stream opens); otherwise we fall back to the source rate alone rather than printing a misleading `48 kHz → null`. The Hi-Res pill surfaces when [`isHiRes`](../../src/lib/hiRes.ts) accepts the source bit depth / sample rate combination.
+The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/player/AudioQualityFooter.tsx), pinned via Settings → Appearance → Player bar → Player bar layout) is a thin strip below the player bar written for a listener, not an engineer. It names the file first — by its [quality badge](#quality-badge-dsd-hi-res-lossless) when it earns one and badges are on, by a word otherwise (**Lossy**, **Lossless** with badges hidden, **Probably fake lossless** in amber when the analysis says so) — with its figures beside it in a quieter ink (`FLAC · 24 bits · 96 kHz`; a lossy file adds its bitrate, which says how much was kept). When the engine converts the rate for the output — source rate ≠ output device rate — a second segment says so in words, **Adapted to the output**, with the output rate as its figure; it is gated on the device rate being known (the engine reports `0` before the first stream opens). The output-mode chip shows when the output is exclusive, native DSD or refused exclusive, and a **Details** affordance says the strip opens something. Rates follow the reader's language (`44,1 kHz` in French) through [`audioQuality`](../../src/lib/audioQuality.ts).
 
-### Hi-Res / DSD badge
+**Lossless or lossy is the backend's rule, not a guess.** [`fileKind`](../../src/lib/audioQuality.ts) mirrors `lossless_track_sql!` in [`analysis/bandwidth.rs`](../../src-tauri/crates/core/src/analysis/bandwidth.rs): FLAC, WAV, AIFF, PCM, APE and WavPack are lossless, and so is `AAC` with a bit depth (ALAC rides in the same container and only its bit depth tells it apart); MP3, Vorbis, Opus, Speex and `AAC` without one are lossy; `DSD…` is DSD. A codec neither list knows gets no word at all. A change to the SQL rule belongs in both.
 
-[`HiResBadge`](../../src/components/common/HiResBadge.tsx) is the green pill that decorates track rows, album grid tiles, and the player-bar metadata when the source qualifies as Hi-Res (`isHiRes` — ≥ 24-bit, ≥ 44.1 kHz) or as DSD (`dsdLabel` returns `DSD64` / `DSD128` / …). Three variants:
+### Quality badge: DSD, Hi-Res, Lossless
+
+[`HiResBadge`](../../src/components/common/HiResBadge.tsx) is the pill that decorates track rows, album grid tiles, the player-bar metadata, the track properties and the audio-quality strip. [`qualityBadge`](../../src/lib/hiRes.ts) picks one of three tiers, best first: **DSD** (`dsdLabel` returns `DSD64` / `DSD128` / …), **Hi-Res** (`isHiRes` — ≥ 24-bit, ≥ 44.1 kHz, "Hi-Res 24-bit"), and **Lossless** — a lossless file that is neither, the CD-quality tier (16-bit FLAC, ALAC, WAV, AIFF, APE, WavPack), by the backend's `lossless_track_sql!` rule mirrored in [`fileKind`](../../src/lib/audioQuality.ts). The labels are marks, kept as they are in every language like "Hi-Res" itself. Lossless is drawn quieter than the two above (an outline, a grey text label), so the better tier still reads as better.
+
+**A probable fake lossless earns no Lossless badge** where the analysis is known: the caller passes `probableFakeLossless` and the tier is withheld. The player bar reads it once per track ([`useProbableFakeLossless`](../../src/hooks/useProbableFakeLossless.ts), from the cached `track_analysis` row) for its label and the strip; the track properties pass the analysis they already load. Lists and grids do not read the analysis per row, so there a fake still shows **Lossless** — the badge goes by the codec alone. Album tiles pass only their best depth and rate, no codec, so they show DSD or Hi-Res and never Lossless. Hi-Res and DSD are not withheld from a fake.
+
+Three variants:
 
 | Variant   | Used in                               | Style                                                                                           |
 | --------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -668,26 +681,28 @@ The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/pla
 | `inline`  | TrackTable rows, sidebar lists.       | Inline rounded pill next to the title.                                                          |
 | `text`    | Player bar — under the artist name.   | Spotify-style minimal green uppercase text, no pill background, blends into the metadata stack. |
 
-All variants are gated by [`useHiResBadgeVisibility`](../../src/hooks/useHiResBadgeVisibility.ts), which reads `profile_setting['ui.show_hi_res_badge']` (default `true`) and re-reads on the `waveflow:hi-res-badge-visibility` window event. Settings → Appearance → Player bar ships [`HiResBadgeCard`](../../src/components/views/settings/HiResBadgeCard.tsx) to flip the flag — when off, every mounted `HiResBadge` returns `null` in one render, including the player-bar text label. Per-profile so a kid's profile can hide the audiophile chrome while the audiophile profile keeps it.
+All variants and all three tiers are gated by [`useHiResBadgeVisibility`](../../src/hooks/useHiResBadgeVisibility.ts), which reads `profile_setting['ui.show_hi_res_badge']` (default `true`; the key kept its name when the Lossless tier joined, its label in Settings did not) and re-reads on the `waveflow:hi-res-badge-visibility` window event. Settings → Appearance → Player bar ships [`HiResBadgeCard`](../../src/components/views/settings/HiResBadgeCard.tsx) to flip the flag — when off, every mounted `HiResBadge` returns `null` in one render, including the player-bar text label. Per-profile so a kid's profile can hide the audiophile chrome while the audiophile profile keeps it.
 
-Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../src/components/player/AudioPipelinePopover.tsx) — an audiophile-grade breakdown of what the engine is actually doing.
+Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../src/components/player/AudioPipelinePopover.tsx) — what the engine does to the track playing, as a column of cards ([`AudioPipelineCard`](../../src/components/player/AudioPipelineCard.tsx)). It is portalled into `body` and placed above the strip from its box (`z-[100]`, the overlay layer): the player bar is a stacking context under the glassy skins, and every fluid skin paints it as one of its floating sheets through `[data-audio-pipeline]`.
 
-#### Sections displayed
+#### Cards displayed
 
-- **Source** — codec, sample rate, bit depth, bitrate, channel layout (`Mono` / `Stereo` / `3.0` / `4.0` / `5.0` / `5.1` / `6.1` / `7.1`).
-- **Processing** — chips lighting up for every active stage. The two conversion chips inline the actual delta so they match the footer's arrow notation: `Rééchantillonnage 48 → 44.1 kHz`, `Downmix 5.1 → Stereo`. The other chips stay as bare labels: `DSD → PCM`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`, `Volume` below 100 % (with its value). No chip → "Aucun traitement appliqué".
-- **Output** — device sample rate + channel layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels`), not the track row, so resampling and downmix are reflected correctly.
+Each card says in a sentence what happens, then the figures in a quieter ink, and carries a tag for whether the sound changes: **Doesn't change the sound**, **No audible loss**, **Only the volume changes** or **Changes the sound**.
+
+- **Your file** — its quality badge beside the title, or the word when no badge is drawn (Lossy, Probably fake lossless, or anything with badges hidden), a sentence on what that means, then codec, bit depth, rate, bitrate and channel layout (`Mono` / `Stereo` / `5.1` / `7.1`…).
+- **One card per stage the engine runs**, only the ones that are on: native DSD (no change), DSD converted to PCM and the rate adapted (no audible loss — the resample card reads "your file is at 48 kHz, your output runs at 44.1 kHz"), channels combined, the equalizer, mono, balance, stereo width, speed and pitch (changes the sound), ReplayGain with its mode, normalization and a volume under 100 % (only the volume changes). With none and the engine's answer in, a single **No processing** card.
+- **Output** — the device the sound really comes out of (`OutputDevice.is_active`), what shared, exclusive, native-DSD or refused-exclusive mode means for the listener, and the rate and layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels` / `output_mode`), not the track row.
 
 #### Bit-perfect conditions
 
 Three things have to hold. The pill used to check only the first, and the third did not hold until the integer conversion was fixed:
 
-1. **Nothing in our pipeline touches the samples** — no processing chip is active and the source rate matches the output rate. Any single chip lit (including `EQ`, `Speed` and `Volume`) suppresses it. The volume counts because a device we own has no mixer: below 100 % it is applied to every sample, exclusive mode included (DoP is never scaled).
+1. **Nothing in our pipeline touches the samples** — no stage card is shown and the source rate matches the output rate. Any single stage (including the equalizer, the speed and the volume) suppresses it. The volume counts because a device we own has no mixer: below 100 % it is applied to every sample, exclusive mode included (DoP is never scaled).
 2. **Nothing downstream touches them either** — the stream owns the device (`PlayerStateSnapshot.exclusive_active` — WASAPI Exclusive, a raw ALSA `hw:` device or CoreAudio hog mode, whichever the platform has; native DoP implies an exclusive backend and qualifies on its own).
 
 3. **The samples reach the device as they were decoded.** The exclusive backends turn the float stream back into integer PCM through [`pcm_scale`](../../src-tauri/crates/app/src/audio/pcm_scale.rs), which multiplies by the power of two the decoder divided by (2^15, 2^23 or 2^31) and rounds. They used to multiply by one less and truncate, which took one step off every non-zero sample, so the green pill was never exactly true. The module's tests take every 16-bit and every 24-bit value through symphonia's own conversion and back. CoreAudio is handed floats and converts them itself.
 
-The second condition is what makes the claim true. A shared-mode stream at the same nominal rate still passes through the system mixer, which re-clocks it and mixes in every other sound on the machine — and that was being badged `Bit-perfect`. When the pipeline is clean but the device is shared, the pill reads `Sortie partagée (mixeur système)` instead, so the reason the green one is absent is on screen rather than left to guess.
+The second condition is what makes the claim true. A shared-mode stream at the same nominal rate still passes through the system mixer, which re-clocks it and mixes in every other sound on the machine — and that was being badged `Bit-perfect`. When the pipeline is clean but the device is shared, the popover ends on "WaveFlow changes nothing; your system still mixes the sound with other apps'" instead, so the reason the green pill is absent is on screen rather than left to guess.
 
 #### State refresh
 

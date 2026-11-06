@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AudioWaveform, ChevronUp } from "lucide-react";
 import type { QueueTrackPayload } from "../../lib/tauri/player";
-import { isHiRes } from "../../lib/hiRes";
+import { qualityBadge } from "../../lib/hiRes";
+import { fileKind, formatBitrate, formatKHz } from "../../lib/audioQuality";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useHiResBadgeVisibility } from "../../hooks/useHiResBadgeVisibility";
+import { HiResBadge } from "../common/HiResBadge";
 import { AudioPipelinePopover } from "./AudioPipelinePopover";
-
-/** Format an Hz value as a compact "44.1 kHz" / "48 kHz" label. */
-function formatRateKHz(hz: number | null | undefined): string | null {
-  if (hz == null || hz <= 0) return null;
-  return (hz / 1000).toFixed(1).replace(/\.0$/, "");
-}
 
 interface AudioQualityFooterProps {
   track: QueueTrackPayload | null;
+  /** The analysis caught the track as a probable fake lossless; read
+   *  once by the player bar (`useProbableFakeLossless`). */
+  probableFakeLossless?: boolean;
 }
 
 // Small open / close delays so brushing the footer doesn't make the
@@ -22,27 +23,38 @@ const HOVER_OPEN_DELAY_MS = 120;
 const HOVER_CLOSE_DELAY_MS = 200;
 
 /**
- * Thin status strip below the PlayerBar that surfaces the source
- * file's audio specs — sample rate (with an arrow when the engine
- * is resampling to a different device rate), bitrate, file size on
- * the left and codec / bit depth / sample rate again on the right
- * (the compact "FLAC · 24bit · 44kHz" pill audiophiles expect).
+ * Thin status strip below the PlayerBar that says what the file is: its
+ * quality badge (DSD / Hi-Res / Lossless, the same `HiResBadge` the
+ * lists carry) or, when there is none to show, the word a listener uses
+ * — "Lossy", "Lossless", "Probably fake lossless" — with its figures
+ * (codec, bit depth, sample rate, and the bitrate of a lossy file) in a
+ * quieter ink beside it. When the engine converts the rate for the
+ * output, a second segment says so in words, with the output rate as
+ * its figure. The output-mode chip sits on the right.
  *
  * On hover (or keyboard focus) opens [`AudioPipelinePopover`] above
- * the strip with the full Source → DSP chips → Output breakdown so
- * the user can see exactly what's going on (bit-perfect? resampling?
- * downmix? EQ active?). The popover unmounts on leave so its data
- * never lingers — the engine state can change between two openings
- * (EQ flipped, device switched) and we want every read to be fresh.
+ * the strip: the file, every stage of the engine and the output as
+ * cards, each saying whether it changes the sound. The popover
+ * unmounts on leave so its data never lingers — the engine state can
+ * change between two openings (EQ flipped, device switched) and we
+ * want every read to be fresh.
  *
  * Hidden when no track is loaded and gracefully omits any chunk
  * whose underlying value is missing — a 320 kbps MP3 will still
  * show its bitrate even without bit_depth.
  */
-export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
-  const { t } = useTranslation();
+export function AudioQualityFooter({
+  track,
+  probableFakeLossless,
+}: AudioQualityFooterProps) {
+  const { t, i18n } = useTranslation();
   const { deviceSampleRate, outputMode } = usePlayer();
+  const { visible: badgesVisible } = useHiResBadgeVisibility();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  // The strip itself, held in state rather than a ref so the popover,
+  // which is portalled and places itself from this element's box, gets
+  // it on the render that mounts it.
+  const [strip, setStrip] = useState<HTMLDivElement | null>(null);
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
@@ -104,7 +116,7 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
 
   if (!track) {
     return (
-      <div className="h-5 px-4 border-t border-zinc-100 dark:border-zinc-800/60" />
+      <div className="h-6 px-4 border-t border-zinc-100 dark:border-zinc-800/60" />
     );
   }
 
@@ -112,42 +124,50 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
   // Otherwise a source like 44 056 Hz (rare non-standard CD rip) on a
   // 44 100 Hz device would silently round to "44.1" on both sides and
   // hide the resampling. `track.sample_rate` and `deviceSampleRate`
-  // are both already integers from the engine.
+  // are both already integers from the engine. A DoP stream ships at
+  // dsd_rate / 16, which never equals the stored DSD rate, and reaches the
+  // DAC untouched: not a conversion, as the pipeline popover already says.
   const isResampling =
+    outputMode !== "dop" &&
     track.sample_rate != null &&
     track.sample_rate > 0 &&
     deviceSampleRate != null &&
     deviceSampleRate > 0 &&
     track.sample_rate !== deviceSampleRate;
-  const sampleRateKHz = formatRateKHz(track.sample_rate);
-  const deviceRateKHz = formatRateKHz(deviceSampleRate);
-  const sampleRateLabel = isResampling
-    ? `${sampleRateKHz} kHz → ${deviceRateKHz} kHz`
-    : sampleRateKHz != null
-      ? `${sampleRateKHz} kHz`
+  const lang = i18n.language;
+  const kind = fileKind(track.codec, track.bit_depth);
+  const isFakeLossless = kind === "lossless" && probableFakeLossless === true;
+  // The badge says what the word would, so the strip shows one or the
+  // other: the badge when the file earns one and badges are on, the word
+  // otherwise (a lossy file, badges hidden, a probable fake).
+  const showsBadge =
+    badgesVisible &&
+    qualityBadge(
+      track.bit_depth,
+      track.sample_rate,
+      track.codec,
+      probableFakeLossless,
+    ) != null;
+  const word = isFakeLossless
+    ? t("playerBar.pipeline.kind.fakeLossless")
+    : kind
+      ? t(`playerBar.pipeline.kind.${kind}`)
       : null;
-  const sizeMB =
-    track.file_size > 0 ? Math.round(track.file_size / (1024 * 1024)) : null;
 
-  const leftBits: string[] = [];
-  if (sampleRateLabel) leftBits.push(sampleRateLabel);
-  if (track.bitrate) {
-    // Show Mb/s when ≥ 1000 kbps so 24-bit 192 kHz lossless reads
-    // "9.2 Mb/s" rather than a wall of digits.
-    leftBits.push(
-      track.bitrate >= 1000
-        ? `${(track.bitrate / 1000).toFixed(track.bitrate >= 10000 ? 1 : 2).replace(/\.?0+$/, "")} Mb/s`
-        : `${track.bitrate} kb/s`,
-    );
-  }
-  if (sizeMB != null) leftBits.push(`${sizeMB} Mo`);
-
-  const rightBits: string[] = [];
-  if (track.codec) rightBits.push(track.codec);
-  if (track.bit_depth) rightBits.push(`${track.bit_depth}bit`);
-  if (sampleRateKHz) rightBits.push(`${sampleRateKHz}kHz`);
-
-  const hiRes = isHiRes(track.bit_depth, track.sample_rate);
+  // The file first, its badge or its word, then its figures in a quieter
+  // ink. A lossy file's bitrate says how much was kept, so it is shown;
+  // a lossless file's says nothing a listener can use.
+  const fileFigures = [
+    track.codec,
+    track.bit_depth
+      ? t("playerBar.pipeline.bits", { value: track.bit_depth })
+      : null,
+    formatKHz(track.sample_rate, lang),
+    kind === "lossy" ? formatBitrate(track.bitrate, lang) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const deviceRate = isResampling ? formatKHz(deviceSampleRate, lang) : null;
 
   // What the output really engaged as (#597). Shared mode carries no
   // chip: it is the normal case, and a badge on every track would be
@@ -171,7 +191,9 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
 
   return (
     <div
-      className="relative h-5 px-4 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800/60 bg-white dark:bg-surface-dark-elevated cursor-help"
+      ref={setStrip}
+      data-audio-quality
+      className="relative h-6 px-4 flex items-center justify-between gap-3 text-[11px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800/60 bg-white dark:bg-surface-dark-elevated cursor-help"
       onMouseEnter={scheduleOpen}
       onMouseLeave={scheduleClose}
       onFocus={scheduleOpen}
@@ -179,13 +201,57 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
       tabIndex={0}
       aria-label={t("playerBar.pipeline.openHint")}
     >
-      <span className="tabular-nums truncate">{leftBits.join(" · ")}</span>
-      <span className="flex items-center gap-2 tabular-nums">
-        {hiRes && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-white">
-            Hi-Res
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex min-w-0 items-center gap-1.5">
+          {showsBadge ? (
+            <HiResBadge
+              bitDepth={track.bit_depth}
+              sampleRate={track.sample_rate}
+              codec={track.codec}
+              probableFakeLossless={probableFakeLossless}
+              variant="inline"
+            />
+          ) : (
+            word && (
+              <span
+                data-quality-word
+                data-quality-warn={isFakeLossless || undefined}
+                className={`shrink-0 font-semibold ${
+                  isFakeLossless
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-zinc-700 dark:text-zinc-200"
+                }`}
+              >
+                {word}
+              </span>
+            )
+          )}
+          {fileFigures && (
+            <span data-quality-figures className="truncate tabular-nums">
+              {fileFigures}
+            </span>
+          )}
+        </span>
+        {deviceRate && (
+          <span className="flex min-w-0 items-center gap-1.5">
+            <AudioWaveform
+              size={12}
+              className="shrink-0 text-sky-500"
+              aria-hidden="true"
+            />
+            <span
+              data-quality-word
+              className="shrink-0 font-semibold text-zinc-700 dark:text-zinc-200"
+            >
+              {t("playerBar.quality.converted")}
+            </span>
+            <span data-quality-figures className="truncate tabular-nums">
+              {deviceRate}
+            </span>
           </span>
         )}
+      </span>
+      <span className="flex shrink-0 items-center gap-2">
         {outputBadge && (
           <span
             className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
@@ -197,19 +263,19 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
             {outputBadge.label}
           </span>
         )}
-        <span className="truncate">{rightBits.join(" · ")}</span>
+        <span className="flex items-center gap-0.5 font-medium">
+          {t("playerBar.quality.details")}
+          <ChevronUp size={12} aria-hidden="true" />
+        </span>
       </span>
       {isPopoverOpen && (
-        <div
-          onMouseEnter={cancelTimers}
-          onMouseLeave={scheduleClose}
-          // The wrapper just sits inside the footer's relative
-          // container; the popover itself is `absolute bottom-full
-          // right-0 mb-2`, see AudioPipelinePopover.
-          className="contents"
-        >
-          <AudioPipelinePopover track={track} />
-        </div>
+        <AudioPipelinePopover
+          track={track}
+          probableFakeLossless={probableFakeLossless}
+          anchor={strip}
+          onPointerEnter={cancelTimers}
+          onPointerLeave={scheduleClose}
+        />
       )}
     </div>
   );

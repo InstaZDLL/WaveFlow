@@ -853,6 +853,7 @@ export function TrackPropertiesModal({
                     bitDepth={track.bit_depth}
                     sampleRate={track.sample_rate}
                     codec={track.codec}
+                    probableFakeLossless={analysis?.probable_fake_lossless}
                     variant="inline"
                   />
                 </div>
