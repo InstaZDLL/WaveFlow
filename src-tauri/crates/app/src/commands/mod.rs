@@ -62,6 +62,7 @@ pub mod replace;
 // which is now in the default feature set — a build can still compile it
 // out via `--no-default-features`.
 pub mod inventory;
+pub mod quality;
 #[cfg(feature = "sync_v2")]
 pub mod remote_auth;
 pub mod scan;

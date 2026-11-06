@@ -353,6 +353,119 @@ pub async fn run_analyze_library(
     run_reserved(app, pool).await
 }
 
+/// Measure every lossless file's highs again — the Quality tab's "Analyse
+/// again" — through the library sweep and its task.
+///
+/// The lossless files' cutoffs are marked as not measured by the current
+/// pass (`bandwidth_version = NULL`), which is exactly what the sweep
+/// already picks up, and the sweep is started in the background: the
+/// files read "waiting for analysis" until it reaches them, and its task
+/// in the status bar shows the progress and stops it. The stored cutoff
+/// is left in place, so a stopped run loses no measure; the file is
+/// simply measured again by the next sweep. Lossless files only, since
+/// they are the only ones a verdict concerns, and a full decode of every
+/// MP3 to measure the same loudness again would cost the whole library.
+///
+/// `None` when a sweep is already running: the caller shows that one.
+/// Otherwise how many measured files were marked; a file never measured
+/// is in the sweep's list already.
+#[tauri::command]
+pub async fn reanalyze_lossless(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<u64>> {
+    let pool = state.require_profile_pool().await?;
+    // The slot first, so no sweep can build its list between the mark
+    // and the run.
+    if !reserve(false) {
+        return Ok(None);
+    }
+    let marked = mark_lossless_unmeasured(&pool).await;
+    let queued = match marked {
+        Ok(queued) => queued,
+        Err(err) => {
+            // Releases the slot, as every end of a run does.
+            drop(RunningGuard { app: app.clone() });
+            return Err(err);
+        }
+    };
+    tauri::async_runtime::spawn(async move {
+        if let Err(err) = run_reserved(&app, &pool).await {
+            tracing::warn!(%err, "lossless re-analysis failed");
+        }
+    });
+    Ok(Some(queued))
+}
+
+/// Mark every available lossless file's cutoff as not measured by the
+/// current pass — those the sweep can decode now. A track on a share with
+/// no cached copy is one the sweep skips, so marking it would leave it
+/// waiting with its verdict hidden until the copy comes back; it keeps
+/// its measure instead. Returns how many rows it marked.
+pub(crate) async fn mark_lossless_unmeasured(pool: &SqlitePool) -> AppResult<u64> {
+    let measured: Vec<(i64, String)> = sqlx::query_as(concat!(
+        "SELECT t.id, t.file_path
+           FROM track t
+           JOIN track_analysis ta ON ta.track_id = t.id
+          WHERE t.is_available = 1
+            AND ta.bandwidth_version IS NOT NULL
+            AND ",
+        waveflow_core::lossless_track_sql!(),
+    ))
+    .fetch_all(pool)
+    .await?;
+    // Off the runtime: a share's track is looked up in the disk cache,
+    // once per file of a library that may hold thousands.
+    let ids: Vec<i64> = tokio::task::spawn_blocking(move || {
+        measured
+            .into_iter()
+            .filter(|(_, path)| crate::netlib::local_copy(path).is_some())
+            .map(|(id, _)| id)
+            .collect()
+    })
+    .await
+    .map_err(|e| {
+        AppError::Other(format!(
+            "lossless re-analysis: listing the files failed: {e}"
+        ))
+    })?;
+    // The one write here, so it takes the turn every background writer
+    // takes: behind a scan in flight, and again on a busy database.
+    const MAX_ATTEMPTS: usize = 6;
+    let mut backoff = Duration::from_millis(50);
+    for attempt in 1..=MAX_ATTEMPTS {
+        wait_out_active_scan().await;
+        match mark_once(pool, &ids).await {
+            Err(e) if is_busy(&e) && attempt < MAX_ATTEMPTS => {
+                tokio::time::sleep(backoff).await;
+                backoff = (backoff * 2).min(Duration::from_secs(2));
+            }
+            done => return done.map_err(AppError::from),
+        }
+    }
+    unreachable!("the last attempt returns")
+}
+
+/// One transaction of [`mark_lossless_unmeasured`].
+async fn mark_once(pool: &SqlitePool, ids: &[i64]) -> Result<u64, sqlx::Error> {
+    let mut marked = 0;
+    let mut tx = pool.begin().await?;
+    // Under SQLite's bound-parameter limit.
+    for chunk in ids.chunks(500) {
+        let placeholders = vec!["?"; chunk.len()].join(", ");
+        let sql = format!(
+            "UPDATE track_analysis SET bandwidth_version = NULL WHERE track_id IN ({placeholders})"
+        );
+        let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
+        for id in chunk {
+            query = query.bind(id);
+        }
+        marked += query.execute(&mut *tx).await?.rows_affected();
+    }
+    tx.commit().await?;
+    Ok(marked)
+}
+
 /// The sweep itself, for a caller that already holds the slot.
 async fn run_reserved(app: &AppHandle, pool: &SqlitePool) -> AppResult<LibraryAnalysisSummary> {
     // The cancel flag was reset when the slot was taken (`reserve`): a

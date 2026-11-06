@@ -524,7 +524,10 @@
         "playlists_other": "재생 목록 {{count}}개",
         "needs-attention_zero": "확인할 항목이 없습니다. 라이브러리 정보가 모두 갖춰져 있습니다.",
         "needs-attention_one": "확인할 항목 {{count}}개",
-        "needs-attention_other": "확인할 항목 {{count}}개"
+        "needs-attention_other": "확인할 항목 {{count}}개",
+        "quality_zero": "무손실 파일 없음",
+        "quality_one": "무손실 파일 {{count}}개",
+        "quality_other": "무손실 파일 {{count}}개"
       }
     },
     "tabs": {
@@ -535,7 +538,8 @@
       "years": "연도",
       "folders": "폴더",
       "playlists": "재생 목록",
-      "needs-attention": "확인 필요"
+      "needs-attention": "확인 필요",
+      "quality": "음질"
     },
     "empty": {
       "tracks": {
@@ -779,7 +783,49 @@
       "moveUp": "{{column}} 열을 위로",
       "moveDown": "{{column}} 열을 아래로"
     },
-    "trackOnUnreachableShare": "네트워크 공유에 연결할 수 없고 이 곡은 캐시에 없습니다"
+    "trackOnUnreachableShare": "네트워크 공유에 연결할 수 없고 이 곡은 캐시에 없습니다",
+    "quality": {
+      "progress": "무손실 파일 {{lossless}}개 중 {{measured}}개 분석됨",
+      "noLossless": "보관함에 무손실 파일이 없습니다. 측정할 것이 없습니다.",
+      "status": {
+        "running": "분석 중: {{total}}개 중 {{current}}개",
+        "starting": "분석을 시작하는 중…",
+        "idle": "대기 중. 마지막 분석: {{when}}",
+        "never": "아직 분석된 무손실 파일이 없습니다."
+      },
+      "help": "컨테이너에서 읽지 않고 오디오 자체에서 측정합니다. 고음이 어디서 끊기는지를 봅니다. 손실 인코더는 모두 고음을 자르며, MP3로 만든 무손실 파일에는 그 흔적이 남습니다(128kbps MP3라면 약 16kHz). '손실 소스의 흔적 없음'은 증거가 아닙니다. 전 대역을 유지하는 인코더는 찾을 흔적을 남기지 않습니다.",
+      "helpVerdicts": "48kHz를 넘는데 고음이 30kHz 전에 끊기는 파일은 CD나 48kHz 소스로 만든 것입니다. 어떤 샘플도 −60dBFS를 넘지 않으면 무음으로 봅니다. 순간마다의 레벨이 아니라 피크에 대한 기준입니다.",
+      "filters": "판정으로 필터",
+      "all": "모든 파일",
+      "verdicts": {
+        "lossy_source": "손실 파일에서 만든 것으로 보임",
+        "upsampled": "업샘플링된 것으로 보임",
+        "silent": "무음",
+        "pending": "분석 대기 중",
+        "consistent": "손실 소스의 흔적 없음",
+        "lossy": "손실",
+        "not_measured": "측정 안 됨"
+      },
+      "format": "형식",
+      "allFormats": "모든 형식",
+      "column": {
+        "track": "트랙",
+        "file": "파일 정보",
+        "highs": "고음이 끊기는 지점",
+        "verdict": "오디오 판정"
+      },
+      "fullBand": "전 대역",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}}비트",
+      "empty": "여기에는 파일이 없습니다.",
+      "loadFailed": "목록을 읽을 수 없습니다.",
+      "analyseAgain": "다시 분석",
+      "confirmAnalyse": "한 번 더 클릭: 모든 무손실 파일을 다시 디코딩합니다",
+      "requested": "분석을 시작했습니다. 상태 표시줄에서 확인하세요.",
+      "alreadyRunning": "이미 분석이 진행 중입니다.",
+      "requestFailed": "분석을 시작할 수 없습니다."
+    }
   },
   "liked": {
     "badge": "컬렉션",

@@ -46,10 +46,11 @@ export type LibraryTab =
   | "years"
   | "playlists"
   | "folders"
-  // The "needs attention" inventory (#589). Last, because it is
-  // the only tab that answers a question about the library rather
-  // than listing part of it.
-  | "needs-attention";
+  // The "needs attention" inventory (#589) and the measured quality of
+  // the files. Last, because they are the two tabs that answer a
+  // question about the library rather than listing part of it.
+  | "needs-attention"
+  | "quality";
 
 export interface NavItemProps {
   icon?: ReactNode;

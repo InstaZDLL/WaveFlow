@@ -526,7 +526,10 @@
         "playlists_other": "{{count}} playlists",
         "needs-attention_zero": "Nothing to report: the library is complete.",
         "needs-attention_one": "{{count}} thing to fix",
-        "needs-attention_other": "{{count}} things to fix"
+        "needs-attention_other": "{{count}} things to fix",
+        "quality_zero": "No lossless file",
+        "quality_one": "{{count}} lossless file",
+        "quality_other": "{{count}} lossless files"
       }
     },
     "tabs": {
@@ -537,7 +540,8 @@
       "years": "Years",
       "folders": "Folders",
       "playlists": "Playlists",
-      "needs-attention": "Needs attention"
+      "needs-attention": "Needs attention",
+      "quality": "Quality"
     },
     "empty": {
       "tracks": {
@@ -781,7 +785,49 @@
       "moveUp": "Move the {{column}} column up",
       "moveDown": "Move the {{column}} column down"
     },
-    "trackOnUnreachableShare": "Network share unreachable, and this track is not cached"
+    "trackOnUnreachableShare": "Network share unreachable, and this track is not cached",
+    "quality": {
+      "progress": "{{measured}} of {{lossless}} lossless files analysed",
+      "noLossless": "No lossless file in the library: there is nothing to measure.",
+      "status": {
+        "running": "Analysing: {{current}} of {{total}} files",
+        "starting": "The analysis is starting…",
+        "idle": "Idle. Last file analysed {{when}}.",
+        "never": "No lossless file has been analysed yet."
+      },
+      "help": "Measured from the audio, not read from the container: where the highs stop. Every lossy encoder cuts them, and a lossless file made from an MP3 keeps the cut, around 16 kHz for a 128 kbps MP3. “No sign of a lossy source” is not proof: an encoder that keeps the full band leaves nothing to find.",
+      "helpVerdicts": "A file above 48 kHz whose highs stop by 30 kHz was made from a CD or 48 kHz source. A file is silent when no sample rises above −60 dBFS: a test on the peak, not on the level of each moment.",
+      "filters": "Filter by verdict",
+      "all": "All files",
+      "verdicts": {
+        "lossy_source": "Probably from a lossy file",
+        "upsampled": "Probably upsampled",
+        "silent": "Silent",
+        "pending": "Waiting for analysis",
+        "consistent": "No sign of a lossy source",
+        "lossy": "Lossy",
+        "not_measured": "Not measured"
+      },
+      "format": "Format",
+      "allFormats": "All formats",
+      "column": {
+        "track": "Track",
+        "file": "What the file says",
+        "highs": "Highs stop at",
+        "verdict": "What the audio says"
+      },
+      "fullBand": "Full band",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bit",
+      "empty": "No file here.",
+      "loadFailed": "The list could not be read.",
+      "analyseAgain": "Analyse again",
+      "confirmAnalyse": "Click again: every lossless file is decoded again",
+      "requested": "Analysis started. Follow it in the status bar.",
+      "alreadyRunning": "An analysis is already running.",
+      "requestFailed": "The analysis could not be started."
+    }
   },
   "liked": {
     "badge": "Collection",

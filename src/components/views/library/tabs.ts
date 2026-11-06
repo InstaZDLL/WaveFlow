@@ -31,6 +31,9 @@ export const PlaylistGrid = preloadable(() =>
 export const InventoryCategories = preloadable(() =>
   import("./InventoryCategories").then((m) => m.InventoryCategories),
 );
+export const QualityTab = preloadable(() =>
+  import("./QualityTab").then((m) => m.QualityTab),
+);
 export const PhantomArtistList = preloadable(() =>
   import("./PhantomArtistList").then((m) => m.PhantomArtistList),
 );
@@ -48,6 +51,7 @@ export function preloadLibraryTabs() {
     FolderBrowser,
     PlaylistGrid,
     InventoryCategories,
+    QualityTab,
     PhantomArtistList,
   ]) {
     tab.preload().catch(() => {});

@@ -546,7 +546,11 @@
         "needs-attention_zero": "Nada a relatar: a biblioteca está completa.",
         "needs-attention_one": "{{count}} ponto a corrigir",
         "needs-attention_other": "{{count}} pontos a corrigir",
-        "needs-attention_many": "{{count}} pontos a corrigir"
+        "needs-attention_many": "{{count}} pontos a corrigir",
+        "quality_zero": "Nenhum arquivo sem perdas",
+        "quality_one": "{{count}} arquivo sem perdas",
+        "quality_other": "{{count}} arquivos sem perdas",
+        "quality_many": "{{count}} arquivos sem perdas"
       }
     },
     "tabs": {
@@ -557,7 +561,8 @@
       "years": "Anos",
       "folders": "Pastas",
       "playlists": "Playlists",
-      "needs-attention": "A corrigir"
+      "needs-attention": "A corrigir",
+      "quality": "Qualidade"
     },
     "empty": {
       "tracks": {
@@ -813,7 +818,49 @@
       "moveUp": "Mover a coluna {{column}} para cima",
       "moveDown": "Mover a coluna {{column}} para baixo"
     },
-    "trackOnUnreachableShare": "Compartilhamento de rede inacessível, e esta faixa não está no cache"
+    "trackOnUnreachableShare": "Compartilhamento de rede inacessível, e esta faixa não está no cache",
+    "quality": {
+      "progress": "{{measured}} de {{lossless}} arquivos sem perdas analisados",
+      "noLossless": "Não há arquivos sem perdas na biblioteca: não há nada para medir.",
+      "status": {
+        "running": "Analisando: {{current}} de {{total}} arquivos",
+        "starting": "A análise está começando…",
+        "idle": "Em repouso. Último arquivo analisado em {{when}}.",
+        "never": "Nenhum arquivo sem perdas foi analisado ainda."
+      },
+      "help": "Medido no áudio, não lido do contêiner: onde os agudos terminam. Todo codificador com perdas corta os agudos, e um arquivo sem perdas feito a partir de um MP3 mantém o corte, perto de 16 kHz em um MP3 de 128 kbps. “Nenhum sinal de uma fonte com perdas” não é prova: um codificador que mantém a banda completa não deixa nada para encontrar.",
+      "helpVerdicts": "Um arquivo acima de 48 kHz cujos agudos param antes de 30 kHz foi feito a partir de uma fonte de CD ou de 48 kHz. Um arquivo é silencioso quando nenhuma amostra passa de −60 dBFS: um limite no pico, não no nível de cada instante.",
+      "filters": "Filtrar por veredito",
+      "all": "Todos os arquivos",
+      "verdicts": {
+        "lossy_source": "Provavelmente de um arquivo com perdas",
+        "upsampled": "Provavelmente sobreamostrado",
+        "silent": "Silencioso",
+        "pending": "Aguardando análise",
+        "consistent": "Nenhum sinal de uma fonte com perdas",
+        "lossy": "Com perdas",
+        "not_measured": "Não medido"
+      },
+      "format": "Formato",
+      "allFormats": "Todos os formatos",
+      "column": {
+        "track": "Faixa",
+        "file": "O que o arquivo diz",
+        "highs": "Os agudos param em",
+        "verdict": "O que o áudio diz"
+      },
+      "fullBand": "Banda completa",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bits",
+      "empty": "Nenhum arquivo aqui.",
+      "loadFailed": "Não foi possível ler a lista.",
+      "analyseAgain": "Analisar de novo",
+      "confirmAnalyse": "Clique de novo: cada arquivo sem perdas é decodificado novamente",
+      "requested": "Análise iniciada. Acompanhe na barra de status.",
+      "alreadyRunning": "Já há uma análise em andamento.",
+      "requestFailed": "Não foi possível iniciar a análise."
+    }
   },
   "liked": {
     "badge": "Coleção",
