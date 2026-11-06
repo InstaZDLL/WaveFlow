@@ -293,13 +293,18 @@ release-windows:
       Sort-Object -Property @{ Expression = { try { [Version]$_.Directory.Parent.Name } catch { [Version]"0.0.0.0" } } } -Descending |
       Select-Object -First 1
     - if (-not $signtool) { Write-Error "signtool.exe not found in the Windows Kits"; exit 1 }
-    - $config = Get-Content src-tauri/crates/app/tauri.conf.json -Raw | ConvertFrom-Json
+    # Read and written as UTF-8 without BOM whichever PowerShell runs this:
+    # Windows PowerShell 5.1 reads a file without BOM as ANSI (the © of the
+    # copyright comes back mangled) and its -Encoding utf8 writes a BOM,
+    # which serde_json refuses when tauri-build reads the config back.
+    - $configPath = Join-Path $env:CI_PROJECT_DIR "src-tauri/crates/app/tauri.conf.json"
+    - $config = Get-Content $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
     - >-
       $sign = [pscustomobject]@{ cmd = ($signtool.FullName -replace '\\', '/'); args = @("sign", "/fd", "SHA256",
       "/tr", "http://timestamp.digicert.com", "/td", "SHA256", "/f", $pfxPath, "/p", $env:SIGNTOOL_PFX_PASSWORD, "%1") }
     - if (-not $config.bundle.windows) { $config.bundle | Add-Member -MemberType NoteProperty -Name windows -Value ([pscustomobject]@{}) -Force }
     - $config.bundle.windows | Add-Member -MemberType NoteProperty -Name signCommand -Value $sign -Force
-    - ($config | ConvertTo-Json -Depth 20) | Set-Content src-tauri/crates/app/tauri.conf.json -Encoding utf8
+    - "[IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 20), (New-Object Text.UTF8Encoding $false))"
     - bun install --frozen-lockfile
     # NSIS alone on a beta: WiX refuses a non-numeric pre-release version.
     - $bundles = if ($env:IS_PRERELEASE -eq 'true') { 'nsis' } else { 'nsis,msi' }
