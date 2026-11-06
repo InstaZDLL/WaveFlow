@@ -75,3 +75,17 @@ fn the_static_config_names_the_stable_pair() {
         .collect();
     assert_eq!(endpoints, UpdateChannel::Stable.endpoints());
 }
+
+/// A manifest is not signed, only the payload is. Without the version
+/// bound into the payload's signature, either host could announce a high
+/// version over an older, genuinely signed build and walk every
+/// installation back to it — and the newest answer is the one kept.
+#[test]
+fn the_payload_signature_must_name_the_announced_version() {
+    let config: serde_json::Value =
+        serde_json::from_str(include_str!("../../../tauri.conf.json")).unwrap();
+    assert_eq!(
+        config["plugins"]["updater"]["requireSignedVersion"],
+        serde_json::Value::Bool(true)
+    );
+}

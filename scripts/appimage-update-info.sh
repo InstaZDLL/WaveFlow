@@ -171,8 +171,15 @@ if [ -f "$img.sig" ]; then
   [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ] \
     || die "an updater signature exists but TAURI_SIGNING_PRIVATE_KEY is unset — refusing to leave a stale .sig"
   log "re-signing for the updater"
+  # Keep the version `tauri build` bound into the signature's trusted
+  # comment: the updater's requireSignedVersion refuses a payload whose
+  # signature does not name the version its manifest announces, and a
+  # plain `signer sign` would leave it out.
+  signed_version="$(base64 -d <"$img.sig" | sed -n '3s/.*version:\([^[:space:]]*\).*/\1/p')"
+  [ -n "$signed_version" ] \
+    || die "$(basename "$img").sig names no version: the updater would refuse the re-signed payload"
   rm -f "$img.sig"
-  bun run tauri signer sign "$img" >/dev/null
+  bun run tauri signer sign --app-version "$signed_version" "$img" >/dev/null
   [ -f "$img.sig" ] || die "signing produced no $img.sig"
   log "signature refreshed"
 else

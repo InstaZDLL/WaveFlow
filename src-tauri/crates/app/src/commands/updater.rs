@@ -26,6 +26,10 @@
 //! Both copies are read and the newest answer wins, which also survives
 //! one host being down, answering 404 or serving a page that is not
 //! JSON (`docs/RELEASING.md#second-download-source-cloudflare-r2`).
+//! Keeping the newest is safe only because `requireSignedVersion` is on
+//! in `tauri.conf.json`: a manifest is not signed, and without the
+//! version bound into the payload's signature, either host could pair a
+//! high version number with an older signed build.
 //!
 //! The actual updater calls are compiled only into release builds with
 //! the `updater` feature (same gate as the plugin registration in

@@ -410,6 +410,8 @@ They are deliberately **not** handed to `tauri-plugin-updater` as one list. Its 
 
 A suspended account's page or a captive portal is the fourth row, and the last row means a stale first host would hide a newer second one. Reading them one by one in our own loop avoids both. The `tauri.conf.json` list is not read by anything — every check goes through the Rust command — and names the stable pair only so the two cannot disagree silently (`the_static_config_names_the_stable_pair`).
 
+**Keeping the newest answer is safe only because the version is signed.** A manifest is not signed, only the payload is: without more, either host — or anyone able to serve its address — could announce `99.0.0` over the URL and signature of an older genuine build, and since the newest answer wins, walk every installation back to it. `requireSignedVersion` is on in `tauri.conf.json` (a test keeps it on): the updater then refuses a payload whose signature's trusted comment does not name the version the manifest announces. `tauri build` writes that version into the signature by itself; **anything that re-signs a payload afterwards has to carry it over** — `fix-appimage.sh` and `appimage-update-info.sh` read it from the signature they replace and pass it to `signer sign --app-version`, and stop if it is missing. Until 1.9.8 they did not, so the Linux signatures of those releases name no version; that matters to no 2.0 installation, which is only ever offered newer releases.
+
 Until the bucket and its domain exist, the mirror requests fail on DNS and each check logs one warning per mirror; the GitHub answers are unaffected.
 
 ### How a release reaches it
@@ -517,7 +519,7 @@ We build on Ubuntu. On any host with a newer Mesa — Fedora 44 ships Mesa 26 an
 Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
 ```
 
-The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the file (and `libva`, see [the GStreamer section](#the-appimage-carries-its-own-gstreamer)), repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present.
+The Rust side is unaffected: the app starts, creates its profile, opens its audio device, and shows an empty window. That asymmetry is why this was misread for months as a WebKitGTK 2.52 incompatibility, with users told to install a native package instead. It is not a WebKit problem, and it is not unfixable — [`scripts/fix-appimage.sh`](../scripts/fix-appimage.sh) removes the file (and `libva`, see [the GStreamer section](#the-appimage-carries-its-own-gstreamer)), repacks the squashfs with the compressor the bundler used, verifies the result re-extracts, and re-signs when an updater `.sig` is present, carrying over the version the build bound into the signature ([why](#how-the-app-reads-two-hosts)).
 
 Both `release.yml` and `test-appimage.yml` run it right after `tauri build`. **If you ever restructure the Linux build, that step has to survive** — dropping it silently produces a release that installs fine and never opens, on exactly the distributions least likely to be in your test matrix. The script no-ops (and says so) if a future Tauri stops bundling the library, so it's safe to leave in place.
 
