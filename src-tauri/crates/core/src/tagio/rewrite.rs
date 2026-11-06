@@ -120,9 +120,18 @@ where
             .map_err(E::from)?;
         // On the copy, for every caller: see the module. Everything that has
         // lofty replace a tag on disk comes through here.
-        super::ape::add_missing_ape_header(&mut file).map_err(E::from)?;
+        // Not on a FLAC: its writer works ahead of the frames and never reaches
+        // a tag behind them, and the check below would take a changed tail for
+        // changed audio.
+        if !super::flac::is_flac(&mut file).map_err(E::from)? {
+            super::ape::add_missing_ape_header(&mut file).map_err(E::from)?;
+        }
         body(&mut file)?;
         file.sync_all().map_err(E::from)?;
+        // The last moment an answer can still leave the original alone.
+        // Closed again before the rename, as the write handle was above.
+        let mut original = std::fs::File::open(path).map_err(E::from)?;
+        super::flac::check_rewrite(&mut original, &mut file).map_err(E::from)?;
     }
 
     let mut temp = temp;

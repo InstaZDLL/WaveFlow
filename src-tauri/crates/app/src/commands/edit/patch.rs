@@ -514,9 +514,17 @@ pub(crate) fn patch_file(
                 TagPatch::Rating(rating) => apply_rating_vorbis(&mut tag, *rating),
                 _ => {
                     let ratings = take_ratings_vorbis(&mut tag);
+                    // The merge folds an `ENCODER` comment into the vendor
+                    // string: the comment went and the vendor changed.
+                    let vendor = tag.vendor().to_string();
+                    let encoders: Vec<String> = tag.remove("ENCODER").collect();
                     let (remainder, mut generic) = tag.split_tag();
                     apply_patch(&mut generic, patch);
                     tag = remainder.merge_tag(generic);
+                    tag.set_vendor(vendor);
+                    for value in encoders {
+                        tag.push("ENCODER".to_string(), value);
+                    }
                     for (key, value) in ratings {
                         tag.push(key, value);
                     }
@@ -556,10 +564,26 @@ pub(crate) fn patch_file(
         }};
     }
 
-    // The FLAC slot, which may hold no comments yet.
+    // The comments a FLAC edit starts from, which it may not hold yet. An
+    // ID3v2 tag ahead of the stream stays in the file, unwritable as it is;
+    // its fields seed the comments when there are none, or the edit would hide
+    // them: the comments, or an image alone, are what the library reads first.
+    macro_rules! flac_comments_or_seed {
+        ($file:expr) => {{
+            match ($file.remove_vorbis_comments(), $file.id3v2()) {
+                (Some(comments), _) => comments,
+                (None, Some(id3)) => {
+                    lofty::ogg::tag::VorbisComments::from(id3.clone().split_tag().1)
+                }
+                (None, None) => Default::default(),
+            }
+        }};
+    }
+
+    // The FLAC slot.
     macro_rules! patch_flac_slot {
         ($file:expr) => {{
-            let tag = patch_vorbis_comments!($file.remove_vorbis_comments().unwrap_or_default());
+            let tag = patch_vorbis_comments!(flac_comments_or_seed!($file));
             $file.set_vorbis_comments(tag);
         }};
     }
@@ -584,15 +608,22 @@ pub(crate) fn patch_file(
     // (#598). lofty's own rewrite truncates the file it is rewriting, so
     // the original has to stay out of its reach until the new bytes are
     // on the disk. lofty rewinds the handle itself at the top of its
-    // writer, so reading and writing through the same one is expected.
+    // writer, so reading and writing through the same one is expected;
+    // FLAC is the exception, and takes `save_flac_*` instead.
     macro_rules! with_file {
         ($ty:ty, |$f:ident, $h:ident| $body:block) => {{
+            with_file!(saving_itself $ty, |$f, $h| {
+                $body
+                $f.save_to($h, WriteOptions::default())
+                    .map_err(|err| waveflow_core::tagio::with_causes(&err))?;
+            });
+        }};
+        (saving_itself $ty:ty, |$f:ident, $h:ident| $body:block) => {{
             waveflow_core::tagio::rewrite_via_temp(
                 path,
                 |$h| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     let mut $f = <$ty>::read_from($h, ParseOptions::new())?;
                     $body
-                    $f.save_to($h, WriteOptions::default())?;
                     Ok(())
                 },
             )?;
@@ -701,13 +732,21 @@ pub(crate) fn patch_file(
         // lofty exposes on the file and not on the tag — a cover pushed
         // into the Vorbis comments here would be written *alongside* the
         // blocks already there rather than replacing the front cover.
-        FileType::Flac => with_file!(lofty::flac::FlacFile, |f, handle| {
+        FileType::Flac => with_file!(saving_itself lofty::flac::FlacFile, |f, handle| {
             match patch {
                 TagPatch::Cover { bytes, mime } => {
                     use lofty::ogg::OggPictureStorage;
                     use lofty::picture::{Picture, PictureInformation, PictureType};
                     f.remove_picture_type(PictureType::CoverFront);
                     f.remove_picture_type(PictureType::Other);
+                    // A cover can sit in the comments too, base64 under
+                    // `METADATA_BLOCK_PICTURE`, and lofty writes those first.
+                    if f.vorbis_comments().is_some() || f.id3v2().is_some() {
+                        let mut comments = flac_comments_or_seed!(f);
+                        comments.remove_picture_type(PictureType::CoverFront);
+                        comments.remove_picture_type(PictureType::Other);
+                        f.set_vorbis_comments(comments);
+                    }
                     let picture = Picture::unchecked(bytes.to_vec())
                         .pic_type(PictureType::CoverFront)
                         .mime_type((*mime).clone())
@@ -719,11 +758,13 @@ pub(crate) fn patch_file(
                     // the image itself.
                     let info = PictureInformation::from_picture(&picture).unwrap_or_default();
                     f.insert_picture(picture, Some(info))?;
+                    waveflow_core::tagio::save_flac_pictures(&mut f, handle)?;
                 }
                 // Fields, rating, lyrics: all of them are comment
                 // values, and the pictures stay where they are.
                 _ => {
                     patch_flac_slot!(f);
+                    waveflow_core::tagio::save_flac_comments(&mut f, handle)?;
                 }
             }
         }),

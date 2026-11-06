@@ -363,7 +363,7 @@ impl LyricsContainer {
 /// Returns `Ok(true)` when the tag was rewritten on disk, `Ok(false)`
 /// when the write was intentionally skipped (TTML on a format that
 /// can't carry it).
-fn write_lyrics_to_file(
+pub(super) fn write_lyrics_to_file(
     path: &Path,
     content: &str,
     format: &LyricsFormat,
@@ -538,7 +538,13 @@ fn stamp_synced_lyrics(
     /// there was nothing to change. Re-parsing a tag is the cheap half
     /// of that trade by a wide margin.
     macro_rules! rewrite {
-        ($ty:ty, |$f:ident| $restamp:block) => {{
+        ($ty:ty, |$f:ident| $restamp:block) => {
+            rewrite!($ty, |$f, handle| $restamp, {
+                $f.save_to(handle, WriteOptions::default())
+                    .map_err(|err| waveflow_core::tagio::with_causes(&err))?;
+            })
+        };
+        ($ty:ty, |$f:ident, $h:ident| $restamp:block, $save:block) => {{
             let needed = {
                 let mut handle = std::fs::File::open(path)?;
                 let mut $f = <$ty>::read_from(&mut handle, ParseOptions::new())?;
@@ -548,11 +554,11 @@ fn stamp_synced_lyrics(
             if needed {
                 waveflow_core::tagio::rewrite_via_temp(
                     path,
-                    |handle| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                        let mut $f = <$ty>::read_from(handle, ParseOptions::new())?;
+                    |$h| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                        let mut $f = <$ty>::read_from($h, ParseOptions::new())?;
                         let changed: bool = $restamp;
                         if changed {
-                            $f.save_to(handle, WriteOptions::default())?;
+                            $save
                         }
                         Ok(())
                     },
@@ -583,12 +589,18 @@ fn stamp_synced_lyrics(
                 None => false,
             }
         }),
-        FileType::Flac => rewrite!(lofty::flac::FlacFile, |flac| {
-            match flac.vorbis_comments_mut() {
-                Some(comments) => restamp_vorbis!(comments),
-                None => false,
+        FileType::Flac => rewrite!(
+            lofty::flac::FlacFile,
+            |flac, handle| {
+                match flac.vorbis_comments_mut() {
+                    Some(comments) => restamp_vorbis!(comments),
+                    None => false,
+                }
+            },
+            {
+                waveflow_core::tagio::save_flac_comments(&mut flac, handle)?;
             }
-        }),
+        ),
         FileType::Vorbis => rewrite!(lofty::ogg::VorbisFile, |vorbis| {
             restamp_vorbis!(vorbis.vorbis_comments_mut())
         }),
