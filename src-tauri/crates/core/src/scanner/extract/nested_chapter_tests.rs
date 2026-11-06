@@ -435,6 +435,15 @@ fn a_live_stream_is_refused_on_its_tag_and_a_good_one_keeps_its_tags() {
     });
 }
 
+/// A tag that declares the largest size and holds a few bytes is refused, as one cut
+/// short always was, and is read as its bytes come rather than set aside at once.
+#[test]
+fn a_live_tag_declaring_far_more_than_it_holds_is_refused() {
+    let mut bytes = b"ID3\x04\0\0\x7f\x7f\x7f\x7f".to_vec();
+    bytes.extend_from_slice(&[0; 64]);
+    assert!(open_live(bytes).is_err());
+}
+
 #[test]
 fn an_honest_aiff_keeps_its_tag_chunk() {
     let dir = tempfile::tempdir().expect("tempdir");
