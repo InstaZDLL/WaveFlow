@@ -196,7 +196,7 @@ Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`va
 
 ## Asset protocol scope
 
-Files under `metadata_artwork/` and `profiles/**` (the per-profile artwork and the profile's `avatar.png`) are served to the renderer via Tauri's asset protocol (`tauri.conf.json::app.security.assetProtocol`). Frontend code uses [`convertFileSrc()`](https://tauri.app/v2/api/js/core#convertfilesrc) to map an absolute path to an `asset://` URL the `<img>` tag can load.
+Files under `metadata_artwork/` and `profiles/**` (the per-profile artwork and the profile's `avatar.png`) are served to the renderer via Tauri's asset protocol (`tauri.conf.json::app.security.assetProtocol`). The scope's `deny` list takes each profile's database back out of it — `data.db`, its `-wal` / `-shm` and its pre-migration copies, which hold everything the profile knows and are never drawn: a pattern that allows a directory allows everything in it, and a deny wins over any allow, including the ones granted at runtime below. Frontend code uses [`convertFileSrc()`](https://tauri.app/v2/api/js/core#convertfilesrc) to map an absolute path to an `asset://` URL the `<img>` tag can load.
 
 Smart-playlist covers reuse `metadata_artwork/` (no extra scope needed).
 

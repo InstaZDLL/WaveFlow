@@ -150,9 +150,10 @@ async fn fill_imported_profile(
 /// Give the imported profile the archive's picture, made again from its
 /// bytes by the decoder a picked file goes through: an archive may have
 /// been written by hand, and its `avatar.png` is no more trusted than any
-/// file on the disk. A picture that is refused is left out, with a line
-/// in the log; the rest of the profile is worth more than its picture,
-/// and the user can set one again.
+/// file on the disk. A picture the decoder refuses is left out, with a
+/// line in the log; the rest of the profile is worth more than its
+/// picture, and the user can set one again. A read or a write that fails
+/// fails the import, which then removes the profile whole.
 async fn import_avatar(
     app_db: &SqlitePool,
     paths: &AppPaths,
@@ -161,27 +162,28 @@ async fn import_avatar(
 ) -> AppResult<()> {
     let paths_for_blocking = paths.clone();
     let stored = tokio::task::spawn_blocking(move || -> AppResult<Option<String>> {
-        let Some(bytes) = read_avatar_entry(Path::new(&source_path))? else {
+        let Some(read) = read_avatar_entry(Path::new(&source_path))? else {
             return Ok(None);
         };
-        let png = waveflow_core::artwork::avatar::normalize_avatar(&bytes)?;
+        let png =
+            match read.and_then(|bytes| waveflow_core::artwork::avatar::normalize_avatar(&bytes)) {
+                Ok(png) => png,
+                Err(refusal) => {
+                    tracing::warn!(%refusal, "imported profile: its picture was left out");
+                    return Ok(None);
+                }
+            };
         crate::commands::profile_avatar::store_picture(&paths_for_blocking, profile_id, &png)
             .map(Some)
     })
     .await
-    .map_err(|e| AppError::Other(format!("import avatar join: {e}")))?;
-    match stored {
-        Ok(Some(hash)) => {
-            sqlx::query("UPDATE profile SET avatar_hash = ? WHERE id = ?")
-                .bind(hash)
-                .bind(profile_id)
-                .execute(app_db)
-                .await?;
-        }
-        Ok(None) => {}
-        Err(err) => {
-            tracing::warn!(error = %err, "imported profile: its picture was left out");
-        }
+    .map_err(|e| AppError::Other(format!("import avatar join: {e}")))??;
+    if let Some(hash) = stored {
+        sqlx::query("UPDATE profile SET avatar_hash = ? WHERE id = ?")
+            .bind(hash)
+            .bind(profile_id)
+            .execute(app_db)
+            .await?;
     }
     Ok(())
 }

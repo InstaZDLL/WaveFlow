@@ -532,18 +532,20 @@ export function ProfileSelectorModal({
  * picture is laid over the tile rather than clipped by it, so the "active"
  * badge that overhangs the corner stays whole, and takes the tile's own
  * radius, so a skin that squares the tile squares the picture too; a
- * picture that fails to load gives the initial back.
+ * picture that fails to load gives the initial back, until the profile
+ * comes back from the backend again (see `ProfileAvatar`).
  */
 function ProfileTileFace({ profile }: { profile: Profile }) {
   const src = profileAvatarSrc(profile);
-  const [failed, setFailed] = useState<string | null>(null);
-  if (src == null || failed === src) return <>{profileInitial(profile.name)}</>;
+  const [failedFor, setFailedFor] = useState<Profile | null>(null);
+  if (src == null || failedFor === profile)
+    return <>{profileInitial(profile.name)}</>;
   return (
     <img
       src={src}
       alt=""
       draggable={false}
-      onError={() => setFailed(src)}
+      onError={() => setFailedFor(profile)}
       className="absolute inset-0 h-full w-full rounded-[inherit] object-cover"
     />
   );

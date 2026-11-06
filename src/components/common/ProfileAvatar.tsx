@@ -22,8 +22,12 @@ export function ProfileAvatar({
 }) {
   const color = getProfileColor(profile?.color_id);
   const src = profileAvatarSrc(profile);
-  const [failed, setFailed] = useState<string | null>(null);
-  const showPicture = src != null && failed !== src;
+  // The failure is remembered for this profile object, not for the
+  // address: the same picture chosen again after a failed load keeps the
+  // same address, and the profile the backend returns then is a new
+  // object, which tries the picture again.
+  const [failedFor, setFailedFor] = useState<typeof profile>(null);
+  const showPicture = src != null && failedFor !== profile;
 
   return (
     <div
@@ -36,7 +40,7 @@ export function ProfileAvatar({
           src={src}
           alt=""
           draggable={false}
-          onError={() => setFailed(src)}
+          onError={() => setFailedFor(profile)}
           className="h-full w-full object-cover"
         />
       ) : profile ? (

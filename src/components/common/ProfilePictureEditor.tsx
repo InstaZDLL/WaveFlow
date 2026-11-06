@@ -39,13 +39,15 @@ export function ProfilePictureEditor({
     // The profile the click was made for, whatever is active once the
     // dialog closes.
     const profileId = profile.id;
-    const path = await pickFile(
-      PROFILE_PICTURE_EXTENSIONS,
-      t("profiles.picture.pickerTitle"),
-    );
-    if (!path) return;
+    // Busy from the dialog on: a second click cannot open a second one,
+    // and a dialog that fails is reported like a picture that does.
     setBusy(true);
     try {
+      const path = await pickFile(
+        PROFILE_PICTURE_EXTENSIONS,
+        t("profiles.picture.pickerTitle"),
+      );
+      if (!path) return;
       await setProfileAvatar(profileId, path);
       setError(null);
       onChanged?.();

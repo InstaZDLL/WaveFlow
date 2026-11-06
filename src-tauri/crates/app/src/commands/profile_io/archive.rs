@@ -335,9 +335,12 @@ fn write_archive_into(
 }
 
 /// The bytes of the archive's `avatar.png`, bounded like a picked file,
-/// or `None` when the archive has none. What they are is not trusted:
-/// the caller runs them through the same decoder as a file from the disk.
-pub(super) fn read_avatar_entry(source: &Path) -> AppResult<Option<Vec<u8>>> {
+/// or `None` when the archive has none; an entry past the cap is refused,
+/// which is not a failure to read. What the bytes are is not trusted: the
+/// caller runs them through the same decoder as a file from the disk.
+pub(super) fn read_avatar_entry(
+    source: &Path,
+) -> AppResult<Option<Result<Vec<u8>, waveflow_core::artwork::avatar::AvatarRefusal>>> {
     let file = File::open(source)?;
     let mut archive =
         ZipArchive::new(file).map_err(|e| AppError::Other(format!("open archive: {e}")))?;
@@ -346,7 +349,9 @@ pub(super) fn read_avatar_entry(source: &Path) -> AppResult<Option<Vec<u8>>> {
         Err(zip::result::ZipError::FileNotFound) => return Ok(None),
         Err(e) => return Err(e.into()),
     };
-    crate::commands::profile_avatar::read_bounded(&mut entry).map(Some)
+    Ok(Some(crate::commands::profile_avatar::read_bounded(
+        &mut entry,
+    )?))
 }
 
 pub(super) fn read_manifest(source: &Path) -> AppResult<ArchiveManifest> {

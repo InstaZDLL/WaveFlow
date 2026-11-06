@@ -100,6 +100,14 @@ pub(crate) fn setup(
     tauri::async_runtime::block_on(commands::preferences::load_sort_ignore_articles(
         &state.app_db,
     ));
+    // Before the first listing too: a run stopped while a profile picture
+    // was being set or removed left its row naming another file.
+    if let Err(err) = tauri::async_runtime::block_on(commands::profile_avatar::reconcile_avatars(
+        &state.app_db,
+        &state.paths,
+    )) {
+        tracing::warn!(%err, "profile pictures: could not be checked against their rows");
+    }
     app.manage(desktop_lyrics::DesktopLyricsState::default());
     app.manage(commands::spectrogram::SpectrogramJobs::default());
 

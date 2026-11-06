@@ -1342,7 +1342,10 @@ async fn a_profile_picture_travels_with_the_archive() {
     )
     .unwrap();
     assert_eq!(
-        read_avatar_entry(&archive).unwrap().as_deref(),
+        read_avatar_entry(&archive)
+            .unwrap()
+            .map(Result::unwrap)
+            .as_deref(),
         Some(picture.as_slice())
     );
 
