@@ -47,17 +47,23 @@ placeholder in [`src-tauri/crates/app/tauri.conf.json`](../src-tauri/crates/app/
 The pubkey is a single base64 line starting with `RWQ` or similar.
 Commit this change.
 
-### 3. Confirm the endpoint
+### 3. Confirm the endpoints
 
-The default endpoint is GitHub Releases:
+The updater reads two hosts, GitHub Releases and its mirror on
+Cloudflare R2:
 
 ```
 https://github.com/InstaZDLL/WaveFlow/releases/latest/download/latest.json
+https://download.waveflow.app/stable/latest.json
 ```
 
-If you self-host, change it to your manifest URL. The plugin
-substitutes `{{target}}`, `{{arch}}`, and `{{current_version}}` in
-the URL if you include those placeholders.
+They are compiled into the binary — in
+[`commands/updater.rs`](../src-tauri/crates/app/src/commands/updater.rs),
+which drives every check, and repeated in `tauri.conf.json`, which a
+test keeps equal to it. A host added later reaches only the builds
+released after it, which is why the mirror shipped before anything
+needed it: see
+[Second download source](#second-download-source-cloudflare-r2).
 
 ## Per-release process
 
@@ -81,6 +87,26 @@ Actions):
 | `COPR_LOGIN`                         | `login` field from <https://copr.fedorainfracloud.org/api/> — `.github/workflows/copr.yml` uses it to authenticate to Fedora COPR via `copr-cli`                               |
 | `COPR_TOKEN`                         | `token` field from the same COPR API page (paired with `COPR_LOGIN`). Token lifetime is 6 months — rotate when builds start returning `401 Unauthorized`                       |
 | `BUILDKITE_PACKAGES_TOKEN`           | Buildkite API token (`read_packages` + `write_packages`) for `.github/workflows/apt-publish.yml` to push the `.deb` to the `instazdll/waveflow` registry                       |
+
+### Optional: the R2 mirror
+
+The four secrets that let the `Mirror to R2` job publish the
+[second download source](#second-download-source-cloudflare-r2). With
+none of them the job ends green after one step and the release is not
+mirrored; with only some of them it fails, alone — the GitHub release,
+its manifest and the downstream dispatches are already out by then.
+
+| Secret                 | What it is                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `R2_ACCESS_KEY_ID`     | Access Key ID of an R2 API token with **Object Read & Write** on the bucket alone                        |
+| `R2_SECRET_ACCESS_KEY` | its Secret Access Key, shown once when the token is created                                              |
+| `R2_ACCOUNT_ID`        | the Cloudflare account id (R2 overview page); the S3 endpoint is `https://<id>.r2.cloudflarestorage.com` |
+| `R2_BUCKET`            | the bucket's name                                                                                        |
+
+The bucket's public domain is a repository **variable**, `R2_PUBLIC_URL`,
+needed only if it is not `https://download.waveflow.app` — and then the
+constants in `commands/updater.rs` have to change with it, in a release
+that ships before the domain is relied on.
 
 ### Optional: macOS code signing
 
@@ -193,7 +219,8 @@ pushed by hand would start it on its own; release-please's does not):
   Mint. A step after the AppImage is final fails the release if the
   binary, or any library the AppImage bundles from the runner, needs a
   glibc newer than `GLIBC_FLOOR` (2.39); raise both together, on
-  purpose.
+  purpose — and `.gitlab-ci.yml`'s `ubuntu:24.04` image and its own
+  `GLIBC_FLOOR` with them.
 - Builds Windows on `windows-latest`, signs every artefact with
   the Authenticode PFX — produces a `*-setup.exe` (NSIS, per-user
   under `%LOCALAPPDATA%`, also the updater payload) and a `.msi`
@@ -210,6 +237,9 @@ pushed by hand would start it on its own; release-please's does not):
   from the commit log) and uploads every artefact
 - A follow-up job merges the per-platform manifests into a single
   `latest.json` and uploads that too
+- A last job, `Mirror to R2`, copies the release's files onto the R2
+  bucket with a manifest pointing at them — see
+  [Second download source](#second-download-source-cloudflare-r2)
 - A separate workflow (`aur.yml`) reacts to the `release.published`
   event, bumps `packaging/aur/PKGBUILD`, refreshes `sha256sums` /
   `.SRCINFO`, and pushes the result to
@@ -219,7 +249,15 @@ pushed by hand would start it on its own; release-please's does not):
 The Tauri updater plugin reads
 `https://github.com/<owner>/<repo>/releases/latest/download/latest.json`
 on app launch — that URL resolves to the merged manifest the workflow
-just published.
+just published — and its R2 mirror, `stable/latest.json`.
+
+The code that is not GitHub glue lives in
+[`scripts/release/`](../scripts/release/): the asset names and the
+per-platform manifest (`prepare-assets.py`), the merge
+(`merge-manifests.py`), the glibc floor check, the R2 upload. The
+workflow runs them from its own commit, checked out next to the tag
+(`.release-tools/`), so a patch release whose tag predates them builds
+the same way; [`.gitlab-ci.yml`](../.gitlab-ci.yml) runs the same files.
 
 ### 3. (Optional) Re-run a release
 
@@ -313,6 +351,8 @@ stable endpoint serves it as an update.
 
 For 1.8.0 itself, the stable manifest was uploaded onto `beta-channel` by hand on 2026-10-02.
 
+From 2.0 each of the two manifests has an R2 mirror (`beta/latest.json`, `stable/latest.json`), and the beta channel reads all four. The stable-onto-beta copy has no mirror twin: a build that reads R2 reads `stable/latest.json` on the beta channel anyway.
+
 ### Cutting a beta
 
 Run the **Cut beta** workflow
@@ -339,6 +379,133 @@ pre-release; the beta manifest's payload URLs point there.
 > the "never hand-tag" rule — but it's still automated (the workflow
 > creates the tag, you don't). The rule's intent (don't bypass
 > release-please for _stable_ versions) is preserved.
+
+## Second download source (Cloudflare R2)
+
+Every installed WaveFlow finds its updates at the addresses compiled into it. Until 2.0 that was one GitHub URL, so the day the repository or the account stopped answering, every installation would have stopped updating for good, with no release able to tell it otherwise. From 2.0 each manifest has a mirror on an R2 bucket served under the project's own domain, filled by `release.yml` with the same files:
+
+```text
+https://download.waveflow.app/
+├── releases/<tag>/…           every asset of the release, same names, same bytes
+├── stable/latest.json         the manifest of the last stable tag
+└── beta/latest.json           the manifest of the last pre-release tag
+```
+
+The mirrored manifest is the merged `latest.json` with each `url` pointing at the copy under `releases/<tag>/` ([`mirror-manifest.py`](../scripts/release/mirror-manifest.py)) and nothing else changed. The signatures are the ones the build made: minisign signs the payload's bytes, not the address it came from, so the app verifies an update from either host under its one public key. The script refuses to write a manifest naming a file it is not about to upload, or a signature that is not the one in the `.sig` next to it.
+
+### How the app reads two hosts
+
+Each channel reads the GitHub manifest and its mirror ([`UpdateChannel::endpoints`](../src-tauri/crates/app/src/commands/updater.rs)) — four manifests on the beta channel, two on stable — one request at a time, and keeps the newest version any of them offers. One host failing, whatever the way, hides nothing the other found; only all of them failing is an error. Each manifest gets 30 seconds to answer: the plugin sets no timeout, and a host that accepts the connection and never replies would otherwise keep the next one from being asked. The limit is on the check alone, not on the download that follows. The update then downloads from the host whose manifest it came from; at equal versions GitHub's, first in the list, wins.
+
+They are deliberately **not** handed to `tauri-plugin-updater` as one list. Its own loop (read in 2.14.1, `Updater::check`):
+
+| The host answers                    | The plugin                                                         |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| a network error                     | remembers the error, tries the next endpoint                       |
+| a status other than 2xx (404, 5xx)  | tries the next endpoint, without recording an error                |
+| 204                                 | stops: "no update", the next endpoint is never asked               |
+| 200 with a body that is not JSON    | **stops with that error**, the next endpoint is never asked        |
+| JSON that is not a release manifest | remembers the error, tries the next endpoint                       |
+| a valid manifest                    | stops there, without comparing its version to any other endpoint's |
+
+A suspended account's page or a captive portal is the fourth row, and the last row means a stale first host would hide a newer second one. Reading them one by one in our own loop avoids both. The `tauri.conf.json` list is not read by anything — every check goes through the Rust command — and names the stable pair only so the two cannot disagree silently (`the_static_config_names_the_stable_pair`).
+
+Until the bucket and its domain exist, the mirror requests fail on DNS and each check logs one warning per mirror; the GitHub answers are unaffected.
+
+### How a release reaches it
+
+The `Mirror to R2` job of `release.yml` runs last, after the GitHub release and its manifest are out, and calls [`publish-r2.sh`](../scripts/release/publish-r2.sh):
+
+1. downloads the release's assets from GitHub and the merged manifest from the run;
+2. uploads the assets under `releases/<tag>/` through R2's S3 API;
+3. asks the public domain for each payload the manifest names, and stops unless it answers with the local file's size — the S3 API accepting a file says nothing about the domain serving it;
+4. leaves the channel's manifest alone when the one already published is newer — a patch release from a maintenance branch, or a re-run on an old tag, would otherwise move every installation's view of this host backwards; the same version again is a re-run and goes through, and `R2_FORCE=1` overrides for a deliberate rollback;
+5. uploads the manifest (`no-cache`) last, so it never points at a file that is not there yet, and reads it back through the domain.
+
+The payloads are cached five minutes at the edge, not a year: re-running the release workflow rebuilds them under the same names, and a stale copy would no longer match the new manifest's signature.
+
+Nothing is ever deleted from the bucket. A release is about 400 MB across the three platforms; prune old `releases/<tag>/` folders by hand (or with a lifecycle rule on that prefix) when the storage bill says so, never the one the current manifests name.
+
+`R2_DRY_RUN=1` runs the script without credentials or network: it rewrites the manifest, prints every upload and writes the result to `R2_DRY_RUN_OUT`.
+
+```bash
+R2_DRY_RUN=1 TAG_NAME=v2.0.0 IS_PRERELEASE=false bash scripts/release/publish-r2.sh dist-release dist-release/latest.json
+```
+
+### What the maintainer creates
+
+Once, in the Cloudflare dashboard:
+
+1. **An R2 bucket** (e.g. `waveflow-releases`). Public access stays off on the `r2.dev` address.
+2. **A custom domain** on it, `download.waveflow.app` — the zone is already on Cloudflare. This is the address compiled into the app; changing it later strands every build that knows the old one.
+3. **An R2 API token** with Object Read & Write, scoped to that bucket alone.
+4. The four `R2_*` secrets in the GitHub repository ([table](#optional-the-r2-mirror)).
+
+Then re-run the `Mirror to R2` job of the last release (or the whole workflow with its tag) to fill the bucket before 2.0 users rely on it.
+
+Builds older than 2.0 know only GitHub. They cannot be moved; if GitHub goes, their users reinstall from the website once.
+
+## Switching to GitLab
+
+[`.gitlab-ci.yml`](../.gitlab-ci.yml) is a standby copy of `ci.yml`, `release.yml` and `cut-beta.yml`. Nothing runs it on GitHub. It exists so that losing the GitHub account costs a few hours of setup rather than a rewrite of the release pipeline at the worst possible moment. On GitLab, R2 is the only download host: the builds write manifests that point there directly, and the GitLab release holds links to the files rather than the files (a project's storage quota would not take an installer set per version).
+
+### Before anything happens
+
+The parts that need GitHub to still answer have to be done while it does:
+
+- **Import the project into GitLab** (New project → Import project → GitHub): code, tags, issues, pull requests as merge requests, milestones, labels, the wiki and the releases' notes. The importer reads GitHub's API with your token, so it cannot run after the account is gone. Keep the import private and refresh it now and then (pull mirroring is a Premium feature; without it, `git push --mirror` from a local clone keeps code and tags current, not issues).
+- **Fill the R2 bucket** ([above](#what-the-maintainer-creates)), so the 2.0 builds already have a second host.
+- Keep a local clone with every tag: `git fetch --tags` from GitHub is the only source of history once it is gone.
+
+### Runners
+
+GitLab.com's hosted runners, as of 2026-11 ([docs](https://docs.gitlab.com/ci/runners/hosted_runners/)):
+
+| Job                            | Runner                      | Machine                     | Who can use it                                                     |
+| ------------------------------ | --------------------------- | --------------------------- | ------------------------------------------------------------------ |
+| checks, Linux build, publish   | `saas-linux-medium-amd64`   | 4 vCPU, 16 GB, 50 GB disk   | every tier                                                         |
+| Rust on Windows, Windows build | `saas-windows-medium-amd64` | 2 vCPU, 7.5 GB, 75 GB, beta | every tier                                                         |
+| macOS build                    | `saas-macos-medium-m1`      | M1, 4 vCPU, 8 GB, beta      | **Premium / Ultimate only**, or the GitLab for Open Source program |
+
+The small default Linux runner (2 vCPU, 30 GB) is too tight for the Rust job, which peaks around 21 GB of disk before the image and toolchain. The Windows runner uses PowerShell with no container: Visual Studio Build Tools, CMake, Python and Git are preinstalled, Rust and Bun are installed by the job. Its signtool comes from the Windows Kits if the image has them; the job fails with a clear message if not.
+
+Compute minutes are the real limit: the Free tier's 400 a month do not cover one release (three builds of 30 to 90 minutes each, macOS at a cost factor of 6). Apply to the **GitLab for Open Source program** — Ultimate features for a public, OSI-licensed project, its macOS runners included, and a 0.5 cost factor on public projects. Without it, register runners of your own: `gitlab-runner` with the shell executor on the Mac (set the `MACOS_RUNNER_TAG` variable to its tag) and, if minutes run out, on the Linux machine. A Windows runner of your own needs the same Build Tools as the hosted image.
+
+### Variables to recreate
+
+Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` tags (Settings → Repository → Protected tags): a protected variable is only given to pipelines of protected refs, so an unprotected tag would build without its keys. Mask what GitLab accepts to mask, and keep every one of them protected either way.
+
+| Variable                                                                 | Same as on GitHub       | Notes                                                                |
+| ------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`, `…_PASSWORD`                                | yes                     | the same key: the installed apps trust only its public half          |
+| `SIGNTOOL_PFX_BASE64`, `SIGNTOOL_PFX_PASSWORD`                           | yes                     |                                                                      |
+| `APPLE_CERTIFICATE` … `APPLE_TEAM_ID`                                    | yes, optional           | none set = ad-hoc signing, as on GitHub; a partial set fails         |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET` | yes                     | **required** here: R2 is the only host, a release without them fails |
+| `R2_PUBLIC_URL`                                                          | the repository variable | only if the domain is not `https://download.waveflow.app`            |
+| `MACOS_RUNNER_TAG`                                                       | —                       | the tag of your own Mac runner, if not the hosted one                |
+| `GITLAB_PUSH_TOKEN`                                                      | —                       | project access token, `write_repository`, for the cut-beta job       |
+
+### What does not carry over
+
+| On GitHub                                                                                                     | What happens on GitLab                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **release-please** opens the release PR, bumps, tags                                                          | GitHub-only, no GitLab support. Cut by hand: bump the version in every file [`release-please-config.json`](../release-please-config.json) lists — `package.json`, `src-tauri/crates/app/tauri.conf.json`, `src-tauri/crates/app/Cargo.toml`, `src-tauri/crates/core/Cargo.toml`, the README badge — and `.release-please-manifest.json`, run `cargo check` to refresh `Cargo.lock`, write the `CHANGELOG.md` entry, commit `chore(main): release X.Y.Z`, then push a signed tag `vX.Y.Z`. The tag starts the release pipeline. A GitLab-aware tool can take this over later. |
+| **Beta channel**: `cut-beta.yml`                                                                              | The `cut-beta` job: Run pipeline by hand with `BASE_VERSION`. Its tag push starts the release itself — a project access token's push does, unlike `GITHUB_TOKEN`'s. The stable-onto-beta copy is not needed (see [above](#how-the-app-reads-two-hosts)).                                                                                                                                                                                                                                                                                                                     |
+| **Downstream dispatches** (AUR, winget, COPR, apt)                                                            | Not ported; publish by hand or add jobs. Every one downloads from GitHub today: point `packaging/aur/PKGBUILD`'s `source` and `packaging/copr/waveflow.spec`'s `asset_url` at `https://download.waveflow.app/releases/v${version}/…`, and `apt-publish.yml`'s `gh release download` at the same files. AUR and COPR push with their own keys, from anywhere. winget opens a pull request on `microsoft/winget-pkgs` on GitHub, which needs _a_ GitHub account — not necessarily this one — and `wingetcreate update` with the R2 URLs.                                       |
+| **Flathub**                                                                                                   | The manifest builds from the GitHub repository's URL: point it at the GitLab one in the Flathub repository.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **AppImage delta updates** (`appimage-update-info.sh`)                                                        | The string embedded in the image sends AppImageUpdate to GitHub's releases, so the GitLab build does not embed it and ships no `.zsync`. Images already out keep asking GitHub and lose delta updates; the in-app updater is unaffected. Bringing them back means the generic `zsync` transport, pointing at a fixed-name `.zsync` on R2.                                                                                                                                                                                                                                    |
+| **Install links**                                                                                             | The README, the website's download buttons and `packaging/flatpak/…metainfo.xml` link to GitHub releases and issues. Point them at waveflow.app and GitLab. The binaries also carry the GitHub URL in a few User-Agent strings and the Discord presence button; harmless, change them in the next release.                                                                                                                                                                                                                                                                   |
+| **Plugin store**                                                                                              | The registry comes from waveflow.app first, with raw.githubusercontent.com and jsDelivr as fallbacks; the plugin files are whatever the registry names. waveflow.app can repoint them without an app release.                                                                                                                                                                                                                                                                                                                                                                |
+| **CodeQL, CodeRabbit, labels, Dependabot, cache cleanup, `test-appimage.yml`, `flatpak-sources-refresh.yml`** | Not ported. GitLab's own SAST and dependency scanning, and Renovate for updates, are the nearest replacements.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Build provenance** (`attest-build-provenance`)                                                              | No equivalent in the file. The minisign and Authenticode signatures still cover every payload.                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+### The switch, in order
+
+1. Push the latest code and tags to the GitLab project; check that `.gitlab-ci.yml` runs green on the default branch.
+2. Recreate the variables and protect the `v*` tags.
+3. Register runners if the tier needs them.
+4. Cut the next release by hand as above. Its manifest replaces `stable/latest.json` on R2, and every 2.0+ installation sees it.
+5. Update the install links, then the downstream packages one by one.
 
 ## The AppImage is post-processed, and it has to stay that way
 
