@@ -1239,7 +1239,7 @@
       "pickerTitle": "Kies een profielfoto",
       "formats": "PNG, JPEG, WebP of GIF, maximaal 20 MB. Alleen een bijgesneden kopie wordt bewaard.",
       "errors": {
-        "tooLarge": "Deze afbeelding is te groot: maximaal 20 MB en 10.000 pixels per zijde.",
+        "tooLarge": "Deze afbeelding is te groot: maximaal 20 MB en 50 megapixel.",
         "unsupported": "Dit bestand is geen PNG-, JPEG-, WebP- of GIF-afbeelding.",
         "unreadable": "Deze afbeelding is beschadigd of onvolledig en kan niet worden gelezen.",
         "failed": "De foto kon niet worden opgeslagen.",

@@ -1237,7 +1237,7 @@
       "pickerTitle": "프로필 사진 선택",
       "formats": "PNG, JPEG, WebP, GIF, 최대 20MB. 잘라낸 사본만 보관됩니다.",
       "errors": {
-        "tooLarge": "이미지가 너무 큽니다. 최대 20MB, 한 변 최대 10,000픽셀까지 가능합니다.",
+        "tooLarge": "이미지가 너무 큽니다. 최대 20MB, 5,000만 화소까지 가능합니다.",
         "unsupported": "이 파일은 PNG, JPEG, WebP, GIF 이미지가 아닙니다.",
         "unreadable": "이미지가 손상되었거나 불완전해서 읽을 수 없습니다.",
         "failed": "사진을 저장하지 못했습니다.",

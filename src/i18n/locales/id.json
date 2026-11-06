@@ -1237,7 +1237,7 @@
       "pickerTitle": "Pilih foto profil",
       "formats": "PNG, JPEG, WebP, atau GIF, maksimal 20 MB. Hanya salinan yang sudah dipotong yang disimpan.",
       "errors": {
-        "tooLarge": "Gambar ini terlalu besar: maksimal 20 MB dan 10.000 piksel per sisi.",
+        "tooLarge": "Gambar ini terlalu besar: maksimal 20 MB dan 50 megapiksel.",
         "unsupported": "Berkas ini bukan gambar PNG, JPEG, WebP, atau GIF.",
         "unreadable": "Gambar ini rusak atau tidak lengkap sehingga tidak bisa dibaca.",
         "failed": "Foto tidak bisa disimpan.",

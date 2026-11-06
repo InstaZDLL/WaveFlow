@@ -1237,7 +1237,7 @@
       "pickerTitle": "選擇個人檔案相片",
       "formats": "PNG、JPEG、WebP 或 GIF，最大 20 MB。只保留裁切後的副本。",
       "errors": {
-        "tooLarge": "圖片太大：最大 20 MB，每邊最多 10,000 像素。",
+        "tooLarge": "圖片太大：最大 20 MB，最多 5000 萬像素。",
         "unsupported": "此檔案不是 PNG、JPEG、WebP 或 GIF 圖片。",
         "unreadable": "此圖片已損毀或不完整，無法讀取。",
         "failed": "無法儲存相片。",

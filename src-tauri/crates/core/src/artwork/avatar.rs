@@ -8,10 +8,14 @@
 //! - its size is capped ([`MAX_AVATAR_SOURCE_BYTES`]);
 //! - its format is read from its bytes, never from its name, and only
 //!   PNG, JPEG, WebP and GIF are accepted;
-//! - the decoder runs under [`image::Limits`]: at most
-//!   [`MAX_AVATAR_DIMENSION`] pixels a side and a bounded allocation, so
-//!   a small file that announces a huge canvas is refused from its
-//!   header rather than allocated.
+//! - a canvas over [`MAX_AVATAR_PIXELS`] is refused from its header,
+//!   before a pixel is read, and the decoder runs under [`image::Limits`]
+//!   (at most [`MAX_AVATAR_DIMENSION`] pixels a side and a bounded
+//!   allocation), so a small file that announces a huge canvas is never
+//!   allocated;
+//! - only the centre square is kept past the decode, and it is turned
+//!   upright after it is cut out, so what is held at once stays within
+//!   about twice the decoded picture.
 //!
 //! What comes out is a [`AVATAR_SIZE`]-pixel square PNG, the centre of
 //! the picture, turned upright when a JPEG or WebP says it was taken on
@@ -33,12 +37,17 @@ pub const AVATAR_SIZE: u32 = 256;
 /// megabytes; anything past this is not a profile picture.
 pub const MAX_AVATAR_SOURCE_BYTES: u64 = 20 * 1024 * 1024;
 
-/// The widest and tallest picture decoded. A 48-megapixel photo is
-/// 8 000 × 6 000; a header past this is refused before any pixel is read.
+/// The widest and tallest picture decoded; a header past this is refused
+/// before any pixel is read.
 pub const MAX_AVATAR_DIMENSION: u32 = 10_000;
 
-/// The most the decoder may allocate at once.
-const MAX_AVATAR_DECODE_ALLOC: u64 = 400 * 1024 * 1024;
+/// The most pixels decoded. A 48-megapixel photo (8 000 × 6 000) fits;
+/// its decode is 144 MB in RGB, which bounds everything after it.
+pub const MAX_AVATAR_PIXELS: u64 = 50_000_000;
+
+/// The most the decoder may allocate at once: the pixel budget in RGBA,
+/// so a 16-bit picture of that size is refused rather than doubled.
+const MAX_AVATAR_DECODE_ALLOC: u64 = MAX_AVATAR_PIXELS * 4 + 16 * 1024 * 1024;
 
 /// Why a file could not become a picture. Each one is a sentence the
 /// interface shows, so they stay few and say what the user can do.
@@ -96,15 +105,34 @@ pub fn normalize_avatar(bytes: &[u8]) -> Result<Vec<u8>, AvatarRefusal> {
     reader.limits(limits);
 
     let mut decoder = reader.into_decoder().map_err(refusal_of)?;
+    let (width, height) = decoder.dimensions();
+    if u64::from(width) * u64::from(height) > MAX_AVATAR_PIXELS {
+        return Err(AvatarRefusal::TooLarge);
+    }
+    if width == 0 || height == 0 {
+        return Err(AvatarRefusal::Unreadable);
+    }
     // A photo taken on its side says so in its EXIF; drawn as stored, the
     // face would lie on its ear. A file whose orientation cannot be read
     // is drawn as stored rather than refused.
     let orientation = decoder.orientation().ok();
-    let mut picture = DynamicImage::from_decoder(decoder).map_err(refusal_of)?;
+    let picture = DynamicImage::from_decoder(decoder).map_err(refusal_of)?;
+
+    // The centre square, cut before turning: the centre square of a
+    // picture is the centre square of any of its eight orientations, and
+    // turning the square alone never copies the whole picture again.
+    let side = picture.width().min(picture.height());
+    let mut square = picture.crop_imm(
+        (picture.width() - side) / 2,
+        (picture.height() - side) / 2,
+        side,
+        side,
+    );
+    drop(picture);
     if let Some(orientation) = orientation {
-        picture.apply_orientation(orientation);
+        square.apply_orientation(orientation);
     }
-    square_png(picture)
+    square_png(square)
 }
 
 fn refusal_of(err: ImageError) -> AvatarRefusal {
@@ -115,28 +143,21 @@ fn refusal_of(err: ImageError) -> AvatarRefusal {
     }
 }
 
-/// The centre square of `picture`, resized to [`AVATAR_SIZE`] and
-/// encoded as PNG (the alpha of a transparent picture is kept).
-fn square_png(picture: DynamicImage) -> Result<Vec<u8>, AvatarRefusal> {
-    let rgba = picture.to_rgba8();
+/// A square picture resized to [`AVATAR_SIZE`] and encoded as PNG (the
+/// alpha of a transparent picture is kept).
+fn square_png(square: DynamicImage) -> Result<Vec<u8>, AvatarRefusal> {
+    let rgba = square.into_rgba8();
     let (width, height) = rgba.dimensions();
     if width == 0 || height == 0 {
         return Err(AvatarRefusal::Unreadable);
     }
-    let side = width.min(height);
-    let left = f64::from((width - side) / 2);
-    let top = f64::from((height - side) / 2);
 
     let source =
         fr::images::Image::from_vec_u8(width, height, rgba.into_raw(), fr::PixelType::U8x4)
             .map_err(|_| AvatarRefusal::Unreadable)?;
     let mut target = fr::images::Image::new(AVATAR_SIZE, AVATAR_SIZE, fr::PixelType::U8x4);
     Resizer::new()
-        .resize(
-            &source,
-            &mut target,
-            &ResizeOptions::new().crop(left, top, f64::from(side), f64::from(side)),
-        )
+        .resize(&source, &mut target, &ResizeOptions::new())
         .map_err(|_| AvatarRefusal::Unreadable)?;
 
     let square = image::RgbaImage::from_raw(AVATAR_SIZE, AVATAR_SIZE, target.into_vec())
@@ -270,6 +291,92 @@ mod tests {
         let png = encode(&strip, ImageFormat::Png);
         assert!((png.len() as u64) < MAX_AVATAR_SOURCE_BYTES);
         assert_eq!(normalize_avatar(&png), Err(AvatarRefusal::TooLarge));
+    }
+
+    #[test]
+    fn a_canvas_past_the_pixel_budget_is_refused_from_its_header() {
+        // 8 000 × 7 000 = 56 megapixels, each side under the limit. Only
+        // the header is there: a decode would fail as unreadable, so the
+        // refusal can only come from the header's size.
+        let png = png_header_only(8_000, 7_000);
+        assert_eq!(normalize_avatar(&png), Err(AvatarRefusal::TooLarge));
+        // The same header within the budget is read past, and fails on
+        // the missing pixels instead.
+        let within = png_header_only(7_000, 7_000);
+        assert_eq!(normalize_avatar(&within), Err(AvatarRefusal::Unreadable));
+    }
+
+    /// A PNG whose `IHDR` announces `width` × `height` and whose `IDAT`
+    /// holds no pixel at all: a few dozen bytes.
+    fn png_header_only(width: u32, height: u32) -> Vec<u8> {
+        let mut ihdr = Vec::new();
+        ihdr.extend_from_slice(&width.to_be_bytes());
+        ihdr.extend_from_slice(&height.to_be_bytes());
+        ihdr.extend_from_slice(&[8, 2, 0, 0, 0]);
+        let mut png = vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
+        for (kind, data) in [
+            (*b"IHDR", ihdr),
+            // An empty zlib stream.
+            (
+                *b"IDAT",
+                vec![0x78, 0x9C, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01],
+            ),
+            (*b"IEND", Vec::new()),
+        ] {
+            let mut body = kind.to_vec();
+            body.extend_from_slice(&data);
+            png.extend_from_slice(&(data.len() as u32).to_be_bytes());
+            png.extend_from_slice(&body);
+            png.extend_from_slice(&crc32(&body).to_be_bytes());
+        }
+        png
+    }
+
+    fn crc32(bytes: &[u8]) -> u32 {
+        let mut crc = 0xFFFF_FFFFu32;
+        for &b in bytes {
+            crc ^= u32::from(b);
+            for _ in 0..8 {
+                crc = if crc & 1 != 0 {
+                    (crc >> 1) ^ 0xEDB8_8320
+                } else {
+                    crc >> 1
+                };
+            }
+        }
+        !crc
+    }
+
+    #[test]
+    fn a_turned_square_is_the_centre_of_the_turned_picture() {
+        // Cutting the centre square then turning it gives what turning
+        // the whole picture then cutting would, for every orientation.
+        use image::metadata::Orientation;
+        let img = DynamicImage::ImageRgba8(RgbaImage::from_fn(6, 4, |x, y| {
+            Rgba([x as u8 * 40, y as u8 * 60, 7, 255])
+        }));
+        for orientation in [
+            Orientation::NoTransforms,
+            Orientation::Rotate90,
+            Orientation::Rotate180,
+            Orientation::Rotate270,
+            Orientation::FlipHorizontal,
+            Orientation::FlipVertical,
+            Orientation::Rotate90FlipH,
+            Orientation::Rotate270FlipH,
+        ] {
+            let mut cut_first = img.crop_imm(1, 0, 4, 4);
+            cut_first.apply_orientation(orientation);
+            let mut turned = img.clone();
+            turned.apply_orientation(orientation);
+            let (w, h) = (turned.width(), turned.height());
+            let turned_first = turned.crop_imm((w - 4) / 2, (h - 4) / 2, 4, 4);
+            assert_eq!(
+                cut_first.to_rgba8(),
+                turned_first.to_rgba8(),
+                "{orientation:?}"
+            );
+        }
     }
 
     #[test]

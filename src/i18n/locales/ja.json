@@ -1237,7 +1237,7 @@
       "pickerTitle": "プロフィール写真を選択",
       "formats": "PNG、JPEG、WebP、GIF（20 MB まで）。切り抜いたコピーだけが保存されます。",
       "errors": {
-        "tooLarge": "画像が大きすぎます（20 MB まで、一辺 10,000 ピクセルまで）。",
+        "tooLarge": "画像が大きすぎます（20 MB まで、5,000 万画素まで）。",
         "unsupported": "このファイルは PNG、JPEG、WebP、GIF のいずれの画像でもありません。",
         "unreadable": "この画像は破損しているか不完全なため、読み込めません。",
         "failed": "写真を保存できませんでした。",

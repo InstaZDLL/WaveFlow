@@ -1283,7 +1283,7 @@
       "pickerTitle": "Escolher uma foto de perfil",
       "formats": "PNG, JPEG, WebP ou GIF, até 20 MB. Só uma cópia recortada é guardada.",
       "errors": {
-        "tooLarge": "Esta imagem é grande demais: no máximo 20 MB e 10.000 pixels por lado.",
+        "tooLarge": "Esta imagem é grande demais: no máximo 20 MB e 50 megapixels.",
         "unsupported": "Este arquivo não é uma imagem PNG, JPEG, WebP ou GIF.",
         "unreadable": "Esta imagem está danificada ou incompleta e não pode ser lida.",
         "failed": "Não foi possível salvar a foto.",
