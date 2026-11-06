@@ -20,8 +20,9 @@
 
    Every rule is keyed on `:root[data-skin="studio"]` and on the
    `data-*` marks the components carry (`data-topbar`, `data-nav-item`,
-   `data-sidebar-row`, `data-track-table`, …), never on a utility class —
-   the same contract the fluid layout's stylesheets keep. The rules are
+   `data-sidebar-row`, `data-track-head`, `data-artwork-placeholder`,
+   …), never on a utility class — the same contract the fluid layout's
+   stylesheets keep. The rules are
    not layered, so they win over Tailwind's utilities (which live in
    `@layer utilities`) without `!important`. The Home's own shapes are
    in the classic Home's markup (`HomeView`), since no other skin
@@ -226,10 +227,21 @@
   border-radius: 0.75rem;
 }
 
-:root[data-skin="studio"] [data-track-table] > .sticky {
+:root[data-skin="studio"] [data-track-head] {
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.06em;
+  color: var(--studio-ink-3);
+}
+
+/* ── A missing cover: a neutral tile, not the accent's gradient ── */
+
+:root[data-skin="studio"] [data-artwork-placeholder] {
+  background: var(--studio-tone-strong);
+  border-color: var(--studio-line);
+}
+
+:root[data-skin="studio"] [data-artwork-placeholder] > svg {
   color: var(--studio-ink-3);
 }
 

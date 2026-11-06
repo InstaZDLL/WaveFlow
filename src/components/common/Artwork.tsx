@@ -99,6 +99,9 @@ export function Artwork({
   if (!src) {
     return (
       <div
+        // Marked so a skin can draw the stand-in its own way (Studio
+        // draws it neutral: the covers are its only colour).
+        data-artwork-placeholder
         className={`${className} ${radiusClass} ${placeholderBg} ${placeholderBorder} flex items-center justify-center overflow-hidden shrink-0`}
         aria-hidden={alt ? undefined : true}
         aria-label={alt}

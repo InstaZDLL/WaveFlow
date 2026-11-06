@@ -9,12 +9,12 @@ Where the five materials stage the music, Studio files it. It is not a stripped-
 ## Principles
 
 1. **Fast is the first rule, not a constraint on the others.** Studio is where recovery lands, so a Studio surface may only be drawn with colours, borders, radii, padding and 1 px inset lines. No `backdrop-filter`, no `filter`, no mask, no gradient, no blurred shadow, no animation that loops, no `will-change`. The rule is checked against the implementation, not the look: the classic Home's two banner glows looked cheap and held its frame rate at 12 fps without a GPU while an animation ran beside them ([the bench's first report](../../scripts/bench/webkitgtk/reports/2026-10-25-fedora-iris-xe.md)).
-2. **The music is the colour.** The interface is neutral — zinc inks on the theme's ground — and the covers bring the colour. No coloured banners, no gradient fallbacks behind a mix, no coloured icon tiles for the library's figures. Where a cover is missing, a neutral tile with an icon stands in.
+2. **The music is the colour.** The interface is neutral — zinc inks on the theme's ground — and the covers bring the colour. No coloured banners, no gradient fallbacks behind a mix, no coloured icon tiles for the library's figures. Where a cover is missing, a neutral tile with an icon stands in (`Artwork`'s stand-in, marked `data-artwork-placeholder`, loses the accent's gradient under Studio).
 3. **One accent, spent on state.** The theme's accent (or the custom one, or the cover's: the accent mode decides upstream) marks what is open, what is playing, what has the keyboard's focus, and the one primary action of a block. Mood Radio is the one place with other colours, each mood's own, as a tint and a small mark.
 4. **Lines, not depth.** Surfaces are one step apart and parted by a 1 px line; there is no shadow under a card, a cover or the bar. A hover is a tone; the open item is a stronger tone with the accent as a 2 px edge on its start side; the playing row of a list keeps the accent's tint every list draws.
 5. **Dense where you navigate, calm where you listen.** The sidebar's rows, the tables and the top bar are compact and on one grid; the Home gives the music the room, in one grid of covers for every row.
 6. **Light and dark.** Studio follows the theme's mode, both ways, and every token below has its two values.
-7. **Still.** Colour transitions of 150 ms on a gesture, the Home's one fade-in when it opens; no lift, no scale, nothing that moves on its own. Reduced motion takes the fade-in too.
+7. **Still.** Colour transitions of 150 ms on a gesture, the Home's one fade-in when it opens; no lift, no scale, nothing that moves on its own. Reduced motion takes the fade-in too. The one thing that loops is a loading skeleton's pulse, for as long as a row loads, and reduced motion stops it.
 
 ## Tokens
 

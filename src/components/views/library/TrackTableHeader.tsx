@@ -241,6 +241,7 @@ export function TrackTableHeader({
     // direction announced by nothing at all, since the arrow is
     // `aria-hidden`. It rides in the button's accessible name instead.
     <div
+      data-track-head
       className="sticky -top-8 z-20 grid gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-surface-dark"
       style={{ gridTemplateColumns: gridCols }}
     >
