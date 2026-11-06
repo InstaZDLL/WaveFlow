@@ -118,8 +118,10 @@ pub fn check_reader<R: Read + Seek>(reader: &mut R) -> Result<(), NestedChapters
     };
     let verdict = check_tags_from(&mut budgeted, start);
     let gave_up = budgeted.gave_up;
+    // Left anywhere else, the parser that reads it next starts at the wrong place.
     if reader.seek(SeekFrom::Start(start)).is_err() {
         tracing::warn!("could not rewind after looking at a file's tags");
+        return Err(NestedChapters);
     }
     if gave_up {
         return Err(NestedChapters);
