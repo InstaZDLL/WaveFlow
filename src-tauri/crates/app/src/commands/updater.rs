@@ -237,6 +237,13 @@ mod imp {
     /// How long one manifest may take to answer.
     const CHECK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
+    /// How long a download may go without a byte before the next host is
+    /// tried. Silence, not the whole download: a slow link still finishes.
+    const DOWNLOAD_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+    /// How often a download is looked at for that silence.
+    const DOWNLOAD_IDLE_POLL: std::time::Duration = std::time::Duration::from_secs(1);
+
     /// The cause chain too: the plugin's `Reqwest` variant is transparent,
     /// and its message alone reads "error sending request" — offline, DNS,
     /// refused and timed out all look the same without the layers below.
@@ -315,28 +322,53 @@ mod imp {
             return Err(AppError::Other("updater: no pending update".into()));
         }
 
-        // The next host is tried only when a download fails or its bytes do
-        // not verify (`download` checks the signature). Once an installer
-        // has been started, its error is final: it may have changed things.
+        // The next host is tried only when a download fails, falls silent
+        // for `DOWNLOAD_IDLE_TIMEOUT` or its bytes do not verify (`download`
+        // checks the signature). Once an installer has been started, its
+        // error is final: it may have changed things.
         let mut first_err = None;
         for (attempt, update) in candidates.iter().enumerate() {
             let emitter = app.clone();
             let mut downloaded: u64 = 0;
-            let bytes = update
-                .download(
-                    move |chunk_len, content_len| {
-                        downloaded = downloaded.saturating_add(chunk_len as u64);
-                        let _ = emitter.emit(
-                            "updater:progress",
-                            UpdateProgress {
-                                downloaded,
-                                total: content_len.unwrap_or(0),
-                            },
+            // Milliseconds from `started` to the last chunk, read by the
+            // watch below; the start itself counts as a chunk, so a host
+            // that never answers falls silent like one that stops.
+            let started = std::time::Instant::now();
+            let last_chunk_ms = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+            let chunk_mark = std::sync::Arc::clone(&last_chunk_ms);
+            let download = update.download(
+                move |chunk_len, content_len| {
+                    let now = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+                    chunk_mark.store(now, std::sync::atomic::Ordering::Relaxed);
+                    downloaded = downloaded.saturating_add(chunk_len as u64);
+                    let _ = emitter.emit(
+                        "updater:progress",
+                        UpdateProgress {
+                            downloaded,
+                            total: content_len.unwrap_or(0),
+                        },
+                    );
+                },
+                || {},
+            );
+            tokio::pin!(download);
+            // Dropping the download on silence cancels its request.
+            let bytes = loop {
+                tokio::select! {
+                    result = &mut download => break result.map_err(updater_err),
+                    _ = tokio::time::sleep(DOWNLOAD_IDLE_POLL) => {
+                        let last = std::time::Duration::from_millis(
+                            last_chunk_ms.load(std::sync::atomic::Ordering::Relaxed),
                         );
-                    },
-                    || {},
-                )
-                .await;
+                        if started.elapsed().saturating_sub(last) >= DOWNLOAD_IDLE_TIMEOUT {
+                            break Err(AppError::Other(format!(
+                                "updater: no data for {} s",
+                                DOWNLOAD_IDLE_TIMEOUT.as_secs()
+                            )));
+                        }
+                    }
+                }
+            };
             match bytes {
                 Ok(bytes) => {
                     update.install(bytes).map_err(updater_err)?;
@@ -346,7 +378,6 @@ mod imp {
                     return Ok(());
                 }
                 Err(err) => {
-                    let err = updater_err(err);
                     tracing::warn!(%err, attempt, "update download failed, trying the next host");
                     first_err.get_or_insert(err);
                 }
