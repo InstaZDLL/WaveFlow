@@ -2824,6 +2824,8 @@
       "legend": "Wrapped banner visibility",
       "seasonActive": "Wrapped season is live — the banner is showing.",
       "seasonIdle": "Off-season — the banner returns automatically on December 1.",
+      "dismissed": "You closed the {{year}} recap from Home.",
+      "showAgain": "Show it again",
       "modes": {
         "auto": {
           "label": "Automatic",

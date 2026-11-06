@@ -2824,6 +2824,8 @@
       "legend": "Wrapped afişi görünürlüğü",
       "seasonActive": "Wrapped sezonu sürüyor — afiş görünür durumda.",
       "seasonIdle": "Sezon dışı — afiş 1 Aralık'ta otomatik olarak geri dönecek.",
+      "dismissed": "{{year}} özetini Ana sayfadan kapattınız.",
+      "showAgain": "Yeniden göster",
       "modes": {
         "auto": {
           "label": "Otomatik",

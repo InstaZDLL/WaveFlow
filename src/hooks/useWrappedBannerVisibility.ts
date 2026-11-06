@@ -72,8 +72,12 @@ export interface WrappedBannerVisibility {
    *  Returns `false` until both per-profile keys have been read — their
    *  defaults would otherwise show the banner to users who opted out. */
   shouldShow: (recapYear: number) => boolean;
+  /** Stores the mode and lifts a dismissed year: choosing how the
+   *  banner shows is an answer to the question the close button asked. */
   setMode: (next: WrappedBannerMode) => Promise<void>;
   dismissYear: (recapYear: number) => Promise<void>;
+  /** Lifts the dismissal, so the banner follows the mode again. */
+  undismiss: () => Promise<void>;
 }
 
 /**
@@ -113,18 +117,25 @@ export function useWrappedBannerVisibility(): WrappedBannerVisibility {
     key: DISMISSED_YEAR_KEY,
     defaultValue: null,
     parse: parseDismissedYear,
-    // Never serialized as null: `dismissYear` only ever stores a year.
+    // `undismiss` stores null as an empty value, which reads back as null.
     serialize: (value) => String(value ?? ""),
     valueType: "int",
     event: WRAPPED_DISMISSED_YEAR_EVENT,
     label: "useWrappedBannerVisibility.dismissedYear",
   });
 
+  // A dismissal outranks every mode, `always` included, until the next
+  // recap year: this is the way back from it before then.
+  const undismiss = useCallback(async () => {
+    await setDismissedYearValue(null);
+  }, [setDismissedYearValue]);
+
   const setMode = useCallback(
     async (next: WrappedBannerMode) => {
       await setModeValue(next);
+      if (dismissedYear != null) await undismiss();
     },
-    [setModeValue],
+    [setModeValue, dismissedYear, undismiss],
   );
 
   const dismissYear = useCallback(
@@ -150,5 +161,13 @@ export function useWrappedBannerVisibility(): WrappedBannerVisibility {
     [mode, dismissedYear, inSeason, modeReady, dismissedYearReady],
   );
 
-  return { mode, inSeason, dismissedYear, shouldShow, setMode, dismissYear };
+  return {
+    mode,
+    inSeason,
+    dismissedYear,
+    shouldShow,
+    setMode,
+    dismissYear,
+    undismiss,
+  };
 }

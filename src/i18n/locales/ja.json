@@ -2822,6 +2822,8 @@
       "legend": "Wrapped バナーの表示",
       "seasonActive": "Wrapped シーズン中 — バナーを表示しています。",
       "seasonIdle": "シーズン外 — バナーは12月1日に自動的に戻ります。",
+      "dismissed": "{{year}} 年のまとめはホームで閉じられています。",
+      "showAgain": "もう一度表示",
       "modes": {
         "auto": {
           "label": "自動",

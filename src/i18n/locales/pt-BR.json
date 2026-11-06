@@ -2891,6 +2891,8 @@
       "legend": "Visibilidade do banner Wrapped",
       "seasonActive": "Temporada Wrapped em andamento — o banner está visível.",
       "seasonIdle": "Fora da temporada — o banner volta automaticamente em 1º de dezembro.",
+      "dismissed": "Você fechou a retrospectiva {{year}} na tela inicial.",
+      "showAgain": "Mostrar de novo",
       "modes": {
         "auto": {
           "label": "Automático",

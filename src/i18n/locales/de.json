@@ -2824,6 +2824,8 @@
       "legend": "Sichtbarkeit des Wrapped-Banners",
       "seasonActive": "Wrapped-Saison läuft — das Banner wird angezeigt.",
       "seasonIdle": "Außerhalb der Saison — das Banner kehrt am 1. Dezember automatisch zurück.",
+      "dismissed": "Du hast den Jahresrückblick {{year}} auf der Startseite geschlossen.",
+      "showAgain": "Wieder anzeigen",
       "modes": {
         "auto": {
           "label": "Automatisch",

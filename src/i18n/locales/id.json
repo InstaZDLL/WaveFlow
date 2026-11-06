@@ -2822,6 +2822,8 @@
       "legend": "Visibilitas banner Wrapped",
       "seasonActive": "Musim Wrapped berlangsung — banner ditampilkan.",
       "seasonIdle": "Di luar musim — banner akan kembali otomatis pada 1 Desember.",
+      "dismissed": "Anda menutup rekap {{year}} dari Beranda.",
+      "showAgain": "Tampilkan lagi",
       "modes": {
         "auto": {
           "label": "Otomatis",

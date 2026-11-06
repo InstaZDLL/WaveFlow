@@ -2824,6 +2824,8 @@
       "legend": "Zichtbaarheid van Wrapped-banner",
       "seasonActive": "Wrapped-seizoen loopt — de banner is zichtbaar.",
       "seasonIdle": "Buiten het seizoen — de banner komt automatisch terug op 1 december.",
+      "dismissed": "Je hebt het overzicht van {{year}} op Home gesloten.",
+      "showAgain": "Weer tonen",
       "modes": {
         "auto": {
           "label": "Automatisch",

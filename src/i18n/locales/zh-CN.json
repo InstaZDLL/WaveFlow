@@ -2822,6 +2822,8 @@
       "legend": "Wrapped 横幅可见性",
       "seasonActive": "Wrapped 季正在进行——横幅已显示。",
       "seasonIdle": "当前不在 Wrapped 季——横幅将在 12 月 1 日自动回归。",
+      "dismissed": "你已在首页关闭 {{year}} 年度回顾。",
+      "showAgain": "重新显示",
       "modes": {
         "auto": {
           "label": "自动",
