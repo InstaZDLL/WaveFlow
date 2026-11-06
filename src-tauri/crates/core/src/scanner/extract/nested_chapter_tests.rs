@@ -1291,3 +1291,84 @@ fn opening_an_aiff_does_not_read_its_audio() {
         read.load(Ordering::Relaxed)
     );
 }
+
+/// A 2.3 or a 2.4 tag with an extended header of six bytes, as the version spells it.
+fn tag_with_extended_header(major: u8, frames: &[u8]) -> Vec<u8> {
+    let extended: &[u8] = if major == 4 {
+        // Its own size included, synchsafe, then one byte of flag count and the flags.
+        &[0, 0, 0, 6, 1, 0]
+    } else {
+        // Its size after these four bytes, then flags and padding size.
+        &[0, 0, 0, 6, 0, 0, 0, 0, 0, 0]
+    };
+    tag_with(major, 0x40, &[extended, frames].concat())
+}
+
+#[test]
+fn flat_chapters_behind_an_extended_header_are_flat() {
+    use crate::tagio::chapter_nesting::{check_tag, NestedChapters};
+
+    for major in [3_u8, 4] {
+        let flat = episode(major, 40, |i| format!("Chapter {i}"));
+        assert_eq!(
+            check_tag(&tag_with_extended_header(major, &flat)),
+            Ok(()),
+            "2.{major}"
+        );
+        // And what nests behind one is refused as anywhere else.
+        let deep = nested(major, &[b"CHAP"], 64);
+        assert_eq!(
+            check_tag(&tag_with_extended_header(major, &deep)),
+            Err(NestedChapters),
+            "2.{major}"
+        );
+    }
+}
+
+/// A reader that counts its reads, and stops a check that makes far too many.
+struct CountedReads {
+    inner: Cursor<Vec<u8>>,
+    reads: u64,
+}
+
+impl std::io::Read for CountedReads {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        self.reads += 1;
+        assert!(self.reads < 2_000_000, "the check read without end");
+        self.inner.read(buffer)
+    }
+}
+
+impl std::io::Seek for CountedReads {
+    fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+        self.inner.seek(to)
+    }
+}
+
+/// Every name of a form starts a walk of the chunks behind it. The same chunks are
+/// walked once, however many names lead to them.
+#[test]
+fn many_forms_in_front_of_the_same_chunks_walk_them_once() {
+    use crate::tagio::chapter_nesting::check_reader;
+
+    // Each form is followed by a chunk whose length lands on the same long chain.
+    const FORMS: usize = 300;
+    const ENTRY: usize = 20;
+    let chain_start = FORMS * ENTRY;
+    let mut bytes = Vec::new();
+    for index in 0..FORMS {
+        let skip = chain_start - (index * ENTRY + ENTRY);
+        bytes.extend_from_slice(b"FORM\0\0\0\0AIFFSKIP");
+        bytes.extend_from_slice(&(skip as u32).to_be_bytes());
+    }
+    for _ in 0..60_000 {
+        bytes.extend_from_slice(b"JUNK\0\0\0\x02");
+        bytes.extend_from_slice(b"ab");
+    }
+    let mut file = CountedReads {
+        inner: Cursor::new(bytes),
+        reads: 0,
+    };
+    let _ = check_reader(&mut file);
+    assert!(file.reads < 300_000, "{} reads", file.reads);
+}

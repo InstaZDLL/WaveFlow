@@ -192,6 +192,9 @@ fn check_tags_from<R: Read + Seek>(reader: &mut R, start: u64) -> Result<(), Nes
     let mut scan_end = start.saturating_add(HEAD_WINDOW);
     let mut leading_zeros = true;
     let mut behind_ape = false;
+    // Every name of a form in the head starts a walk, and the walks share what they
+    // have seen: the same chunks behind many names are walked once, not once each.
+    let mut seen_chunks = std::collections::HashSet::new();
     while at < scan_end {
         let Ok(read) = read_at(reader, at, &mut buffer) else {
             return Ok(());
@@ -240,11 +243,11 @@ fn check_tags_from<R: Read + Seek>(reader: &mut R, start: u64) -> Result<(), Nes
                 at = found + 1;
             }
             Signature::Riff => {
-                check_chunks(reader, found, false)?;
+                check_chunks(reader, found, false, &mut seen_chunks)?;
                 at = found + 1;
             }
             Signature::Form => {
-                check_chunks(reader, found, true)?;
+                check_chunks(reader, found, true, &mut seen_chunks)?;
                 at = found + 1;
             }
         }
@@ -338,6 +341,7 @@ fn check_chunks<R: Read + Seek>(
     reader: &mut R,
     start: u64,
     big_endian: bool,
+    seen: &mut std::collections::HashSet<(u64, bool)>,
 ) -> Result<(), NestedChapters> {
     let Ok(len) = reader.seek(SeekFrom::End(0)) else {
         return Ok(());
@@ -356,9 +360,8 @@ fn check_chunks<R: Read + Seek>(
     }
     let mut buffer = vec![0_u8; HEAD_CHUNK];
     let mut pending = vec![start + 12];
-    let mut seen = std::collections::HashSet::new();
     while let Some(at) = pending.pop() {
-        if !seen.insert(at) {
+        if !seen.insert((at, big_endian)) {
             continue;
         }
         let mut header = [0_u8; 8];
@@ -454,7 +457,36 @@ pub fn check_tag(tag: &[u8]) -> Result<(), NestedChapters> {
         // this flag means each frame's bytes are not what the row below sees.
         in_step: !extended && !(unsynchronised && major == 4),
     };
-    audit.walk(frames, Level::Top)
+    // The row may start anywhere: what bounds a chain is that two frames of it do not
+    // contain each other, not where it starts. So it starts where the extended header
+    // says the frames do, and the names in the header itself are counted like any
+    // other bytes off the row.
+    let row = if extended {
+        extended_header_len(major, frames)
+    } else {
+        0
+    };
+    audit.count_names(frames, 0, row)?;
+    audit.walk(&frames[row..], Level::Top)
+}
+
+/// The length of the extended header at the start of `frames`, as its version spells
+/// it: 2.4 counts its own four bytes, synchsafe, and 2.3 counts what follows them.
+/// Nothing when it says more than there is, and the row then starts at the header.
+fn extended_header_len(major: u8, frames: &[u8]) -> usize {
+    let Some(raw) = frames.get(..4) else {
+        return 0;
+    };
+    let len = if major == 4 {
+        synchsafe(raw) as usize
+    } else {
+        4 + u32::from_be_bytes([raw[0], raw[1], raw[2], raw[3]]) as usize
+    };
+    if len <= frames.len() {
+        len
+    } else {
+        0
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
