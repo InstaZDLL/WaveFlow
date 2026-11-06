@@ -426,8 +426,10 @@
       "reason": {
         "forgotten1_one": "{{count}} reprodução · a última em {{date}}",
         "forgotten1_other": "{{count}} reproduções · a última em {{date}}",
+        "forgotten1_many": "{{count}} reproduções · a última em {{date}}",
         "forgotten2_one": "Ouviste-a {{count}} vez, em {{date}}",
         "forgotten2_other": "Ouviste-a {{count}} vezes, a última em {{date}}",
+        "forgotten2_many": "Ouviste-a {{count}} vezes, a última em {{date}}",
         "vibe1": "Porque tens ouvido {{artist}}",
         "vibe2": "Se andas a gostar de {{artist}}, experimenta esta",
         "vibe3": "No espírito de {{artist}}",
