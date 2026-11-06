@@ -255,9 +255,13 @@ The code that is not GitHub glue lives in
 [`scripts/release/`](../scripts/release/): the asset names and the
 per-platform manifest (`prepare-assets.py`), the merge
 (`merge-manifests.py`), the glibc floor check, the R2 upload, and the
-version comparison that keeps a channel from moving backwards on
-either host (`version-newer.py`, which exits 2 rather than "not
-newer" when it is handed something that is not a version). The
+version comparison (`version-newer.py`, which exits 2 rather than "not
+newer" when it is handed something that is not a version). It keeps
+an R2 channel from moving backwards, unless `R2_FORCE=1`, and decides
+on GitHub whether a stable release also goes to the beta channel. A
+pre-release itself replaces `latest-beta.json` on GitHub without that
+comparison, as it always has, so re-running an older beta's tag moves
+the GitHub beta channel back while its R2 copy stays put. The
 workflow runs them from its own commit, checked out next to the tag
 (`.release-tools/`), so a patch release whose tag predates them builds
 the same way; [`.gitlab-ci.yml`](../.gitlab-ci.yml) runs the same files.
