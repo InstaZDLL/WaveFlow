@@ -486,7 +486,9 @@ fn extended_header_len(major: u8, frames: &[u8]) -> usize {
     let len = if major == 4 {
         synchsafe(raw) as usize
     } else {
-        4 + u32::from_be_bytes([raw[0], raw[1], raw[2], raw[3]]) as usize
+        // Saturating: on a 32-bit target, four past the largest length wraps to a
+        // small one that would pass the check below.
+        4_usize.saturating_add(u32::from_be_bytes([raw[0], raw[1], raw[2], raw[3]]) as usize)
     };
     if len <= frames.len() {
         len
