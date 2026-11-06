@@ -1,0 +1,430 @@
+# GitLab CI/CD — the standby twin of .github/workflows/ci.yml and release.yml.
+#
+# Nothing runs it while the repository lives on GitHub. It is here so that
+# moving to GitLab, if the GitHub account ever goes, is a mirror and a set of
+# secrets rather than a rewrite: docs/RELEASING.md#switching-to-gitlab says
+# what to create, what this file does not replace, and what breaks.
+#
+# What it covers:
+#   - on a merge request and on the default branch: the checks of ci.yml;
+#   - on a tag vX.Y.Z or vX.Y.Z-beta.N: the three platform builds, signed as
+#     release.yml signs them, published on the R2 bucket the app's updater
+#     reads (commands/updater.rs) and as a GitLab release linking there;
+#   - on a pipeline run by hand with BASE_VERSION set: cut-beta.yml.
+#
+# The release logic that is not platform glue lives in scripts/release/,
+# which release.yml runs too: the asset names, which file is the updater
+# payload, the merged manifest and the R2 upload are one contract, written
+# once. The two files differ in where the manifest points: on GitHub at the
+# release and then mirrored, here straight at R2, the only host there is.
+#
+# Runners (GitLab.com hosted, checked 2026-11-06,
+# https://docs.gitlab.com/ci/runners/hosted_runners/):
+#   - Linux: saas-linux-medium-amd64 (4 vCPU, 16 GB, 50 GB disk), on every
+#     tier. The small default has 30 GB of disk and the Rust job peaks at
+#     about 21 GB plus the image and the toolchain: too close.
+#   - Windows: saas-windows-medium-amd64 (2 vCPU, 7.5 GB), on every tier, in
+#     beta. PowerShell shell executor, no `image:`; Visual Studio Build Tools,
+#     CMake, Python and Git are preinstalled, Rust and Bun are not.
+#   - macOS: saas-macos-medium-m1 needs Premium or Ultimate (or the GitLab
+#     for Open Source program). Otherwise register a runner of your own on a
+#     Mac and set MACOS_RUNNER_TAG to its tag (shell executor, Xcode command
+#     line tools, Homebrew).
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$/
+    - if: $CI_PIPELINE_SOURCE == "web" && $BASE_VERSION
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+  auto_cancel:
+    on_new_commit: interruptible
+
+stages:
+  - check
+  - build
+  - publish
+
+variables:
+  # The bucket's public domain, as compiled into the app. A project variable
+  # overrides it, as R2_PUBLIC_URL does on GitHub.
+  R2_PUBLIC_URL: https://download.waveflow.app
+  MACOS_RUNNER_TAG: saas-macos-medium-m1
+  # Ubuntu 24.04's glibc. The Linux release builds in ubuntu:24.04 for the
+  # same reason release.yml pins ubuntu-24.04: a binary needs at least the
+  # glibc it was linked against.
+  GLIBC_FLOOR: "2.39"
+
+# ---------------------------------------------------------------- templates
+
+.ci-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+
+.release-rules:
+  rules:
+    - if: $CI_COMMIT_TAG
+
+.linux-medium:
+  tags: [saas-linux-medium-amd64]
+
+# The compiler comes from rust-toolchain.toml: rustup is installed with no
+# default toolchain, and `rustup toolchain install` with no argument reads
+# the file. So this file names no version, and scripts/check-toolchain-pin.py
+# has no seventh place to watch.
+.rust-linux:
+  extends: .linux-medium
+  image: ubuntu:24.04
+  variables:
+    CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
+    DEBIAN_FRONTEND: noninteractive
+  cache:
+    # The registry only: a `target/` of 20 GB would cost more to upload and
+    # restore than to rebuild.
+    key:
+      files: [src-tauri/Cargo.lock]
+    paths:
+      [
+        .cargo-home/registry/index,
+        .cargo-home/registry/cache,
+        .cargo-home/git/db,
+      ]
+  before_script:
+    - apt-get update
+    - >-
+      apt-get install -y --no-install-recommends
+      ca-certificates curl git build-essential pkg-config cmake python3
+      libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev
+      libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev
+    - curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+    - export PATH="$CARGO_HOME/bin:$PATH"
+    - rustup toolchain install
+    - rustc --version
+
+.rust-windows:
+  tags: [saas-windows-medium-amd64]
+  before_script:
+    - $ProgressPreference = 'SilentlyContinue'
+    - Invoke-WebRequest https://win.rustup.rs/x86_64 -OutFile rustup-init.exe
+    - .\rustup-init.exe -y --profile minimal --default-toolchain none
+    - $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+    - rustup toolchain install
+    - rustc --version
+
+# ------------------------------------------------------------- checks (ci.yml)
+
+toolchain-pin:
+  extends: [.ci-rules, .linux-medium]
+  stage: check
+  image: python:3.12-slim
+  interruptible: true
+  script:
+    - python3 scripts/check-toolchain-pin.py --self-test
+    - python3 scripts/check-toolchain-pin.py
+
+windows-core-pair:
+  extends: [.ci-rules, .linux-medium]
+  stage: check
+  image: python:3.12-slim
+  interruptible: true
+  script:
+    - python3 scripts/check-windows-core-pair.py --self-test
+    - python3 scripts/check-windows-core-pair.py
+
+flatpak-sources:
+  extends: .linux-medium
+  stage: check
+  image: python:3.12-slim
+  interruptible: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        [
+          src-tauri/Cargo.lock,
+          package.json,
+          "packaging/flatpak/**/*",
+          .gitlab-ci.yml,
+        ]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+  script:
+    - python3 packaging/flatpak/check-sources.py --self-test
+    - python3 packaging/flatpak/check-sources.py
+
+frontend:
+  extends: [.ci-rules, .linux-medium]
+  stage: check
+  image: node:22-bookworm
+  interruptible: true
+  cache:
+    key:
+      files: [bun.lock]
+    paths: [.bun-cache]
+  variables:
+    BUN_INSTALL_CACHE_DIR: $CI_PROJECT_DIR/.bun-cache
+  script:
+    - npm install --global bun
+    - bun install --frozen-lockfile
+    - bun run lint
+    - bun run typecheck
+    - bun run build
+
+# The Rust paths filter of ci.yml: a merge request touching none of them
+# skips both Rust jobs; the default branch always runs them.
+.rust-changes:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "src-tauri/**/*"
+        - rust-toolchain.toml
+        - rustfmt.toml
+        - clippy.toml
+        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+
+rust-linux:
+  extends: [.rust-linux, .rust-changes]
+  stage: check
+  interruptible: true
+  timeout: 2h
+  script:
+    - cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+    - cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets -- -D warnings
+    - cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
+    - cargo check --manifest-path src-tauri/Cargo.toml -p waveflow-core --no-default-features --features postgres
+    - cargo test --manifest-path src-tauri/Cargo.toml -p waveflow --features sync_v2 --all-targets
+    - cargo check --manifest-path src-tauri/Cargo.toml -p waveflow --no-default-features --all-targets
+    - cargo test --manifest-path src-tauri/Cargo.toml --workspace
+    - cargo test --manifest-path src-tauri/Cargo.toml -p waveflow-core --features sqlite
+
+# The app crate's test binary does not start on a headless Windows machine
+# (STATUS_ENTRYPOINT_NOT_FOUND, the WebView2 loader): it is checked here and
+# its tests run on Linux, as in ci.yml.
+rust-windows:
+  extends: [.rust-windows, .rust-changes]
+  stage: check
+  interruptible: true
+  timeout: 2h
+  script:
+    - cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
+    - cargo test --manifest-path src-tauri/Cargo.toml --workspace --exclude waveflow
+    - cargo test --manifest-path src-tauri/Cargo.toml -p waveflow-core --features sqlite
+
+# ------------------------------------------------------- release (release.yml)
+
+# Shared by the three builds: the tag decides the version and the channel, a
+# pre-release suffix (2.0.0-beta.1) the beta one. The app version is patched
+# into tauri.conf.json for the reason release.yml gives: a beta is tagged on
+# a commit whose manifests still name the stable version.
+.release-env-bash: &release-env-bash
+  - export TAG_NAME="$CI_COMMIT_TAG" VERSION="${CI_COMMIT_TAG#v}"
+  - if [ "${VERSION#*-}" != "$VERSION" ]; then export IS_PRERELEASE=true; else export IS_PRERELEASE=false; fi
+  - echo "Building $TAG_NAME (version $VERSION, pre-release $IS_PRERELEASE)"
+  - >-
+    python3 -c "import json,os,sys; p='src-tauri/crates/app/tauri.conf.json';
+    c=json.load(open(p,encoding='utf-8')); c['version']=os.environ['VERSION'];
+    open(p,'w',encoding='utf-8').write(json.dumps(c,indent=2)+'\n')"
+  - >-
+    if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ] || [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+    echo "TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD are required"; exit 1; fi
+
+release-linux:
+  extends: [.release-rules, .linux-medium]
+  stage: build
+  image: ubuntu:24.04
+  timeout: 2h
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    # No FUSE in a container: the AppImage tools Tauri runs extract
+    # themselves instead of mounting.
+    APPIMAGE_EXTRACT_AND_RUN: "1"
+  script:
+    - apt-get update
+    # release.yml's list, plus what the ubuntu-24.04 runner already has.
+    - >-
+      apt-get install -y --no-install-recommends
+      ca-certificates curl wget git unzip file python3 binutils xdg-utils
+      libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev
+      build-essential libxdo-dev libssl-dev libayatana-appindicator3-dev
+      librsvg2-dev libfuse2 squashfs-tools zsync libasound2-dev cmake
+      gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+      gstreamer1.0-plugins-bad gstreamer1.0-libav
+    # `bun run tauri` starts scripts/tauri.mjs with node, and Vite wants a
+    # newer one than Ubuntu's 18.
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    - apt-get install -y --no-install-recommends nodejs
+    - curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup toolchain install
+    - curl -fsSL https://bun.sh/install | bash
+    - export PATH="$HOME/.bun/bin:$PATH"
+    - *release-env-bash
+    - bun install --frozen-lockfile
+    - bun run tauri build --bundles appimage,deb,rpm
+    - bash scripts/fix-appimage.sh
+    # Not appimage-update-info.sh: the string it embeds sends AppImageUpdate
+    # to the GitHub releases (docs/RELEASING.md#switching-to-gitlab).
+    - bash scripts/release/check-glibc-floor.sh
+    - python3 scripts/release/prepare-assets.py linux --base-url "$R2_PUBLIC_URL/releases/$TAG_NAME"
+  artifacts:
+    paths: [dist-release/, dist-manifest/]
+    expire_in: 1 week
+
+release-windows:
+  extends: [.release-rules, .rust-windows]
+  stage: build
+  timeout: 3h
+  script:
+    - $env:TAG_NAME = $env:CI_COMMIT_TAG
+    - $env:VERSION = $env:CI_COMMIT_TAG.Substring(1)
+    - $env:IS_PRERELEASE = if ($env:VERSION.Contains('-')) { 'true' } else { 'false' }
+    - Write-Host "Building $env:TAG_NAME (version $env:VERSION, pre-release $env:IS_PRERELEASE)"
+    - if (-not $env:TAURI_SIGNING_PRIVATE_KEY -or -not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { Write-Error 'TAURI_SIGNING_PRIVATE_KEY and its password are required'; exit 1 }
+    - if (-not $env:SIGNTOOL_PFX_BASE64 -or -not $env:SIGNTOOL_PFX_PASSWORD) { Write-Error 'SIGNTOOL_PFX_BASE64 and SIGNTOOL_PFX_PASSWORD are required'; exit 1 }
+    - powershell -c "irm bun.sh/install.ps1 | iex"
+    - $env:Path = "$env:USERPROFILE\.bun\bin;$env:Path"
+    - python -c "import json,os; p='src-tauri/crates/app/tauri.conf.json'; c=json.load(open(p,encoding='utf-8')); c['version']=os.environ['VERSION']; open(p,'w',encoding='utf-8').write(json.dumps(c,indent=2)+'\n')"
+    # Authenticode, as release.yml does it: the object form of signCommand,
+    # signtool by absolute path, the PFX removed in after_script.
+    - $pfxPath = (Join-Path $env:CI_PROJECT_DIR "cert.pfx") -replace '\\', '/'
+    - "[IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:SIGNTOOL_PFX_BASE64))"
+    - >-
+      $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+      Sort-Object -Property @{ Expression = { try { [Version]$_.Directory.Parent.Name } catch { [Version]"0.0.0.0" } } } -Descending |
+      Select-Object -First 1
+    - if (-not $signtool) { Write-Error "signtool.exe not found in the Windows Kits"; exit 1 }
+    - $config = Get-Content src-tauri/crates/app/tauri.conf.json -Raw | ConvertFrom-Json
+    - >-
+      $sign = [pscustomobject]@{ cmd = ($signtool.FullName -replace '\\', '/'); args = @("sign", "/fd", "SHA256",
+      "/tr", "http://timestamp.digicert.com", "/td", "SHA256", "/f", $pfxPath, "/p", $env:SIGNTOOL_PFX_PASSWORD, "%1") }
+    - if (-not $config.bundle.windows) { $config.bundle | Add-Member -MemberType NoteProperty -Name windows -Value ([pscustomobject]@{}) -Force }
+    - $config.bundle.windows | Add-Member -MemberType NoteProperty -Name signCommand -Value $sign -Force
+    - ($config | ConvertTo-Json -Depth 20) | Set-Content src-tauri/crates/app/tauri.conf.json -Encoding utf8
+    - bun install --frozen-lockfile
+    # NSIS alone on a beta: WiX refuses a non-numeric pre-release version.
+    - $bundles = if ($env:IS_PRERELEASE -eq 'true') { 'nsis' } else { 'nsis,msi' }
+    - bun run tauri build --bundles $bundles
+    - git checkout -- src-tauri/crates/app/tauri.conf.json
+    - python scripts/release/prepare-assets.py windows --base-url "$env:R2_PUBLIC_URL/releases/$env:TAG_NAME"
+  after_script:
+    - Remove-Item -LiteralPath (Join-Path $env:CI_PROJECT_DIR "cert.pfx") -Force -ErrorAction SilentlyContinue
+  artifacts:
+    paths: [dist-release/, dist-manifest/]
+    expire_in: 1 week
+
+release-macos:
+  extends: .release-rules
+  stage: build
+  tags: [$MACOS_RUNNER_TAG]
+  # Read by GitLab's hosted macOS runners only; a runner of your own ignores it.
+  image: macos-15-xcode-16
+  timeout: 2h
+  script:
+    - curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+    - export PATH="$HOME/.cargo/bin:$PATH"
+    - rustup toolchain install
+    - rustup target add aarch64-apple-darwin x86_64-apple-darwin
+    - cmake --version || brew install cmake
+    - node --version || brew install node
+    - curl -fsSL https://bun.sh/install | bash
+    - export PATH="$HOME/.bun/bin:$PATH"
+    - *release-env-bash
+    # The signing mode, with release.yml's rule: no APPLE_* variable is an
+    # ad-hoc build on purpose, a partial set is a mistake and fails.
+    - |
+      notarize="$APPLE_ID$APPLE_PASSWORD$APPLE_TEAM_ID"
+      if [ -n "$APPLE_CERTIFICATE$APPLE_CERTIFICATE_PASSWORD$APPLE_SIGNING_IDENTITY$notarize" ]; then
+        if [ -z "$APPLE_CERTIFICATE" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ] || [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+          echo "APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD and APPLE_SIGNING_IDENTITY go together"; exit 1
+        fi
+        if [ -n "$notarize" ] && { [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
+          echo "Notarization needs all three of APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID"; exit 1
+        fi
+        export MACOS_NOTARIZE=$([ -n "$notarize" ] && echo true || echo false)
+      else
+        echo "No APPLE_CERTIFICATE: ad-hoc signing (sealed bundle, stable identity, Gatekeeper still warns)."
+        unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+        export APPLE_SIGNING_IDENTITY="-" MACOS_NOTARIZE=false
+      fi
+    - bun install --frozen-lockfile
+    - bun run tauri build --target universal-apple-darwin --bundles app,dmg
+    # The checks of release.yml's "Verify macOS signature".
+    - |
+      APP=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' | head -1)
+      codesign --verify --strict --verbose=2 "$APP"
+      details=$(codesign -dv "$APP" 2>&1); echo "$details"
+      case "$details" in *"Identifier=app.waveflow"*) ;; *) echo "identifier is not app.waveflow"; exit 1 ;; esac
+      case "$details" in *"Sealed Resources"*) ;; *) echo "no sealed resources"; exit 1 ;; esac
+      if [ "$MACOS_NOTARIZE" = true ]; then spctl --assess --type exec --verbose=4 "$APP"; fi
+    - python3 scripts/release/prepare-assets.py macos --base-url "$R2_PUBLIC_URL/releases/$TAG_NAME"
+  artifacts:
+    paths: [dist-release/, dist-manifest/]
+    expire_in: 1 week
+
+# R2 is the only host here, so a missing secret fails the release instead of
+# skipping as on GitHub. The GitLab release itself holds links, not files:
+# the project's storage quota would not take an installer set per version.
+publish:
+  extends: [.release-rules, .linux-medium]
+  stage: publish
+  image: ubuntu:24.04
+  needs: [release-linux, release-windows, release-macos]
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  script:
+    - apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip python3
+    - curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+    - unzip -q awscliv2.zip && ./aws/install
+    - export TAG_NAME="$CI_COMMIT_TAG" VERSION="${CI_COMMIT_TAG#v}"
+    - if [ "${VERSION#*-}" != "$VERSION" ]; then export IS_PRERELEASE=true; else export IS_PRERELEASE=false; fi
+    - test "$(bash scripts/release/publish-r2.sh --check)" = configured
+    - python3 scripts/release/merge-manifests.py dist-manifest dist-release/latest.json
+    - bash scripts/release/publish-r2.sh dist-release dist-release/latest.json
+    - |
+      python3 - <<'PY'
+      import json, os, pathlib, urllib.error, urllib.request
+      tag, base = os.environ["TAG_NAME"], os.environ["R2_PUBLIC_URL"].rstrip("/")
+      links = [
+          {"name": p.name, "url": f"{base}/releases/{tag}/{p.name}", "link_type": "package"}
+          for p in sorted(pathlib.Path("dist-release").iterdir())
+          if p.is_file() and p.name != "latest.json" and not p.name.endswith(".sig")
+      ]
+      body = json.dumps({"tag_name": tag, "name": tag, "assets": {"links": links}}).encode()
+      req = urllib.request.Request(
+          f"{os.environ['CI_API_V4_URL']}/projects/{os.environ['CI_PROJECT_ID']}/releases",
+          data=body, method="POST",
+          headers={"JOB-TOKEN": os.environ["CI_JOB_TOKEN"], "Content-Type": "application/json"},
+      )
+      try:
+          with urllib.request.urlopen(req) as res:
+              print("GitLab release", tag, res.status, len(links), "links")
+      except urllib.error.HTTPError as err:
+          # A retried job finds the release it made the first time.
+          if err.code != 409:
+              raise
+          print("GitLab release", tag, "already exists")
+      PY
+
+# ---------------------------------------------------------- cut-beta.yml
+
+# Run a pipeline by hand (Build → Pipelines → Run pipeline) with BASE_VERSION
+# set, e.g. 2.0.1. The tag is pushed with a project access token: unlike
+# GitHub's GITHUB_TOKEN, a tag pushed that way starts its own pipeline, so
+# there is nothing to dispatch afterwards.
+cut-beta:
+  extends: .linux-medium
+  stage: check
+  image: alpine:3.20
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $BASE_VERSION
+  script:
+    - apk add --no-cache git
+    - BASE="${BASE_VERSION#v}"
+    - echo "$BASE" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "BASE_VERSION must be MAJOR.MINOR.PATCH (got $BASE)"; exit 1; }
+    - test -n "$GITLAB_PUSH_TOKEN" || { echo "GITLAB_PUSH_TOKEN (project access token, write_repository) is required"; exit 1; }
+    - git fetch --tags --force
+    - MAX=$(git tag --list "v${BASE}-beta.*" | sed 's/.*\.//' | grep -E '^[0-9]+$' | sort -n | tail -n 1)
+    - TAG="v${BASE}-beta.$(( ${MAX:-0} + 1 ))"
+    - echo "Cutting $TAG at $(git rev-parse --short HEAD)"
+    - git tag "$TAG"
+    - git push "https://oauth2:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "$TAG"
