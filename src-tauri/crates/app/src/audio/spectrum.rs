@@ -46,10 +46,19 @@ const HOP: usize = 1024;
 
 /// How fast the level reference follows the music, up and down. It rises
 /// within a fraction of a second so a loud passage does not pin every bar
-/// to the top, and sinks over seconds so a quiet bar in a loud song stays
-/// quiet instead of being inflated between two beats.
+/// to the top, and sinks over the length of a passage, not of a beat: at
+/// three seconds it was back at the floor a few seconds into a verse or a
+/// bridge, which was then scaled up to the height of the chorus before it.
 const LEVEL_ATTACK: Duration = Duration::from_millis(250);
-const LEVEL_RELEASE: Duration = Duration::from_secs(3);
+const LEVEL_RELEASE: Duration = Duration::from_secs(15);
+
+/// How long each band's power is averaged over, about two frames. One
+/// window's estimate of a steady sound wanders on its own from one window
+/// to the next (a single bin of noise swings by half its value), and drawn
+/// as is it made the whole shape tremble on every frame. A kick holds its
+/// energy for about 100 ms, so it comes through the average at nearly its
+/// full height.
+const BAND_SMOOTHING: Duration = Duration::from_millis(60);
 
 /// The level reference never drops below this magnitude. Without a floor
 /// a fade-out or a silent gap would be scaled up until its noise filled
@@ -94,8 +103,11 @@ pub struct SpectrumAnalyzer {
     scratch: Vec<Complex<f32>>,
     /// Output band magnitudes (length = BAND_COUNT).
     bands: Vec<f32>,
-    /// Raw (unnormalised) band magnitudes of the current frame.
+    /// Band magnitudes of the current frame before scaling: raw out of the
+    /// FFT, then averaged over time by [`smooth_bands`].
     raw: Vec<f32>,
+    /// Each band's power averaged over the last frames ([`BAND_SMOOTHING`]).
+    power: Vec<f32>,
     /// Running level reference the bands are scaled against (#715).
     level: f32,
     /// Audio slid through the window since the last emitted frame, in
@@ -122,6 +134,7 @@ impl SpectrumAnalyzer {
             scratch,
             bands: vec![0.0; BAND_COUNT],
             raw: vec![0.0; BAND_COUNT],
+            power: vec![0.0; BAND_COUNT],
             level: MIN_LEVEL,
             // The first full window emits at once.
             since_emit: usize::MAX,
@@ -131,16 +144,17 @@ impl SpectrumAnalyzer {
     /// Drop the samples waiting for the next window, after a seek. The
     /// ring has just been emptied, so the next frame must be built from
     /// the new position alone; mixing in up to a window of the old one
-    /// would also put its middle before anything still to be played. The
-    /// level reference is kept: it is the same track, and resetting it
-    /// would flash the bars to full height.
+    /// would also put its middle before anything still to be played. For
+    /// the same reason the band average starts afresh with that frame,
+    /// the first since the seek. The level reference is kept: it is the
+    /// same track, and resetting it would flash the bars to full height.
     pub fn discard_pending(&mut self) {
         self.pending.clear();
         self.since_emit = usize::MAX;
     }
 
-    /// Reset the rolling buffer and the level reference, so a new
-    /// track's first frame owes nothing to the previous one.
+    /// Reset the rolling buffer, the band average and the level reference,
+    /// so a new track's first frame owes nothing to the previous one.
     pub fn reset(&mut self) {
         self.pending.clear();
         // A new track starts from the floor, not from the last one's
@@ -172,6 +186,8 @@ impl SpectrumAnalyzer {
             // Same reason for the level: re-enabled mid-track, the old
             // reference would dim the bars for seconds while it decays.
             self.level = MIN_LEVEL;
+            // And the band average starts afresh with the first frame.
+            self.since_emit = usize::MAX;
             return;
         }
         if channels == 0 || sample_rate <= 0.0 {
@@ -205,7 +221,7 @@ impl SpectrumAnalyzer {
                 let first = self.since_emit == usize::MAX;
                 let audio = if first { interval } else { self.since_emit };
                 let elapsed = Duration::from_secs_f32((audio as f32 / sample_rate).min(1.0));
-                self.run_one_frame(sample_rate, elapsed);
+                self.run_one_frame(sample_rate, elapsed, first);
                 let payload = SpectrumPayload {
                     bands: self.bands.clone(),
                     delay_ms: delay_ms(
@@ -234,7 +250,10 @@ impl SpectrumAnalyzer {
         }
     }
 
-    fn run_one_frame(&mut self, sample_rate: f32, elapsed: Duration) {
+    /// Analyse the window in `pending[..FFT_SIZE]` into `bands`. `first`
+    /// is the first frame since a reset, a seek or a re-enable: it has no
+    /// previous frame to be averaged with.
+    fn run_one_frame(&mut self, sample_rate: f32, elapsed: Duration, first: bool) {
         // Apply the Hann window into the FFT input buffer.
         for (i, dst) in self.input.iter_mut().enumerate() {
             *dst = self.pending[i] * self.window[i];
@@ -252,6 +271,7 @@ impl SpectrumAnalyzer {
         }
 
         band_magnitudes(&self.spectrum, sample_rate, &mut self.raw);
+        smooth_bands(&mut self.power, &mut self.raw, elapsed, first);
         let frame_peak = self.raw.iter().copied().fold(0.0f32, f32::max);
         self.level = follow_level(self.level, frame_peak, elapsed);
         scale_bands(&self.raw, self.level, &mut self.bands);
@@ -322,6 +342,23 @@ fn follow_level(level: f32, frame_peak: f32, elapsed: Duration) -> f32 {
     };
     let alpha = 1.0 - (-elapsed.as_secs_f32() / tau.as_secs_f32()).exp();
     (level + (frame_peak - level) * alpha).max(MIN_LEVEL)
+}
+
+/// Average each band's power over the last frames, then hand the band back
+/// as a magnitude. One-pole, in power rather than in magnitude so a burst
+/// counts for its energy, with the coefficient from the audio since the
+/// previous frame, as in [`follow_level`]. The `first` frame since a reset
+/// takes the band as it is: there is nothing before it to average with.
+fn smooth_bands(power: &mut [f32], bands: &mut [f32], elapsed: Duration, first: bool) {
+    let alpha = if first {
+        1.0
+    } else {
+        1.0 - (-elapsed.as_secs_f32() / BAND_SMOOTHING.as_secs_f32()).exp()
+    };
+    for (p, band) in power.iter_mut().zip(bands.iter_mut()) {
+        *p += (*band * *band - *p) * alpha;
+        *band = p.sqrt();
+    }
 }
 
 /// Magnitude of each log-spaced band: the peak bin inside it, or, for a

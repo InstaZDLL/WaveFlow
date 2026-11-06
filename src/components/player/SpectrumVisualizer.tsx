@@ -40,6 +40,21 @@ const HIGH_CONTRAST_AREA_ALPHA = 0.4;
 const RAINBOW_AREA_ALPHA = 0.35;
 
 /**
+ * How fast the drawn shape follows the frames, as time constants in
+ * milliseconds: up fast, so a hit lands with its beat, down slower, so the
+ * shape eases between two frames instead of snapping. Time constants
+ * rather than a fraction per animation frame: a fraction per frame made a
+ * 144 Hz display follow the frames more than twice as fast as a 60 Hz one,
+ * and twice as nervously.
+ */
+const ATTACK_MS = 21;
+const RELEASE_MS = 120;
+/** Under reduced motion both halves are damped: the ask there is for calm,
+ *  and a curve that eases into place is calmer than one that stops moving. */
+const REDUCED_ATTACK_MS = 70;
+const REDUCED_RELEASE_MS = 300;
+
+/**
  * Real-time spectrum visualizer. Draws the backend's `player:spectrum`
  * frames (~30 Hz from the decoder thread, see `audio/spectrum.rs`) as
  * [`spectrumFeed`](../../lib/spectrumFeed.ts) hands them out, and renders the 48 log-spaced bands on a `<canvas>`
@@ -230,16 +245,24 @@ export function SpectrumVisualizer({
       }
     };
 
+    // When the previous animation frame ran, so the smoothing below moves
+    // by the time that passed rather than by a step per frame.
+    let lastTick: number | null = null;
+
     const tick = () => {
+      const now = performance.now();
+      const dt = lastTick === null ? 0 : now - lastTick;
+      lastTick = now;
       // Asymmetric smoothing: jump up fast (so transients pop), decay down
-      // slowly (so it doesn't look glitchy). Under reduced motion both
-      // halves are damped — the ask there is for calm, and a curve that
-      // eases into place is calmer than one that stops moving.
-      const attack = reducedMotion ? 0.22 : 0.55;
-      const release = reducedMotion ? 0.08 : 0.18;
+      // slower (so it doesn't look glitchy). The fraction of the way each
+      // half moves this frame, from its time constant.
+      const attack =
+        1 - Math.exp(-dt / (reducedMotion ? REDUCED_ATTACK_MS : ATTACK_MS));
+      const release =
+        1 - Math.exp(-dt / (reducedMotion ? REDUCED_RELEASE_MS : RELEASE_MS));
 
       // Paused, nothing is due: the shape holds where the music stopped.
-      const due = takeDueFrame(performance.now());
+      const due = takeDueFrame(now);
       if (due) targetRef.current = due;
 
       const target = targetRef.current;
@@ -259,7 +282,7 @@ export function SpectrumVisualizer({
         // No frame has arrived yet: whatever is drawn settles onto a flat
         // line. A pause does not land here; it keeps the last frame.
         const drawn = drawnRef.current;
-        const decay = reducedMotion ? 0.92 : 0.85;
+        const decay = 1 - release;
         let any = false;
         for (let i = 0; i < drawn.length; i++) {
           drawn[i] *= decay;
