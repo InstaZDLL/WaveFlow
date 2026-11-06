@@ -208,6 +208,13 @@ fn a_band_that_is_not_finite_does_not_stick() {
     let mut band = [100.0];
     smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
     assert_eq!(band[0], 100.0);
+
+    // Without a reset too: an average that is not finite takes the band.
+    let mut power = [f32::NAN; 1];
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert_eq!(band[0], 100.0);
+    assert_eq!(power[0], 10_000.0);
 }
 
 /// End to end on the analyzer: steady white noise, a fresh window every
