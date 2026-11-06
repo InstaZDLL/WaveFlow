@@ -1371,7 +1371,10 @@ html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
    component fire. The structure paints most surfaces from the tokens;
    what it does not reach — white type, zinc slabs, the dark hover of a
    list — is folded back onto the inks and the paper here, as the 1.x
-   Editorial did. The immersive view is excluded: it is always dark. */
+   Editorial did. The immersive view is excluded: it is always dark.
+   So is anything active: its own rule paints it (the ink tile of the
+   open page, the tone of the open playlist), and the fold, more specific,
+   used to put the open page's tile back on paper under its paper type. */
 :root[data-skin="editorial"].dark
   :where(.dark\:text-white, .dark\:text-zinc-100, .dark\:text-zinc-200):not(
     [data-immersive] *
@@ -1398,7 +1401,7 @@ html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
     [class*="dark:bg-surface-dark"]
   ):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not(
     [data-immersive]
-  ):not([data-immersive] *) {
+  ):not([data-immersive] *):not([data-active]) {
   background-color: var(--ed-paper) !important;
 }
 :root[data-skin="editorial"].dark
