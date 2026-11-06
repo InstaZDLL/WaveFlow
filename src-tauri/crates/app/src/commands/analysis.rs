@@ -386,7 +386,7 @@ pub async fn reanalyze_lossless(
         Err(err) => {
             // Releases the slot, as every end of a run does.
             drop(RunningGuard { app: app.clone() });
-            return Err(err.into());
+            return Err(err);
         }
     };
     tauri::async_runtime::spawn(async move {
@@ -402,7 +402,7 @@ pub async fn reanalyze_lossless(
 /// no cached copy is one the sweep skips, so marking it would leave it
 /// waiting with its verdict hidden until the copy comes back; it keeps
 /// its measure instead. Returns how many rows it marked.
-pub(crate) async fn mark_lossless_unmeasured(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
+pub(crate) async fn mark_lossless_unmeasured(pool: &SqlitePool) -> AppResult<u64> {
     let measured: Vec<(i64, String)> = sqlx::query_as(concat!(
         "SELECT t.id, t.file_path
            FROM track t
@@ -414,11 +414,21 @@ pub(crate) async fn mark_lossless_unmeasured(pool: &SqlitePool) -> Result<u64, s
     ))
     .fetch_all(pool)
     .await?;
-    let ids: Vec<i64> = measured
-        .into_iter()
-        .filter(|(_, path)| crate::netlib::local_copy(path).is_some())
-        .map(|(id, _)| id)
-        .collect();
+    // Off the runtime: a share's track is looked up in the disk cache,
+    // once per file of a library that may hold thousands.
+    let ids: Vec<i64> = tokio::task::spawn_blocking(move || {
+        measured
+            .into_iter()
+            .filter(|(_, path)| crate::netlib::local_copy(path).is_some())
+            .map(|(id, _)| id)
+            .collect()
+    })
+    .await
+    .map_err(|e| {
+        AppError::Other(format!(
+            "lossless re-analysis: listing the files failed: {e}"
+        ))
+    })?;
     // The one write here, so it takes the turn every background writer
     // takes: behind a scan in flight, and again on a busy database.
     const MAX_ATTEMPTS: usize = 6;
@@ -430,7 +440,7 @@ pub(crate) async fn mark_lossless_unmeasured(pool: &SqlitePool) -> Result<u64, s
                 tokio::time::sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(2));
             }
-            done => return done,
+            done => return done.map_err(AppError::from),
         }
     }
     unreachable!("the last attempt returns")
