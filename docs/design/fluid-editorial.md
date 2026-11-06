@@ -89,7 +89,7 @@ The product's symbol is the same wave closed into a letter: the W of the name, o
 - **Cards** (extensions, folders): surface tone, 14 px radius, no border, a tone up on hover; a title, a muted path or subtitle, chips for facts, actions in the top-right corner that appear on hover.
 - **Tables**: header on the page's tone with a hairline under it, rows parted by white 5 %, the playing row on a tone with the accent's edge; no outer frame.
 - **Menus and popovers**: `surface-2`, 14 px radius, no border, an inset top highlight and a deep soft shadow; rows with their own 8 px radius that take a tone on hover.
-- **Player bar**: one surface, a top gradient from the glow, the wave as its top edge; the transport centred on the window. A control that is on (shuffle, repeat, an open panel, the A-B loop) wears the accent, at rest and under the pointer, in every material: a material's own ink or hover colour on the bar's buttons never covers it.
+- **Player bar**: one surface, a top gradient from the glow, the wave as its top edge; the transport centred on the window. A control that is on (shuffle, repeat, an open panel, the A-B loop) wears the accent, at rest and under the pointer, in every material: a material's own ink or hover colour on the bar's buttons never covers it, and a toggle that is off never takes the accent under the pointer. A control on an accent ground (an open popover's trigger, the active EQ preset) keeps the material's ink for that ground.
 
 ## Five materials on one structure
 
