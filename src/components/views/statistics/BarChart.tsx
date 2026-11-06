@@ -25,9 +25,15 @@ interface BarChartProps {
 /**
  * Minimal SVG bar chart — no external chart library.
  *
- * Bars are sized by ratio against the dataset max; tooltip shows on hover
- * via a positioned div. Renders responsively via `viewBox` so it scales
+ * Bars are sized by ratio against the dataset max; the tooltip is the
+ * bar's SVG `<title>`. Renders responsively via `viewBox` so it scales
  * with the parent container.
+ *
+ * Each bar is hovered through its whole column, gutters included, and
+ * only leaving the chart clears the highlight. Hovering the painted bar
+ * alone blanked the highlight in every gutter, so the chart blinked at
+ * each move from one day to the next, and a near-empty day (a bar a
+ * pixel high) could not be hovered at all.
  */
 export function BarChart({
   data,
@@ -69,6 +75,7 @@ export function BarChart({
         style={{ height }}
         role="img"
         aria-labelledby={titleId}
+        onMouseLeave={() => setHoverIdx(null)}
       >
         <title id={titleId}>{ariaLabel}</title>
         {data.map((d, i) => {
@@ -77,23 +84,25 @@ export function BarChart({
           const y = height - h;
           const active = hoverIdx === i;
           return (
-            <rect
-              key={d.key}
-              x={x}
-              y={y}
-              width={innerBarWidthPct}
-              height={h}
-              rx={0.5}
-              className={
-                active
-                  ? "fill-emerald-500"
-                  : "fill-emerald-500/70 hover:fill-emerald-500"
-              }
-              onMouseEnter={() => setHoverIdx(i)}
-              onMouseLeave={() => setHoverIdx(null)}
-            >
+            <g key={d.key} onMouseEnter={() => setHoverIdx(i)}>
               <title>{d.tooltip ?? `${d.label}: ${d.value}`}</title>
-            </rect>
+              {/* The column's hit area: transparent, full width and height. */}
+              <rect
+                x={i * barWidthPct}
+                y={0}
+                width={barWidthPct}
+                height={height}
+                fill="transparent"
+              />
+              <rect
+                x={x}
+                y={y}
+                width={innerBarWidthPct}
+                height={h}
+                rx={0.5}
+                className={active ? "fill-emerald-500" : "fill-emerald-500/70"}
+              />
+            </g>
           );
         })}
       </svg>
