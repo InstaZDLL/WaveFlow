@@ -19,6 +19,14 @@
 //!     1.8.0-beta.3 used to read the beta manifest alone and never saw
 //!     1.8.0 (#793).
 //!
+//! Every manifest has a **mirror** on `download.waveflow.app`, a
+//! Cloudflare R2 bucket `release.yml` fills with the same signed
+//! payloads. The endpoints are compiled into the binary, so a build
+//! that knew only GitHub could never follow the releases anywhere else.
+//! Both copies are read and the newest answer wins, which also survives
+//! one host being down, answering 404 or serving a page that is not
+//! JSON (`docs/RELEASING.md#second-download-source-cloudflare-r2`).
+//!
 //! The actual updater calls are compiled only into release builds with
 //! the `updater` feature (same gate as the plugin registration in
 //! `lib.rs`) — `app.updater_builder()` reads `self.state::<UpdaterState>()`
@@ -52,6 +60,19 @@ const STABLE_ENDPOINT: &str =
 const BETA_ENDPOINT: &str =
     "https://github.com/InstaZDLL/WaveFlow/releases/download/beta-channel/latest-beta.json";
 
+/// The stable manifest's mirror on R2, rewritten by `release.yml` to
+/// point at the payloads copied next to it. The signatures are the same
+/// bytes, so the updater accepts either copy under the one public key.
+#[allow(dead_code)]
+const STABLE_MIRROR_ENDPOINT: &str = "https://download.waveflow.app/stable/latest.json";
+
+/// The beta manifest's mirror on R2. Only a pre-release tag writes it:
+/// a stable newer than the last beta reaches testers through
+/// [`STABLE_MIRROR_ENDPOINT`], which the beta channel reads too, so the
+/// copy `release.yml` makes onto `beta-channel` has no mirror twin.
+#[allow(dead_code)]
+const BETA_MIRROR_ENDPOINT: &str = "https://download.waveflow.app/beta/latest.json";
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum UpdateChannel {
     Stable,
@@ -79,11 +100,23 @@ impl UpdateChannel {
     /// releases too: one that is newer than the last beta is an update
     /// for them, and `release.yml` only copies it onto the beta channel
     /// from now on, which a build without this list never learns of.
+    ///
+    /// Each GitHub manifest is followed by its R2 mirror. They are read
+    /// one at a time by `imp::check`, never handed to the plugin as one
+    /// list: its own loop (2.14) stops at the first manifest that parses
+    /// without comparing versions, and gives up on the spot when a host
+    /// answers 200 with a body that is not JSON — a suspended account's
+    /// page, a captive portal.
     #[allow(dead_code)] // used only by the release-gated `imp` module
     fn endpoints(self) -> &'static [&'static str] {
         match self {
-            UpdateChannel::Stable => &[STABLE_ENDPOINT],
-            UpdateChannel::Beta => &[BETA_ENDPOINT, STABLE_ENDPOINT],
+            UpdateChannel::Stable => &[STABLE_ENDPOINT, STABLE_MIRROR_ENDPOINT],
+            UpdateChannel::Beta => &[
+                BETA_ENDPOINT,
+                BETA_MIRROR_ENDPOINT,
+                STABLE_ENDPOINT,
+                STABLE_MIRROR_ENDPOINT,
+            ],
         }
     }
 }
@@ -172,6 +205,9 @@ mod imp {
     #[derive(Default)]
     pub struct PendingUpdate(pub Mutex<Option<Update>>);
 
+    /// How long one manifest may take to answer.
+    const CHECK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
     /// The cause chain too: the plugin's `Reqwest` variant is transparent,
     /// and its message alone reads "error sending request" — offline, DNS,
     /// refused and timed out all look the same without the layers below.
@@ -190,7 +226,20 @@ mod imp {
             .map_err(updater_err)?
             .build()
             .map_err(updater_err)?;
-        updater.check().await.map_err(updater_err)
+        // The plugin sets no timeout of its own, and a host that accepts
+        // the connection and never answers would hold back every manifest
+        // after it — the mirror is only worth something if it is asked.
+        // Around the check alone: the builder's `timeout` would also cap
+        // the download of the payload.
+        tokio::time::timeout(CHECK_TIMEOUT, updater.check())
+            .await
+            .map_err(|_| {
+                AppError::Other(format!(
+                    "updater: no answer within {} s",
+                    CHECK_TIMEOUT.as_secs()
+                ))
+            })?
+            .map_err(updater_err)
     }
 
     pub async fn check(app: &AppHandle, channel: UpdateChannel) -> AppResult<Option<UpdateInfo>> {

@@ -1,4 +1,7 @@
-use super::{is_newer, UpdateChannel, BETA_ENDPOINT, STABLE_ENDPOINT};
+use super::{
+    is_newer, UpdateChannel, BETA_ENDPOINT, BETA_MIRROR_ENDPOINT, STABLE_ENDPOINT,
+    STABLE_MIRROR_ENDPOINT,
+};
 
 #[test]
 fn a_release_outranks_its_own_betas() {
@@ -27,9 +30,48 @@ fn a_version_that_does_not_parse_never_wins() {
 
 #[test]
 fn the_beta_channel_reads_the_stable_manifest_too() {
-    assert_eq!(UpdateChannel::Stable.endpoints(), [STABLE_ENDPOINT]);
+    assert_eq!(
+        UpdateChannel::Stable.endpoints(),
+        [STABLE_ENDPOINT, STABLE_MIRROR_ENDPOINT]
+    );
     assert_eq!(
         UpdateChannel::Beta.endpoints(),
-        [BETA_ENDPOINT, STABLE_ENDPOINT]
+        [
+            BETA_ENDPOINT,
+            BETA_MIRROR_ENDPOINT,
+            STABLE_ENDPOINT,
+            STABLE_MIRROR_ENDPOINT
+        ]
     );
+}
+
+/// A build that lost its mirror would stop updating the day GitHub
+/// stops answering, and nothing would say so before that day.
+#[test]
+fn every_channel_reads_github_and_its_mirror() {
+    for channel in [UpdateChannel::Stable, UpdateChannel::Beta] {
+        let endpoints = channel.endpoints();
+        assert!(endpoints
+            .iter()
+            .any(|e| e.starts_with("https://github.com/")));
+        assert!(endpoints
+            .iter()
+            .any(|e| e.starts_with("https://download.waveflow.app/")));
+    }
+}
+
+/// `tauri.conf.json` names the stable pair too. Nothing reads it while
+/// every check goes through `UpdateChannel::endpoints`, so only this
+/// test keeps the two lists from drifting apart.
+#[test]
+fn the_static_config_names_the_stable_pair() {
+    let config: serde_json::Value =
+        serde_json::from_str(include_str!("../../../tauri.conf.json")).unwrap();
+    let endpoints: Vec<&str> = config["plugins"]["updater"]["endpoints"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e.as_str().unwrap())
+        .collect();
+    assert_eq!(endpoints, UpdateChannel::Stable.endpoints());
 }
