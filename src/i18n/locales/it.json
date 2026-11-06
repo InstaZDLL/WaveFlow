@@ -546,7 +546,11 @@
         "needs-attention_zero": "Nulla da segnalare: la libreria è completa.",
         "needs-attention_one": "{{count}} punto da correggere",
         "needs-attention_other": "{{count}} punti da correggere",
-        "needs-attention_many": "{{count}} punti da correggere"
+        "needs-attention_many": "{{count}} punti da correggere",
+        "quality_zero": "Nessun file lossless",
+        "quality_one": "{{count}} file lossless",
+        "quality_other": "{{count}} file lossless",
+        "quality_many": "{{count}} file lossless"
       }
     },
     "tabs": {
@@ -557,7 +561,8 @@
       "years": "Anni",
       "folders": "Cartelle",
       "playlists": "Playlist",
-      "needs-attention": "Da correggere"
+      "needs-attention": "Da correggere",
+      "quality": "Qualità"
     },
     "empty": {
       "tracks": {
@@ -812,7 +817,46 @@
       "moveUp": "Sposta la colonna {{column}} in alto",
       "moveDown": "Sposta la colonna {{column}} in basso"
     },
-    "trackOnUnreachableShare": "Condivisione di rete non raggiungibile, e questo brano non è nella cache"
+    "trackOnUnreachableShare": "Condivisione di rete non raggiungibile, e questo brano non è nella cache",
+    "quality": {
+      "progress": "{{measured}} file lossless analizzati su {{lossless}}",
+      "noLossless": "Nessun file lossless nella libreria: non c’è nulla da misurare.",
+      "status": {
+        "running": "Analisi in corso: {{current}} file su {{total}}",
+        "starting": "L’analisi sta per iniziare…",
+        "idle": "In attesa. Ultimo file analizzato il {{when}}.",
+        "never": "Nessun file lossless è stato ancora analizzato."
+      },
+      "help": "Misurato dall’audio, non letto dal contenitore: dove si fermano gli acuti. Ogni encoder con perdita li taglia, e un file lossless ricavato da un MP3 conserva il taglio, intorno ai 16 kHz per un MP3 a 128 kbps. «Nessun segno di una sorgente con perdita» non è una prova: un encoder che conserva tutta la banda non lascia nulla da trovare.",
+      "filters": "Filtra per verdetto",
+      "all": "Tutti i file",
+      "verdicts": {
+        "lossy_source": "Probabilmente da un file con perdita",
+        "pending": "In attesa di analisi",
+        "consistent": "Nessun segno di una sorgente con perdita",
+        "lossy": "Con perdita",
+        "not_measured": "Non misurato"
+      },
+      "format": "Formato",
+      "allFormats": "Tutti i formati",
+      "column": {
+        "track": "Brano",
+        "file": "Cosa dice il file",
+        "highs": "Gli acuti si fermano a",
+        "verdict": "Cosa dice l’audio"
+      },
+      "fullBand": "Banda completa",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bit",
+      "empty": "Nessun file qui.",
+      "loadFailed": "Impossibile leggere l’elenco.",
+      "analyseAgain": "Analizza di nuovo",
+      "confirmAnalyse": "Clicca di nuovo: ogni file lossless viene decodificato di nuovo",
+      "requested": "Analisi avviata. Seguila nella barra di stato.",
+      "alreadyRunning": "È già in corso un’analisi.",
+      "requestFailed": "Impossibile avviare l’analisi."
+    }
   },
   "liked": {
     "badge": "Raccolta",

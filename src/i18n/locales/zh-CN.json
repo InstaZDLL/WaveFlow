@@ -524,7 +524,10 @@
         "playlists_other": "{{count}} 个播放列表",
         "needs-attention_zero": "没有问题：音乐库信息完整。",
         "needs-attention_one": "{{count}} 处待修正",
-        "needs-attention_other": "{{count}} 处待修正"
+        "needs-attention_other": "{{count}} 处待修正",
+        "quality_zero": "没有无损文件",
+        "quality_one": "{{count}} 个无损文件",
+        "quality_other": "{{count}} 个无损文件"
       }
     },
     "tabs": {
@@ -535,7 +538,8 @@
       "years": "年份",
       "folders": "文件夹",
       "playlists": "播放列表",
-      "needs-attention": "待修正"
+      "needs-attention": "待修正",
+      "quality": "音质"
     },
     "empty": {
       "tracks": {
@@ -779,7 +783,46 @@
       "moveUp": "上移“{{column}}”列",
       "moveDown": "下移“{{column}}”列"
     },
-    "trackOnUnreachableShare": "无法访问网络共享,且此曲目不在缓存中"
+    "trackOnUnreachableShare": "无法访问网络共享,且此曲目不在缓存中",
+    "quality": {
+      "progress": "已分析 {{measured}} / {{lossless}} 个无损文件",
+      "noLossless": "资料库中没有无损文件：没有可测量的内容。",
+      "status": {
+        "running": "正在分析：{{current}} / {{total}} 个文件",
+        "starting": "分析正在启动…",
+        "idle": "空闲。最后一次分析于 {{when}}。",
+        "never": "尚未分析任何无损文件。"
+      },
+      "help": "从音频本身测量，而不是读取容器信息：看高频在哪里截止。有损编码器都会切掉高频，由 MP3 转成的无损文件会保留这道截止，128 kbps 的 MP3 约在 16 kHz。“没有有损来源的迹象”并不是证明：保留全频带的编码器不会留下可查的痕迹。",
+      "filters": "按判定筛选",
+      "all": "所有文件",
+      "verdicts": {
+        "lossy_source": "可能来自有损文件",
+        "pending": "等待分析",
+        "consistent": "没有有损来源的迹象",
+        "lossy": "有损",
+        "not_measured": "未测量"
+      },
+      "format": "格式",
+      "allFormats": "所有格式",
+      "column": {
+        "track": "曲目",
+        "file": "文件标称",
+        "highs": "高频截止于",
+        "verdict": "音频判定"
+      },
+      "fullBand": "全频带",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} 位",
+      "empty": "这里没有文件。",
+      "loadFailed": "无法读取列表。",
+      "analyseAgain": "重新分析",
+      "confirmAnalyse": "再点一次：每个无损文件都会重新解码",
+      "requested": "分析已开始，可在状态栏查看进度。",
+      "alreadyRunning": "已有分析正在进行。",
+      "requestFailed": "无法开始分析。"
+    }
   },
   "liked": {
     "badge": "收藏",

@@ -101,6 +101,53 @@ macro_rules! probable_fake_lossless_sql {
 /// files alone (`track_analysis.bandwidth_version`).
 pub const BANDWIDTH_VERSION: i64 = 1;
 
+/// SQL: what the audio of the track aliased `t` says about it, as one of
+/// [`QUALITY_VERDICTS`], with its analysis aliased `ta` — a `LEFT JOIN`,
+/// so `ta` may be absent. The first that applies:
+///
+/// - `lossy`: a lossy format (`MP3`, `Vorbis`, `Opus`, `Speex`, or `AAC`
+///   with no bit depth). Nothing is measured on it: it is lossy by name.
+/// - `not_measured`: any other format [`lossless_track_sql!`] does not
+///   name — DSD, an unknown codec, none at all.
+/// - `pending`: lossless, and its highs never measured by the current
+///   [`BANDWIDTH_VERSION`] (`1` below; a test keeps them equal).
+/// - `lossy_source`: [`probable_fake_lossless_sql!`].
+/// - `consistent`: none of the above. Not "genuine": an encoder that keeps
+///   the full band leaves no wall to find.
+///
+/// [`lossless_track_sql!`]: crate::lossless_track_sql
+/// [`probable_fake_lossless_sql!`]: crate::probable_fake_lossless_sql
+#[macro_export]
+macro_rules! quality_verdict_sql {
+    () => {
+        concat!(
+            "(CASE \
+               WHEN t.codec IN ('MP3', 'Vorbis', 'Opus', 'Speex') \
+                    OR (t.codec = 'AAC' AND t.bit_depth IS NULL) THEN 'lossy' \
+               WHEN NOT ",
+            $crate::lossless_track_sql!(),
+            " THEN 'not_measured' \
+               WHEN ta.bandwidth_version IS NULL OR ta.bandwidth_version < 1 THEN 'pending' \
+               WHEN ",
+            $crate::probable_fake_lossless_sql!(),
+            " THEN 'lossy_source' \
+               ELSE 'consistent' END)"
+        )
+    };
+}
+
+/// Every value [`quality_verdict_sql!`] gives, worst news first: the order
+/// the Quality tab lists them in.
+///
+/// [`quality_verdict_sql!`]: crate::quality_verdict_sql
+pub const QUALITY_VERDICTS: [&str; 5] = [
+    "lossy_source",
+    "pending",
+    "consistent",
+    "lossy",
+    "not_measured",
+];
+
 /// What [`BandwidthMeter::finish`] measured.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Bandwidth {

@@ -524,7 +524,10 @@
         "playlists_other": "{{count}}個のプレイリスト",
         "needs-attention_zero": "問題はありません。ライブラリは揃っています。",
         "needs-attention_one": "要確認 {{count}}件",
-        "needs-attention_other": "要確認 {{count}}件"
+        "needs-attention_other": "要確認 {{count}}件",
+        "quality_zero": "ロスレスファイルなし",
+        "quality_one": "ロスレスファイル {{count}} 件",
+        "quality_other": "ロスレスファイル {{count}} 件"
       }
     },
     "tabs": {
@@ -535,7 +538,8 @@
       "years": "年",
       "folders": "フォルダ",
       "playlists": "プレイリスト",
-      "needs-attention": "要確認"
+      "needs-attention": "要確認",
+      "quality": "音質"
     },
     "empty": {
       "tracks": {
@@ -779,7 +783,46 @@
       "moveUp": "{{column}} 列を上へ",
       "moveDown": "{{column}} 列を下へ"
     },
-    "trackOnUnreachableShare": "ネットワーク共有に接続できず、この曲はキャッシュにありません"
+    "trackOnUnreachableShare": "ネットワーク共有に接続できず、この曲はキャッシュにありません",
+    "quality": {
+      "progress": "ロスレスファイル {{lossless}} 件中 {{measured}} 件を解析済み",
+      "noLossless": "ライブラリにロスレスファイルがありません。測定するものはありません。",
+      "status": {
+        "running": "解析中：{{total}} 件中 {{current}} 件",
+        "starting": "解析を開始しています…",
+        "idle": "待機中。最後の解析：{{when}}",
+        "never": "まだロスレスファイルは解析されていません。"
+      },
+      "help": "コンテナから読むのではなく、音声そのものから測定します。測るのは高音がどこで途切れるかです。非可逆エンコーダーは必ず高音をカットし、MP3 から作ったロスレスファイルにはそのカットが残ります（128 kbps の MP3 なら約 16 kHz）。「非可逆ソースの兆候なし」は証明ではありません。全帯域を残すエンコーダーは手がかりを残しません。",
+      "filters": "判定で絞り込む",
+      "all": "すべてのファイル",
+      "verdicts": {
+        "lossy_source": "非可逆ファイル由来の可能性",
+        "pending": "解析待ち",
+        "consistent": "非可逆ソースの兆候なし",
+        "lossy": "非可逆",
+        "not_measured": "未測定"
+      },
+      "format": "形式",
+      "allFormats": "すべての形式",
+      "column": {
+        "track": "曲",
+        "file": "ファイルの表示",
+        "highs": "高音の上限",
+        "verdict": "音声の判定"
+      },
+      "fullBand": "全帯域",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bit",
+      "empty": "ここにはファイルがありません。",
+      "loadFailed": "一覧を読み込めませんでした。",
+      "analyseAgain": "再解析",
+      "confirmAnalyse": "もう一度クリック：すべてのロスレスファイルを再デコードします",
+      "requested": "解析を開始しました。ステータスバーで進行を確認できます。",
+      "alreadyRunning": "すでに解析が実行中です。",
+      "requestFailed": "解析を開始できませんでした。"
+    }
   },
   "liked": {
     "badge": "コレクション",

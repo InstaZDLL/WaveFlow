@@ -526,7 +526,10 @@
         "playlists_other": "{{count}} afspeellijsten",
         "needs-attention_zero": "Niets te melden: de bibliotheek is compleet.",
         "needs-attention_one": "{{count}} punt te verbeteren",
-        "needs-attention_other": "{{count}} punten te verbeteren"
+        "needs-attention_other": "{{count}} punten te verbeteren",
+        "quality_zero": "Geen lossless bestand",
+        "quality_one": "{{count}} lossless bestand",
+        "quality_other": "{{count}} lossless bestanden"
       }
     },
     "tabs": {
@@ -537,7 +540,8 @@
       "years": "Jaren",
       "folders": "Mappen",
       "playlists": "Afspeellijsten",
-      "needs-attention": "Te verbeteren"
+      "needs-attention": "Te verbeteren",
+      "quality": "Kwaliteit"
     },
     "empty": {
       "tracks": {
@@ -781,7 +785,46 @@
       "moveUp": "Kolom {{column}} omhoog",
       "moveDown": "Kolom {{column}} omlaag"
     },
-    "trackOnUnreachableShare": "Netwerkshare onbereikbaar, en dit nummer staat niet in de cache"
+    "trackOnUnreachableShare": "Netwerkshare onbereikbaar, en dit nummer staat niet in de cache",
+    "quality": {
+      "progress": "{{measured}} van {{lossless}} lossless bestanden geanalyseerd",
+      "noLossless": "Geen lossless bestand in de bibliotheek: er is niets te meten.",
+      "status": {
+        "running": "Analyse bezig: {{current}} van {{total}} bestanden",
+        "starting": "De analyse begint…",
+        "idle": "In rust. Laatste bestand geanalyseerd op {{when}}.",
+        "never": "Er is nog geen lossless bestand geanalyseerd."
+      },
+      "help": "Gemeten in de audio, niet gelezen uit de container: waar de hoge tonen ophouden. Elke lossy encoder snijdt ze af, en een lossless bestand dat van een MP3 is gemaakt houdt die snede, rond 16 kHz bij een MP3 van 128 kbps. ‘Geen teken van een lossy bron’ is geen bewijs: een encoder die de volle band houdt, laat niets te vinden over.",
+      "filters": "Filteren op oordeel",
+      "all": "Alle bestanden",
+      "verdicts": {
+        "lossy_source": "Waarschijnlijk van een lossy bestand",
+        "pending": "Wacht op analyse",
+        "consistent": "Geen teken van een lossy bron",
+        "lossy": "Lossy",
+        "not_measured": "Niet gemeten"
+      },
+      "format": "Formaat",
+      "allFormats": "Alle formaten",
+      "column": {
+        "track": "Nummer",
+        "file": "Wat het bestand zegt",
+        "highs": "Hoge tonen stoppen bij",
+        "verdict": "Wat de audio zegt"
+      },
+      "fullBand": "Volle band",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bit",
+      "empty": "Hier staat geen bestand.",
+      "loadFailed": "De lijst kon niet worden gelezen.",
+      "analyseAgain": "Opnieuw analyseren",
+      "confirmAnalyse": "Klik nogmaals: elk lossless bestand wordt opnieuw gedecodeerd",
+      "requested": "Analyse gestart. Volg haar in de statusbalk.",
+      "alreadyRunning": "Er loopt al een analyse.",
+      "requestFailed": "De analyse kon niet worden gestart."
+    }
   },
   "liked": {
     "badge": "Verzameling",

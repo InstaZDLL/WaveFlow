@@ -526,7 +526,10 @@
         "playlists_other": "{{count}} çalma listesi",
         "needs-attention_zero": "Bildirilecek bir şey yok: kütüphane eksiksiz.",
         "needs-attention_one": "{{count}} sorun",
-        "needs-attention_other": "{{count}} sorun"
+        "needs-attention_other": "{{count}} sorun",
+        "quality_zero": "Kayıpsız dosya yok",
+        "quality_one": "{{count}} kayıpsız dosya",
+        "quality_other": "{{count}} kayıpsız dosya"
       }
     },
     "tabs": {
@@ -537,7 +540,8 @@
       "years": "Yıllar",
       "folders": "Klasörler",
       "playlists": "Çalma listeleri",
-      "needs-attention": "Düzeltilecekler"
+      "needs-attention": "Düzeltilecekler",
+      "quality": "Kalite"
     },
     "empty": {
       "tracks": {
@@ -781,7 +785,46 @@
       "moveUp": "{{column}} sütununu yukarı taşı",
       "moveDown": "{{column}} sütununu aşağı taşı"
     },
-    "trackOnUnreachableShare": "Ağ paylaşımına erişilemiyor ve bu parça önbellekte değil"
+    "trackOnUnreachableShare": "Ağ paylaşımına erişilemiyor ve bu parça önbellekte değil",
+    "quality": {
+      "progress": "{{lossless}} kayıpsız dosyadan {{measured}} tanesi analiz edildi",
+      "noLossless": "Kitaplıkta kayıpsız dosya yok: ölçülecek bir şey yok.",
+      "status": {
+        "running": "Analiz ediliyor: {{total}} dosyadan {{current}}",
+        "starting": "Analiz başlıyor…",
+        "idle": "Boşta. Son dosya {{when}} tarihinde analiz edildi.",
+        "never": "Henüz hiçbir kayıpsız dosya analiz edilmedi."
+      },
+      "help": "Kapsayıcıdan okunmaz, sesin kendisinden ölçülür: tizlerin nerede durduğu. Her kayıplı kodlayıcı onları keser ve bir MP3’ten yapılmış kayıpsız dosya bu kesimi korur; 128 kbps bir MP3’te yaklaşık 16 kHz. “Kayıplı bir kaynak izi yok” bir kanıt değildir: tüm bandı koruyan bir kodlayıcı bulunacak bir iz bırakmaz.",
+      "filters": "Karara göre süz",
+      "all": "Tüm dosyalar",
+      "verdicts": {
+        "lossy_source": "Muhtemelen kayıplı bir dosyadan",
+        "pending": "Analiz bekleniyor",
+        "consistent": "Kayıplı bir kaynak izi yok",
+        "lossy": "Kayıplı",
+        "not_measured": "Ölçülmedi"
+      },
+      "format": "Biçim",
+      "allFormats": "Tüm biçimler",
+      "column": {
+        "track": "Parça",
+        "file": "Dosyanın söylediği",
+        "highs": "Tizlerin durduğu yer",
+        "verdict": "Sesin söylediği"
+      },
+      "fullBand": "Tam bant",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bit",
+      "empty": "Burada dosya yok.",
+      "loadFailed": "Liste okunamadı.",
+      "analyseAgain": "Yeniden analiz et",
+      "confirmAnalyse": "Yeniden tıklayın: her kayıpsız dosya yeniden çözülür",
+      "requested": "Analiz başladı. Durum çubuğundan izleyin.",
+      "alreadyRunning": "Zaten bir analiz sürüyor.",
+      "requestFailed": "Analiz başlatılamadı."
+    }
   },
   "liked": {
     "badge": "Koleksiyon",

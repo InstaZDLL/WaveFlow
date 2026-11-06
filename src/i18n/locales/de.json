@@ -526,7 +526,10 @@
         "playlists_other": "{{count}} Playlists",
         "needs-attention_zero": "Nichts zu melden: Die Bibliothek ist vollständig.",
         "needs-attention_one": "{{count}} Punkt zu korrigieren",
-        "needs-attention_other": "{{count}} Punkte zu korrigieren"
+        "needs-attention_other": "{{count}} Punkte zu korrigieren",
+        "quality_zero": "Keine verlustfreie Datei",
+        "quality_one": "{{count}} verlustfreie Datei",
+        "quality_other": "{{count}} verlustfreie Dateien"
       }
     },
     "tabs": {
@@ -537,7 +540,8 @@
       "years": "Jahre",
       "folders": "Ordner",
       "playlists": "Playlists",
-      "needs-attention": "Zu korrigieren"
+      "needs-attention": "Zu korrigieren",
+      "quality": "Qualität"
     },
     "empty": {
       "tracks": {
@@ -781,7 +785,46 @@
       "moveUp": "Spalte {{column}} nach oben",
       "moveDown": "Spalte {{column}} nach unten"
     },
-    "trackOnUnreachableShare": "Netzwerkfreigabe nicht erreichbar, und dieser Titel ist nicht im Cache"
+    "trackOnUnreachableShare": "Netzwerkfreigabe nicht erreichbar, und dieser Titel ist nicht im Cache",
+    "quality": {
+      "progress": "{{measured}} von {{lossless}} verlustfreien Dateien analysiert",
+      "noLossless": "Keine verlustfreie Datei in der Mediathek: Es gibt nichts zu messen.",
+      "status": {
+        "running": "Analyse läuft: {{current}} von {{total}} Dateien",
+        "starting": "Die Analyse startet …",
+        "idle": "Bereit. Zuletzt analysiert am {{when}}.",
+        "never": "Noch keine verlustfreie Datei analysiert."
+      },
+      "help": "Aus dem Audio gemessen, nicht aus dem Container gelesen: wo die Höhen enden. Jeder verlustbehaftete Encoder schneidet sie ab, und eine verlustfreie Datei, die aus einer MP3 entstand, behält den Schnitt, bei einer MP3 mit 128 kbps um 16 kHz. „Kein Hinweis auf eine verlustbehaftete Quelle“ ist kein Beweis: Ein Encoder, der das volle Band behält, hinterlässt nichts, was sich finden ließe.",
+      "filters": "Nach Befund filtern",
+      "all": "Alle Dateien",
+      "verdicts": {
+        "lossy_source": "Vermutlich aus einer verlustbehafteten Datei",
+        "pending": "Wartet auf Analyse",
+        "consistent": "Kein Hinweis auf eine verlustbehaftete Quelle",
+        "lossy": "Verlustbehaftet",
+        "not_measured": "Nicht gemessen"
+      },
+      "format": "Format",
+      "allFormats": "Alle Formate",
+      "column": {
+        "track": "Titel",
+        "file": "Was die Datei angibt",
+        "highs": "Höhen enden bei",
+        "verdict": "Was das Audio zeigt"
+      },
+      "fullBand": "Volles Band",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbit/s",
+      "bits": "{{value}} Bit",
+      "empty": "Hier gibt es keine Datei.",
+      "loadFailed": "Die Liste konnte nicht gelesen werden.",
+      "analyseAgain": "Erneut analysieren",
+      "confirmAnalyse": "Erneut klicken: Jede verlustfreie Datei wird neu dekodiert",
+      "requested": "Analyse gestartet. Den Fortschritt zeigt die Statusleiste.",
+      "alreadyRunning": "Es läuft bereits eine Analyse.",
+      "requestFailed": "Die Analyse konnte nicht gestartet werden."
+    }
   },
   "liked": {
     "badge": "Sammlung",

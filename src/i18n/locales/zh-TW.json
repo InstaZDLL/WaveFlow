@@ -524,7 +524,10 @@
         "playlists_other": "{{count}} 個播放清單",
         "needs-attention_zero": "一切正常：音樂庫內容完整。",
         "needs-attention_one": "{{count}} 處待修正",
-        "needs-attention_other": "{{count}} 處待修正"
+        "needs-attention_other": "{{count}} 處待修正",
+        "quality_zero": "沒有無損檔案",
+        "quality_one": "{{count}} 個無損檔案",
+        "quality_other": "{{count}} 個無損檔案"
       }
     },
     "tabs": {
@@ -535,7 +538,8 @@
       "years": "年份",
       "folders": "資料夾",
       "playlists": "播放清單",
-      "needs-attention": "待修正"
+      "needs-attention": "待修正",
+      "quality": "音質"
     },
     "empty": {
       "tracks": {
@@ -779,7 +783,46 @@
       "moveUp": "上移「{{column}}」欄",
       "moveDown": "下移「{{column}}」欄"
     },
-    "trackOnUnreachableShare": "無法連線到網路共用,且此曲目不在快取中"
+    "trackOnUnreachableShare": "無法連線到網路共用,且此曲目不在快取中",
+    "quality": {
+      "progress": "已分析 {{measured}} / {{lossless}} 個無損檔案",
+      "noLossless": "資料庫中沒有無損檔案：沒有可測量的內容。",
+      "status": {
+        "running": "正在分析：{{current}} / {{total}} 個檔案",
+        "starting": "分析正在啟動…",
+        "idle": "閒置。最後一次分析於 {{when}}。",
+        "never": "尚未分析任何無損檔案。"
+      },
+      "help": "從音訊本身測量，而不是讀取容器資訊：看高頻在哪裡截止。有損編碼器都會切掉高頻，由 MP3 轉成的無損檔案會保留這道截止，128 kbps 的 MP3 約在 16 kHz。「沒有有損來源的跡象」並不是證明：保留全頻帶的編碼器不會留下可查的痕跡。",
+      "filters": "依判定篩選",
+      "all": "所有檔案",
+      "verdicts": {
+        "lossy_source": "可能來自有損檔案",
+        "pending": "等待分析",
+        "consistent": "沒有有損來源的跡象",
+        "lossy": "有損",
+        "not_measured": "未測量"
+      },
+      "format": "格式",
+      "allFormats": "所有格式",
+      "column": {
+        "track": "曲目",
+        "file": "檔案標示",
+        "highs": "高頻截止於",
+        "verdict": "音訊判定"
+      },
+      "fullBand": "全頻帶",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} 位元",
+      "empty": "這裡沒有檔案。",
+      "loadFailed": "無法讀取清單。",
+      "analyseAgain": "重新分析",
+      "confirmAnalyse": "再點一次：每個無損檔案都會重新解碼",
+      "requested": "分析已開始，可在狀態列查看進度。",
+      "alreadyRunning": "已有分析正在進行。",
+      "requestFailed": "無法開始分析。"
+    }
   },
   "liked": {
     "badge": "收藏",

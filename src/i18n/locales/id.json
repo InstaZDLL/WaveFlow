@@ -524,7 +524,10 @@
         "playlists_other": "{{count}} daftar putar",
         "needs-attention_zero": "Tidak ada yang perlu dilaporkan: pustaka sudah lengkap.",
         "needs-attention_one": "{{count}} hal untuk diperbaiki",
-        "needs-attention_other": "{{count}} hal untuk diperbaiki"
+        "needs-attention_other": "{{count}} hal untuk diperbaiki",
+        "quality_zero": "Tidak ada file lossless",
+        "quality_one": "{{count}} file lossless",
+        "quality_other": "{{count}} file lossless"
       }
     },
     "tabs": {
@@ -535,7 +538,8 @@
       "years": "Tahun",
       "folders": "Folder",
       "playlists": "Daftar putar",
-      "needs-attention": "Perlu diperbaiki"
+      "needs-attention": "Perlu diperbaiki",
+      "quality": "Kualitas"
     },
     "empty": {
       "tracks": {
@@ -779,7 +783,46 @@
       "moveUp": "Naikkan kolom {{column}}",
       "moveDown": "Turunkan kolom {{column}}"
     },
-    "trackOnUnreachableShare": "Folder berbagi jaringan tidak dapat dijangkau, dan lagu ini tidak ada di cache"
+    "trackOnUnreachableShare": "Folder berbagi jaringan tidak dapat dijangkau, dan lagu ini tidak ada di cache",
+    "quality": {
+      "progress": "{{measured}} dari {{lossless}} file lossless dianalisis",
+      "noLossless": "Tidak ada file lossless di pustaka: tidak ada yang diukur.",
+      "status": {
+        "running": "Menganalisis: {{current}} dari {{total}} file",
+        "starting": "Analisis sedang dimulai…",
+        "idle": "Diam. File terakhir dianalisis pada {{when}}.",
+        "never": "Belum ada file lossless yang dianalisis."
+      },
+      "help": "Diukur dari audionya, bukan dibaca dari kontainer: tempat nada tinggi berhenti. Setiap encoder lossy memotongnya, dan file lossless yang dibuat dari MP3 mempertahankan potongan itu, sekitar 16 kHz untuk MP3 128 kbps. “Tidak ada tanda sumber lossy” bukan bukti: encoder yang mempertahankan seluruh pita tidak meninggalkan apa pun untuk ditemukan.",
+      "filters": "Saring menurut putusan",
+      "all": "Semua file",
+      "verdicts": {
+        "lossy_source": "Kemungkinan dari file lossy",
+        "pending": "Menunggu analisis",
+        "consistent": "Tidak ada tanda sumber lossy",
+        "lossy": "Lossy",
+        "not_measured": "Tidak diukur"
+      },
+      "format": "Format",
+      "allFormats": "Semua format",
+      "column": {
+        "track": "Lagu",
+        "file": "Kata file",
+        "highs": "Nada tinggi berhenti di",
+        "verdict": "Kata audio"
+      },
+      "fullBand": "Pita penuh",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bit",
+      "empty": "Tidak ada file di sini.",
+      "loadFailed": "Daftar tidak dapat dibaca.",
+      "analyseAgain": "Analisis lagi",
+      "confirmAnalyse": "Klik lagi: setiap file lossless didekode ulang",
+      "requested": "Analisis dimulai. Ikuti di bilah status.",
+      "alreadyRunning": "Analisis sudah berjalan.",
+      "requestFailed": "Analisis tidak dapat dimulai."
+    }
   },
   "liked": {
     "badge": "Koleksi",

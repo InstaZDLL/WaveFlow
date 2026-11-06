@@ -546,7 +546,11 @@
         "needs-attention_zero": "Nada que señalar: la biblioteca está completa.",
         "needs-attention_one": "{{count}} punto por corregir",
         "needs-attention_other": "{{count}} puntos por corregir",
-        "needs-attention_many": "{{count}} puntos por corregir"
+        "needs-attention_many": "{{count}} puntos por corregir",
+        "quality_zero": "Ningún archivo sin pérdida",
+        "quality_one": "{{count}} archivo sin pérdida",
+        "quality_other": "{{count}} archivos sin pérdida",
+        "quality_many": "{{count}} archivos sin pérdida"
       }
     },
     "tabs": {
@@ -557,7 +561,8 @@
       "years": "Años",
       "folders": "Carpetas",
       "playlists": "Listas",
-      "needs-attention": "Por corregir"
+      "needs-attention": "Por corregir",
+      "quality": "Calidad"
     },
     "empty": {
       "tracks": {
@@ -812,7 +817,46 @@
       "moveUp": "Subir la columna {{column}}",
       "moveDown": "Bajar la columna {{column}}"
     },
-    "trackOnUnreachableShare": "Recurso de red inaccesible, y esta canción no está en caché"
+    "trackOnUnreachableShare": "Recurso de red inaccesible, y esta canción no está en caché",
+    "quality": {
+      "progress": "{{measured}} de {{lossless}} archivos sin pérdida analizados",
+      "noLossless": "No hay archivos sin pérdida en la biblioteca: no hay nada que medir.",
+      "status": {
+        "running": "Analizando: {{current}} de {{total}} archivos",
+        "starting": "El análisis está empezando…",
+        "idle": "En reposo. Último archivo analizado el {{when}}.",
+        "never": "Todavía no se ha analizado ningún archivo sin pérdida."
+      },
+      "help": "Medido en el audio, no leído del contenedor: dónde se detienen los agudos. Todo codificador con pérdida los corta, y un archivo sin pérdida hecho a partir de un MP3 conserva el corte, hacia 16 kHz en un MP3 de 128 kbps. «Ningún indicio de una fuente con pérdida» no es una prueba: un codificador que conserva toda la banda no deja nada que encontrar.",
+      "filters": "Filtrar por veredicto",
+      "all": "Todos los archivos",
+      "verdicts": {
+        "lossy_source": "Probablemente de un archivo con pérdida",
+        "pending": "Pendiente de análisis",
+        "consistent": "Ningún indicio de una fuente con pérdida",
+        "lossy": "Con pérdida",
+        "not_measured": "No medido"
+      },
+      "format": "Formato",
+      "allFormats": "Todos los formatos",
+      "column": {
+        "track": "Pista",
+        "file": "Lo que dice el archivo",
+        "highs": "Los agudos se detienen en",
+        "verdict": "Lo que dice el audio"
+      },
+      "fullBand": "Banda completa",
+      "khz": "{{value}} kHz",
+      "kbps": "{{value}} kbps",
+      "bits": "{{value}} bits",
+      "empty": "Ningún archivo aquí.",
+      "loadFailed": "No se pudo leer la lista.",
+      "analyseAgain": "Volver a analizar",
+      "confirmAnalyse": "Pulsa otra vez: cada archivo sin pérdida se decodifica de nuevo",
+      "requested": "Análisis iniciado. Síguelo en la barra de estado.",
+      "alreadyRunning": "Ya hay un análisis en curso.",
+      "requestFailed": "No se pudo iniciar el análisis."
+    }
   },
   "liked": {
     "badge": "Colección",

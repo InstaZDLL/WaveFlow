@@ -18,6 +18,7 @@ import {
   inventoryTracks,
   type InventoryCategory,
 } from "../../lib/tauri/inventory";
+import { type QualitySummary } from "../../lib/tauri/quality";
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import {
   Music2,
@@ -27,6 +28,7 @@ import {
   CalendarDays,
   Folder,
   AlertTriangle,
+  Gauge,
   RefreshCcw,
   FileSearch,
   ListMusic,
@@ -119,6 +121,7 @@ import {
   PhantomArtistList,
   PlaylistGrid,
   preloadLibraryTabs,
+  QualityTab,
   TrackTable,
   YearList,
 } from "./library/tabs";
@@ -148,6 +151,7 @@ const tabConfig: { id: LibraryTab; icon: typeof Music2 }[] = [
   { id: "playlists", icon: ListMusic },
   { id: "folders", icon: Folder },
   { id: "needs-attention", icon: AlertTriangle },
+  { id: "quality", icon: Gauge },
 ];
 
 const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
@@ -159,6 +163,7 @@ const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
   playlists: ListMusic,
   folders: Folder,
   "needs-attention": AlertTriangle,
+  quality: Gauge,
 };
 
 const headerIcons: Record<LibraryTab, typeof Music2> = {
@@ -170,6 +175,7 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   playlists: ListMusic,
   folders: Folder,
   "needs-attention": AlertTriangle,
+  quality: Gauge,
 };
 
 export function LibraryView({
@@ -306,6 +312,8 @@ export function LibraryView({
     // "nothing to fix" looks like. The first paint would congratulate
     // the user before a single count existed.
     "needs-attention": true,
+    // Fetches its own counts and rows when opened (`QualityTab`).
+    quality: false,
   });
   // Which columns the track table shows, in what order and how wide
   // (#588). One preference for every list that renders the shared
@@ -365,6 +373,13 @@ export function LibraryView({
   );
   const [inventoryRows, setInventoryRows] = useState<LibraryTrackRow[]>([]);
   const [inventoryBusy, setInventoryBusy] = useState(false);
+  // The Quality tab's lossless count, for the header; the tab owns the
+  // rest of its state.
+  const [qualityLossless, setQualityLossless] = useState(0);
+  const handleQualitySummary = useCallback(
+    (summary: QualitySummary) => setQualityLossless(summary.lossless),
+    [setQualityLossless],
+  );
 
   const [tracksView, setTracksView] = useState<TracksView>("list");
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -956,6 +971,8 @@ export function LibraryView({
         // is a count of findings rather than of distinct tracks. The
         // subtext key says so.
         return inventory.reduce((sum, category) => sum + category.count, 0);
+      case "quality":
+        return qualityLossless;
     }
   };
   // Built from the tab id, so no literal key for the other tabs
@@ -1159,7 +1176,9 @@ export function LibraryView({
     // also keeps `activeTab` from being narrowed out of the branch that
     // renders it — `hasContent` is a `const` built from comparisons, so
     // TypeScript treats it as a discriminant.
-    activeTab === "needs-attention";
+    activeTab === "needs-attention" ||
+    // Owns its empty reading, like the inventory.
+    activeTab === "quality";
 
   /** Play a file of the folder being browsed, from that folder's own
    *  list: the queue a click builds is the folder the user is looking
@@ -1739,6 +1758,15 @@ export function LibraryView({
                     });
                   })}
               </div>
+            )}
+            {activeTab === "quality" && (
+              <QualityTab
+                t={t}
+                locale={i18n.resolvedLanguage ?? i18n.language}
+                refreshKey={`${librariesSignature}:${editRefetch}`}
+                onSummary={handleQualitySummary}
+                onContextMenu={trackContextMenu.open}
+              />
             )}
             {activeTab === "folders" && folderPath == null && (
               <FolderList

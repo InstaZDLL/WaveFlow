@@ -161,3 +161,134 @@ fn highs_in_opposition_are_not_a_wall() {
         "the sum alone has the wall"
     );
 }
+
+#[test]
+fn the_sql_version_is_the_constant() {
+    let sql = crate::quality_verdict_sql!();
+    assert!(
+        sql.contains(&format!("ta.bandwidth_version < {BANDWIDTH_VERSION}")),
+        "{sql}"
+    );
+}
+
+/// The verdict against the real profile schema, one row per branch, so
+/// a fragment SQLite refuses or a branch in the wrong place fails here.
+#[tokio::test]
+async fn each_file_gets_the_verdict_its_measure_gives() {
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
+
+    let opts = SqliteConnectOptions::from_str(":memory:")
+        .unwrap()
+        .foreign_keys(true);
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(opts)
+        .await
+        .unwrap();
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'L', 0, 0)")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // (codec, bit depth, rate, analysis: (cutoff, bandwidth version), expected)
+    type Analysis = Option<(Option<f64>, Option<i64>)>;
+    let cases: [(Option<&str>, Option<i64>, i64, Analysis, &str); 11] = [
+        (
+            Some("MP3"),
+            None,
+            44_100,
+            Some((Some(16_000.0), Some(1))),
+            "lossy",
+        ),
+        (Some("Opus"), None, 48_000, None, "lossy"),
+        (Some("AAC"), None, 44_100, None, "lossy"),
+        (Some("DSD64"), Some(1), 2_822_400, None, "not_measured"),
+        (None, None, 44_100, None, "not_measured"),
+        (Some("FLAC"), Some(16), 44_100, None, "pending"),
+        // Measured before the cutoff existed.
+        (
+            Some("FLAC"),
+            Some(16),
+            44_100,
+            Some((None, None)),
+            "pending",
+        ),
+        (
+            Some("FLAC"),
+            Some(16),
+            44_100,
+            Some((Some(16_000.0), Some(1))),
+            "lossy_source",
+        ),
+        // ALAC, labelled `AAC` and told apart by its depth.
+        (
+            Some("AAC"),
+            Some(16),
+            44_100,
+            Some((Some(19_500.0), Some(1))),
+            "lossy_source",
+        ),
+        (
+            Some("WAV"),
+            Some(24),
+            44_100,
+            Some((None, Some(1))),
+            "consistent",
+        ),
+        // A converter's filter under Nyquist, not an encoder's wall.
+        (
+            Some("FLAC"),
+            Some(16),
+            32_000,
+            Some((Some(15_500.0), Some(1))),
+            "consistent",
+        ),
+    ];
+    for (id, (codec, depth, rate, analysis, _)) in cases.iter().enumerate() {
+        let id = id as i64 + 1;
+        sqlx::query(
+            "INSERT INTO track
+                (id, library_id, file_path, file_hash, file_size, file_modified,
+                 title, duration_ms, added_at, codec, bit_depth, sample_rate)
+             VALUES (?, 1, ?, 'h', 0, 0, 'T', 1000, 0, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(format!("/music/{id}"))
+        .bind(codec)
+        .bind(depth)
+        .bind(rate)
+        .execute(&pool)
+        .await
+        .unwrap();
+        if let Some((cutoff, version)) = analysis {
+            sqlx::query(
+                "INSERT INTO track_analysis (track_id, cutoff_hz, bandwidth_version, analyzed_at)
+                 VALUES (?, ?, ?, 0)",
+            )
+            .bind(id)
+            .bind(cutoff)
+            .bind(version)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+    }
+    let got: Vec<(i64, String)> = sqlx::query_as(concat!(
+        "SELECT t.id, ",
+        crate::quality_verdict_sql!(),
+        " FROM track t LEFT JOIN track_analysis ta ON ta.track_id = t.id ORDER BY t.id"
+    ))
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    for ((id, verdict), case) in got.iter().zip(&cases) {
+        assert_eq!(verdict, case.4, "track {id}: {case:?}");
+        assert!(QUALITY_VERDICTS.contains(&verdict.as_str()), "{verdict}");
+    }
+    assert_eq!(got.len(), cases.len());
+}
