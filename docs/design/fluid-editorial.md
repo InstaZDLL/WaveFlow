@@ -8,7 +8,7 @@ The one-line brief: **cinematic, dark, music first — the cover lights the page
 
 1. **The music is the picture.** The playing or last-played cover is the largest thing on a page, and its colour, blurred and darkened, is the page's light. Nothing else is decorated: no gradients of our own, no illustrations, no coloured icon boxes.
 2. **Depth by tone, not by line.** Surfaces are steps of one dark, a hairline at most where two surfaces meet, no borders around cards, no drop shadows except under a cover. A raised element is a lighter tone; a pressed one, darker.
-3. **One accent, spent carefully.** The accent (the theme's, the user's, or the cover's) appears on the primary action, the open item's edge, the sung word, the focus ring — and nowhere decorative. Everything else is ink on ground.
+3. **One accent, spent carefully.** The accent (the theme's, the user's, or the cover's) appears on the primary action, the open item's edge, a control that is on, the sung word, the focus ring — and nowhere decorative. Everything else is ink on ground.
 4. **Editorial typography.** A geometric sans at a settled weight for everything; a serif italic for one line per page at most (the greeting, the suggestion's kind), never for running text. Large sizes are tight and short; small sizes are tracked out and uppercase for labels only.
 5. **Rhythm over rules.** Blocks are told apart by spacing, not separators. Groups breathe (1.75 rem between sections in a rail, 3.5 rem between sections on a page); items inside a group sit close.
 6. **Calm motion.** One ease-out for everything, no springs, no bounces; a reveal rises a few pixels and fades; the hover is a tone change and a one-pixel lift at most. Reduced-motion turns all of it off, and the design still reads.
@@ -89,7 +89,7 @@ The product's symbol is the same wave closed into a letter: the W of the name, o
 - **Cards** (extensions, folders): surface tone, 14 px radius, no border, a tone up on hover; a title, a muted path or subtitle, chips for facts, actions in the top-right corner that appear on hover.
 - **Tables**: header on the page's tone with a hairline under it, rows parted by white 5 %, the playing row on a tone with the accent's edge; no outer frame.
 - **Menus and popovers**: `surface-2`, 14 px radius, no border, an inset top highlight and a deep soft shadow; rows with their own 8 px radius that take a tone on hover.
-- **Player bar**: one surface, a top gradient from the glow, the wave as its top edge; the transport centred on the window.
+- **Player bar**: one surface, a top gradient from the glow, the wave as its top edge; the transport centred on the window. A control that is on (shuffle, repeat, an open panel, the A-B loop) wears the accent, at rest and under the pointer, in every material: a material's own ink or hover colour on the bar's buttons never covers it.
 
 ## Five materials on one structure
 

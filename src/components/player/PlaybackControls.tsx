@@ -56,6 +56,13 @@ export function PlaybackControls() {
   );
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const isRepeatActive = repeatMode !== "off";
+  // A toggle that is on: the 600 stop on a light ground (the 500 is
+  // under 3:1 on white), darker under the pointer; the 500 on a dark
+  // one, lighter under the pointer. The fluid skins repaint both tokens
+  // with their own accent (`fluid.css`).
+  const toggleOn =
+    "text-emerald-600 hover:text-emerald-700 dark:text-emerald-500 dark:hover:text-emerald-400";
+  const toggleOff = "text-zinc-400 hover:text-zinc-800 dark:hover:text-white";
 
   return (
     <div className="flex items-center space-x-5 mb-1.5">
@@ -67,9 +74,7 @@ export function PlaybackControls() {
         aria-label={shuffleLabel}
         title={shuffleLabel}
         className={`relative transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-          isShuffled
-            ? "text-emerald-500 hover:text-emerald-400"
-            : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
+          isShuffled ? toggleOn : toggleOff
         }`}
       >
         <Shuffle size={20} />
@@ -126,6 +131,7 @@ export function PlaybackControls() {
         type="button"
         onClick={cycleRepeatMode}
         disabled={isRadio}
+        aria-pressed={isRepeatActive}
         aria-label={
           repeatMode === "off"
             ? t("player.controls.repeatOff")
@@ -134,9 +140,7 @@ export function PlaybackControls() {
               : t("player.controls.repeatOne")
         }
         className={`transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-          isRepeatActive
-            ? "text-emerald-500 hover:text-emerald-400"
-            : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
+          isRepeatActive ? toggleOn : toggleOff
         }`}
       >
         <RepeatIcon size={20} />

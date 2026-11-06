@@ -298,6 +298,7 @@ export function IconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-pressed={active}
       className={`p-2 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         active
           ? "text-emerald-400 hover:bg-white/10"
