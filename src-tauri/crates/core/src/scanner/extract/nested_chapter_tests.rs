@@ -441,7 +441,12 @@ fn a_live_stream_is_refused_on_its_tag_and_a_good_one_keeps_its_tags() {
 fn a_live_tag_declaring_far_more_than_it_holds_is_refused() {
     let mut bytes = b"ID3\x04\0\0\x7f\x7f\x7f\x7f".to_vec();
     bytes.extend_from_slice(&[0; 64]);
-    assert!(open_live(bytes).is_err());
+    match open_live(bytes) {
+        Err(symphonia::core::errors::Error::IoError(err)) => {
+            assert_eq!(err.kind(), std::io::ErrorKind::UnexpectedEof);
+        }
+        other => panic!("expected the tag cut short, got {other:?}"),
+    }
 }
 
 #[test]
