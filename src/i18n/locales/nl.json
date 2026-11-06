@@ -796,10 +796,13 @@
         "never": "Er is nog geen lossless bestand geanalyseerd."
       },
       "help": "Gemeten in de audio, niet gelezen uit de container: waar de hoge tonen ophouden. Elke lossy encoder snijdt ze af, en een lossless bestand dat van een MP3 is gemaakt houdt die snede, rond 16 kHz bij een MP3 van 128 kbps. ‘Geen teken van een lossy bron’ is geen bewijs: een encoder die de volle band houdt, laat niets te vinden over.",
+      "helpVerdicts": "Een bestand boven 48 kHz waarvan de hoge tonen vóór 30 kHz stoppen, is gemaakt van een cd- of 48 kHz-bron. Een bestand is stil als geen enkele sample boven −60 dBFS komt: een drempel op de piek, niet op het niveau van elk moment.",
       "filters": "Filteren op oordeel",
       "all": "Alle bestanden",
       "verdicts": {
         "lossy_source": "Waarschijnlijk van een lossy bestand",
+        "upsampled": "Waarschijnlijk opgesampled",
+        "silent": "Stil",
         "pending": "Wacht op analyse",
         "consistent": "Geen teken van een lossy bron",
         "lossy": "Lossy",

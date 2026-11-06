@@ -165,10 +165,14 @@ fn highs_in_opposition_are_not_a_wall() {
 #[test]
 fn the_sql_version_is_the_constant() {
     let sql = crate::quality_verdict_sql!();
-    assert!(
-        sql.contains(&format!("ta.bandwidth_version < {BANDWIDTH_VERSION}")),
-        "{sql}"
-    );
+    for spelled in [
+        format!("ta.bandwidth_version < {BANDWIDTH_VERSION}"),
+        format!("ta.peak < {SILENT_PEAK}"),
+        format!("t.sample_rate > {UPSAMPLED_ABOVE_RATE}"),
+        format!("ta.cutoff_hz <= {}", UPSAMPLED_CUTOFF_HZ as i64),
+    ] {
+        assert!(sql.contains(&spelled), "{spelled} not in {sql}");
+    }
 }
 
 /// The verdict against the real profile schema, one row per branch, so
@@ -195,14 +199,14 @@ async fn each_file_gets_the_verdict_its_measure_gives() {
         .await
         .unwrap();
 
-    // (codec, bit depth, rate, analysis: (cutoff, bandwidth version), expected)
-    type Analysis = Option<(Option<f64>, Option<i64>)>;
-    let cases: [(Option<&str>, Option<i64>, i64, Analysis, &str); 11] = [
+    // (codec, bit depth, rate, analysis: (cutoff, bandwidth version, peak), expected)
+    type Analysis = Option<(Option<f64>, Option<i64>, Option<f64>)>;
+    let cases: [(Option<&str>, Option<i64>, i64, Analysis, &str); 16] = [
         (
             Some("MP3"),
             None,
             44_100,
-            Some((Some(16_000.0), Some(1))),
+            Some((Some(16_000.0), Some(1), Some(0.5))),
             "lossy",
         ),
         (Some("Opus"), None, 48_000, None, "lossy"),
@@ -215,14 +219,14 @@ async fn each_file_gets_the_verdict_its_measure_gives() {
             Some("FLAC"),
             Some(16),
             44_100,
-            Some((None, None)),
+            Some((None, None, Some(0.5))),
             "pending",
         ),
         (
             Some("FLAC"),
             Some(16),
             44_100,
-            Some((Some(16_000.0), Some(1))),
+            Some((Some(16_000.0), Some(1), Some(0.5))),
             "lossy_source",
         ),
         // ALAC, labelled `AAC` and told apart by its depth.
@@ -230,14 +234,14 @@ async fn each_file_gets_the_verdict_its_measure_gives() {
             Some("AAC"),
             Some(16),
             44_100,
-            Some((Some(19_500.0), Some(1))),
+            Some((Some(19_500.0), Some(1), Some(0.5))),
             "lossy_source",
         ),
         (
             Some("WAV"),
             Some(24),
             44_100,
-            Some((None, Some(1))),
+            Some((None, Some(1), Some(0.5))),
             "consistent",
         ),
         // A converter's filter under Nyquist, not an encoder's wall.
@@ -245,7 +249,46 @@ async fn each_file_gets_the_verdict_its_measure_gives() {
             Some("FLAC"),
             Some(16),
             32_000,
-            Some((Some(15_500.0), Some(1))),
+            Some((Some(15_500.0), Some(1), Some(0.5))),
+            "consistent",
+        ),
+        // Nothing above -60 dBFS: no wall can be measured in it.
+        (
+            Some("FLAC"),
+            Some(16),
+            44_100,
+            Some((None, Some(1), Some(0.0005))),
+            "silent",
+        ),
+        // From a 44.1 kHz source through a resampler.
+        (
+            Some("FLAC"),
+            Some(24),
+            96_000,
+            Some((Some(22_050.0), Some(1), Some(0.5))),
+            "upsampled",
+        ),
+        (
+            Some("FLAC"),
+            Some(24),
+            192_000,
+            Some((Some(28_000.0), Some(1), Some(0.5))),
+            "upsampled",
+        ),
+        // An MP3 first: the worse news wins.
+        (
+            Some("FLAC"),
+            Some(24),
+            96_000,
+            Some((Some(16_000.0), Some(1), Some(0.5))),
+            "lossy_source",
+        ),
+        // A genuine high-rate recording: no wall under 30 kHz.
+        (
+            Some("FLAC"),
+            Some(24),
+            96_000,
+            Some((Some(40_000.0), Some(1), Some(0.5))),
             "consistent",
         ),
     ];
@@ -265,14 +308,16 @@ async fn each_file_gets_the_verdict_its_measure_gives() {
         .execute(&pool)
         .await
         .unwrap();
-        if let Some((cutoff, version)) = analysis {
+        if let Some((cutoff, version, peak)) = analysis {
             sqlx::query(
-                "INSERT INTO track_analysis (track_id, cutoff_hz, bandwidth_version, analyzed_at)
-                 VALUES (?, ?, ?, 0)",
+                "INSERT INTO track_analysis
+                    (track_id, cutoff_hz, bandwidth_version, peak, analyzed_at)
+                 VALUES (?, ?, ?, ?, 0)",
             )
             .bind(id)
             .bind(cutoff)
             .bind(version)
+            .bind(peak)
             .execute(&pool)
             .await
             .unwrap();

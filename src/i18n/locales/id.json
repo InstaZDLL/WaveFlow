@@ -794,10 +794,13 @@
         "never": "Belum ada file lossless yang dianalisis."
       },
       "help": "Diukur dari audionya, bukan dibaca dari kontainer: tempat nada tinggi berhenti. Setiap encoder lossy memotongnya, dan file lossless yang dibuat dari MP3 mempertahankan potongan itu, sekitar 16 kHz untuk MP3 128 kbps. “Tidak ada tanda sumber lossy” bukan bukti: encoder yang mempertahankan seluruh pita tidak meninggalkan apa pun untuk ditemukan.",
+      "helpVerdicts": "File di atas 48 kHz yang nada tingginya berhenti sebelum 30 kHz dibuat dari sumber CD atau 48 kHz. File dianggap senyap jika tidak ada sampel yang melewati −60 dBFS: ambang pada puncak, bukan pada level setiap saat.",
       "filters": "Saring menurut putusan",
       "all": "Semua file",
       "verdicts": {
         "lossy_source": "Kemungkinan dari file lossy",
+        "upsampled": "Kemungkinan di-upsample",
+        "silent": "Senyap",
         "pending": "Menunggu analisis",
         "consistent": "Tidak ada tanda sumber lossy",
         "lossy": "Lossy",

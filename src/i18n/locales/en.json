@@ -796,10 +796,13 @@
         "never": "No lossless file has been analysed yet."
       },
       "help": "Measured from the audio, not read from the container: where the highs stop. Every lossy encoder cuts them, and a lossless file made from an MP3 keeps the cut, around 16 kHz for a 128 kbps MP3. “No sign of a lossy source” is not proof: an encoder that keeps the full band leaves nothing to find.",
+      "helpVerdicts": "A file above 48 kHz whose highs stop by 30 kHz was made from a CD or 48 kHz source. A file is silent when no sample rises above −60 dBFS: a test on the peak, not on the level of each moment.",
       "filters": "Filter by verdict",
       "all": "All files",
       "verdicts": {
         "lossy_source": "Probably from a lossy file",
+        "upsampled": "Probably upsampled",
+        "silent": "Silent",
         "pending": "Waiting for analysis",
         "consistent": "No sign of a lossy source",
         "lossy": "Lossy",

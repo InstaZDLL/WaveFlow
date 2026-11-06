@@ -828,10 +828,13 @@
         "never": "Nessun file lossless è stato ancora analizzato."
       },
       "help": "Misurato dall’audio, non letto dal contenitore: dove si fermano gli acuti. Ogni encoder con perdita li taglia, e un file lossless ricavato da un MP3 conserva il taglio, intorno ai 16 kHz per un MP3 a 128 kbps. «Nessun segno di una sorgente con perdita» non è una prova: un encoder che conserva tutta la banda non lascia nulla da trovare.",
+      "helpVerdicts": "Un file oltre i 48 kHz i cui acuti si fermano entro 30 kHz è stato ricavato da una sorgente CD o a 48 kHz. Un file è silenzioso quando nessun campione supera −60 dBFS: una soglia sul picco, non sul livello di ogni istante.",
       "filters": "Filtra per verdetto",
       "all": "Tutti i file",
       "verdicts": {
         "lossy_source": "Probabilmente da un file con perdita",
+        "upsampled": "Probabilmente sovracampionato",
+        "silent": "Silenzioso",
         "pending": "In attesa di analisi",
         "consistent": "Nessun segno di una sorgente con perdita",
         "lossy": "Con perdita",

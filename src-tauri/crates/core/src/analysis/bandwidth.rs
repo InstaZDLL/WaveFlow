@@ -101,6 +101,23 @@ macro_rules! probable_fake_lossless_sql {
 /// files alone (`track_analysis.bandwidth_version`).
 pub const BANDWIDTH_VERSION: i64 = 1;
 
+/// A lossless file whose loudest sample stays under this (linear, -60
+/// dBFS) holds nothing to measure: the Quality tab calls it silent. A
+/// threshold on the **peak**, the one level the analysis stores, so it is
+/// stricter than a test on each frame's RMS: a file with a click above
+/// -60 dBFS in otherwise silence is not silent here.
+pub const SILENT_PEAK: f64 = 0.001;
+
+/// A wall at or under this, in a file above 48 kHz, is a resampler's
+/// filter: the file was made from a 44.1 or 48 kHz source. Measured on
+/// FFmpeg's resampler from both rates (walls from 21.5 to 28 kHz); a
+/// genuine high-rate recording fades instead, with no wall at all.
+pub const UPSAMPLED_CUTOFF_HZ: f64 = 30_000.0;
+
+/// The rate above which a file claims more than a CD or a 48 kHz master
+/// could give it.
+pub const UPSAMPLED_ABOVE_RATE: i64 = 48_000;
+
 /// SQL: what the audio of the track aliased `t` says about it, as one of
 /// [`QUALITY_VERDICTS`], with its analysis aliased `ta` — a `LEFT JOIN`,
 /// so `ta` may be absent. The first that applies:
@@ -110,10 +127,18 @@ pub const BANDWIDTH_VERSION: i64 = 1;
 /// - `not_measured`: any other format [`lossless_track_sql!`] does not
 ///   name — DSD, an unknown codec, none at all.
 /// - `pending`: lossless, and its highs never measured by the current
-///   [`BANDWIDTH_VERSION`] (`1` below; a test keeps them equal).
-/// - `lossy_source`: [`probable_fake_lossless_sql!`].
+///   [`BANDWIDTH_VERSION`].
+/// - `silent`: its peak under [`SILENT_PEAK`].
+/// - `lossy_source`: [`probable_fake_lossless_sql!`]. Before `upsampled`:
+///   a 96 kHz file with a wall at 16 kHz came from an MP3 first, and that
+///   it was upsampled afterwards is the lesser news.
+/// - `upsampled`: above [`UPSAMPLED_ABOVE_RATE`], with a wall at or under
+///   [`UPSAMPLED_CUTOFF_HZ`].
 /// - `consistent`: none of the above. Not "genuine": an encoder that keeps
 ///   the full band leaves no wall to find.
+///
+/// The numbers are spelled out below (`1`, `0.001`, `48000`, `30000`); a
+/// test keeps them equal to the constants.
 ///
 /// [`lossless_track_sql!`]: crate::lossless_track_sql
 /// [`probable_fake_lossless_sql!`]: crate::probable_fake_lossless_sql
@@ -121,17 +146,11 @@ pub const BANDWIDTH_VERSION: i64 = 1;
 macro_rules! quality_verdict_sql {
     () => {
         concat!(
-            "(CASE \
-               WHEN t.codec IN ('MP3', 'Vorbis', 'Opus', 'Speex') \
-                    OR (t.codec = 'AAC' AND t.bit_depth IS NULL) THEN 'lossy' \
-               WHEN NOT ",
+            "(CASE                WHEN t.codec IN ('MP3', 'Vorbis', 'Opus', 'Speex')                     OR (t.codec = 'AAC' AND t.bit_depth IS NULL) THEN 'lossy'                WHEN NOT ",
             $crate::lossless_track_sql!(),
-            " THEN 'not_measured' \
-               WHEN ta.bandwidth_version IS NULL OR ta.bandwidth_version < 1 THEN 'pending' \
-               WHEN ",
+            " THEN 'not_measured'                WHEN ta.bandwidth_version IS NULL OR ta.bandwidth_version < 1 THEN 'pending'                WHEN ta.peak IS NOT NULL AND ta.peak < 0.001 THEN 'silent'                WHEN ",
             $crate::probable_fake_lossless_sql!(),
-            " THEN 'lossy_source' \
-               ELSE 'consistent' END)"
+            " THEN 'lossy_source'                WHEN t.sample_rate > 48000 AND ta.cutoff_hz IS NOT NULL                     AND ta.cutoff_hz <= 30000 THEN 'upsampled'                ELSE 'consistent' END)"
         )
     };
 }
@@ -140,8 +159,10 @@ macro_rules! quality_verdict_sql {
 /// the Quality tab lists them in.
 ///
 /// [`quality_verdict_sql!`]: crate::quality_verdict_sql
-pub const QUALITY_VERDICTS: [&str; 5] = [
+pub const QUALITY_VERDICTS: [&str; 7] = [
     "lossy_source",
+    "upsampled",
+    "silent",
     "pending",
     "consistent",
     "lossy",

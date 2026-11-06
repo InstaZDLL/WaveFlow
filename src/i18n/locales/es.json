@@ -828,10 +828,13 @@
         "never": "Todavía no se ha analizado ningún archivo sin pérdida."
       },
       "help": "Medido en el audio, no leído del contenedor: dónde se detienen los agudos. Todo codificador con pérdida los corta, y un archivo sin pérdida hecho a partir de un MP3 conserva el corte, hacia 16 kHz en un MP3 de 128 kbps. «Ningún indicio de una fuente con pérdida» no es una prueba: un codificador que conserva toda la banda no deja nada que encontrar.",
+      "helpVerdicts": "Un archivo por encima de 48 kHz cuyos agudos se detienen antes de 30 kHz se hizo a partir de una fuente de CD o de 48 kHz. Un archivo es silencioso cuando ninguna muestra supera −60 dBFS: un umbral sobre el pico, no sobre el nivel de cada instante.",
       "filters": "Filtrar por veredicto",
       "all": "Todos los archivos",
       "verdicts": {
         "lossy_source": "Probablemente de un archivo con pérdida",
+        "upsampled": "Probablemente sobremuestreado",
+        "silent": "Silencioso",
         "pending": "Pendiente de análisis",
         "consistent": "Ningún indicio de una fuente con pérdida",
         "lossy": "Con pérdida",

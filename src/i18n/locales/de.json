@@ -796,10 +796,13 @@
         "never": "Noch keine verlustfreie Datei analysiert."
       },
       "help": "Aus dem Audio gemessen, nicht aus dem Container gelesen: wo die Höhen enden. Jeder verlustbehaftete Encoder schneidet sie ab, und eine verlustfreie Datei, die aus einer MP3 entstand, behält den Schnitt, bei einer MP3 mit 128 kbps um 16 kHz. „Kein Hinweis auf eine verlustbehaftete Quelle“ ist kein Beweis: Ein Encoder, der das volle Band behält, hinterlässt nichts, was sich finden ließe.",
+      "helpVerdicts": "Eine Datei über 48 kHz, deren Höhen vor 30 kHz enden, entstand aus einer CD- oder 48-kHz-Quelle. Eine Datei gilt als stumm, wenn kein Sample −60 dBFS überschreitet: eine Schwelle für die Spitze, nicht für den Pegel jedes Moments.",
       "filters": "Nach Befund filtern",
       "all": "Alle Dateien",
       "verdicts": {
         "lossy_source": "Vermutlich aus einer verlustbehafteten Datei",
+        "upsampled": "Vermutlich hochgerechnet",
+        "silent": "Stumm",
         "pending": "Wartet auf Analyse",
         "consistent": "Kein Hinweis auf eine verlustbehaftete Quelle",
         "lossy": "Verlustbehaftet",

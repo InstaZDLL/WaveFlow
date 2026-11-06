@@ -163,6 +163,48 @@ async fn the_list_puts_the_likeliest_fakes_first() {
     assert_eq!(ids, vec![3, 2, 4, 1, 5, 6]);
 }
 
+/// The two verdicts a high-rate or a silent file gets sit where the
+/// constant list puts them: after the fakes, before the files waiting.
+#[tokio::test]
+async fn upsampled_and_silent_files_sort_after_the_fakes() {
+    let pool = pool().await;
+    seed(&pool).await;
+    for (id, rate, cutoff, peak) in [(8, 96_000, Some(22_050.0), 0.5), (9, 44_100, None, 0.0)] {
+        sqlx::query(
+            "INSERT INTO track
+                (id, library_id, file_path, file_hash, file_size, file_modified,
+                 title, duration_ms, added_at, codec, bit_depth, sample_rate)
+             VALUES (?, 1, ?, 'h', 0, 0, 'T', 1000, 0, 'FLAC', 24, ?)",
+        )
+        .bind(id)
+        .bind(format!("/music/{id}.flac"))
+        .bind(rate)
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO track_analysis (track_id, cutoff_hz, bandwidth_version, peak, analyzed_at)
+             VALUES (?, ?, 1, ?, 60)",
+        )
+        .bind(id)
+        .bind(cutoff)
+        .bind(peak)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    let page = read_page(&pool, PathBuf::from("/art"), None, None, 0, 100)
+        .await
+        .unwrap();
+    let ids: Vec<i64> = page.items.iter().map(|r| r.id).collect();
+    assert_eq!(ids, vec![3, 2, 8, 9, 4, 1, 5, 6]);
+    let summary = read_summary(&pool).await.unwrap();
+    assert_eq!(count(&summary, "upsampled"), 1);
+    assert_eq!(count(&summary, "silent"), 1);
+    assert_eq!(summary.lossless, 6);
+    assert_eq!(summary.measured, 5);
+}
+
 #[tokio::test]
 async fn a_page_is_a_window_on_the_filter_and_the_total_is_the_filters() {
     let pool = pool().await;

@@ -7,6 +7,8 @@ import { invoke } from "@tauri-apps/api/core";
  */
 export const QUALITY_VERDICTS = [
   "lossy_source",
+  "upsampled",
+  "silent",
   "pending",
   "consistent",
   "lossy",

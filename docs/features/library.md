@@ -487,10 +487,16 @@ The last tab of My music lists every available local file by what its audio says
 | Lossy                      | `MP3`, `Vorbis`, `Opus`, `Speex`, or `AAC` with no bit depth: lossy by name, nothing to measure |
 | Not measured               | any other format `lossless_track_sql!` does not name: DSD, an unknown codec                     |
 | Waiting for analysis       | lossless, and its highs never measured by the current `BANDWIDTH_VERSION`                       |
+| Silent                     | its peak under `SILENT_PEAK` (0.001, −60 dBFS): no sample rises above it                        |
 | Probably from a lossy file | `probable_fake_lossless_sql!`: a wall at or under 21 kHz and 1 kHz under Nyquist                |
+| Probably upsampled         | above 48 kHz, with a wall at or under `UPSAMPLED_CUTOFF_HZ` (30 kHz)                            |
 | No sign of a lossy source  | none of the above — not "genuine": an encoder that keeps the full band leaves no wall to find   |
 
-Three verdicts a fuller measure gives are **not** here, because the analysis does not measure what they need: a file whose samples use fewer bits than its container claims (no measure of the bits in use), a file the decoder could not read (a failed analysis is only logged, so such a file stays "waiting"), and a hi-res file upsampled from a CD-rate source or a silent one, which the stored cutoff and peak could answer but no verdict yet asks.
+The list is the server's quality page's, in the same order, minus what the desktop does not measure. **Probably from a lossy file before probably upsampled**: a 96 kHz file with a wall at 16 kHz came from an MP3 first, and that it was upsampled afterwards is the lesser news; above 21 kHz the two cannot be confused, since no lossy encoder cuts there and a resampler's filter does. The 30 kHz threshold is the server's, measured on FFmpeg's resampler (walls from 21.5 to 28 kHz from a 44.1 or 48 kHz source), and the wall test is the same one, which is what spares a genuine high-rate recording: it fades, it does not stop. A resampler that lets images of the highs through leaves no wall and reads "no sign of a lossy source".
+
+**Silent is a threshold on the peak**, the one level the analysis stores, where the server tests each frame's RMS: a file in silence with one click above −60 dBFS is silent there and not here. The two counts are not the same measure and should not be compared.
+
+Two verdicts of the server are **not computed yet**, because the analysis does not measure what they need: **padded bit depth** (a file whose samples use fewer bits than its container claims — the bits in use are not measured) and **could not be read** (a failed analysis is only logged, not stored, so such a file stays "waiting for analysis").
 
 **The counts** are chips that filter the list, every verdict shown, zeros greyed, as the inventory's are. A format filter beside them reads the search chips' names through [`formats_condition`](../../src-tauri/crates/core/src/audio_format/format_filter.rs), so `ALAC` is told from AAC by its bit depth there too. The header line reads "N of M lossless files analysed", and a status line says what the analysis is doing, from the task registry: running with its progress (the counts are asked again every three seconds meanwhile, and the list once it ends), or idle with when the last lossless file was measured.
 

@@ -796,10 +796,13 @@
         "never": "Henüz hiçbir kayıpsız dosya analiz edilmedi."
       },
       "help": "Kapsayıcıdan okunmaz, sesin kendisinden ölçülür: tizlerin nerede durduğu. Her kayıplı kodlayıcı onları keser ve bir MP3’ten yapılmış kayıpsız dosya bu kesimi korur; 128 kbps bir MP3’te yaklaşık 16 kHz. “Kayıplı bir kaynak izi yok” bir kanıt değildir: tüm bandı koruyan bir kodlayıcı bulunacak bir iz bırakmaz.",
+      "helpVerdicts": "Tizleri 30 kHz’den önce duran 48 kHz üstü bir dosya, CD ya da 48 kHz bir kaynaktan yapılmıştır. Hiçbir örnek −60 dBFS’yi aşmıyorsa dosya sessizdir: eşik her anın seviyesine değil, tepe değerine uygulanır.",
       "filters": "Karara göre süz",
       "all": "Tüm dosyalar",
       "verdicts": {
         "lossy_source": "Muhtemelen kayıplı bir dosyadan",
+        "upsampled": "Muhtemelen üst örneklenmiş",
+        "silent": "Sessiz",
         "pending": "Analiz bekleniyor",
         "consistent": "Kayıplı bir kaynak izi yok",
         "lossy": "Kayıplı",

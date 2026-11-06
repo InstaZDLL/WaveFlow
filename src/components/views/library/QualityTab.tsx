@@ -15,6 +15,8 @@ import {
   FileAudio,
   HelpCircle,
   Loader2,
+  Maximize2,
+  VolumeX,
 } from "lucide-react";
 import { usePageScroll } from "../../../hooks/usePageScroll";
 import { useTasks } from "../../../hooks/useTasks";
@@ -63,6 +65,8 @@ const FORMATS = [
 
 const ICONS: Record<QualityVerdict, typeof AudioWaveform> = {
   lossy_source: AudioWaveform,
+  upsampled: Maximize2,
+  silent: VolumeX,
   pending: Clock,
   consistent: CircleCheck,
   lossy: FileAudio,
@@ -74,6 +78,11 @@ const ICONS: Record<QualityVerdict, typeof AudioWaveform> = {
 const TONES: Record<QualityVerdict, string> = {
   lossy_source:
     "border-amber-500/60 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30",
+  // A finding too, but a milder one: the file is still lossless.
+  upsampled:
+    "border-sky-500/50 text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/30",
+  silent:
+    "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300",
   pending: "border-zinc-300 text-zinc-500 dark:border-zinc-700",
   consistent:
     "border-emerald-500/50 text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20",
@@ -349,6 +358,9 @@ export function QualityTab({
           <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
             {t("library.quality.help")}
           </p>
+          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+            {t("library.quality.helpVerdicts")}
+          </p>
         </div>
         <AnalyseAgain
           t={t}
@@ -397,7 +409,9 @@ export function QualityTab({
                 className={`mt-0.5 shrink-0 ${
                   n > 0 && key === "lossy_source"
                     ? "text-amber-500"
-                    : "text-zinc-400"
+                    : n > 0 && key === "upsampled"
+                      ? "text-sky-500"
+                      : "text-zinc-400"
                 }`}
               />
               <span className="min-w-0 flex-1">

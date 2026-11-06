@@ -828,10 +828,13 @@
         "never": "Aucun fichier sans perte n’a encore été analysé."
       },
       "help": "Mesuré dans l’audio, pas lu dans le conteneur : là où s’arrêtent les aigus. Tout encodeur avec perte les coupe, et un fichier sans perte fait à partir d’un MP3 garde la coupure, vers 16 kHz pour un MP3 à 128 kbps. « Aucun signe d’une source avec perte » n’est pas une preuve : un encodeur qui garde toute la bande ne laisse rien à trouver.",
+      "helpVerdicts": "Un fichier au-delà de 48 kHz dont les aigus s’arrêtent avant 30 kHz a été fait à partir d’une source CD ou 48 kHz. Un fichier est silencieux quand aucun échantillon ne dépasse −60 dBFS : un seuil sur la crête, pas sur le niveau de chaque instant.",
       "filters": "Filtrer par verdict",
       "all": "Tous les fichiers",
       "verdicts": {
         "lossy_source": "Probablement issu d’un fichier avec perte",
+        "upsampled": "Probablement suréchantillonné",
+        "silent": "Silencieux",
         "pending": "En attente d’analyse",
         "consistent": "Aucun signe d’une source avec perte",
         "lossy": "Avec perte",
