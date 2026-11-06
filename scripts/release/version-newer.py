@@ -30,11 +30,18 @@ def is_number(text: str) -> bool:
     return text.isascii() and text.isdigit()
 
 
+def is_identifier(text: str) -> bool:
+    # SemVer identifiers: ASCII letters, digits and hyphens, never empty.
+    return bool(text) and text.isascii() and all(c.isalnum() or c == "-" for c in text)
+
+
 def key(version: str):
     text = version.strip()
     if text.startswith("v"):
         text = text[1:]
-    text = text.split("+", 1)[0]
+    text, plus, build = text.partition("+")
+    if plus and not all(is_identifier(part) for part in build.split(".")):
+        raise NotAVersion(f"{version!r} has invalid build metadata")
     core, dash, pre = text.partition("-")
     numbers = core.split(".")
     if len(numbers) != 3 or not all(is_number(part) for part in numbers):
@@ -42,8 +49,8 @@ def key(version: str):
         # compare as older than "2.0.0" and let a guard go ahead.
         raise NotAVersion(f"{version!r} is not a version")
     parts = pre.split(".") if dash else []
-    if any(not part for part in parts):
-        raise NotAVersion(f"{version!r} has an empty pre-release identifier")
+    if not all(is_identifier(part) for part in parts):
+        raise NotAVersion(f"{version!r} has an invalid pre-release identifier")
     return (
         tuple(int(part) for part in numbers),
         # A release sorts after every pre-release of the same core.
@@ -73,7 +80,7 @@ def self_test() -> int:
     expect("a leading v is ignored", not newer("v2.0.1", "2.0.1") and newer("v2.0.2", "2.0.1"))
     expect("build metadata is ignored", not newer("2.0.1+r2", "2.0.1+gh"))
     expect("2.0.10 is newer than 2.0.9", newer("2.0.10", "2.0.9"))
-    for bad in ("abc", "", "2.0", "2.0.1.4", "2.0.x", "2.0.1-", "2.0.1-beta..1", "2.0.²"):
+    for bad in ("abc", "", "2.0", "2.0.1.4", "2.0.x", "2.0.1-", "2.0.1-beta..1", "2.0.²", "2.0.1-@", "2.0.1-beta.é", "2.0.1+", "2.0.1+a@b"):
         try:
             key(bad)
         except NotAVersion:
