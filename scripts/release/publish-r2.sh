@@ -185,24 +185,6 @@ fi
 # is newer than itself: every 2.0.1 installation would stop seeing
 # updates from this host. The same version again is a re-run, and goes
 # through. R2_FORCE=1 overrides, for a deliberate rollback.
-newer() {
-  python3 - "$1" "$2" <<'PY'
-import sys
-
-def key(version):
-    core, _, pre = version.partition("-")
-    numbers = tuple(int(part) for part in core.split("."))
-    # A release sorts after every pre-release of the same core;
-    # pre-release identifiers compare numerically where they can.
-    parts = tuple(
-        (0, int(p), "") if p.isdigit() else (1, 0, p)
-        for p in pre.split(".")
-    ) if pre else ()
-    return numbers, (1,) if not pre else (0,) + parts
-
-sys.exit(0 if key(sys.argv[1]) > key(sys.argv[2]) else 1)
-PY
-}
 if [ "$dry_run" != "1" ] && [ "${R2_FORCE:-0}" != "1" ]; then
   code="$(curl -sSL -o "$work/current.json" -w '%{http_code}' \
     "$public/$channel/latest.json?v=$RANDOM$RANDOM" || true)"
@@ -212,10 +194,21 @@ if [ "$dry_run" != "1" ] && [ "${R2_FORCE:-0}" != "1" ]; then
         echo "::error::$public/$channel/latest.json is not a manifest; set R2_FORCE=1 to replace it" >&2
         exit 1
       fi
-      if newer "$published" "$version"; then
-        echo "::warning::$channel/latest.json already offers $published, newer than $version: left in place (the files stay under $prefix/)"
-        exit 0
-      fi
+      # 2 is "not a version", never read as "not newer": that would let
+      # an unreadable manifest be overwritten without a word.
+      rc=0
+      python3 "$here/version-newer.py" "$published" "$version" || rc=$?
+      case "$rc" in
+        0)
+          echo "::warning::$channel/latest.json already offers $published, newer than $version: left in place (the files stay under $prefix/)"
+          exit 0
+          ;;
+        1) ;;
+        *)
+          echo "::error::cannot compare the published $published with $version; set R2_FORCE=1 to replace it" >&2
+          exit 1
+          ;;
+      esac
       ;;
     404) ;; # the channel's first manifest
     *)

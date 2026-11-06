@@ -254,7 +254,10 @@ just published — and its R2 mirror, `stable/latest.json`.
 The code that is not GitHub glue lives in
 [`scripts/release/`](../scripts/release/): the asset names and the
 per-platform manifest (`prepare-assets.py`), the merge
-(`merge-manifests.py`), the glibc floor check, the R2 upload. The
+(`merge-manifests.py`), the glibc floor check, the R2 upload, and the
+version comparison that keeps a channel from moving backwards on
+either host (`version-newer.py`, which exits 2 rather than "not
+newer" when it is handed something that is not a version). The
 workflow runs them from its own commit, checked out next to the tag
 (`.release-tools/`), so a patch release whose tag predates them builds
 the same way; [`.gitlab-ci.yml`](../.gitlab-ci.yml) runs the same files.

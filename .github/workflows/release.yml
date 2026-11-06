@@ -738,29 +738,20 @@ jobs:
               echo "::warning::Could not download the beta channel manifest. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
             elif ! BETA_VERSION=$(python3 -c 'import json; print(json.load(open("current-beta.json"))["version"])'); then
               echo "::warning::The beta channel manifest has no readable version. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
-            elif python3 - "${TAG_NAME#v}" "$BETA_VERSION" <<'PY'
-          import sys
-
-          def key(version):
-              core, _, pre = version.partition("-")
-              numbers = tuple(int(part) for part in core.split("."))
-              # A release sorts after every pre-release of the same core;
-              # pre-release identifiers compare numerically where they can.
-              parts = tuple(
-                  (0, int(p), "") if p.isdigit() else (1, 0, p)
-                  for p in pre.split(".")
-              ) if pre else ()
-              return numbers, (1,) if not pre else (0,) + parts
-
-          stable, beta = sys.argv[1], sys.argv[2]
-          sys.exit(0 if key(stable) > key(beta) else 1)
-          PY
-            then
-              echo "Stable $TAG_NAME is newer than the beta channel's $BETA_VERSION: publishing it there too."
-              cp dist-release/latest.json dist-release/latest-beta.json
-              gh release upload beta-channel dist-release/latest-beta.json --clobber
             else
-              echo "Beta channel keeps $BETA_VERSION, not older than $TAG_NAME."
+              # The comparison publish-r2.sh makes too: 0 newer, 1 not, 2 not
+              # a version — the last never taken for "not newer" in silence.
+              rc=0
+              python .release-tools/scripts/release/version-newer.py "${TAG_NAME#v}" "$BETA_VERSION" || rc=$?
+              if [ "$rc" -eq 0 ]; then
+                echo "Stable $TAG_NAME is newer than the beta channel's $BETA_VERSION: publishing it there too."
+                cp dist-release/latest.json dist-release/latest-beta.json
+                gh release upload beta-channel dist-release/latest-beta.json --clobber
+              elif [ "$rc" -eq 1 ]; then
+                echo "Beta channel keeps $BETA_VERSION, not older than $TAG_NAME."
+              else
+                echo "::warning::Could not compare $TAG_NAME with the beta channel's $BETA_VERSION. Upload latest.json there as latest-beta.json by hand if $TAG_NAME is newer."
+              fi
             fi
           fi
 
