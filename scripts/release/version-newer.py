@@ -37,7 +37,9 @@ def key(version: str):
     text = text.split("+", 1)[0]
     core, dash, pre = text.partition("-")
     numbers = core.split(".")
-    if not numbers or not all(is_number(part) for part in numbers):
+    if len(numbers) != 3 or not all(is_number(part) for part in numbers):
+        # Major, minor and patch, as every release is tagged: "2.0" would
+        # compare as older than "2.0.0" and let a guard go ahead.
         raise NotAVersion(f"{version!r} is not a version")
     parts = pre.split(".") if dash else []
     if any(not part for part in parts):
@@ -71,7 +73,7 @@ def self_test() -> int:
     expect("a leading v is ignored", not newer("v2.0.1", "2.0.1") and newer("v2.0.2", "2.0.1"))
     expect("build metadata is ignored", not newer("2.0.1+r2", "2.0.1+gh"))
     expect("2.0.10 is newer than 2.0.9", newer("2.0.10", "2.0.9"))
-    for bad in ("abc", "", "2.0.x", "2.0.1-", "2.0.1-beta..1", "2.0.²"):
+    for bad in ("abc", "", "2.0", "2.0.1.4", "2.0.x", "2.0.1-", "2.0.1-beta..1", "2.0.²"):
         try:
             key(bad)
         except NotAVersion:
