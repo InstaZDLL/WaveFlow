@@ -186,6 +186,30 @@ fn smoothing_lets_a_sustained_hit_through() {
     assert!(band[0] > 95.0, "got {}", band[0]);
 }
 
+/// A NaN that reaches a band is drawn as 0 for that frame and does not
+/// stay in the average: the next frame reads the music again, and a reset
+/// replaces an average that is not finite.
+#[test]
+fn a_band_that_is_not_finite_does_not_stick() {
+    let mut power = [400.0; 1];
+    let mut band = [f32::NAN];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert_eq!(band[0], 0.0);
+    assert_eq!(power[0], 0.0);
+
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert!(band[0].is_finite() && band[0] > 50.0, "got {}", band[0]);
+
+    let mut power = [f32::NAN; 1];
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, true);
+    assert_eq!(band[0], 100.0);
+    let mut band = [100.0];
+    smooth_bands(&mut power, &mut band, EMIT_INTERVAL, false);
+    assert_eq!(band[0], 100.0);
+}
+
 /// End to end on the analyzer: steady white noise, a fresh window every
 /// frame. Each band's estimate wanders on its own from one window to the
 /// next; the frames that reach the display must not.

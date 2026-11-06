@@ -351,14 +351,25 @@ fn follow_level(level: f32, frame_peak: f32, elapsed: Duration) -> f32 {
 /// counts for its energy, with the coefficient from the audio since the
 /// previous frame, as in [`follow_level`]. The `first` frame since a reset
 /// takes the band as it is: there is nothing before it to average with.
+///
+/// A band that is not finite (a NaN sample let through: the clamp at the
+/// end of the chain keeps a NaN) reads 0 and leaves the average at 0, and
+/// an average that is not finite is replaced rather than averaged with:
+/// a NaN in it would otherwise stay there for good, through every seek.
 fn smooth_bands(power: &mut [f32], bands: &mut [f32], elapsed: Duration, first: bool) {
-    let alpha = if first {
-        1.0
-    } else {
-        1.0 - (-elapsed.as_secs_f32() / BAND_SMOOTHING.as_secs_f32()).exp()
-    };
+    let alpha = 1.0 - (-elapsed.as_secs_f32() / BAND_SMOOTHING.as_secs_f32()).exp();
     for (p, band) in power.iter_mut().zip(bands.iter_mut()) {
-        *p += (*band * *band - *p) * alpha;
+        let next = *band * *band;
+        if !next.is_finite() {
+            *p = 0.0;
+            *band = 0.0;
+            continue;
+        }
+        if first || !p.is_finite() {
+            *p = next;
+        } else {
+            *p += (next - *p) * alpha;
+        }
         *band = p.sqrt();
     }
 }
