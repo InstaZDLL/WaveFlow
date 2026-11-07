@@ -228,15 +228,21 @@ class ReadPublished(unittest.TestCase):
         self.addCleanup(setattr, mp, "fetch", original)
 
     def test_a_404_is_the_first_run(self):
+        error = mp.urllib.error.HTTPError(self.URL, 404, "Not Found", {}, io.BytesIO())
+        self.addCleanup(error.close)
+
         def fetch(url, cap):
-            raise mp.urllib.error.HTTPError(url, 404, "Not Found", {}, io.BytesIO())
+            raise error
 
         self.answer(fetch)
         self.assertIsNone(mp.read_published(self.URL))
 
     def test_a_server_error_stops_the_run(self):
+        error = mp.urllib.error.HTTPError(self.URL, 503, "Unavailable", {}, io.BytesIO())
+        self.addCleanup(error.close)
+
         def fetch(url, cap):
-            raise mp.urllib.error.HTTPError(url, 503, "Unavailable", {}, io.BytesIO())
+            raise error
 
         self.answer(fetch)
         with self.assertRaises(mp.Refused):
