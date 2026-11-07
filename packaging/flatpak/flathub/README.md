@@ -79,7 +79,7 @@ Keep the quotes: a hash made only of digits would otherwise be read as a number.
    - `--filesystem=xdg-run/app/com.discordapp.Discord:create` and `xdg-run/discord-ipc-0..3`: Discord Rich Presence's socket, from the Discord Flatpak or a host install (on by default, a switch in Settings).
    - `--socket=pulseaudio`, `--device=dri`, `--socket=wayland`, `--socket=fallback-x11`, `--share=ipc`: sound and display.
 
-   One thing a reviewer may ask about: the bundled Web Radio plugin is installed as the WebAssembly file committed in `src-tauri/resources/plugins/web-radio/`, built in its own repository, not compiled by this manifest. Flathub asks for everything to be built from source; if the review holds to that, the answer is a module building it from its repository, which needs a `wasm32` Rust target in the build sandbox (not checked yet).
+   One thing a reviewer may ask about: the bundled Web Radio plugin is installed as the WebAssembly file committed in `src-tauri/resources/plugins/web-radio/`, built in its own repository, not compiled by this manifest. Its source is in `src-tauri/plugins/web-radio/`, but it builds for `wasm32-wasip2`, and the `rust-stable` SDK extension ships the standard library for x86_64 and i686 only (checked on its 26.08 branch). Flathub asks for everything to be built from source; if the review holds to that, the choices are an exception for this file, or leaving it out of the Flatpak, where Web Radio would then come from the plugin store.
 
 5. Answer the review in the same PR (never close it, never merge `master` into it). Once the comments are settled, comment `bot, build` for a test build.
 
