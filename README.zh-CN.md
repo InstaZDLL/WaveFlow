@@ -388,3 +388,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 ```
 
 完整条款见 [LICENSE](LICENSE)，第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+### 商标
+
+WaveFlow 的标志（[`assets/`](assets/) 下的文件以及应用图标）是 InstaZDLL 的商标。GPL-3.0 许可证只涵盖代码，并不授予使用该标志的权利（GPL-3.0 第 7(e) 条）。
+
+你可以使用该标志来指代 WaveFlow，例如在文章、评测、链接或演讲中；以未经修改、从本仓库构建的方式分发 WaveFlow 的软件包也可以保留它。分支版本或修改后的构建必须使用自己的图标，并且不得暗示其为官方版本或得到本项目的认可。
