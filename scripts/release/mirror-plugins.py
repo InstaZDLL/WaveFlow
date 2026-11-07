@@ -210,12 +210,25 @@ def _decode_problem(entry: dict) -> str | None:
     return None
 
 
+def _no_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    """A JSON object as a dict, Refused when a key appears twice. serde
+    refuses a struct field given twice, where json.loads keeps the last
+    one quietly; refused everywhere here, maps and unknown fields too,
+    which is stricter than serde and costs nothing a registry needs."""
+    obj: dict = {}
+    for key, value in pairs:
+        if key in obj:
+            raise Refused(f"the registry gives {key!r} twice in one object")
+        obj[key] = value
+    return obj
+
+
 def parse_registry(raw: bytes) -> dict:
     """The registry, or Refused. Checks what the mirror relies on: the
     schema the app reads, at least one plugin, entries the app decodes,
     and names that can become file names."""
     try:
-        reg = json.loads(raw)
+        reg = json.loads(raw, object_pairs_hook=_no_duplicate_keys)
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
         raise Refused(f"the registry is not JSON: {e}") from None
     if not isinstance(reg, dict):

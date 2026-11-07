@@ -150,6 +150,19 @@ class ParseRegistry(unittest.TestCase):
         del without_permissions["permissions"]
         self.refused(json.dumps(registry(without_permissions)).encode())
 
+    def test_refuses_a_key_given_twice(self):
+        good = json.dumps(registry(entry()))
+        pin = json.dumps(entry()["blake3"])
+        for raw in (
+            # A struct field: serde refuses the whole registry.
+            good.replace('"blake3": ', '"blake3": ' + pin + ', "blake3": ', 1),
+            good.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1', 1),
+            # A permissions field, one object deeper.
+            good.replace('"permissions": {}', '"permissions": {"http": [], "http": []}', 1),
+        ):
+            with self.subTest(raw=raw[:60]), self.assertRaisesRegex(mp.Refused, "twice"):
+                mp.parse_registry(raw.encode())
+
     def test_refuses_a_malformed_pin_or_a_duplicate(self):
         self.refused(json.dumps(registry(entry(blake3="abc"))).encode())
         self.refused(json.dumps(registry(entry(), entry())).encode())
