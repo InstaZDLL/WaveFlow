@@ -129,7 +129,12 @@ def is_safe_url(url: str) -> bool:
 
 
 class _SafeRedirects(urllib.request.HTTPRedirectHandler):
+    """Follows a redirect only to an address `is_safe_url` accepts, as the
+    app's download client re-checks every hop."""
+
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """The next request, or an HTTPError naming the refused hop
+        without its query string."""
         if not is_safe_url(newurl):
             raise urllib.error.HTTPError(
                 redact(newurl), code, "redirect to an unsafe address refused", headers, fp
@@ -222,6 +227,8 @@ def mirror_key(entry: dict) -> str:
 
 
 def blake3_hex(data: bytes) -> str:
+    """The blake3 of `data` as lowercase hex, the form the registry pins
+    (Refused when the blake3 package is missing)."""
     try:
         import blake3  # type: ignore[import-not-found]
     except ImportError:
@@ -230,6 +237,9 @@ def blake3_hex(data: bytes) -> str:
 
 
 def _member(archive: zipfile.ZipFile, name: str, cap: int) -> bytes | None:
+    """One member's bytes, None when the archive lacks it. Refused past
+    `cap`, by the size the header declares and by what is actually read,
+    so neither a lying header nor a decompression bomb gets through."""
     try:
         info = archive.getinfo(name)
     except KeyError:
@@ -369,6 +379,7 @@ def stage(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """0 when the tree is staged; 1, with nothing written, otherwise."""
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", required=True, type=Path, help="empty directory to stage into")
     ap.add_argument("--registry-url", default=REGISTRY_URL)
