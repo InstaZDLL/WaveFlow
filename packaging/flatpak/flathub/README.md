@@ -26,9 +26,9 @@ These land in the release commit, since Flathub builds what the tag points to:
 ```bash
 W=/path/to/WaveFlow
 git -C "$W" fetch --tags origin
-sha=$(git -C "$W" rev-parse 'v2.0.0^{commit}')
-sed -i "s/^\( *commit: \).*/\1\"$sha\"/" app.waveflow.WaveFlow.yaml
-grep -n -A3 'type: git' app.waveflow.WaveFlow.yaml
+sha=$(git -C "$W" rev-parse --verify 'v2.0.0^{commit}') &&
+  sed -i "s/^\( *commit: \).*/\1\"$sha\"/" app.waveflow.WaveFlow.yaml
+grep -n -A3 'type: git' app.waveflow.WaveFlow.yaml   # 40 hex digits, not 000…
 ```
 
 Keep the quotes: a hash made only of digits would otherwise be read as a number.
