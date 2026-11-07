@@ -25,13 +25,18 @@ Host imports currently exposed to guests: `http` (permissioned fetch), `storage`
 
 ## The plugin store
 
-The install path is [`commands/plugin_store.rs`](../../src-tauri/crates/app/src/commands/plugin_store.rs). It fetches a curated catalogue from a **source cascade** (first that answers wins, all identical):
+The install path is [`commands/plugin_store.rs`](../../src-tauri/crates/app/src/commands/plugin_store.rs). It fetches a curated catalogue from a **source cascade** (first that answers with a registry wins):
 
-1. `waveflow.app/api/plugins/registry`
-2. `raw.githubusercontent.com/InstaZDLL/waveflow-plugins/main/registry.json`
-3. jsDelivr mirror of the same file
+1. `waveflow.app/api/plugins/registry` — the merged registry: the public `registry.json` of [`InstaZDLL/waveflow-plugins`](https://github.com/InstaZDLL/waveflow-plugins) plus the private plugins
+2. `download.waveflow.app/plugins/registry.json` — the R2 copy of the first, the only other source that lists the private plugins
+3. `raw.githubusercontent.com/InstaZDLL/waveflow-plugins/main/registry.json` — the public registry alone
+4. jsDelivr mirror of the same file
 
-Installing an entry downloads that plugin's **pinned GitHub release**, then:
+Installing an entry downloads that plugin's archive from its own address — the entry's `download_url` when it has one (the private plugins sit on `waveflow.app`), else its **pinned GitHub release** (`releases/download/v<version>/<asset>`). When that download fails — a network error, a status other than 2xx, a body cut short of its `Content-Length` or past the 64 MB cap, or a 200 that is not a zip at all (a suspended account's page, a captive portal) — the R2 copy, `download.waveflow.app/plugins/<id>/<id>-v<version>.zip`, is tried once, under the same cap and the same SSRF guard on every redirect. A blake3 mismatch is not a failed download: the bytes arrived and the registry says they are wrong, so the install is refused and the mirror is not asked.
+
+Both R2 addresses are compiled into the app ([`PLUGIN_MIRROR_BASE`](../../src-tauri/crates/app/src/commands/plugin_store.rs)), like the updater's, and never read from the registry — a registry that could name its fallback could name any host. The mirror is one more host, never one more trust anchor: whichever host the archive came from, it passes the checks below against the registry the app read. The bucket is filled every six hours by [`plugins-mirror.yml`](../../.github/workflows/plugins-mirror.yml) ([RELEASING.md](../RELEASING.md#the-plugin-store-mirror)).
+
+Once downloaded, the archive goes through these checks:
 
 - **verifies `plugin.wasm`'s blake3 against the registry entry** — the _registry_ is the trusted pin, not the release, so a compromised release fails the hash and is rejected;
 - sanity-checks the manifest (`id` / `version` / `world`);
@@ -123,7 +128,7 @@ fr = "Pochettes animées depuis Apple Music."
 It reads better, and it is fine for a manifest that never reaches an older host. But a WaveFlow predating this feature expects a string and hard-errors on the table:
 
 - in a **manifest**, the plugin is dropped wholesale (unreadable manifest) — recoverable only by raising the registry entry's `min_app_version`, which also cuts those users off from the version they can still run;
-- in **`registry.json`**, which is a single document every installed version fetches, the catalogue fails to decode from all three sources and **the store goes dark on that build**. `min_app_version` cannot save it: it is read after the decode that already failed.
+- in **`registry.json`**, which is a single document every installed version fetches, the catalogue fails to decode from every source and **the store goes dark on that build**. `min_app_version` cannot save it: it is read after the decode that already failed.
 
 So: inline for local experiments, `*_i18n` for anything published.
 
@@ -221,6 +226,6 @@ What the plugin does: a discovery view of recent releases from the artists in yo
 
 - **Sandboxed** — WASM component in wasmtime, no ambient authority.
 - **Permission-gated** — HTTP is allowlisted per manifest; storage is a bounded per-plugin scratch quota; no filesystem.
-- **Verified installs** — `plugin.wasm` blake3 is pinned by the trusted registry, checked before a stage-swap; a tampered release fails. The binary must also _be_ a component, or the install is refused rather than landing a plugin that can never load.
+- **Verified installs** — `plugin.wasm` blake3 is pinned by the trusted registry, checked before a stage-swap, whichever host the archive came from; a tampered release or mirror copy fails. The binary must also _be_ a component, or the install is refused rather than landing a plugin that can never load.
 - **Offline-aware** — every registry / plugin fetch respects process-wide offline mode.
 - **Isolated liability** — plugin code lives in separate repos; nothing grey-area ships inside the signed core.

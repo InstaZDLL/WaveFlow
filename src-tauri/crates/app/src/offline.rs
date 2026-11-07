@@ -43,7 +43,7 @@ thread_local! {
 }
 
 /// What [`is_offline`] answers on this thread, until the handle drops.
-#[cfg(all(test, feature = "sync_v2"))]
+#[cfg(test)]
 pub(crate) fn scoped_to_this_thread(value: bool) -> ThisThread {
     THIS_THREAD.set(Some(value));
     ThisThread
@@ -57,10 +57,10 @@ pub(crate) fn flip_on_this_thread(value: bool) {
 }
 
 /// Reset by drop: a panic must not leave the thread's next test offline.
-#[cfg(all(test, feature = "sync_v2"))]
+#[cfg(test)]
 pub(crate) struct ThisThread;
 
-#[cfg(all(test, feature = "sync_v2"))]
+#[cfg(test)]
 impl Drop for ThisThread {
     fn drop(&mut self) {
         THIS_THREAD.set(None);

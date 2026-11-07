@@ -61,7 +61,7 @@ When the Discord app is running on your computer, WaveFlow tells it what you are
 
 ### Plugin store and plugins
 
-Opening the **Extensions** page reads the list of available plugins from `waveflow.app`, or, if that does not answer, from GitHub (`raw.githubusercontent.com`) or jsDelivr (`cdn.jsdelivr.net`). Installing a plugin downloads it from the address in that list and checks it against the fingerprint the list pins.
+Opening the **Extensions** page reads the list of available plugins from `waveflow.app`, or, if that does not answer, from the project's mirror (`download.waveflow.app`, served by Cloudflare), GitHub (`raw.githubusercontent.com`) or jsDelivr (`cdn.jsdelivr.net`). Installing a plugin downloads it from the address in that list, or from the same mirror when that address does not answer, and checks it against the fingerprint the list pins.
 
 A plugin runs in a sandbox and can only reach the web addresses it declares; WaveFlow shows them, with the plugin's other permissions, before you install it. What a plugin sends depends on what it does: a lyrics plugin sends the track's title, artist, album and length to its source, an artwork or Canvas plugin the album or track it looks up. A plugin that asks for it may read the list of artists in your library, never your files, paths or listening history. Some plugins need an account cookie or token, which you enter in their options and which is sent only to their own service. Disable or uninstall a plugin from the Extensions page; offline mode blocks every plugin request.
 
