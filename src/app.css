@@ -606,8 +606,11 @@ html.mini-player-window #root {
 /* A reading under a lyrics line (its romanization, translation, backing
    vocals, a companion line) takes its own direction, `dir="auto"`, so
    its punctuation and word order are its own; it still sits against the
-   edge its line sits against, the line's own `start` or `end`. */
+   edge its line sits against, the line's own `start` or `end`. Chromium
+   (WebView2) knows that value only under its prefix; WebKit and Gecko
+   read the standard one. */
 .wf-lyrics-reading {
+  text-align: -webkit-match-parent;
   text-align: match-parent;
 }
 
