@@ -102,6 +102,11 @@ privacy link change, the change reaches winget only by hand, once:
    `InstaZDLL.WaveFlow.locale.en-US.yaml` (keep its `PackageVersion`)
    with the same fields before it merges; every later release then
    carries them over.
+3. if the bot merged that PR first, open one more PR in
+   `microsoft/winget-pkgs` that changes only
+   `manifests/i/InstaZDLL/WaveFlow/<version>/InstaZDLL.WaveFlow.locale.en-US.yaml`
+   for the version just published; a metadata-only change to a
+   published version is accepted, and the next release copies it.
 
 The schema version is pinned to `1.6.0` (the lowest version that
 supports both `nullsoft` and `wix` installer types in the same
