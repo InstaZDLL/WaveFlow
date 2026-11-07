@@ -12,6 +12,18 @@
 //! a compromised release can't push a payload the app will load, and a
 //! takedown (removing the registry entry) stops new installs everywhere.
 //!
+//! **Second host.** `download.waveflow.app`, the R2 bucket the updater
+//! already reads, holds a copy of the merged registry and of every archive
+//! it names (`.github/workflows/plugins-mirror.yml`). The registry copy is
+//! read right after `waveflow.app`'s; an archive copy is tried once when
+//! the archive's own address fails. Both addresses are compiled in, never
+//! read from the registry. An archive copy is only another host: it is
+//! verified against the registry exactly like the original. The registry
+//! copy is not: read when `waveflow.app` does not answer, it *is* the
+//! registry, trusted like the GitHub copies after it — whoever can write
+//! the bucket can publish pins there, as whoever can push to the registry
+//! repository can on GitHub. The registry is not signed.
+//!
 //! Every outbound fetch honours [`offline::is_offline`] like every other
 //! HTTP path in the workspace.
 
@@ -33,13 +45,23 @@ use crate::error::{AppError, AppResult};
 use crate::offline;
 use crate::state::AppState;
 
+/// The plugin store's folder on the R2 bucket the updater also reads
+/// (`commands/updater.rs`). `plugins-mirror.yml` fills it with
+/// `registry.json` and `<id>/<id>-v<version>.zip`. Compiled in like the
+/// updater's endpoints, and never taken from the registry: a registry
+/// that could name its own fallback could name any host it liked.
+const PLUGIN_MIRROR_BASE: &str = "https://download.waveflow.app/plugins";
+
 /// Ordered registry sources. The app-controlled endpoint is primary so
 /// the catalogue backend can evolve (region filtering, analytics, a DB)
-/// without an app release; the raw-GitHub + jsDelivr URLs are serverless
-/// fallbacks that keep the store working if the endpoint is down or not
-/// yet deployed.
+/// without an app release. The R2 copy comes next: it and `waveflow.app`
+/// are the only two that list the private plugins, which the GitHub
+/// repository does not hold. The raw-GitHub + jsDelivr URLs are
+/// serverless fallbacks with the public plugins alone.
 const REGISTRY_URLS: &[&str] = &[
     "https://waveflow.app/api/plugins/registry",
+    // `PLUGIN_MIRROR_BASE` + `/registry.json` (a test holds the two together).
+    "https://download.waveflow.app/plugins/registry.json",
     "https://raw.githubusercontent.com/InstaZDLL/waveflow-plugins/main/registry.json",
     "https://cdn.jsdelivr.net/gh/InstaZDLL/waveflow-plugins@main/registry.json",
 ];
@@ -93,7 +115,7 @@ struct RegistryEntry {
     /// **Publishing the map form here breaks every older client.**
     /// `registry.json` is ONE document fetched by every WaveFlow ever
     /// installed, and a build predating `LocalizedString` fails to
-    /// decode the whole catalogue from all three sources — its store
+    /// decode the whole catalogue from every source — its store
     /// goes dark, and `min_app_version` can't help because it is read
     /// after this decode. Translations therefore ride in the sibling
     /// `description_i18n` below, which older clients simply ignore.
@@ -251,6 +273,153 @@ fn installed_version(paths: &PluginPaths, id: &str) -> Option<String> {
     let manifest_path = paths.manifest_path(id).ok()?;
     let manifest = Manifest::load_from_path(&manifest_path).ok()?;
     (manifest.plugin.id == id).then_some(manifest.plugin.version)
+}
+
+/// What a registry version may be to name a file on the mirror — the rule
+/// `scripts/release/mirror-plugins.py` stages by. Anything else has no
+/// mirror copy, so the mirror is not asked.
+fn is_mirrorable_version(version: &str) -> bool {
+    let mut chars = version.chars();
+    matches!(chars.next(), Some(c) if c.is_ascii_alphanumeric())
+        && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '+' | '-'))
+}
+
+/// The mirror's copy of one archive, `None` when the id or the version
+/// could not name it (the staging script refuses those too).
+fn mirror_archive_url(id: &str, version: &str) -> Option<String> {
+    let id_ok = !id.is_empty()
+        && id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+    (id_ok && is_mirrorable_version(version))
+        .then(|| format!("{PLUGIN_MIRROR_BASE}/{id}/{id}-v{version}.zip"))
+}
+
+/// The archive's own address: the registry's `download_url` when it gives
+/// one (see the field doc), else the GitHub `releases/download` URL built
+/// from `repo`. The bytes are blake3-verified against the registry pin
+/// later, but the URL is a fetch the app makes, so a `download_url` must
+/// pass the shared SSRF guard: https + reject localhost / loopback /
+/// private / link-local hosts (and userinfo forms pointing at them). Even a
+/// compromised entry must not be able to make the app hit an internal
+/// address. Such an entry is refused outright, not routed to the mirror:
+/// it is a broken registry, not an unreachable host.
+fn primary_archive_url(entry: &RegistryEntry) -> AppResult<String> {
+    match &entry.download_url {
+        Some(direct) => {
+            if !is_safe_motion_url(direct) {
+                return Err(AppError::Other(format!(
+                    "plugin {}: registry download_url is not a safe https URL",
+                    entry.id
+                )));
+            }
+            Ok(direct.clone())
+        }
+        None => {
+            // The release asset lives in the entry's own repo (releases/download).
+            let asset = entry
+                .asset
+                .clone()
+                .unwrap_or_else(|| format!("{}-v{}.zip", entry.id, entry.version));
+            Ok(format!(
+                "https://github.com/{}/releases/download/v{}/{}",
+                entry.repo, entry.version, asset
+            ))
+        }
+    }
+}
+
+/// Where to download an entry's archive, in the order to try: its own
+/// address, then the mirror's copy — left out when it is that same
+/// address, or when the version could not name a file there.
+fn archive_sources(entry: &RegistryEntry) -> AppResult<Vec<String>> {
+    let mut sources = vec![primary_archive_url(entry)?];
+    if let Some(mirror) = mirror_archive_url(&entry.id, &entry.version) {
+        if mirror != sources[0] {
+            sources.push(mirror);
+        }
+    }
+    Ok(sources)
+}
+
+/// Download one archive in full, or say why not. Every failure here is one
+/// another host can cure: the request failing, a status other than 2xx, a
+/// body past [`MAX_DOWNLOAD_BYTES`], cut short of its `Content-Length`, or
+/// not a zip at all (a suspended account's page or a captive portal, both
+/// served with 200). Nothing here reads what the archive holds; that is
+/// [`install_from_zip_bytes`]'s, after the download, so a blake3 mismatch
+/// never reaches the next host.
+async fn download_archive(client: &reqwest::Client, url: &str) -> AppResult<Vec<u8>> {
+    // The asset URL comes from the registry and may carry a signed query;
+    // these messages are logged and shown, so it is redacted throughout.
+    let failed = |why: String| AppError::Other(format!("download {}: {why}", redact_url(url)));
+    let mut resp = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| failed(describe_http_error(&e)))?;
+    if !resp.status().is_success() {
+        return Err(failed(format!("HTTP {}", resp.status())));
+    }
+    // content-length is an early-reject optimisation only — it can be
+    // absent or lie, so the real bound is enforced while streaming below.
+    let expected_len = resp.content_length();
+    if let Some(len) = expected_len {
+        if len > MAX_DOWNLOAD_BYTES {
+            return Err(failed(format!(
+                "{len} bytes, more than {MAX_DOWNLOAD_BYTES} — refusing"
+            )));
+        }
+    }
+    // Stream the body, capping cumulative size so an absent/lying
+    // content-length can't force an oversized buffer into memory.
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(chunk) = resp
+        .chunk()
+        .await
+        .map_err(|e| failed(describe_http_error(&e)))?
+    {
+        if bytes.len() as u64 + chunk.len() as u64 > MAX_DOWNLOAD_BYTES {
+            return Err(failed(format!(
+                "more than {MAX_DOWNLOAD_BYTES} bytes — refusing"
+            )));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    if let Some(len) = expected_len {
+        if bytes.len() as u64 != len {
+            return Err(failed(format!("{} of {len} bytes, cut short", bytes.len())));
+        }
+    }
+    if let Err(e) = zip::ZipArchive::new(Cursor::new(bytes.as_slice())) {
+        return Err(failed(format!("not a zip archive ({e})")));
+    }
+    Ok(bytes)
+}
+
+/// The first of `sources` to download in full ([`download_archive`]), each
+/// tried once, in order. Offline mode is asked again before each one: it
+/// can be switched on while the first is still failing. When every source
+/// fails, the error names each failure.
+async fn download_first(client: &reqwest::Client, sources: &[String]) -> AppResult<Vec<u8>> {
+    let mut failures = Vec::with_capacity(sources.len());
+    for (i, url) in sources.iter().enumerate() {
+        if offline::is_offline() {
+            return Err(AppError::Other(
+                "offline mode is on; can't install plugins".into(),
+            ));
+        }
+        match download_archive(client, url).await {
+            Ok(bytes) => return Ok(bytes),
+            Err(e) => {
+                if i + 1 < sources.len() {
+                    tracing::warn!(error = %e, "plugin archive download failed, trying the next source");
+                }
+                failures.push(e.to_string());
+            }
+        }
+    }
+    Err(AppError::Other(failures.join("; ")))
 }
 
 /// Read one named member out of a zip archive, bounded at `max_bytes`.
@@ -514,39 +683,16 @@ pub async fn install_plugin_from_registry(
         )));
     }
 
-    // A registry-provided `download_url` overrides the GitHub `releases/download`
-    // URL (see the field doc) so the app-controlled endpoint can host the binary
-    // itself. The bytes are blake3-verified against the registry pin below, but
-    // the URL is a fetch the app makes, so validate it with the shared SSRF
-    // guard: https + reject localhost / loopback / private / link-local hosts
-    // (and userinfo forms pointing at them). Even a compromised entry must not
-    // be able to make the app hit an internal address.
-    let url = match &entry.download_url {
-        Some(direct) => {
-            if !is_safe_motion_url(direct) {
-                return Err(AppError::Other(format!(
-                    "plugin {plugin_id}: registry download_url is not a safe https URL"
-                )));
-            }
-            direct.clone()
-        }
-        None => {
-            // The release asset lives in the entry's own repo (releases/download).
-            let asset = entry
-                .asset
-                .clone()
-                .unwrap_or_else(|| format!("{}-v{}.zip", entry.id, entry.version));
-            format!(
-                "https://github.com/{}/releases/download/v{}/{}",
-                entry.repo, entry.version, asset
-            )
-        }
-    };
+    // The archive's own address, then the mirror's copy. A failure to
+    // download moves on to the next; what the bytes hold is judged once,
+    // after, so a blake3 mismatch refuses the install instead.
+    let sources = archive_sources(&entry)?;
 
     // Follow redirects (a GitHub release URL 302s to a CDN) but re-validate
-    // EVERY hop with the same SSRF guard — the initial URL was checked above,
-    // and neither it nor a redirect may point the download at an internal
-    // target. Legit public CDNs pass; a redirect to an internal host is refused.
+    // EVERY hop with the same SSRF guard — the first URL was checked above
+    // (or is the compiled-in mirror), and no redirect may point the
+    // download at an internal target. Legit public CDNs pass; a redirect to
+    // an internal host is refused.
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(60))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {
@@ -560,46 +706,7 @@ pub async fn install_plugin_from_registry(
         }))
         .build()
         .map_err(|e| AppError::Other(format!("http client: {e}")))?;
-    let mut resp = client.get(&url).send().await.map_err(|e| {
-        AppError::Other(format!(
-            "download {}: {}",
-            redact_url(&url),
-            describe_http_error(&e)
-        ))
-    })?;
-    if !resp.status().is_success() {
-        // The asset URL comes from the registry and may carry a signed
-        // query; these messages are logged and shown, so it is redacted.
-        return Err(AppError::Other(format!(
-            "download {}: HTTP {}",
-            redact_url(&url),
-            resp.status()
-        )));
-    }
-    // content-length is an early-reject optimisation only — it can be
-    // absent or lie, so the real bound is enforced while streaming below.
-    if let Some(len) = resp.content_length() {
-        if len > MAX_DOWNLOAD_BYTES {
-            return Err(AppError::Other(format!(
-                "release asset too large: {len} bytes (max {MAX_DOWNLOAD_BYTES})"
-            )));
-        }
-    }
-    // Stream the body, capping cumulative size so an absent/lying
-    // content-length can't force an oversized buffer into memory.
-    let mut bytes: Vec<u8> = Vec::new();
-    while let Some(chunk) = resp
-        .chunk()
-        .await
-        .map_err(|e| AppError::Other(format!("read release body: {}", describe_http_error(&e))))?
-    {
-        if bytes.len() as u64 + chunk.len() as u64 > MAX_DOWNLOAD_BYTES {
-            return Err(AppError::Other(format!(
-                "release asset exceeds {MAX_DOWNLOAD_BYTES} bytes — refusing"
-            )));
-        }
-        bytes.extend_from_slice(&chunk);
-    }
+    let bytes = download_first(&client, &sources).await?;
 
     let paths = state.paths.plugin_paths();
     let expected_blake3 = entry.blake3.to_lowercase();
