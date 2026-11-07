@@ -74,8 +74,8 @@ pub(crate) fn emit_track_changed(
 
     // Push the new track to Discord Rich Presence (best-effort,
     // gated on the user-controlled opt-in flag). Done in a tokio
-    // task because we need an async DB lookup for the public Deezer
-    // cover URL — the local artwork path Discord can't reach.
+    // task because the public cover address — Discord can't reach the
+    // local artwork — takes an async lookup when the card is shown.
     schedule_discord_presence(app, track);
 
     // Optional native OS toast (off by default). Same fire-and-
@@ -85,9 +85,12 @@ pub(crate) fn emit_track_changed(
     crate::notifications::schedule(app, track.title.clone(), track.artist_name.clone());
 }
 
-/// Spawn a tokio task that resolves the Deezer cover URL for the new
-/// track and pushes the metadata to Discord. Held off the synchronous
-/// path so the audio engine isn't waiting on SQLite.
+/// Spawn a tokio task that pushes the new track's metadata to Discord,
+/// with its public cover address when the presence is on and Discord is
+/// connected ([`crate::discord_presence::DiscordPresenceHandle::cover_url_for`]);
+/// otherwise the metadata is only kept by the presence thread, for when
+/// it is turned on. Held off the synchronous path so the audio engine
+/// isn't waiting on SQLite.
 fn schedule_discord_presence(app: &AppHandle, track: &QueueTrack) {
     let app = app.clone();
     let track_id = track.id;
@@ -102,14 +105,16 @@ fn schedule_discord_presence(app: &AppHandle, track: &QueueTrack) {
             return;
         };
         let state = app.state::<AppState>();
-        let cover_url = match state.require_profile_pool().await {
-            Ok(pool) => {
-                crate::discord_presence::resolve_cover_url(
-                    &pool,
-                    &state.paths.metadata_artwork_dir,
-                    track_id,
-                )
-                .await
+        let cover_url = match state.require_profile_snapshot().await {
+            Ok((pool, profile_id)) => {
+                presence
+                    .cover_url_for(
+                        &pool,
+                        &state.paths.metadata_artwork_dir,
+                        profile_id,
+                        track_id,
+                    )
+                    .await
             }
             Err(_) => None,
         };
