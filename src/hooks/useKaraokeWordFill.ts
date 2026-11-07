@@ -106,5 +106,12 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
 
   return useCallback((el: HTMLElement | null) => {
     elRef.current = el;
+    // The sweep starts at the word's start edge, the right one in a
+    // right-to-left line (`app.css` reads this). Not `:dir(rtl)` in the
+    // stylesheet: the build lowers it to `:lang()` for older engines,
+    // which follows the interface's language rather than the line's
+    // text. Read once, as the element attaches: a line's direction does
+    // not change while one of its words is being sung.
+    if (el) el.dataset.kwDir = getComputedStyle(el).direction;
   }, []);
 }

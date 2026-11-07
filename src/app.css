@@ -560,10 +560,14 @@ html.mini-player-window #root {
    `--kw-fill` (0-100 %, written every frame by `useKaraokeWordFill`
    straight on the element — no React re-render per frame).
 
-   The clip reveals left-to-right. Right-to-left lyrics therefore fill
-   from the wrong edge; the word-level highlight has the same limitation
-   today, so it's not a regression — worth its own issue rather than a
-   half-measure here. */
+   The clip reveals from the word's start: left to right, and right to
+   left in a right-to-left line. A line's element carries `dir="auto"`,
+   so its direction comes from its own text rather than the interface's.
+   Without that the word boxes, which bidi sees as neutral objects, were
+   laid out left to right in an English interface, and an Arabic line
+   read backwards. The hook copies the direction it resolves to onto the
+   fill (`data-kw-dir`): `:dir(rtl)` cannot say it here, since the build
+   lowers it to `:lang()`, the interface's language. */
 .karaoke-word {
   position: relative;
   display: inline-block;
@@ -588,6 +592,23 @@ html.mini-player-window #root {
    fill's clip only gets room above and below, for the lift. */
 .karaoke-word__fill--held {
   clip-path: inset(-0.6em calc(100% - var(--kw-fill, 0%)) -0.6em 0);
+}
+
+/* A right-to-left word fills from its right edge. */
+.karaoke-word__fill[data-kw-dir="rtl"] {
+  clip-path: inset(0 0 0 calc(100% - var(--kw-fill, 0%)));
+}
+
+.karaoke-word__fill--held[data-kw-dir="rtl"] {
+  clip-path: inset(-0.6em 0 -0.6em calc(100% - var(--kw-fill, 0%)));
+}
+
+/* A reading under a lyrics line (its romanization, translation, backing
+   vocals, a companion line) takes its own direction, `dir="auto"`, so
+   its punctuation and word order are its own; it still sits against the
+   edge its line sits against, the line's own `start` or `end`. */
+.wf-lyrics-reading {
+  text-align: match-parent;
 }
 
 .wf-held-letter {

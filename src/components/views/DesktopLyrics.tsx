@@ -354,6 +354,11 @@ function ProgressBar({
  * at the chosen size (#673), down to {@link MIN_FIT_SCALE}. Past that it
  * keeps the floor and `truncate` cuts it.
  *
+ * The line takes its direction from its own text (`dir="auto"`): bidi
+ * sees a word-timed line's boxes as neutral objects, so in a left-to-right
+ * block an Arabic line's words would be laid out backwards, and `truncate`
+ * would cut its start instead of its end.
+ *
  * The natural width is measured at the chosen size, not the size last
  * applied: measuring the already-shrunk line would find it fits and grow
  * it back, and the two would alternate. The inline size is restored right
@@ -427,6 +432,7 @@ function FitLine({
   return (
     <p
       ref={ref}
+      dir="auto"
       className={className}
       style={{ ...style, fontSize: size * scale }}
     >

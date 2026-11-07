@@ -244,7 +244,7 @@ export function ImmersiveLyricsColumn({
               {activeInterlude?.afterIndex === -1 && (
                 <InterludeRow
                   progress={activeInterlude.progress}
-                  align={syncCentered ? "text-center" : "text-left"}
+                  align={syncCentered ? "text-center" : "text-start"}
                 />
               )}
               {lrcLines.map((line, index) => {
@@ -269,11 +269,13 @@ export function ImmersiveLyricsColumn({
                 const lineColor = isOverlap ? overlapColor : highlightColor;
                 // A duet answers from the other side, unless the user
                 // centred the lyrics, which then holds for every voice.
+                // The sides are the line's own (`dir="auto"` below): an
+                // Arabic line starts at the right.
                 const align = syncCentered
                   ? "text-center"
                   : line.side === "end"
-                    ? "text-right"
-                    : "text-left";
+                    ? "text-end"
+                    : "text-start";
                 // Smooth fade based on distance from the active line —
                 // feels like Apple Music's lyrics view.
                 const opacity = isActive
@@ -294,6 +296,11 @@ export function ImmersiveLyricsColumn({
                     >
                       <button
                         type="button"
+                        // The line's direction is its own text's, not the
+                        // interface's: bidi sees the word boxes as neutral
+                        // objects, so in a left-to-right block an Arabic
+                        // line's words would be laid out backwards.
+                        dir="auto"
                         onClick={() => onSeek(line)}
                         className={`block w-full text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
                           align
@@ -400,15 +407,14 @@ export function ImmersiveLyricsColumn({
                             reading={line.background}
                             active={isActive}
                             activeWordIndex={lineBackgroundWordIndex}
-                            className={`mt-1 text-xl md:text-2xl font-semibold ${align}`}
+                            className="wf-lyrics-reading mt-1 text-xl md:text-2xl font-semibold"
                           />
                         )}
                         {localization === "romanization" &&
                           line.romanization && (
                             <span
-                              className={`block mt-1 text-xl md:text-2xl font-semibold ${
-                                align
-                              }`}
+                              dir="auto"
+                              className="wf-lyrics-reading block mt-1 text-xl md:text-2xl font-semibold"
                             >
                               {line.romanization.words ? (
                                 // Word for word with the line above it,
@@ -453,16 +459,15 @@ export function ImmersiveLyricsColumn({
                           <span
                             key={ci}
                             dir="auto"
-                            className={`block mt-1 text-lg md:text-xl font-medium opacity-80 ${align}`}
+                            className="wf-lyrics-reading block mt-1 text-lg md:text-xl font-medium opacity-80"
                           >
                             {companion}
                           </span>
                         ))}
                         {localization === "translation" && line.translation && (
                           <span
-                            className={`block mt-1 text-lg md:text-xl font-normal italic text-white/60 ${
-                              align
-                            }`}
+                            dir="auto"
+                            className="wf-lyrics-reading block mt-1 text-lg md:text-xl font-normal italic text-white/60"
                           >
                             {line.translation}
                           </span>
