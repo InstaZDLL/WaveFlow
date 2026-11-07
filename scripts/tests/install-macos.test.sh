@@ -77,7 +77,12 @@ case "$url" in
     v=${url##*/v}
     a="WaveFlow_${v}_macos-universal.app.tar.gz"
     [ -f "$FIX/assets/$a" ] || exit 22
-    d=$(sha256sum "$FIX/assets/$a" | cut -d' ' -f1)
+    # sha256sum on Linux, shasum on macOS, which has no sha256sum.
+    if command -v sha256sum >/dev/null 2>&1; then
+      d=$(sha256sum "$FIX/assets/$a" | cut -d' ' -f1)
+    else
+      d=$(/usr/bin/shasum -a 256 "$FIX/assets/$a" | cut -d' ' -f1)
+    fi
     [ -z "${FAKE_BAD_DIGEST:-}" ] || d=0000000000000000000000000000000000000000000000000000000000000000
     digest_line="      \"digest\": \"sha256:$d\","
     [ -z "${FAKE_NO_DIGEST:-}" ] || digest_line=""
@@ -170,7 +175,7 @@ EOF
 
 fake shasum <<'EOF'
 #!/usr/bin/env bash
-sha256sum "$3"
+if command -v sha256sum >/dev/null 2>&1; then sha256sum "$3"; else /usr/bin/shasum -a 256 "$3"; fi
 EOF
 
 # Lends write access to the fake /Applications for one command.
@@ -182,6 +187,17 @@ chmod u+w "$WAVEFLOW_SYSTEM_APPLICATIONS"
 rc=$?
 chmod u-w "$WAVEFLOW_SYSTEM_APPLICATIONS"
 exit $rc
+EOF
+
+# The installer refuses to run as root; the bench may run as root (a
+# container), so the uid is the case's, 1000 unless FAKE_UID says.
+fake id <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  -u) echo "${FAKE_UID:-1000}" ;;
+  -g) echo 1000 ;;
+  *) /usr/bin/id "$@" ;;
+esac
 EOF
 
 fake chown <<'EOF'
@@ -386,6 +402,12 @@ new_case linux
 run FAKE_UNAME=Linux -- --no-launch
 check "refused" [ "$RC" != 0 ]
 check "says it is for macOS" err_has "This installer is for macOS"
+check "downloads nothing" not_logged "^curl"
+
+new_case root
+run FAKE_UID=0 -- --no-launch
+check "refused" [ "$RC" != 0 ]
+check "says why" err_has "Run the installer as yourself"
 check "downloads nothing" not_logged "^curl"
 
 new_case old-macos
