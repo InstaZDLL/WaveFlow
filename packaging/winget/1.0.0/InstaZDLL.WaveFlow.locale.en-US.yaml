@@ -6,30 +6,38 @@ PackageLocale: en-US
 Publisher: InstaZDLL
 PublisherUrl: https://github.com/InstaZDLL
 PublisherSupportUrl: https://github.com/InstaZDLL/WaveFlow/issues
-PrivacyUrl: https://github.com/InstaZDLL/WaveFlow/blob/main/.github/SECURITY.md
+PrivacyUrl: https://github.com/InstaZDLL/WaveFlow/blob/main/PRIVACY.md
 Author: InstaZDLL
 PackageName: WaveFlow
 PackageUrl: https://waveflow.app
 License: GPL-3.0-only
 LicenseUrl: https://github.com/InstaZDLL/WaveFlow/blob/main/LICENSE
 Copyright: Copyright © 2026 InstaZDLL. Licensed under GPL-3.0-only.
-ShortDescription: Local-first music player with Hi-Res audio and synced lyrics.
+ShortDescription: Local-first music player for Windows, macOS & Linux. Hi-Res audio, AutoMix, word-synced lyrics, smart playlists, beautiful themes and plugins. No account or subscription.
 Description: |-
-  WaveFlow is a local music player desktop app built with Tauri 2 and React 19. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.
+  WaveFlow is a local-first music player for Windows, macOS and Linux. It scans your music folders, organizes everything by album, artist and genre, and plays it through its own real-time audio engine. No account, no subscription, no streaming service: your music stays on your machine.
 
-  Features include smart playlists, BPM analysis, LRCLIB lyrics fetch, Last.fm scrobbling, Discord Rich Presence, DLNA streaming, a 6-band equalizer, A-B loop, sleep timer, mood radio, year-in-review Wrapped, and more.
+  Hi-Res audio, bit-perfect when you ask for it, with exclusive output, native DSD, 5.1 and 7.1, gapless playback and AutoMix crossfades that land on the beat. Lyrics are synced word by word, with romanization and translations, in the app, the mini-player or a floating desktop window. Smart playlists, Daily Mix and Release Radar build sessions from your library, MusicBrainz fills its gaps, and a tag workshop edits it with an undo.
+
+  Six skins and fourteen themes, podcasts, WebDAV and SMB shares, Last.fm and ListenBrainz scrobbling, DLNA and MPD servers, your own WaveFlow Server, and sandboxed plugins for more lyrics sources, animated covers and web radio.
 Moniker: waveflow
 Tags:
-  - audio
-  - desktop
-  - flac
-  - local-first
-  - lrclib
-  - music
   - music-player
-  - replaygain
-  - spotify
-  - tauri
+  - audio-player
+  - local-first
+  - offline-music
+  - music-library
+  - hi-res-audio
+  - bit-perfect
+  - flac
+  - dsd
+  - gapless-playback
+  - crossfade
+  - lyrics
+  - smart-playlists
+  - musicbrainz
+  - dlna
+  - plugins
 ReleaseNotesUrl: https://github.com/InstaZDLL/WaveFlow/releases/tag/v1.0.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

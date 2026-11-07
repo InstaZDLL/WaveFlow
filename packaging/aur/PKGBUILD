@@ -2,7 +2,7 @@
 pkgname=waveflow-bin
 pkgver=0.1.0
 pkgrel=1
-pkgdesc='Local-first music player with Hi-Res audio, exclusive output, word-by-word synced lyrics, smart playlists and plugins'
+pkgdesc='Local-first music player with Hi-Res audio, AutoMix, word-synced lyrics, smart playlists, themes and plugins. No account or subscription'
 arch=('x86_64')
 url='https://github.com/InstaZDLL/WaveFlow'
 license=('GPL-3.0-only')
@@ -14,25 +14,26 @@ license=('GPL-3.0-only')
 # render zero chips. `keywords` is one of the recognised optional
 # .SRCINFO fields; each array entry comes out as a `keywords = ...`
 # line that the AUR web ingests on push. Mix of category terms
-# (music-player, audio-player), comparatives that match what people
-# search for (spotify-alternative, apple-music-alternative),
-# local-first differentiators (local-music, offline-music) and
-# audiophile-cluster (hi-res, dsd, flac, bit-perfect, replaygain).
+# (music-player, audio-player), local-first differentiators
+# (local-first, offline-music) and audiophile terms (hi-res, dsd, flac,
+# bit-perfect), in line with the repository's topics.
 keywords=(
   'music-player'
-  'music'
   'audio-player'
-  'spotify-alternative'
-  'apple-music-alternative'
-  'local-music'
+  'local-first'
   'offline-music'
-  'audiophile'
-  'hi-res'
-  'lossless'
+  'music-library'
+  'hi-res-audio'
+  'bit-perfect'
   'flac'
   'dsd'
-  'bit-perfect'
-  'replaygain'
+  'gapless-playback'
+  'crossfade'
+  'lyrics'
+  'smart-playlists'
+  'musicbrainz'
+  'dlna'
+  'plugins'
   'tauri'
 )
 depends=(
