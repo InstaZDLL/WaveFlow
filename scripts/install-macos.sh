@@ -387,19 +387,18 @@ main() {
 
   # The same three facts release.yml asserts before publishing: the seal
   # holds, it names app.waveflow, and it covers the bundle's resources (a
-  # linker-only signature covers the executable alone).
+  # linker-only signature covers the executable alone). Whole lines are
+  # compared: such a signature prints "Sealed Resources=none", and
+  # "Identifier=app.waveflow.x" is another app. grep without -q reads all
+  # of its input, so pipefail cannot see a SIGPIPE from printf.
   codesign --verify --strict "$app" >/dev/null 2>&1 ||
     die "$APP_NAME fails its code signature check: the download is damaged. Nothing was installed."
   local details
   details=$(codesign -dv "$app" 2>&1) || die "Could not read the signature of $APP_NAME. Nothing was installed."
-  case "$details" in
-    *"Identifier=$BUNDLE_ID"*) ;;
-    *) die "$APP_NAME is not signed as $BUNDLE_ID. Nothing was installed." ;;
-  esac
-  case "$details" in
-    *"Sealed Resources"*) ;;
-    *) die "$APP_NAME has no sealed resources: its files are not covered by the signature. Nothing was installed." ;;
-  esac
+  printf '%s\n' "$details" | grep -Fx "Identifier=$BUNDLE_ID" >/dev/null ||
+    die "$APP_NAME is not signed as $BUNDLE_ID. Nothing was installed."
+  printf '%s\n' "$details" | grep -E '^Sealed Resources version=' >/dev/null ||
+    die "$APP_NAME has no sealed resources: its files are not covered by the signature. Nothing was installed."
   say "Signature verified (ad hoc, $BUNDLE_ID)."
 
   if [ "$unquarantine" = 1 ]; then

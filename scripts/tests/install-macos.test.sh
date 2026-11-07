@@ -115,7 +115,12 @@ case "$1" in
   --verify) exit "${FAKE_CODESIGN_RC:-0}" ;;
   -dv)
     echo "Identifier=${FAKE_CODESIGN_ID:-app.waveflow}" >&2
-    [ -n "${FAKE_LINKER_SIGNED:-}" ] || echo "Sealed Resources version=2 rules=13 files=4" >&2
+    # What codesign prints for a linker-only signature, and for a sealed one.
+    if [ -n "${FAKE_LINKER_SIGNED:-}" ]; then
+      echo "Sealed Resources=none" >&2
+    else
+      echo "Sealed Resources version=2 rules=13 files=4" >&2
+    fi
     ;;
 esac
 EOF
@@ -410,6 +415,11 @@ check "temporary folder removed after a failure" tmp_empty
 
 new_case wrong-identifier
 run FAKE_CODESIGN_ID=com.example.other -- --no-launch
+check "refused" [ "$RC" != 0 ]
+check "says why" err_has "is not signed as app.waveflow"
+
+new_case longer-identifier
+run FAKE_CODESIGN_ID=app.waveflow.other -- --no-launch
 check "refused" [ "$RC" != 0 ]
 check "says why" err_has "is not signed as app.waveflow"
 
