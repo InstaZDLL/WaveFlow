@@ -129,6 +129,10 @@ class ArchiveUrl(unittest.TestCase):
             "https://[::ffff:192.168.1.1]/x.zip",
             "https://100.64.0.1/x.zip",
             "https://user@127.0.0.1./x.zip",
+            "https://2130706433/x.zip",
+            "https://0x7f.1/x.zip",
+            "https://127.1/x.zip",
+            "https://2852039166/latest/meta-data",
         ):
             with self.subTest(url=url), self.assertRaises(mp.Refused):
                 mp.archive_url(entry(download_url=url))

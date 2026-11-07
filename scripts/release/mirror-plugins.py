@@ -55,6 +55,7 @@ import io
 import ipaddress
 import json
 import re
+import socket
 import sys
 import tomllib
 import urllib.error
@@ -116,7 +117,12 @@ def is_safe_url(url: str) -> bool:
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
-        return True  # a name, not resolved here, as in the app
+        # The shorthand IPv4 forms the resolver still takes as an address
+        # (2130706433, 0x7f.1, 127.1): an address, not a name.
+        try:
+            ip = ipaddress.IPv4Address(socket.inet_aton(host))
+        except OSError:
+            return True  # a name, not resolved here, as in the app
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
     return ip.is_global and not ip.is_multicast
