@@ -402,7 +402,10 @@ Every installed WaveFlow finds its updates at the addresses compiled into it. Un
 https://download.waveflow.app/
 ├── releases/<tag>/…           every asset of the release, same names, same bytes
 ├── stable/latest.json         the manifest of the last stable tag
-└── beta/latest.json           the manifest of the last pre-release tag
+├── beta/latest.json           the manifest of the last pre-release tag
+└── plugins/                   the plugin store's copy (plugins-mirror.yml, below)
+    ├── registry.json
+    └── <id>/<id>-v<version>.zip
 ```
 
 The mirrored manifest is the merged `latest.json` with each `url` pointing at the copy under `releases/<tag>/` ([`mirror-manifest.py`](../scripts/release/mirror-manifest.py)) and nothing else changed. The signatures are the ones the build made: minisign signs the payload's bytes, not the address it came from, so the app verifies an update from either host under its one public key. The script refuses to write a manifest naming a file it is not about to upload, or a signature that is not the one in the `.sig` next to it.
@@ -452,6 +455,40 @@ Nothing is ever deleted from the bucket. A release is about 400 MB across the th
 R2_DRY_RUN=1 TAG_NAME=v2.0.0 IS_PRERELEASE=false bash scripts/release/publish-r2.sh dist-release dist-release/latest.json
 ```
 
+### The plugin store mirror
+
+The same bucket holds a copy of the plugin store, under `plugins/`. The store's registry is served by `waveflow.app` (a route of the website that merges the public `registry.json` of `InstaZDLL/waveflow-plugins` with the private plugins), and most archives live there too: without a copy, an outage of the site would empty the store of every private plugin and stop each of them from installing. The app reads the copy right after `waveflow.app`'s registry, and tries an archive's copy once when the archive's own address fails ([plugins.md](features/plugins.md#the-plugin-store)). Both addresses are compiled in.
+
+[`plugins-mirror.yml`](../.github/workflows/plugins-mirror.yml) fills it, **every six hours** (`17 */6 * * *`) and **by hand** (Actions → Plugins mirror → Run workflow), with the same four `R2_*` secrets and the `R2_PUBLIC_URL` variable as `Mirror to R2`; none of them set ends the run green, doing nothing. It calls [`publish-plugins-r2.sh`](../scripts/release/publish-plugins-r2.sh), which shares its R2 plumbing with `publish-r2.sh` ([`r2-common.sh`](../scripts/release/r2-common.sh)):
+
+1. [`mirror-plugins.py`](../scripts/release/mirror-plugins.py) reads the merged registry on `waveflow.app`, downloads every archive it names (its `download_url`, else its GitHub release, as the app builds that address; https only, redirects included) and checks each one as the app would: the blake3 of `plugin.wasm` is the registry's, the manifest names the entry's id, version and world. It runs without the R2 keys in its environment, and `blake3` comes from PyPI pinned by hash ([`requirements-plugins-mirror.txt`](../scripts/release/requirements-plugins-mirror.txt));
+2. the archives go up under `plugins/<id>/<id>-v<version>.zip` (five minutes at the edge, like a release's payloads);
+3. each is asked for on the public domain, and must answer with the staged size;
+4. `plugins/registry.json` goes up last (`no-cache`), byte for byte what `waveflow.app` served, and is read back.
+
+**What it refuses, leaving the bucket as it was** (the run goes red, so the failure is seen):
+
+- a registry that does not answer, is not JSON, declares a `schema_version` other than 1, or lists no plugin — an empty or unreadable copy never replaces a good one;
+- an entry whose id, version or blake3 could not name a file safely;
+- **any** archive that fails to download or to verify: nothing at all is uploaded, so the mirror's registry never names an archive the mirror does not hold or one the app would refuse;
+- a registry that drops a plugin the mirror's current copy lists. An outage of the private half of the merge must not shrink the good copy, so a withdrawal is a deliberate run: start the workflow by hand with **allow removal** ticked. Until then, the mirror still lists the withdrawn plugin — only to installations that cannot reach `waveflow.app`.
+
+Nothing is ever deleted: an archive a newer registry no longer names stays under its version. No address is logged with its query string, and the keys stay in the environment, never on a command line.
+
+To check what a run would do without touching the bucket — the downloads and checks are real, the uploads are printed (needs `pip install blake3`):
+
+```bash
+R2_DRY_RUN=1 bash scripts/release/publish-plugins-r2.sh
+```
+
+The script's tests run in CI (`Plugins mirror script`, standard library only):
+
+```bash
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+```
+
+The standby [`.gitlab-ci.yml`](../.gitlab-ci.yml) has no twin of this workflow: after a switch, a scheduled pipeline running `publish-plugins-r2.sh` with the same variables does the same job.
+
 ### What the maintainer creates
 
 Once, in the Cloudflare dashboard:
@@ -461,7 +498,7 @@ Once, in the Cloudflare dashboard:
 3. **An R2 API token** with Object Read & Write, scoped to that bucket alone.
 4. The four `R2_*` secrets in the GitHub repository ([table](#optional-the-r2-mirror)).
 
-Then re-run the `Mirror to R2` job of the last release (or the whole workflow with its tag) to fill the bucket before 2.0 users rely on it.
+Then re-run the `Mirror to R2` job of the last release (or the whole workflow with its tag) to fill the bucket before 2.0 users rely on it, and run the **Plugins mirror** workflow once by hand rather than wait for its schedule.
 
 Builds older than 2.0 know only GitHub. They cannot be moved; if GitHub goes, their users reinstall from the website once.
 

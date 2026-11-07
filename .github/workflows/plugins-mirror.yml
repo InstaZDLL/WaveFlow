@@ -1,0 +1,97 @@
+name: Plugins mirror
+
+# Copies the plugin store onto the R2 bucket, the store's second source
+# (docs/RELEASING.md#the-plugin-store-mirror): the merged registry from
+# waveflow.app, the only copy that lists the private plugins, and every
+# archive it names, each checked against the registry's blake3 first.
+# The app reads both when waveflow.app does not answer
+# (commands/plugin_store.rs).
+#
+# Nothing is published unless every archive passes, and nothing at all
+# when the registry does not answer, is not JSON, declares another
+# schema_version or lists no plugin: the copy already in the bucket
+# stays. A registry that drops a plugin the mirror lists is refused too,
+# unless the run is started by hand with "allow removal" — a withdrawal
+# is deliberate, an outage that served half the catalogue is not.
+#
+# Same secrets as release.yml's Mirror to R2 job (R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET) and variable
+# (R2_PUBLIC_URL). None set: the run ends green without doing anything.
+
+on:
+  schedule:
+    # Every six hours, off the hour.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      allow_removal:
+        description: "Publish even if the registry no longer lists a plugin the mirror has (a withdrawal)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One run at a time, never cancelled half-way: a run stopped between the
+# archives and the registry leaves the bucket as it was, but there is no
+# reason to ask for that.
+concurrency:
+  group: plugins-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Mirror the plugin store to R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The domain compiled into the app (commands/plugin_store.rs). A
+      # variable, not a secret.
+      R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL || 'https://download.waveflow.app' }}
+
+    steps:
+      - name: Checkout the release scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          sparse-checkout: scripts/release
+          persist-credentials: false
+
+      - name: Check the R2 configuration
+        shell: bash
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          state=$(bash scripts/release/publish-plugins-r2.sh --check)
+          echo "R2 mirror: $state"
+          if [ "$state" != "configured" ]; then
+            echo "::notice title=Plugins mirror::No R2_* secret set, the plugin store is not mirrored."
+          fi
+          echo "R2_STATE=$state" >> "$GITHUB_ENV"
+
+      # The Python the hash in requirements-plugins-mirror.txt was taken
+      # for: --require-hashes refuses any other wheel.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: env.R2_STATE == 'configured'
+        with:
+          python-version: "3.12"
+
+      - name: Install blake3
+        if: env.R2_STATE == 'configured'
+        run: |
+          python -m pip install --require-hashes --only-binary :all: \
+            -r scripts/release/requirements-plugins-mirror.txt
+
+      - name: Publish to R2
+        if: env.R2_STATE == 'configured'
+        shell: bash
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          ALLOW_REMOVAL: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_removal && '1' || '0' }}
+          PYTHON: python
+        run: bash scripts/release/publish-plugins-r2.sh
