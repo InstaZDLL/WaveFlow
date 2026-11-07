@@ -19,8 +19,9 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use globset::{GlobBuilder, GlobMatcher};
 use sha2::{Digest, Sha256};
+use url::{Host, Position, Url};
 
 use crate::plugin::bindings::source::waveflow::host as wit_host;
 // The `library` import is fresh to the `ui` world (not remapped via
@@ -66,16 +67,16 @@ const MAX_BODY_BYTES: u64 = 10 * 1024 * 1024;
 const LOCK_FILE: &str = ".write-lock";
 
 /// Snapshot of plugin permissions taken at instantiation. Holds the
-/// HTTP allowlist as a compiled [`GlobSet`] so per-request matching
-/// is O(1) once the matcher is built. The storage flags are
-/// single bools — there's no per-key permission system, every
-/// granted permission applies to the whole per-plugin scope.
+/// HTTP allowlist as parsed [`HttpRule`]s, so a request is judged on
+/// the URL `reqwest` will open rather than on the text the guest
+/// sent. The storage flags are single bools — there's no per-key
+/// permission system, every granted permission applies to the whole
+/// per-plugin scope.
 pub struct HostPermissions {
-    /// Compiled allowlist. `None` = no HTTP allowed (manifest didn't
-    /// list any pattern). Empty `Vec<String>` in the manifest is
-    /// equivalent to "no HTTP" — we don't ship a deny-by-empty
-    /// vs deny-by-omission distinction.
-    http: Option<GlobSet>,
+    /// Parsed allowlist. Empty = no HTTP allowed (manifest didn't
+    /// list any pattern) — we don't ship a deny-by-empty vs
+    /// deny-by-omission distinction.
+    http: Vec<HttpRule>,
 
     /// `true` if `waveflow:host/storage.read-asset` is allowed.
     pub storage_read: bool,
@@ -96,42 +97,195 @@ pub struct HostPermissions {
 pub enum HostError {
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
-    #[error("invalid http allowlist pattern {pattern:?}: {source}")]
-    InvalidPattern {
-        pattern: String,
-        #[source]
-        source: globset::Error,
-    },
+    #[error("invalid http allowlist pattern {pattern:?}: {reason}")]
+    InvalidPattern { pattern: String, reason: String },
     #[error("storage quota exceeded: would use {would_use} bytes (cap {cap})")]
     QuotaExceeded { would_use: usize, cap: usize },
     #[error("state key contains illegal character: {0:?}")]
     InvalidStateKey(String),
 }
 
+/// One `permissions.http` pattern, split the way a URL is read:
+/// `scheme://host[:port]/path`. Each part is compared on its own
+/// against the parsed URL, so a wildcard can never reach from one
+/// part into another — the old whole-string glob let the `*` of
+/// `https://*.radio-browser.info/**` run over `/`, `?`, `@` and `\`,
+/// and `https://evil.com/?.radio-browser.info/a` matched it.
+struct HttpRule {
+    /// `http` or `https`, lowercase.
+    scheme: String,
+    host: HostRule,
+    /// The port the pattern names. `None` = the scheme's default
+    /// port only.
+    port: Option<u16>,
+    /// Glob over the URL's path as the parser left it (dot segments
+    /// resolved, percent-encoding kept): `*` stays inside one
+    /// segment, `**` spans any number. The query and the fragment
+    /// are not compared, and a pattern may not name them.
+    path: GlobMatcher,
+}
+
+/// The host half of an [`HttpRule`]. A wildcard only ever stands for
+/// whole domain labels, and never for an IP address.
+enum HostRule {
+    /// A host written out in full, held as the URL parser serialises
+    /// it (lowercase, punycode, canonical IP) and compared with
+    /// [`url::Url::host_str`].
+    Exact(String),
+    /// `*.suffix`: one or more labels in front of `suffix`. The
+    /// suffix alone does not match — a manifest that wants it lists
+    /// it as well.
+    Subdomain(String),
+    /// `*`: any domain name.
+    AnyDomain,
+}
+
+impl HttpRule {
+    fn parse(pattern: &str) -> Result<Self, String> {
+        let (scheme, rest) = pattern
+            .split_once("://")
+            .ok_or("expected scheme://host/path")?;
+        let scheme = scheme.to_ascii_lowercase();
+        if scheme != "http" && scheme != "https" {
+            return Err(format!("scheme {scheme:?} is not http or https"));
+        }
+        let (authority, path) = match rest.find('/') {
+            Some(i) => rest.split_at(i),
+            None => (rest, "/"),
+        };
+        if authority.contains(['@', '\\', '?', '#']) {
+            return Err("the host part holds user info or a separator".into());
+        }
+        // A `?` would be a one-character glob here, but whoever wrote
+        // it meant a query, which is never compared: the rule could
+        // match nothing, so it fails the load instead.
+        if path.contains(['\\', '#', '?']) {
+            return Err("the path part holds a backslash, a query or a fragment".into());
+        }
+        let (host, port) = split_port(authority)?;
+        let host = HostRule::parse(host)?;
+        let path = GlobBuilder::new(path)
+            .literal_separator(true)
+            .backslash_escape(false)
+            .build()
+            .map_err(|err| err.to_string())?
+            .compile_matcher();
+        Ok(Self {
+            scheme,
+            host,
+            port,
+            path,
+        })
+    }
+
+    fn matches(&self, url: &Url) -> bool {
+        let port_ok = match self.port {
+            None => url.port().is_none(),
+            Some(port) => url.port_or_known_default() == Some(port),
+        };
+        url.scheme() == self.scheme
+            && port_ok
+            && self.host.matches(url)
+            && self.path.is_match(url.path())
+    }
+}
+
+/// Split `host[:port]`, an IPv6 literal kept in its brackets.
+fn split_port(authority: &str) -> Result<(&str, Option<u16>), String> {
+    let (host, port) = if authority.starts_with('[') {
+        let end = authority.find(']').ok_or("unclosed IPv6 literal")? + 1;
+        let (host, rest) = authority.split_at(end);
+        match rest.strip_prefix(':') {
+            Some(port) => (host, Some(port)),
+            None if rest.is_empty() => (host, None),
+            None => return Err("junk after the IPv6 literal".into()),
+        }
+    } else {
+        match authority.split_once(':') {
+            Some((host, port)) => (host, Some(port)),
+            None => (authority, None),
+        }
+    };
+    let port = port
+        .map(|p| p.parse::<u16>().map_err(|_| format!("bad port {p:?}")))
+        .transpose()?;
+    Ok((host, port))
+}
+
+impl HostRule {
+    fn parse(host: &str) -> Result<Self, String> {
+        if host == "*" {
+            return Ok(Self::AnyDomain);
+        }
+        if let Some(suffix) = host.strip_prefix("*.") {
+            if suffix.contains('*') {
+                return Err("only the first label of a host may be `*`".into());
+            }
+            return match Host::parse(suffix) {
+                Ok(Host::Domain(domain)) => Ok(Self::Subdomain(domain)),
+                Ok(_) => Err("a wildcard host must end in a domain name".into()),
+                Err(err) => Err(err.to_string()),
+            };
+        }
+        if host.contains('*') {
+            return Err("only the first label of a host may be `*`".into());
+        }
+        Host::parse(host)
+            .map(|host| Self::Exact(host.to_string()))
+            .map_err(|err| err.to_string())
+    }
+
+    fn matches(&self, url: &Url) -> bool {
+        match self {
+            Self::Exact(host) => url.host_str() == Some(host.as_str()),
+            Self::Subdomain(suffix) => match url.host() {
+                Some(Host::Domain(domain)) => domain
+                    .strip_suffix(suffix.as_str())
+                    .and_then(|labels| labels.strip_suffix('.'))
+                    .is_some_and(|labels| {
+                        !labels.is_empty() && labels.split('.').all(|label| !label.is_empty())
+                    }),
+                _ => false,
+            },
+            Self::AnyDomain => matches!(url.host(), Some(Host::Domain(_))),
+        }
+    }
+}
+
+/// `true` when the scheme and the authority the guest wrote are the
+/// ones the parser read. The WHATWG parser behind `reqwest` forgives
+/// a great deal — it reads `\` as `/`, drops tabs and newlines,
+/// skips extra slashes after the scheme, rewrites `127.1` as
+/// `127.0.0.1` — and each of those is a way for the text to say one
+/// host while the connection goes to another. A plugin that writes
+/// its URL plainly loses nothing; one that does not is refused.
+fn written_as_read(raw: &str, url: &Url) -> bool {
+    let Some((scheme, rest)) = raw.split_once("://") else {
+        return false;
+    };
+    let end = rest.find(['/', '?', '#', '\\']).unwrap_or(rest.len());
+    scheme.eq_ignore_ascii_case(url.scheme())
+        && rest[..end].eq_ignore_ascii_case(&url[Position::BeforeHost..Position::AfterPort])
+}
+
 impl HostPermissions {
     /// Compile the manifest's `[permissions]` table into a runtime
-    /// snapshot. Each glob pattern is compiled once here; the cost
-    /// is paid at load time rather than on every HTTP request.
+    /// snapshot. Each HTTP pattern is parsed once here; the cost is
+    /// paid at load time rather than on every HTTP request, and a
+    /// pattern the host cannot read fails the load instead of
+    /// silently allowing nothing (or everything).
     pub fn from_manifest(manifest: &Manifest) -> Result<Self, HostError> {
-        let http = if manifest.permissions.http.is_empty() {
-            None
-        } else {
-            let mut builder = GlobSetBuilder::new();
-            for pattern in &manifest.permissions.http {
-                let glob = Glob::new(pattern).map_err(|source| HostError::InvalidPattern {
+        let http = manifest
+            .permissions
+            .http
+            .iter()
+            .map(|pattern| {
+                HttpRule::parse(pattern).map_err(|reason| HostError::InvalidPattern {
                     pattern: pattern.clone(),
-                    source,
-                })?;
-                builder.add(glob);
-            }
-            let set = builder
-                .build()
-                .map_err(|source| HostError::InvalidPattern {
-                    pattern: "<set>".into(),
-                    source,
-                })?;
-            Some(set)
-        };
+                    reason,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
             http,
             storage_read: manifest.permissions.storage_read,
@@ -145,23 +299,41 @@ impl HostPermissions {
     /// build a context without committing to a manifest yet.
     pub fn empty() -> Self {
         Self {
-            http: None,
+            http: Vec::new(),
             storage_read: false,
             storage_state: false,
             library_read_artists: false,
         }
     }
 
-    /// `true` iff the URL matches at least one allowlist pattern.
-    /// Globs use shell-style wildcards: `*` matches any path
-    /// segment, `**` matches multiple. Manifest authors typically
-    /// write `https://api.example.com/*` to allow any path under a
-    /// fixed host.
-    pub fn http_allowed(&self, url: &str) -> bool {
-        match &self.http {
-            None => false,
-            Some(set) => set.is_match(url),
+    /// The URL `waveflow:host/http.send` may open, or `None` when the
+    /// allowlist refuses it. The text is parsed with `url::Url::parse`
+    /// — the parser `reqwest` uses — and the parsed URL is what goes
+    /// on the wire, so the decision and the connection read the same
+    /// URL. Refused: an unparsable URL, any user info, a scheme or
+    /// authority written differently from how it parses (see
+    /// [`written_as_read`]), and anything no pattern covers by
+    /// scheme, host, port and path.
+    pub fn allowed_http_url(&self, raw: &str) -> Option<Url> {
+        if self.http.is_empty() {
+            return None;
         }
+        let url = Url::parse(raw).ok()?;
+        if !url.username().is_empty() || url.password().is_some() {
+            return None;
+        }
+        if !written_as_read(raw, &url) {
+            return None;
+        }
+        self.http
+            .iter()
+            .any(|rule| rule.matches(&url))
+            .then_some(url)
+    }
+
+    /// `true` iff [`Self::allowed_http_url`] lets the URL through.
+    pub fn http_allowed(&self, url: &str) -> bool {
+        self.allowed_http_url(url).is_some()
     }
 }
 
@@ -390,14 +562,16 @@ impl wit_host::http::Host for HostCtx {
                 body: Vec::new(),
             }));
         }
-        if !self.permissions.http_allowed(&req.url) {
+        // The allowlist hands back the URL it judged, and that parsed
+        // URL is what `reqwest` opens — never the guest's text again.
+        let Some(url) = self.permissions.allowed_http_url(&req.url) else {
             return Ok(Err(format!("permission denied: {}", req.url)));
-        }
+        };
         let method = match req.method.parse::<reqwest::Method>() {
             Ok(m) => m,
             Err(_) => return Ok(Err(format!("invalid http method: {}", req.method))),
         };
-        let mut builder = self.http_client.request(method, &req.url);
+        let mut builder = self.http_client.request(method, url);
         for (k, v) in &req.headers {
             builder = builder.header(k.as_str(), v.as_str());
         }

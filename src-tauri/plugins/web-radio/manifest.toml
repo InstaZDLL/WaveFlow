@@ -41,9 +41,11 @@ hi = "दुनिया भर के हज़ारों इंटरने�
 # radio-browser.info exposes a federated JSON API across multiple
 # regional mirrors. Allowlist the full DNS suffix so any healthy
 # mirror works without re-shipping the plugin every time the round-
-# robin shifts. The host's `globset` matcher reads `**` as "match
-# any path", so the patterns cover both `de1.api.radio-browser.info/json/...`
-# and `https://all.api.radio-browser.info/...`.
+# robin shifts. The host matches the host part on whole labels
+# (`*.` = one or more labels in front of the suffix) and reads the
+# path's `**` as "any path", so the patterns cover both
+# `https://de1.api.radio-browser.info/json/...` and
+# `https://all.api.radio-browser.info/...`.
 http = [
     "https://*.api.radio-browser.info/**",
     "https://radio-browser.info/**",

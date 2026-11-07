@@ -44,6 +44,262 @@ fn http_allowlist_matches_glob_pattern() {
     assert!(!p.http_allowed("http://de1.api.radio-browser.info/json/stations"));
 }
 
+/// Allowlist built from `patterns` alone.
+fn http_permissions(patterns: &[&str]) -> HostPermissions {
+    let m = manifest_with_permissions(Permissions {
+        http: patterns.iter().map(|p| (*p).to_string()).collect(),
+        storage_read: false,
+        storage_state: false,
+        library_read_artists: false,
+    });
+    HostPermissions::from_manifest(&m).expect("compile allowlist")
+}
+
+const RADIO: &str = "https://*.radio-browser.info/**";
+
+#[test]
+fn http_allowlist_wildcard_cannot_cross_into_path_or_query() {
+    // The old whole-string glob let `*` run over `/` and `?`, so
+    // the host it "matched" sat in the path or the query.
+    let p = http_permissions(&[RADIO]);
+    assert!(!p.http_allowed("https://evil.com/?.radio-browser.info/a"));
+    assert!(!p.http_allowed("https://evil.com/.radio-browser.info/a"));
+    assert!(!p.http_allowed("https://evil.com#.radio-browser.info/a"));
+    assert!(!p.http_allowed("https://evil.com/x?y=.radio-browser.info/"));
+}
+
+#[test]
+fn http_allowlist_judges_the_host_reqwest_connects_to() {
+    // The parser reads `\` as `/`: this connects to 127.0.0.1.
+    let p = http_permissions(&[RADIO]);
+    assert!(!p.http_allowed(r"https://127.0.0.1\@x.radio-browser.info/a"));
+    assert!(!p.http_allowed(r"https://127.0.0.1\x.radio-browser.info/a"));
+    // Spelled with a plain slash, the same host is still refused.
+    assert!(!p.http_allowed("https://127.0.0.1/x.radio-browser.info/a"));
+}
+
+#[test]
+fn http_allowlist_refuses_shorthand_ipv4() {
+    // Even against a pattern that names the address, a shorthand
+    // spelling says one thing and connects to another.
+    let p = http_permissions(&["https://127.0.0.1/**", RADIO]);
+    assert!(p.http_allowed("https://127.0.0.1/a"));
+    for url in [
+        "https://2130706433/a",
+        "https://0x7f000001/a",
+        "https://0177.0.0.1/a",
+        "https://127.1/a",
+        "https://0x7f000001/x.radio-browser.info/a",
+    ] {
+        assert!(!p.http_allowed(url), "{url} must be refused");
+    }
+}
+
+#[test]
+fn http_allowlist_refuses_user_info() {
+    let p = http_permissions(&[RADIO]);
+    assert!(!p.http_allowed("https://user@de1.api.radio-browser.info/json"));
+    assert!(!p.http_allowed("https://user:pw@de1.api.radio-browser.info/json"));
+    assert!(!p.http_allowed("https://:pw@de1.api.radio-browser.info/json"));
+    // The host is what follows the `@`.
+    assert!(!p.http_allowed("https://de1.api.radio-browser.info@evil.com/json"));
+}
+
+#[test]
+fn http_allowlist_refuses_a_url_written_otherwise_than_read() {
+    let p = http_permissions(&[RADIO]);
+    // The parser skips the third slash and reads a host there.
+    assert!(!p.http_allowed("https:///x.radio-browser.info"));
+    assert!(!p.http_allowed("https:///de1.api.radio-browser.info/json"));
+    assert!(!p.http_allowed(r"https:\\de1.api.radio-browser.info/json"));
+    // Whitespace the parser strips.
+    assert!(!p.http_allowed(" https://de1.api.radio-browser.info/json"));
+    assert!(!p.http_allowed("https://de1.api.radio-\tbrowser.info/json"));
+    // Percent-encoding in the host.
+    assert!(!p.http_allowed("https://de1.api.radio-browser.%69nfo/json"));
+    // Unparsable.
+    assert!(!p.http_allowed("not a url"));
+    assert!(!p.http_allowed("https://"));
+}
+
+#[test]
+fn http_allowlist_refuses_another_scheme() {
+    let p = http_permissions(&[RADIO]);
+    assert!(!p.http_allowed("http://de1.api.radio-browser.info/json/stations"));
+    assert!(!p.http_allowed("ftp://de1.api.radio-browser.info/json/stations"));
+    assert!(!p.http_allowed("wss://de1.api.radio-browser.info/json/stations"));
+}
+
+#[test]
+fn http_allowlist_wildcard_host_covers_whole_labels_only() {
+    let p = http_permissions(&[RADIO]);
+    assert!(p.http_allowed("https://a.b.api.radio-browser.info/json"));
+    assert!(p.http_allowed("https://DE1.API.Radio-Browser.info/json"));
+    // The suffix alone, a look-alike, an empty label, a trailing dot.
+    assert!(!p.http_allowed("https://radio-browser.info/json"));
+    assert!(!p.http_allowed("https://evilradio-browser.info/json"));
+    assert!(!p.http_allowed("https://radio-browser.info.evil.com/json"));
+    assert!(!p.http_allowed("https://a..radio-browser.info/json"));
+    assert!(!p.http_allowed("https://de1.api.radio-browser.info./json"));
+}
+
+#[test]
+fn http_allowlist_checks_the_port() {
+    let p = http_permissions(&[RADIO, "http://localhost:8080/**"]);
+    assert!(!p.http_allowed("https://de1.api.radio-browser.info:8443/json"));
+    // The default port written out is refused: it is not how the
+    // URL parses, and no plugin needs it.
+    assert!(!p.http_allowed("https://de1.api.radio-browser.info:443/json"));
+    assert!(p.http_allowed("http://localhost:8080/x"));
+    assert!(!p.http_allowed("http://localhost/x"));
+    assert!(!p.http_allowed("http://localhost:8081/x"));
+}
+
+#[test]
+fn http_allowlist_path_is_matched_after_dot_segments() {
+    let p = http_permissions(&["https://music.163.com/api/**", "https://example.com/a/*"]);
+    assert!(p.http_allowed("https://music.163.com/api/search/get?s=x"));
+    assert!(!p.http_allowed("https://music.163.com/api/../weapi/x"));
+    assert!(!p.http_allowed("https://music.163.com/api/%2e%2e/weapi/x"));
+    assert!(!p.http_allowed("https://music.163.com/apix/y"));
+    // A single `*` stays inside one segment.
+    assert!(p.http_allowed("https://example.com/a/b"));
+    assert!(!p.http_allowed("https://example.com/a/b/c"));
+}
+
+#[test]
+fn http_allowlist_keeps_every_published_pattern_working() {
+    // Every `permissions.http` pattern a published plugin declares
+    // (the registry, the bundled Web Radio, the private ones), with
+    // a request of the kind it makes.
+    let cases: &[(&str, &[&str])] = &[
+        (
+            "https://*.api.radio-browser.info/**",
+            &[
+                "https://all.api.radio-browser.info/json/servers",
+                "https://de1.api.radio-browser.info/json/stations/search?name=x&limit=50",
+            ],
+        ),
+        (
+            "https://radio-browser.info/**",
+            &["https://radio-browser.info/", "https://radio-browser.info"],
+        ),
+        (
+            "https://musicbrainz.org/**",
+            &["https://musicbrainz.org/ws/2/release-group?artist=abc&fmt=json"],
+        ),
+        (
+            "https://amp-api.music.apple.com/**",
+            &["https://amp-api.music.apple.com/v1/catalog/us/songs/1/lyrics?l=en"],
+        ),
+        (
+            "https://music.apple.com/**",
+            &["https://music.apple.com/us/browse"],
+        ),
+        (
+            "https://itunes.apple.com/**",
+            &["https://itunes.apple.com/search?term=a+b&entity=album"],
+        ),
+        (
+            "https://mvod.itunes.apple.com/**",
+            &["https://mvod.itunes.apple.com/itunes-assets/x/y.m3u8"],
+        ),
+        ("https://lrc.red/**", &["https://lrc.red/api/search?q=x"]),
+        (
+            "https://lyrics.kugou.com/**",
+            &["https://lyrics.kugou.com/download?ver=1&id=1&accesskey=k&fmt=krc"],
+        ),
+        (
+            "https://music.163.com/api/**",
+            &["https://music.163.com/api/song/lyric?id=1&lv=1&kv=1&tv=-1"],
+        ),
+        (
+            "https://u.y.qq.com/cgi-bin/**",
+            &["https://u.y.qq.com/cgi-bin/musicu.fcg?data=%7B%7D"],
+        ),
+        (
+            "https://c.y.qq.com/soso/fcgi-bin/**",
+            &["https://c.y.qq.com/soso/fcgi-bin/client_search_cp?w=x"],
+        ),
+        (
+            "https://api.tidal.com/**",
+            &["https://api.tidal.com/v1/search/albums?query=x&countryCode=US"],
+        ),
+        (
+            "https://open.spotify.com/**",
+            &["https://open.spotify.com/get_access_token?reason=init"],
+        ),
+        (
+            "https://clienttoken.spotify.com/**",
+            &["https://clienttoken.spotify.com/v1/clienttoken"],
+        ),
+        (
+            "https://api-partner.spotify.com/**",
+            &["https://api-partner.spotify.com/pathfinder/v1/query"],
+        ),
+        (
+            "https://gew1-spclient.spotify.com/**",
+            &["https://gew1-spclient.spotify.com/canvaz-cache/v0/canvases"],
+        ),
+        (
+            "https://code.thetadev.de/**",
+            &["https://code.thetadev.de/ThetaDev/spotify-secrets/raw/branch/main/x.json"],
+        ),
+    ];
+    for (pattern, urls) in cases {
+        let p = http_permissions(&[pattern]);
+        for url in *urls {
+            assert!(p.http_allowed(url), "{pattern} must allow {url}");
+        }
+    }
+    // And a path a narrower pattern does not cover stays refused.
+    let p = http_permissions(&["https://u.y.qq.com/cgi-bin/**"]);
+    assert!(!p.http_allowed("https://u.y.qq.com/other"));
+}
+
+#[test]
+fn http_allowlist_returns_the_url_it_judged() {
+    let p = http_permissions(&[RADIO]);
+    let url = p
+        .allowed_http_url("https://DE1.api.radio-browser.info/json/a/../stations")
+        .expect("allowed");
+    assert_eq!(url.host_str(), Some("de1.api.radio-browser.info"));
+    assert_eq!(url.path(), "/json/stations");
+}
+
+#[test]
+fn http_allowlist_refuses_unreadable_patterns() {
+    for pattern in [
+        "https://*evil.com/**",
+        "https://api.*.com/**",
+        "https://*.*.example.com/**",
+        "https://*.127.0.0.1/**",
+        "ftp://example.com/**",
+        "example.com/**",
+        "https://example.com:abc/**",
+        "https://user@example.com/**",
+        r"https://example.com\@x/**",
+        "https:///path/**",
+        "https://example.com/a#b",
+        "https://example.com/search?q=*",
+        "https://example.com/[",
+    ] {
+        let m = manifest_with_permissions(Permissions {
+            http: vec![pattern.into()],
+            storage_read: false,
+            storage_state: false,
+            library_read_artists: false,
+        });
+        assert!(
+            matches!(
+                HostPermissions::from_manifest(&m),
+                Err(HostError::InvalidPattern { .. })
+            ),
+            "{pattern} must be refused"
+        );
+    }
+}
+
 #[test]
 fn invalid_glob_pattern_surfaces_error() {
     let m = manifest_with_permissions(Permissions {
