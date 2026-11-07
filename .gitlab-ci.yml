@@ -260,7 +260,9 @@ release-linux:
     - export PATH="$HOME/.bun/bin:$PATH"
     - *release-env-bash
     - bun install --frozen-lockfile
-    - bun run tauri build --bundles appimage,deb,rpm
+    # rpm refuses a "-" in its version: a pre-release ships no .rpm.
+    - if [ "$IS_PRERELEASE" = true ]; then bundles=appimage,deb; else bundles=appimage,deb,rpm; fi
+    - bun run tauri build --bundles "$bundles"
     - bash scripts/fix-appimage.sh
     # Not appimage-update-info.sh: the string it embeds sends AppImageUpdate
     # to the GitHub releases (docs/RELEASING.md#switching-to-gitlab).

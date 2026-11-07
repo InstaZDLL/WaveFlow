@@ -210,7 +210,8 @@ pushed by hand would start it on its own; release-please's does not):
 
 - Builds Linux on `ubuntu-24.04` — produces an `.AppImage`
   (universal, also the updater payload), a `.deb` (Debian/Ubuntu),
-  and an `.rpm` (Fedora/RHEL). The runner is pinned, never
+  and an `.rpm` (Fedora/RHEL); a pre-release has no `.rpm`, since rpm
+  refuses a `-` in its version. The runner is pinned, never
   `ubuntu-latest`: a binary needs at least the glibc it was linked
   against, so the runner's glibc is the oldest one WaveFlow starts
   on. When `ubuntu-latest` moved to 26.04, the 1.9.6 binaries

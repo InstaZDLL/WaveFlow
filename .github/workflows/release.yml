@@ -408,6 +408,15 @@ jobs:
             BUNDLES="nsis"
             echo "Pre-release Windows build — NSIS only (MSI/WiX rejects non-numeric pre-release versions)."
           fi
+          # rpm refuses a "-" in its version, so 2.0.0-beta.1 cannot be an
+          # .rpm at all ("invalid version ... contains invalid character").
+          # Beta Linux builds ship the AppImage, which is the updater's
+          # payload, and the .deb; the .rpm feeds COPR, which takes stable
+          # releases only.
+          if [ "$IS_PRERELEASE" = "true" ] && [ "$PLATFORM" = "linux" ]; then
+            BUNDLES="appimage,deb"
+            echo "Pre-release Linux build — no .rpm (rpm rejects '-' in a version)."
+          fi
           # `bun run tauri` routes through `scripts/tauri.mjs`, the
           # wrapper that injects `--config src-tauri/crates/app/tauri.conf.json`
           # after the subcommand. The Tauri CLI can't auto-discover the
