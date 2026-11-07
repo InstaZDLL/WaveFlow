@@ -22,6 +22,13 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  # Release Please and Cut beta push their tags with GITHUB_TOKEN, and a push
+  # made with that token starts no workflow: without these, a release's tag
+  # would wait on GitLab for the next push to `main`. Whatever their outcome,
+  # the run pushes what is there.
+  workflow_run:
+    workflows: ["Release Please", "Cut beta"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
