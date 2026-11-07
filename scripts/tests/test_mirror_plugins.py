@@ -216,6 +216,52 @@ class RemovalGuard(unittest.TestCase):
         self.assertEqual(mp.removed_ids(old, new), [])
 
 
+class ReadPublished(unittest.TestCase):
+    """What the removal guard compares against. A 404 is the only answer
+    that turns it off: anything else unreadable stops the run."""
+
+    URL = "https://download.example/plugins/registry.json"
+
+    def answer(self, fetch):
+        original = mp.fetch
+        mp.fetch = fetch
+        self.addCleanup(setattr, mp, "fetch", original)
+
+    def test_a_404_is_the_first_run(self):
+        def fetch(url, cap):
+            raise mp.urllib.error.HTTPError(url, 404, "Not Found", {}, io.BytesIO())
+
+        self.answer(fetch)
+        self.assertIsNone(mp.read_published(self.URL))
+
+    def test_a_server_error_stops_the_run(self):
+        def fetch(url, cap):
+            raise mp.urllib.error.HTTPError(url, 503, "Unavailable", {}, io.BytesIO())
+
+        self.answer(fetch)
+        with self.assertRaises(mp.Refused):
+            mp.read_published(self.URL)
+
+    def test_a_network_error_stops_the_run(self):
+        def fetch(url, cap):
+            raise mp.urllib.error.URLError("connection refused")
+
+        self.answer(fetch)
+        with self.assertRaises(mp.Refused):
+            mp.read_published(self.URL)
+
+    def test_what_is_not_a_registry_stops_the_run(self):
+        for body in (b"<html>", b"[]"):
+            with self.subTest(body=body):
+                self.answer(lambda url, cap, body=body: body)
+                with self.assertRaises(mp.Refused):
+                    mp.read_published(self.URL)
+
+    def test_a_registry_is_read(self):
+        raw = json.dumps(registry(entry("a"))).encode()
+        self.answer(lambda url, cap: raw)
+        self.assertEqual(mp.removed_ids(mp.read_published(self.URL), registry()), ["a"])
+
 class Stage(unittest.TestCase):
     def test_writes_every_archive_then_the_registry_verbatim(self):
         a, b = entry("a"), entry("b", download_url="https://waveflow.app/plugins/b/b-v0.1.0.zip")
