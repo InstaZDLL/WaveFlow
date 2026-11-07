@@ -35,6 +35,24 @@ new GitHub release.
    `AUR_SSH_PRIVATE_KEY` secret (Settings → Secrets → Actions). The
    release workflow uses it to push subsequent updates.
 
+## Keywords
+
+The keywords shown on the package page are not read from the PKGBUILD:
+`makepkg --printsrcinfo` has no such field, so `.SRCINFO` never carries
+them. They are set on the AUR itself, by the maintainer, over the same
+SSH key that pushes the package, and they stay until set again:
+
+```bash
+ssh -i ~/.ssh/aur aur@aur.archlinux.org set-keywords waveflow-bin \
+  music-player audio-player local-first offline-music \
+  music-library hi-res-audio bit-perfect flac \
+  dsd gapless-playback crossfade lyrics \
+  smart-playlists musicbrainz dlna plugins \
+  tauri
+```
+
+The list follows the repository's topics.
+
 ## Per-release process
 
 Once the secret is in place, no manual AUR work is needed: the

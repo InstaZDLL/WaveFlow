@@ -15,21 +15,23 @@
 
   <description>
     <p>
-      WaveFlow is a local-first music player. It scans your audio folders, organizes
-      tracks by album, artist and genre, and plays them with its own real-time audio
-      engine: no streaming, no cloud, your music stays on your machine.
+      WaveFlow is a local-first music player for Windows, macOS and Linux. It scans
+      your music folders, organizes everything by album, artist and genre, and plays
+      it through its own real-time audio engine. No account, no subscription, no
+      streaming service: your music stays on your machine.
     </p>
     <p>Features:</p>
     <ul>
-      <li>Gapless playback, crossfade (static / smart album-aware / dynamic tempo-aware), ReplayGain, 6-band peaking EQ with 20 presets, playback speed 0.5×–2×</li>
-      <li>DSD → PCM conversion (256-tap Blackman-Harris FIR), FLAC, ALAC, MP3, AAC, OGG, Opus, WavPack, Monkey's Audio and more</li>
-      <li>Real-time spectrum visualizer, fullscreen Now Playing, word-level karaoke lyrics (Enhanced LRC + TTML), sidecar .lrc / .txt auto-discovery</li>
-      <li>Smart playlists: Daily Mix, On Repeat, custom boolean rule trees, M3U import/export</li>
-      <li>Library scanner with multi-artist split, sticky compilation grouping, BLAKE3 duplicate detection, virtualised tables for 6000+ tracks</li>
-      <li>Deezer + Last.fm enrichment, Last.fm scrobbling, Discord Rich Presence, LRCLIB lyrics fetch, DLNA/UPnP server (opt-in)</li>
-      <li>WaveFlow Wrapped year-in-review, listening history, advanced search (FTS5)</li>
-      <li>14-preset theme system, mini-player window, immersive Now Playing, configurable keyboard shortcuts, 17-language UI</li>
-      <li>Multi-profile support with per-profile databases, full export/import, automatic backups</li>
+      <li>Hi-Res and bit-perfect playback: exclusive output on every system, native DSD over DoP, 5.1 and 7.1 on the right speakers</li>
+      <li>Gapless playback, crossfades and AutoMix on the beat, ReplayGain, a 6-band equalizer, speed with or without keeping the pitch</li>
+      <li>MP3, FLAC, ALAC, AAC, Ogg Vorbis, Opus, WavPack, Monkey's Audio, WAV, AIFF and DSD</li>
+      <li>Lyrics synced word by word, with romanization and translations, a lyrics editor and a floating desktop window</li>
+      <li>Smart playlists, Daily Mix, On Repeat and Release Radar, and playlist import from M3U, CSV and JSON</li>
+      <li>Tempo, key and loudness analysis, a Quality tab that flags likely fake lossless files, duplicates and album completeness</li>
+      <li>MusicBrainz enrichment and a tag workshop, both with an undo</li>
+      <li>Six skins and fourteen themes, an immersive view, a mini-player, statistics and a yearly Wrapped</li>
+      <li>Podcasts, WebDAV and SMB shares, Last.fm and ListenBrainz, DLNA and MPD servers, sandboxed plugins</li>
+      <li>17 languages, a separate library per profile, automatic backups</li>
     </ul>
   </description>
 
@@ -83,15 +85,20 @@
     <keyword>music</keyword>
     <keyword>player</keyword>
     <keyword>audio</keyword>
-    <keyword>flac</keyword>
-    <keyword>mp3</keyword>
-    <keyword>dsd</keyword>
+    <keyword>local</keyword>
+    <keyword>offline</keyword>
     <keyword>library</keyword>
-    <keyword>playlist</keyword>
+    <keyword>flac</keyword>
+    <keyword>dsd</keyword>
+    <keyword>hi-res</keyword>
+    <keyword>bit-perfect</keyword>
+    <keyword>gapless</keyword>
+    <keyword>crossfade</keyword>
     <keyword>lyrics</keyword>
+    <keyword>playlist</keyword>
+    <keyword>musicbrainz</keyword>
+    <keyword>dlna</keyword>
     <keyword>scrobble</keyword>
-    <keyword>last.fm</keyword>
-    <keyword>equalizer</keyword>
   </keywords>
 
   <provides>

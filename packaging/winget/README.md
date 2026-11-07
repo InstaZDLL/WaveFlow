@@ -25,8 +25,9 @@ fires on the `release: published` event and:
 
 1. downloads both Windows installers from the release,
 2. computes their SHA-256 digests,
-3. fills the manifest (Identifier + Version + URLs + hashes + locale
-   strings cloned from this directory's `1.0.0/` template),
+3. fills the manifest: the new version, URLs and hashes, on top of the
+   manifest **last published in winget-pkgs**, whose locale strings
+   (description, tags, privacy link) carry over unchanged,
 4. validates locally via `winget validate`,
 5. forks `microsoft/winget-pkgs` under the maintainer's account,
 6. opens a PR with the new `manifests/i/InstaZDLL/WaveFlow/<v>/` dir.
@@ -39,7 +40,7 @@ mismatch, broken URL, schema violation).
 
 ## First-time setup (one-off)
 
-This directory carries the **v1.0.0 template** committed at first
+This directory carries the **v1.0.0 manifest** committed at first
 release. Before the auto-submit workflow can run, two prerequisites
 must be in place:
 
@@ -88,12 +89,24 @@ git push origin InstaZDLL.WaveFlow-1.0.0
 
 ## Template maintenance
 
-The `1.0.0/` directory is the **template** the auto-submit workflow
-reuses for future bumps — only the version-specific fields (URLs,
-hashes, version strings) are regenerated per release. The locale
-manifest is rarely edited, but if you reword the package
-description / tags / publisher URL, update `InstaZDLL.WaveFlow.locale.en-US.yaml`
-here and the new copy will propagate on the next release.
+The `1.0.0/` directory is the manifest of the first submission, kept as
+the **reference** for the package's wording. The workflow does not read
+it: each release copies the locale strings of the manifest last
+published in winget-pkgs. So when the description, the tags or the
+privacy link change, the change reaches winget only by hand, once:
+
+1. update `InstaZDLL.WaveFlow.locale.en-US.yaml` here, so the reference
+   says it;
+2. when the workflow opens the PR for the next version in
+   `microsoft/winget-pkgs`, edit that PR's
+   `InstaZDLL.WaveFlow.locale.en-US.yaml` (keep its `PackageVersion`)
+   with the same fields before it merges; every later release then
+   carries them over.
+3. if the bot merged that PR first, open one more PR in
+   `microsoft/winget-pkgs` that changes only
+   `manifests/i/InstaZDLL/WaveFlow/<version>/InstaZDLL.WaveFlow.locale.en-US.yaml`
+   for the version just published; a metadata-only change to a
+   published version is accepted, and the next release copies it.
 
 The schema version is pinned to `1.6.0` (the lowest version that
 supports both `nullsoft` and `wix` installer types in the same

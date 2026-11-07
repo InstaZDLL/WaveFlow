@@ -10,7 +10,7 @@
 Name:           waveflow
 Version:        1.0.0
 Release:        1%{?dist}
-Summary:        Local-first music player with Hi-Res audio and synced lyrics
+Summary:        Local-first music player with Hi-Res audio and word-synced lyrics
 
 License:        GPL-3.0-only
 URL:            https://waveflow.app
@@ -32,17 +32,23 @@ Requires:       librsvg2
 Requires:       alsa-lib
 
 %description
-WaveFlow is a local-first music player. It scans your audio folders,
-organizes tracks by album, artist and genre, and plays them with its
-own real-time audio engine: no streaming, no cloud, your music stays
-on your machine.
+WaveFlow is a local-first music player for Windows, macOS and Linux. It
+scans your music folders, organizes everything by album, artist and
+genre, and plays it through its own real-time audio engine. No account,
+no subscription, no streaming service: your music stays on your machine.
 
-Exclusive output plays Hi-Res files bit-perfect. Synced lyrics are
-highlighted word by word, in the app or in a floating desktop window.
-Smart playlists, Daily Mix and mood radio build sessions from your
-library. WaveFlow also talks to the rest of your setup: Last.fm
-scrobbling, Discord, a DLNA server, MPD clients and your own WaveFlow
-server. Plugins add lyrics sources, motion artwork and web radio.
+Hi-Res audio, bit-perfect when you ask for it, with exclusive output,
+native DSD, 5.1 and 7.1, gapless playback and AutoMix crossfades that
+land on the beat. Lyrics are synced word by word, with romanization and
+translations, in the app, the mini-player or a floating desktop window.
+Smart playlists, Daily Mix and Release Radar build sessions from your
+library, MusicBrainz fills its gaps, and a tag workshop edits it with an
+undo.
+
+Six skins and fourteen themes, podcasts, WebDAV and SMB shares, Last.fm
+and ListenBrainz scrobbling, DLNA and MPD servers, your own WaveFlow
+Server, and sandboxed plugins for more lyrics sources, animated covers
+and web radio.
 
 %prep
 # Source0 is a binary RPM, not a tarball — nothing to extract here.
