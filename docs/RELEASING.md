@@ -522,7 +522,7 @@ Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` t
 
 ### The switch, in order
 
-1. Check that the backup holds the latest `main` and tags (the mirror's last run). If GitHub still answers, disable `mirror-gitlab.yml` there first: it force-pushes, and would overwrite what lands on GitLab from then on. Turn the backup's CI/CD back on (Settings → General → Visibility, project features, permissions), then start a pipeline on `main` (Build → Pipelines → Run pipeline): turning CI/CD on starts none, and every mirrored push carried `ci.skip`. Check that it runs green.
+1. Check that the backup holds the latest `main` and tags (the mirror's last run). If GitHub still answers, disable `mirror-gitlab.yml` there first: it force-pushes, and would overwrite what lands on GitLab from then on. Disabling it stops no run already started or queued, so cancel those (or wait for them to end) before changing anything on GitLab. Turn the backup's CI/CD back on (Settings → General → Visibility, project features, permissions), then start a pipeline on `main` (Build → Pipelines → Run pipeline): turning CI/CD on starts none, and every mirrored push carried `ci.skip`. Check that it runs green.
 2. Recreate the variables; the `v*` tags are already protected.
 3. Register runners if the tier needs them.
 4. Cut the next release by hand as above. Its manifest replaces `stable/latest.json` on R2, and every 2.0+ installation sees it.
