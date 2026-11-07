@@ -24,6 +24,10 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 SCRIPT="$HERE/../install-macos.sh"
 ROOT=$(mktemp -d "${TMPDIR:-/tmp}/waveflow-install-test.XXXXXX")
+# The installer resolves the folders it is given; on macOS TMPDIR is under
+# /var, a link to /private/var, so the paths the cases expect must be
+# resolved the same way.
+ROOT=$(cd -P "$ROOT" && pwd)
 trap 'chmod -R u+w "$ROOT" 2>/dev/null; rm -rf "$ROOT"' EXIT
 
 FAKEBIN="$ROOT/bin"
@@ -246,6 +250,16 @@ if tar --version 2>/dev/null | grep GNU >/dev/null; then
   printf 'x\n' >"$dir/evil.sh"
   (cd "$dir" && tar -czf "$FIX/assets/WaveFlow_6.6.7_macos-universal.app.tar.gz" \
     --transform 's|^evil\.sh$|WaveFlow.app/../evil.sh|' WaveFlow.app evil.sh) && DOTDOT=1
+fi
+# A hard link inside WaveFlow.app: tar extracts it as a link to its
+# target, so the installer must refuse it by its kind, not its name.
+HARDLINK=0
+make_release 6.6.8
+dir="$FIX/build/6.6.8"
+if ln "$dir/WaveFlow.app/Contents/Info.plist" "$dir/WaveFlow.app/Contents/MacOS/linked" 2>/dev/null; then
+  (cd "$dir" && tar -czf "$FIX/assets/WaveFlow_6.6.8_macos-universal.app.tar.gz" WaveFlow.app) &&
+    tar -tvzf "$FIX/assets/WaveFlow_6.6.8_macos-universal.app.tar.gz" | cut -c1 | grep '^h$' >/dev/null &&
+    HARDLINK=1
 fi
 printf '{\n  "version": "1.9.8",\n  "notes": "",\n  "platforms": {}\n}\n' >"$FIX/latest.json"
 printf '{\n  "version": "2.0.0-beta.1",\n  "notes": "",\n  "platforms": {}\n}\n' >"$FIX/latest-beta.json"
@@ -484,6 +498,17 @@ if [ "$DOTDOT" = 1 ]; then
   check "temporary folder removed after a failure" tmp_empty
 else
   echo "skip [dotdot]: this tar cannot write a .. entry"
+fi
+
+new_case hardlink
+if [ "$HARDLINK" = 1 ]; then
+  run -- --version 6.6.8 --no-launch
+  check "refused" [ "$RC" != 0 ]
+  check "says why" err_has "holds links or special files"
+  check "nothing installed" [ ! -e "$CASE/Applications/WaveFlow.app" ]
+  check "temporary folder removed after a failure" tmp_empty
+else
+  echo "skip [hardlink]: this file system or tar cannot write a hard link entry"
 fi
 
 # --- quarantine opt-out --------------------------------------------------------

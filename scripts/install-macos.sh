@@ -369,6 +369,14 @@ main() {
   outside=$(printf '%s\n' "$listing" | grep -Ev '^WaveFlow\.app(/|$)' || true)
   outside=$outside$(printf '%s\n' "$listing" | grep -E '(^|/)\.\.(/|$)' || true)
   [ -z "$outside" ] || die "The archive holds files outside $APP_NAME. Nothing was installed."
+  # Only plain files and folders: the release archive holds nothing else.
+  # A hard link would let tar open an existing file elsewhere and write
+  # the archive's bytes into it, out of reach of the name test above; a
+  # symbolic link or a device has no business in WaveFlow.app either.
+  local kinds
+  kinds=$(tar -tvzf "$archive") || die "The download is not a readable archive. Nothing was installed."
+  kinds=$(printf '%s\n' "$kinds" | cut -c1 | grep -v '^[-d]$' || true)
+  [ -z "$kinds" ] || die "The archive holds links or special files. Nothing was installed."
   mkdir "$WORK/unpacked"
   tar -xzf "$archive" -C "$WORK/unpacked" || die "Could not unpack the archive. Nothing was installed."
   local app="$WORK/unpacked/$APP_NAME"
