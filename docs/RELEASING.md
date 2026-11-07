@@ -461,7 +461,7 @@ The same bucket holds a copy of the plugin store, under `plugins/`. The store's 
 
 [`plugins-mirror.yml`](../.github/workflows/plugins-mirror.yml) fills it, **every six hours** (`17 */6 * * *`) and **by hand** (Actions → Plugins mirror → Run workflow), with the same four `R2_*` secrets and the `R2_PUBLIC_URL` variable as `Mirror to R2`; none of them set ends the run green, doing nothing. It calls [`publish-plugins-r2.sh`](../scripts/release/publish-plugins-r2.sh), which shares its R2 plumbing with `publish-r2.sh` ([`r2-common.sh`](../scripts/release/r2-common.sh)):
 
-1. [`mirror-plugins.py`](../scripts/release/mirror-plugins.py) reads the merged registry on `waveflow.app`, downloads every archive it names (its `download_url`, else its GitHub release, as the app builds that address; https only, never to an internal address, redirects included) and checks each one as the app would: the blake3 of `plugin.wasm` is the registry's, it is a component and not a core module, the manifest names the entry's id, version and world. It runs without the R2 keys in its environment, and `blake3` comes from PyPI pinned by hash ([`requirements-plugins-mirror.txt`](../scripts/release/requirements-plugins-mirror.txt));
+1. [`mirror-plugins.py`](../scripts/release/mirror-plugins.py) reads the merged registry on `waveflow.app`, downloads every archive it names (its `download_url`, else its GitHub release, as the app builds that address; https only, never to an internal address, redirects included) and checks each one as the app would: the blake3 of `plugin.wasm` is the registry's, it is a component and not a core module, the manifest declares schema 1, has the required `[plugin]` fields and names the entry's id, version and world. It runs without the R2 keys in its environment, and `blake3` comes from PyPI pinned by hash ([`requirements-plugins-mirror.txt`](../scripts/release/requirements-plugins-mirror.txt));
 2. the archives go up under `plugins/<id>/<id>-v<version>.zip` (five minutes at the edge, like a release's payloads);
 3. each is asked for on the public domain, and must answer with the staged size;
 4. `plugins/registry.json` goes up last (`no-cache`), byte for byte what `waveflow.app` served, and is read back.
@@ -469,7 +469,7 @@ The same bucket holds a copy of the plugin store, under `plugins/`. The store's 
 **What it refuses, leaving the bucket as it was** (the run goes red, so the failure is seen):
 
 - a registry that does not answer, is not JSON, declares a `schema_version` other than 1, or lists no plugin — an empty or unreadable copy never replaces a good one;
-- an entry whose id, version or blake3 could not name a file safely;
+- an entry whose id, version or blake3 could not name a file safely, or that the app would not decode — one such entry makes the whole registry unreadable to the app, which would then skip the mirror;
 - **any** archive that fails to download or to verify: nothing at all is uploaded, so the mirror's registry never names an archive the mirror does not hold or one the app would refuse;
 - a registry that drops a plugin the mirror's current copy lists. An outage of the private half of the merge must not shrink the good copy, so a withdrawal is a deliberate run: start the workflow by hand with **allow removal** ticked. Until then, the mirror still lists the withdrawn plugin — only to installations that cannot reach `waveflow.app`.
 

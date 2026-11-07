@@ -52,9 +52,19 @@ def registry(*entries: dict, schema: object = 1) -> dict:
     return {"schema_version": schema, "plugins": list(entries)}
 
 
-def archive(e: dict, wasm: bytes = WASM, manifest: dict | None = None, skip=()) -> bytes:
-    m = manifest or {"id": e["id"], "version": e["version"], "world": e["world"]}
-    toml = "schema_version = 1\n[plugin]\n" + "".join(f'{k} = "{v}"\n' for k, v in m.items())
+def archive(
+    e: dict, wasm: bytes = WASM, manifest: dict | None = None, skip=(), schema: str = "1"
+) -> bytes:
+    m = manifest or {
+        "id": e["id"],
+        "name": e["name"],
+        "version": e["version"],
+        "author": e["author"],
+        "world": e["world"],
+    }
+    toml = f"schema_version = {schema}\n[plugin]\n" + "".join(
+        f'{k} = "{v}"\n' for k, v in m.items()
+    )
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as z:
         if "plugin.wasm" not in skip:
@@ -96,6 +106,49 @@ class ParseRegistry(unittest.TestCase):
         for bad in ("../1", "1/2", "", ".1", "1 2"):
             with self.subTest(version=bad):
                 self.refused(json.dumps(registry(entry(version=bad))).encode())
+
+    def test_accepts_every_shape_the_app_decodes(self):
+        self.ok(
+            registry(
+                entry(
+                    description={"en": "d", "fr": "d"},
+                    description_i18n={"fr": "d"},
+                    homepage=None,
+                    asset="x.zip",
+                    download_url=None,
+                    min_app_version="2.0.0",
+                    tags=["lyrics"],
+                    official=True,
+                    permissions={
+                        "http": ["api.example"],
+                        "storage_read": False,
+                        "storage_state": True,
+                        "library_read_artists": False,
+                    },
+                )
+            )
+        )
+
+    def test_refuses_an_entry_the_app_could_not_decode(self):
+        for bad in (
+            {"name": None},
+            {"author": 3},
+            {"description": None},
+            {"description": {"fr": 1}},
+            {"description_i18n": ["fr"]},
+            {"homepage": 1},
+            {"tags": None},
+            {"tags": ["a", 1]},
+            {"official": "yes"},
+            {"permissions": None},
+            {"permissions": {"http": "api.example"}},
+            {"permissions": {"storage_state": 1}},
+        ):
+            with self.subTest(bad=bad):
+                self.refused(json.dumps(registry(entry(**bad))).encode())
+        without_permissions = entry()
+        del without_permissions["permissions"]
+        self.refused(json.dumps(registry(without_permissions)).encode())
 
     def test_refuses_a_malformed_pin_or_a_duplicate(self):
         self.refused(json.dumps(registry(entry(blake3="abc"))).encode())
@@ -197,8 +250,21 @@ class VerifyArchive(unittest.TestCase):
     def test_refuses_a_manifest_naming_something_else(self):
         e = entry()
         for key, value in (("id", "other"), ("version", "9.9.9"), ("world", "waveflow:source/v1")):
-            m = {"id": e["id"], "version": e["version"], "world": e["world"], key: value}
+            m = {"id": e["id"], "name": "n", "version": e["version"], "author": "a"}
+            m["world"] = e["world"]
+            m[key] = value
             with self.subTest(key=key), self.assertRaises(mp.Refused):
+                mp.verify_archive(archive(e, manifest=m), e, fake_hash)
+
+    def test_refuses_a_manifest_the_host_does_not_read(self):
+        e = entry()
+        for schema in ("2", '"1"'):
+            with self.subTest(schema=schema), self.assertRaisesRegex(mp.Refused, "schema_version"):
+                mp.verify_archive(archive(e, schema=schema), e, fake_hash)
+        for missing in ("name", "author"):
+            m = {"id": e["id"], "name": "n", "version": e["version"], "author": "a", "world": e["world"]}
+            del m[missing]
+            with self.subTest(missing=missing), self.assertRaisesRegex(mp.Refused, missing):
                 mp.verify_archive(archive(e, manifest=m), e, fake_hash)
 
 

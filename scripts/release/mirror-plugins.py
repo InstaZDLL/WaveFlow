@@ -28,7 +28,10 @@ served and nothing else.
 Refused outright, with nothing written (exit 1):
   - a registry that does not answer, is not JSON, declares a
     `schema_version` other than 1, or lists no plugin;
-  - an entry whose id, version or blake3 could not name a file safely;
+  - an entry whose id, version or blake3 could not name a file safely,
+    or that the app's `RegistryEntry` would not decode: one such entry
+    fails the whole registry in the app, and the mirror would replace a
+    readable copy with one the app skips;
   - with --published, a registry that drops a plugin the mirror's
     current copy lists, unless --allow-removal: an outage that served
     half the catalogue must not shrink the good copy. A withdrawn plugin
@@ -163,10 +166,54 @@ def fetch(url: str, cap: int) -> bytes:
         return body
 
 
+def _is_str_map(value: object) -> bool:
+    """A JSON object of strings, as serde reads a BTreeMap<String, String>."""
+    return isinstance(value, dict) and all(
+        isinstance(k, str) and isinstance(v, str) for k, v in value.items()
+    )
+
+
+def _is_str_list(value: object) -> bool:
+    """A JSON array of strings, as serde reads a Vec<String>."""
+    return isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+
+def _decode_problem(entry: dict) -> str | None:
+    """What the app's `RegistryEntry` (commands/plugin_store.rs) would
+    fail to decode in this entry, or None. Serde takes a missing
+    `#[serde(default)]` field but not a null one, a missing `Option`
+    field and a null one alike; a bool is never a number."""
+    for key in ("id", "name", "author", "repo", "world", "version", "blake3"):
+        if not isinstance(entry.get(key), str):
+            return f"{key} is not a string"
+    # `LocalizedString`: a plain string or a { lang -> text } map.
+    description = entry.get("description")
+    if not (isinstance(description, str) or _is_str_map(description)):
+        return "description is neither a string nor a { lang -> text } map"
+    for key in ("homepage", "asset", "download_url", "min_app_version"):
+        if entry.get(key) is not None and not isinstance(entry[key], str):
+            return f"{key} is not a string"
+    if entry.get("description_i18n") is not None and not _is_str_map(entry["description_i18n"]):
+        return "description_i18n is not a { lang -> text } map"
+    if "tags" in entry and not _is_str_list(entry["tags"]):
+        return "tags is not a list of strings"
+    if "official" in entry and not isinstance(entry["official"], bool):
+        return "official is not a boolean"
+    permissions = entry.get("permissions")
+    if not isinstance(permissions, dict):
+        return "permissions is not an object"
+    if "http" in permissions and not _is_str_list(permissions["http"]):
+        return "permissions.http is not a list of strings"
+    for key in ("storage_read", "storage_state", "library_read_artists"):
+        if key in permissions and not isinstance(permissions[key], bool):
+            return f"permissions.{key} is not a boolean"
+    return None
+
+
 def parse_registry(raw: bytes) -> dict:
     """The registry, or Refused. Checks what the mirror relies on: the
-    schema the app reads, at least one plugin, and entries whose names
-    can become file names."""
+    schema the app reads, at least one plugin, entries the app decodes,
+    and names that can become file names."""
     try:
         reg = json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
@@ -198,9 +245,9 @@ def parse_registry(raw: bytes) -> dict:
         digest = entry.get("blake3")
         if not isinstance(digest, str) or not BLAKE3_RE.fullmatch(digest):
             raise Refused(f"{pid}: blake3 {digest!r} is not 64 hex digits")
-        for key in ("world", "repo"):
-            if not isinstance(entry.get(key), str):
-                raise Refused(f"{pid}: {key} is missing")
+        problem = _decode_problem(entry)
+        if problem:
+            raise Refused(f"{pid}: {problem}; the app could not read the registry")
     return reg
 
 
@@ -261,13 +308,24 @@ def is_component(wasm: bytes) -> bool:
     return len(wasm) >= 8 and wasm[:4] == b"\0asm" and int.from_bytes(wasm[6:8], "little") == 1
 
 
+# `waveflow_plugin_sdk::MANIFEST_SCHEMA_VERSION`, and the `[plugin]`
+# fields `Manifest::parse` cannot do without.
+MANIFEST_SCHEMA_VERSION = 1
+MANIFEST_REQUIRED = ("id", "name", "version", "author", "world")
+
+
 def verify_archive(
     data: bytes, entry: dict, hasher: Callable[[bytes], str] = blake3_hex
 ) -> None:
     """Refused unless the app would accept these bytes for this entry:
     a zip whose plugin.wasm hashes to the registry's blake3 and is a
-    component, and whose manifest names the entry's id, version and
-    world."""
+    component, and whose manifest declares the schema the host reads,
+    carries the required `[plugin]` fields and names the entry's id,
+    version and world.
+
+    The rest of `Manifest::parse` (worlds, permissions, assets, options)
+    is not copied here: a copy would drift from the Rust, and an archive
+    the app refuses for it is refused from either host alike."""
     pid = entry["id"]
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
@@ -293,9 +351,17 @@ def verify_archive(
         manifest = tomllib.loads(manifest_bytes.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
         raise Refused(f"{pid}: manifest.toml does not parse: {e}") from None
-    plugin = manifest.get("plugin") if isinstance(manifest, dict) else None
+    schema = manifest.get("schema_version")
+    if type(schema) is not int or schema != MANIFEST_SCHEMA_VERSION:
+        raise Refused(
+            f"{pid}: manifest schema_version {schema!r}, the host reads {MANIFEST_SCHEMA_VERSION}"
+        )
+    plugin = manifest.get("plugin")
     if not isinstance(plugin, dict):
         raise Refused(f"{pid}: manifest.toml has no [plugin] table")
+    for key in MANIFEST_REQUIRED:
+        if not isinstance(plugin.get(key), str):
+            raise Refused(f"{pid}: manifest [plugin] {key} is missing")
     for key in ("id", "version", "world"):
         if plugin.get(key) != entry[key]:
             raise Refused(
