@@ -473,7 +473,8 @@ Builds older than 2.0 know only GitHub. They cannot be moved; if GitHub goes, th
 
 The parts that need GitHub to still answer have to be done while it does:
 
-- **Import the project into GitLab** (New project → Import project → GitHub): code, tags, issues, pull requests as merge requests, milestones, labels, the wiki and the releases' notes. The importer reads GitHub's API with your token, so it cannot run after the account is gone. Keep the import private and refresh it now and then (pull mirroring is a Premium feature; without it, `git push --mirror` from a local clone keeps code and tags current, not issues).
+- **The code and the tags are already there.** [`mirror-gitlab.yml`](../.github/workflows/mirror-gitlab.yml) pushes `main` and every tag to the private backup at `gitlab.com/waveflow-groupe/WaveFlow` as they land here, with a deploy key that may write to that one project (the `GITLAB_DEPLOY_KEY` secret; GitLab's pull mirroring is a paid feature). `main` and the `v*` tags are protected there with that key allowed, and the backup's CI/CD is off. The other WaveFlow repositories (server, QuickPlay, the mobile apps, the website, the plugins, Tempora) have the same job and a backup in the same group.
+- **Import what the mirror does not carry** (New project → Import project → GitHub): issues, pull requests as merge requests, milestones, labels, the wiki and the releases' notes. The importer reads GitHub's API with your token, so it cannot run after the account is gone. Keep the import private and refresh it now and then.
 - **Fill the R2 bucket** ([above](#what-the-maintainer-creates)), so the 2.0 builds already have a second host.
 - Keep a local clone with every tag: `git fetch --tags` from GitHub is the only source of history once it is gone.
 
@@ -521,8 +522,8 @@ Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` t
 
 ### The switch, in order
 
-1. Push the latest code and tags to the GitLab project; check that `.gitlab-ci.yml` runs green on the default branch.
-2. Recreate the variables and protect the `v*` tags.
+1. Check that the backup holds the latest `main` and tags (the mirror's last run), turn its CI/CD back on (Settings → General → Visibility, project features, permissions), and check that `.gitlab-ci.yml` runs green on the default branch.
+2. Recreate the variables; the `v*` tags are already protected.
 3. Register runners if the tier needs them.
 4. Cut the next release by hand as above. Its manifest replaces `stable/latest.json` on R2, and every 2.0+ installation sees it.
 5. Update the install links, then the downstream packages one by one.
