@@ -526,7 +526,8 @@ Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` t
 2. Recreate the variables; the `v*` tags are already protected.
 3. Register runners if the tier needs them.
 4. Cut the next release by hand as above. Its manifest replaces `stable/latest.json` on R2, and every 2.0+ installation sees it.
-5. Update the install links, then the downstream packages one by one.
+5. Make the backup public, since it is now the project's home and the source Flathub and the downstream packages build from, and open the latest import's issues to the public (or move them into the backup) so issues can be read and filed again.
+6. Update the install links, then the downstream packages one by one.
 
 ## The AppImage is post-processed, and it has to stay that way
 
