@@ -215,11 +215,11 @@
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/stats.png" alt="一年的统计数据：播放次数、收听时长、不同曲目数、完整收听率和年度活跃热力图" /></td>
-    <td width="50%"><img src="docs/screenshots/home-mixes.png" alt="首页下方：为你生成的 Daily Mix 与 On Repeat、你的混音、最近添加" /></td>
+    <td width="50%"><img src="docs/screenshots/home-mixes.png" alt="首页下方：为你生成的 Daily Mix 与 On Repeat、你的混合歌单、最近添加" /></td>
   </tr>
   <tr>
     <td align="center"><sub><b>统计</b> · 全部在你的电脑上计算</sub></td>
-    <td align="center"><sub><b>为你推荐</b> · Daily Mix、On Repeat、你自己的混音</sub></td>
+    <td align="center"><sub><b>为你推荐</b> · Daily Mix、On Repeat、你自己的混合歌单</sub></td>
   </tr>
 </table>
 
@@ -284,11 +284,11 @@ WaveFlow 是一个小型应用家族的核心，这些应用都免费开源，�
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://github.com/InstaZDLL/waveflow-server"><img src="https://raw.githubusercontent.com/InstaZDLL/waveflow-server/main/docs/screenshots/albums.png" alt="WaveFlow Server 的网页播放器：专辑网格上方的混音" /></a>
+      <a href="https://github.com/InstaZDLL/waveflow-server"><img src="https://raw.githubusercontent.com/InstaZDLL/waveflow-server/main/docs/screenshots/albums.png" alt="WaveFlow Server 的网页播放器：专辑网格上方的混合歌单" /></a>
       <br />
       <b><a href="https://github.com/InstaZDLL/waveflow-server">🌐 WaveFlow Server</a></b>
       <br />
-      <i>你的音乐，随处可听。</i>一个单一 Rust 可执行文件的自托管音乐服务器，内置网页播放器，并支持你手机上的应用早已在用的 OpenSubsonic API。让 WaveFlow 连接它，它的曲库便会并入你的曲库；收藏、评分和歌单在设备之间同步。
+      <i>你的音乐，随处可听。</i>以单个 Rust 可执行文件提供的自托管音乐服务器，内置网页播放器，并支持你手机上的应用早已在用的 OpenSubsonic API。让 WaveFlow 连接它，它的曲库便会并入你的曲库；收藏、评分和歌单在设备之间同步。
       <br />
       <a href="https://github.com/InstaZDLL/waveflow-server#install"><b>安装服务器 →</b></a>
     </td>

@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/static/v1?label=version&message=1.9.1&color=emerald&style=flat-square" alt="Version" /> <!-- x-release-please-version -->
+  <img src="https://img.shields.io/github/v/release/InstaZDLL/WaveFlow?style=flat-square&color=emerald&label=version" alt="Version" />
   <img src="https://img.shields.io/github/downloads/InstaZDLL/WaveFlow/total?style=flat-square&color=emerald&label=downloads" alt="Downloads" />
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Windows, macOS and Linux" />
   <img src="https://img.shields.io/badge/tauri-2.12-blue?style=flat-square&logo=tauri" alt="Tauri 2" />

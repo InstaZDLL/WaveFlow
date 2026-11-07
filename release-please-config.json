@@ -24,10 +24,6 @@
           "type": "toml",
           "path": "src-tauri/crates/core/Cargo.toml",
           "jsonpath": "$.package.version"
-        },
-        {
-          "type": "generic",
-          "path": "README.md"
         }
       ]
     }
