@@ -9,7 +9,6 @@
 
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
@@ -44,43 +43,47 @@ static TEMP_SEQ: AtomicU64 = AtomicU64::new(0);
 /// is sandboxed for its OWN HTTP (host allowlist), but the cache download runs
 /// in the app process, so without this guard a malicious plugin could point it
 /// at `http://localhost:…` or `http://169.254.169.254/…` (SSRF). We require
-/// `https` and reject loopback / private / link-local / unspecified IP
-/// literals + `localhost`. A hostname that resolves to an internal IP at
-/// connect time (DNS rebinding) is a residual we accept — plugins are curated
-/// and user-installed, and a literal + scheme check covers the practical case.
+/// `https` and reject loopback / private / link-local / unspecified /
+/// broadcast / "this network" / carrier-grade NAT IP literals + `localhost`.
+/// A hostname that resolves to an internal IP at connect time (DNS
+/// rebinding) is a residual we accept — plugins are curated and
+/// user-installed, and a literal + scheme check covers the practical case.
+///
+/// The host is the one `reqwest` will connect to: the URL goes through
+/// [`url::Url::parse`], the WHATWG parser `reqwest` itself uses, never a
+/// hand-split of the string. That parser reads every IPv4 shorthand as an
+/// address — decimal `2130706433`, hex `0x7f000001`, octal `0177.0.0.1`, the
+/// one-, two- and three-part forms `127.1` / `10.1.1` — and hands back
+/// [`url::Host::Ipv4`] for all of them, so they meet the same IP rules as a
+/// dotted quad instead of passing as a hostname. It also ends the authority
+/// on a `\` and drops a userinfo the way the connection will, so
+/// `https://127.0.0.1\@example.com/` is judged on `127.0.0.1`. A string it
+/// cannot parse is refused: `reqwest` could not fetch it either.
 pub fn is_safe_motion_url(url: &str) -> bool {
-    // Scheme must be https (case-insensitive), nothing else.
-    let rest = match url.get(..8) {
-        Some(p) if p.eq_ignore_ascii_case("https://") => &url[8..],
-        _ => return false,
+    let Ok(parsed) = url::Url::parse(url) else {
+        return false;
     };
-    // Authority runs up to the first `/`, `?` or `#`.
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or(rest);
-    // Drop any userinfo, then the port.
-    let host_port = authority.rsplit('@').next().unwrap_or(authority);
-    let host = if let Some(stripped) = host_port.strip_prefix('[') {
-        // Bracketed IPv6 literal: `[::1]:443`.
-        stripped.split(']').next().unwrap_or(stripped)
-    } else {
-        host_port.split(':').next().unwrap_or(host_port)
-    };
-    // Strip a trailing FQDN dot: `localhost.` / `127.0.0.1.` resolve to the
-    // same target but would otherwise slip past the `localhost` + IP-literal
-    // checks below (`"localhost."` != `"localhost"`, and `127.0.0.1.` fails to
-    // parse as an IP so it'd read as a harmless hostname).
-    let host = host.trim_end_matches('.');
-    if host.is_empty() {
+    // Scheme must be https; the parser has lowercased it.
+    if parsed.scheme() != "https" {
         return false;
     }
-    let lower = host.to_ascii_lowercase();
-    if lower == "localhost" || lower.ends_with(".localhost") {
-        return false;
+    match parsed.host() {
+        Some(url::Host::Domain(name)) => {
+            // Strip a trailing FQDN dot: `localhost.` resolves to the same
+            // target but would otherwise slip past the check below
+            // (`"localhost."` != `"localhost"`). A dotted IPv4 with a final
+            // dot (`127.0.0.1.`) never lands here: the parser reads it as
+            // an address.
+            let name = name.trim_end_matches('.');
+            // The parser has lowercased the name and mapped it through
+            // IDNA, so a full-width or circled `localhost` arrives as the
+            // ASCII word.
+            !(name.is_empty() || name == "localhost" || name.ends_with(".localhost"))
+        }
+        Some(url::Host::Ipv4(v4)) => !is_internal_v4(v4),
+        Some(url::Host::Ipv6(v6)) => !is_internal_ip(IpAddr::V6(v6)),
+        None => false,
     }
-    // Reject internal IP literals; a plain hostname passes.
-    if let Ok(ip) = IpAddr::from_str(host) {
-        return !is_internal_ip(ip);
-    }
-    true
 }
 
 fn is_internal_ip(ip: IpAddr) -> bool {
@@ -105,8 +108,20 @@ fn is_internal_ip(ip: IpAddr) -> bool {
     }
 }
 
+/// Loopback, private, link-local, unspecified or broadcast, or inside
+/// `0.0.0.0/8` ("this network") or the `100.64.0.0/10` carrier-grade NAT
+/// range, which sit inside a provider's (or a mesh VPN's) network rather
+/// than on the internet. The same ranges as the downloader's
+/// `is_public_ipv4` in the app crate.
 fn is_internal_v4(v4: std::net::Ipv4Addr) -> bool {
-    v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified()
+    let [a, b, ..] = v4.octets();
+    v4.is_loopback()
+        || v4.is_private()
+        || v4.is_link_local()
+        || v4.is_unspecified()
+        || v4.is_broadcast()
+        || a == 0
+        || (a == 100 && (b & 0xc0) == 64)
 }
 
 /// Redact a plugin-supplied URL for a logged error message: keep the scheme,
