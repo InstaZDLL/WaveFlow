@@ -118,6 +118,30 @@ class ArchiveUrl(unittest.TestCase):
         with self.assertRaises(mp.Refused):
             mp.archive_url(entry(download_url="http://waveflow.app/x.zip"))
 
+    def test_refuses_an_internal_download_url(self):
+        for url in (
+            "https://localhost/x.zip",
+            "https://a.localhost/x.zip",
+            "https://127.0.0.1/x.zip",
+            "https://169.254.169.254/latest/meta-data",
+            "https://10.0.0.1/x.zip",
+            "https://[::1]/x.zip",
+            "https://[::ffff:192.168.1.1]/x.zip",
+            "https://100.64.0.1/x.zip",
+            "https://user@127.0.0.1./x.zip",
+        ):
+            with self.subTest(url=url), self.assertRaises(mp.Refused):
+                mp.archive_url(entry(download_url=url))
+
+    def test_a_public_address_is_safe(self):
+        for url in (
+            "https://waveflow.app/plugins/x.zip",
+            "https://objects.githubusercontent.com/a?b=c",
+            "https://1.1.1.1/x.zip",
+        ):
+            with self.subTest(url=url):
+                self.assertTrue(mp.is_safe_url(url))
+
     def test_mirror_key(self):
         self.assertEqual(mp.mirror_key(entry()), "plugins/lyrics-x/lyrics-x-v0.1.0.zip")
 
@@ -142,6 +166,19 @@ class VerifyArchive(unittest.TestCase):
         e = entry()
         with self.assertRaisesRegex(mp.Refused, "blake3 mismatch"):
             mp.verify_archive(archive(e, wasm=b"\0asmother"), e, fake_hash)
+
+    def test_refuses_a_core_module(self):
+        core = b"\0asm\x01\x00\x00\x00module"
+        e = entry(blake3=fake_hash(core))
+        with self.assertRaisesRegex(mp.Refused, "not a WebAssembly component"):
+            mp.verify_archive(archive(e, wasm=core), e, fake_hash)
+
+    def test_component_test_follows_binfmt(self):
+        self.assertTrue(mp.is_component(b"\0asm\x0d\x00\x01\x00"))
+        self.assertTrue(mp.is_component(b"\0asm\x0e\x00\x01\x00"))  # any version, layer 1
+        self.assertFalse(mp.is_component(b"\0asm\x01\x00\x00\x00"))
+        self.assertFalse(mp.is_component(b"\0asm\x0d\x00"))
+        self.assertFalse(mp.is_component(b"PK\x03\x04\x0d\x00\x01\x00"))
 
     def test_refuses_a_page_instead_of_a_zip(self):
         with self.assertRaisesRegex(mp.Refused, "not a zip"):

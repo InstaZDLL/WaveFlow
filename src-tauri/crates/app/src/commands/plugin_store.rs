@@ -17,8 +17,12 @@
 //! it names (`.github/workflows/plugins-mirror.yml`). The registry copy is
 //! read right after `waveflow.app`'s; an archive copy is tried once when
 //! the archive's own address fails. Both addresses are compiled in, never
-//! read from the registry, and the copy is verified exactly like the
-//! original: the mirror is one more host, never one more trust anchor.
+//! read from the registry. An archive copy is only another host: it is
+//! verified against the registry exactly like the original. The registry
+//! copy is not: read when `waveflow.app` does not answer, it *is* the
+//! registry, trusted like the GitHub copies after it — whoever can write
+//! the bucket can publish pins there, as whoever can push to the registry
+//! repository can on GitHub. The registry is not signed.
 //!
 //! Every outbound fetch honours [`offline::is_offline`] like every other
 //! HTTP path in the workspace.

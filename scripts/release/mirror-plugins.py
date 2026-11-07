@@ -7,8 +7,9 @@
 Reads the merged registry (public and private plugins, the copy only
 waveflow.app serves), downloads every archive it names, and checks each
 one the way the app's store does before it would install it: the blake3
-of `plugin.wasm` is the one the registry pins, and the manifest names
-the entry's id, version and world. It then writes, under DIR:
+of `plugin.wasm` is the one the registry pins, the manifest names the
+entry's id, version and world, and `plugin.wasm` is a component, not a
+core module (`plugin::binfmt`). It then writes, under DIR:
 
     plugins/<id>/<id>-v<version>.zip   each archive, as downloaded
     plugins/registry.json              the registry, byte for byte
@@ -17,9 +18,12 @@ and nothing else; `publish-plugins-r2.sh` uploads that tree. Nothing is
 written unless every archive passed: the mirror's registry never names
 an archive the mirror does not hold, nor one the app would refuse.
 
-The registry itself stays the trust anchor: the app checks each archive
-it downloads, from either host, against the registry it read. This
-script only keeps the mirror from holding what that check would refuse.
+The app checks each archive it downloads, from either host, against
+the registry it read; this script only keeps the mirror from holding
+what that check would refuse. The registry copy it publishes is, for an
+app that cannot reach waveflow.app, the registry itself: what this
+script uploads there is trusted, so it copies the bytes waveflow.app
+served and nothing else.
 
 Refused outright, with nothing written (exit 1):
   - a registry that does not answer, is not JSON, declares a
@@ -32,8 +36,12 @@ Refused outright, with nothing written (exit 1):
 
 The archives are downloaded from the entry's `download_url`, or from its
 GitHub release as the app builds that address (`asset`, or
-`<id>-v<version>.zip`). Only https is followed, redirects included.
-No address is printed with its query string.
+`<id>-v<version>.zip`). Only https is followed, redirects included, and
+never to localhost or a loopback, private, link-local or otherwise
+internal IP literal — the app's `is_safe_motion_url`, on a runner that
+has a metadata endpoint at 169.254.169.254. A host name is not resolved
+first, as the app does not resolve it either. No address is printed
+with its query string.
 
 `blake3` is the PyPI package; it is imported when a hash is needed, so
 the tests run without it.
@@ -44,6 +52,7 @@ from __future__ import annotations
 import argparse
 import http.client
 import io
+import ipaddress
 import json
 import re
 import sys
@@ -91,23 +100,45 @@ def redact(url: str) -> str:
     return urllib.parse.urlunsplit((parts.scheme, host, parts.path, "", "")) + masked
 
 
-class _HttpsOnly(urllib.request.HTTPRedirectHandler):
+def is_safe_url(url: str) -> bool:
+    """https, to a host that is neither localhost nor an internal IP
+    literal: the app's `is_safe_motion_url`."""
+    try:
+        parts = urllib.parse.urlsplit(url)
+        host = parts.hostname
+    except ValueError:
+        return False
+    if parts.scheme != "https" or not host:
+        return False
+    host = host.rstrip(".").lower()
+    if not host or host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True  # a name, not resolved here, as in the app
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip.is_global and not ip.is_multicast
+
+
+class _SafeRedirects(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if urllib.parse.urlsplit(newurl).scheme != "https":
+        if not is_safe_url(newurl):
             raise urllib.error.HTTPError(
-                newurl, code, "redirect to a non-https address refused", headers, fp
+                redact(newurl), code, "redirect to an unsafe address refused", headers, fp
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-_opener = urllib.request.build_opener(_HttpsOnly())
+_opener = urllib.request.build_opener(_SafeRedirects())
 
 
 def fetch(url: str, cap: int) -> bytes:
     """GET `url`, refusing a body past `cap` bytes. Raises on any failure,
     a status other than 2xx included (urllib raises HTTPError for it)."""
-    if urllib.parse.urlsplit(url).scheme != "https":
-        raise Refused(f"{redact(url)}: not an https address")
+    if not is_safe_url(url):
+        raise Refused(f"{redact(url)}: not a safe https address")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with _opener.open(req, timeout=TIMEOUT) as resp:
         length = resp.headers.get("Content-Length")
@@ -167,8 +198,8 @@ def archive_url(entry: dict) -> str:
     registry gives one, else the GitHub release built from `repo`."""
     direct = entry.get("download_url")
     if direct is not None:
-        if not isinstance(direct, str) or urllib.parse.urlsplit(direct).scheme != "https":
-            raise Refused(f"{entry['id']}: download_url is not an https address")
+        if not isinstance(direct, str) or not is_safe_url(direct):
+            raise Refused(f"{entry['id']}: download_url is not a safe https address")
         return direct
     asset = entry.get("asset") or f"{entry['id']}-v{entry['version']}.zip"
     return (
@@ -206,12 +237,21 @@ def _member(archive: zipfile.ZipFile, name: str, cap: int) -> bytes | None:
     return data
 
 
+def is_component(wasm: bytes) -> bool:
+    """`plugin::binfmt::classify_wasm_binary` answering `Component`: the
+    wasm magic, then layer 1 in bytes 6-7 (little-endian), whatever the
+    version in bytes 4-5. A core module (version 1, layer 0) is valid wasm
+    the host can never load."""
+    return len(wasm) >= 8 and wasm[:4] == b"\0asm" and int.from_bytes(wasm[6:8], "little") == 1
+
+
 def verify_archive(
     data: bytes, entry: dict, hasher: Callable[[bytes], str] = blake3_hex
 ) -> None:
     """Refused unless the app would accept these bytes for this entry:
-    a zip whose plugin.wasm hashes to the registry's blake3 and whose
-    manifest names the entry's id, version and world."""
+    a zip whose plugin.wasm hashes to the registry's blake3 and is a
+    component, and whose manifest names the entry's id, version and
+    world."""
     pid = entry["id"]
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
@@ -229,6 +269,8 @@ def verify_archive(
                 f"the archive's plugin.wasm is {actual}"
             )
         manifest_bytes = _member(archive, "manifest.toml", MAX_MANIFEST_SIZE)
+    if not is_component(wasm):
+        raise Refused(f"{pid}: plugin.wasm is not a WebAssembly component; the app refuses it")
     if manifest_bytes is None:
         raise Refused(f"{pid}: the archive has no manifest.toml")
     try:
