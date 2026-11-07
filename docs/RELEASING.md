@@ -641,6 +641,23 @@ Signing happens **inside** `tauri build`, driven by `APPLE_SIGNING_IDENTITY`, no
 
 The verify step asserts the sealed-resources / `app.waveflow` / designated-requirement triple, because a silent signing failure would look like a clean release and quietly bring the per-launch prompt back.
 
+### The one-command installer, until there is a Developer ID
+
+Ad-hoc signing leaves the Gatekeeper half open: a `.dmg` downloaded by a browser carries `com.apple.quarantine`, and macOS refuses to open a quarantined app that is not notarized, with a dialog that offers no way through on macOS 15 and later short of System Settings → Privacy & Security → Open Anyway. [`scripts/install-macos.sh`](../scripts/install-macos.sh) is the way around it that does not ask users to lower a system setting:
+
+```sh
+curl -fsSL https://waveflow.app/install.sh | bash               # stable
+curl -fsSL https://waveflow.app/install.sh | bash -s -- --beta  # beta channel
+```
+
+- **What it installs**: `WaveFlow_<version>_macos-universal.app.tar.gz`, the updater payload, not the DMG. Both wrap the same signed `.app`, but the archive needs no disk image mounted (one that `hdiutil` can leave attached when a script stops halfway), and GitHub publishes a SHA-256 digest for it. The version comes from the channel's updater manifest (`latest.json`, or `latest-beta.json` for `--beta`), so the script installs what the in-app updater would offer on that channel; `--version X.Y.Z` names one.
+- **What it checks**: the archive's SHA-256 against the `digest` the GitHub API reports for the asset (skipped with a warning when the API does not answer, as it stops doing after 60 anonymous calls an hour); that the archive holds `WaveFlow.app` and nothing else; that the bundle is `app.waveflow` at the version asked, and that the Mac meets its `LSMinimumSystemVersion`; and `codesign --verify --strict` with the sealed resources and the `app.waveflow` identifier that `release.yml` asserts before publishing, so a damaged file is refused. What it cannot check is _who_ built it: an ad-hoc signature carries no identity, and the updater's `.sig` is a minisign signature, which needs a tool macOS does not ship. Integrity rests on GitHub over HTTPS.
+- **What it changes**: `xattr -dr com.apple.quarantine` on the `WaveFlow.app` it is about to install, after saying why, and nothing else — never `spctl --master-disable` or any other global setting. A file `curl` writes is normally not quarantined in the first place, so this mostly guards against a copy that picked the flag up anyway; `--no-unquarantine` skips it. `sudo` is asked for only to write into `/Applications` when the account cannot (the copy is then handed back to the user, as a dragged copy would be, so the in-app updater can replace it later); `--user` installs into `~/Applications` instead, `--dir` into any existing folder. A WaveFlow running from the folder being written stops the script, or is asked to quit with `--force`; one running from another copy is left alone, and the new copy is not opened over it. `--uninstall` removes the app and prints where the data is, without deleting it.
+- **How it is tested**: [`scripts/tests/install-macos.test.sh`](../scripts/tests/install-macos.test.sh) runs it on Linux with fakes for every macOS tool and for GitHub — version choice, refusals, the quarantine step, cleanup after a failure — and `--live` adds one real download of the current release. The `macOS installer` job of `ci.yml` runs ShellCheck and the bench on every pull request. Neither replaces a run on a Mac, which is how it was first checked (macOS 26, Apple silicon, the system's bash 3.2): install into a scratch `--dir`, the copy opening with no Gatekeeper dialog, `--force` quitting a running copy, `--no-unquarantine`, `--uninstall`. Not run there: the `sudo` path into a `/Applications` the account cannot write, and a download that arrives quarantined — `curl` never sets the flag, so `xattr -dr` was only checked on a copy flagged by hand. Opening a newer WaveFlow migrates the libraries an older one reads, so a test that launches the app needs a `HOME` of its own (`open -n --env HOME=…`).
+- **How it is served**: the script lives here, once. `waveflow.app/install.sh` is a redirect, configured in the site's repository, to `https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/scripts/install-macos.sh` (`curl -L` follows it). The file runs from `main()`, called on its last line, so a download cut short executes nothing.
+
+The real fix is the one above: a **Developer ID** certificate plus **notarization**, after which a browser download opens like any other app and this script becomes a convenience rather than a workaround.
+
 ## Notes
 
 - **Dev builds skip the updater entirely** (gated on

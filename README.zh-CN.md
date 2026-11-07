@@ -105,6 +105,14 @@
 
 从[最新版本](https://github.com/InstaZDLL/WaveFlow/releases/latest)下载适合你系统的安装包。每个版本页面都列出了各包管理器（AUR、COPR、apt、winget）的一行安装命令，以及 Windows、macOS 和 Linux 的独立安装程序。已安装的版本会自动更新，也可以在设置中开启测试版通道。
 
+在 macOS 上，一条命令即可下载最新版本、完成校验并安装到 `/Applications`：
+
+```sh
+curl -fsSL https://waveflow.app/install.sh | bash
+```
+
+WaveFlow 尚未经过 Apple 公证，因此 macOS 会拒绝打开通过浏览器下载的副本。该脚本只移除 WaveFlow.app 的隔离标记，不更改任何系统设置；`--help` 列出全部选项（`--beta`、`--user`、`--uninstall` 等）。脚本位于 [`scripts/install-macos.sh`](scripts/install-macos.sh)，运行前可先阅读。
+
 ## 功能
 
 每个领域的要点；点击标题即可查看完整说明（英文）。
