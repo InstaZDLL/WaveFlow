@@ -481,6 +481,7 @@ function SyncList({
               </div>
               {mode === "line" ? (
                 <span
+                  dir="auto"
                   className={`flex-1 text-base ${
                     i === playing
                       ? "text-zinc-900 dark:text-white font-medium"
@@ -496,7 +497,14 @@ function SyncList({
                   )}
                 </span>
               ) : (
-                <span className="flex flex-1 flex-wrap items-center gap-1">
+                // The line's direction is its own text's: the word
+                // buttons are laid out in the row's direction, so in a
+                // left-to-right row an Arabic line would read backwards.
+                // A syllable joins the next one on its end side.
+                <span
+                  dir="auto"
+                  className="flex flex-1 flex-wrap items-center gap-1"
+                >
                   {line.words.map((unit, j) => {
                     const next = isCursor && j === cursor.word;
                     const done = unit.beginMs !== undefined;
@@ -505,7 +513,7 @@ function SyncList({
                         key={j}
                         type="button"
                         className={`px-1.5 py-0.5 rounded text-sm transition-colors ${
-                          unit.joined ? "-mr-1 rounded-r-none" : ""
+                          unit.joined ? "-me-1 rounded-e-none" : ""
                         } ${
                           next
                             ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-400"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { usePlaybackClock } from "./usePlaybackClock";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import type { LyricsWord } from "../lib/tauri/lyrics";
@@ -103,6 +103,22 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
     positionMs,
     estimate,
   ]);
+
+  // The sweep starts at the word's start edge, the right one in a
+  // right-to-left line (`app.css` reads `data-kw-dir`). Not `:dir(rtl)`
+  // in the stylesheet: the build lowers it to `:lang()` for older
+  // engines, which follows the interface's language rather than the
+  // line's text. Read after every render of the component that owns the
+  // words, not only as the element attaches: lyrics fetched again can
+  // put another script in the same line under the same word element,
+  // which React keeps. Reading the computed direction is a style read,
+  // no layout, and the attribute is only written when it changes.
+  useLayoutEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+    const dir = getComputedStyle(el).direction;
+    if (el.dataset.kwDir !== dir) el.dataset.kwDir = dir;
+  });
 
   return useCallback((el: HTMLElement | null) => {
     elRef.current = el;

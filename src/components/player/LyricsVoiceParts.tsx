@@ -10,6 +10,10 @@ import { type LyricsReading, wordSeparators } from "../../lib/tauri/lyrics";
  * `activeWordIndex` — the background's own, from `useTrackLyrics` — and
  * not the lead's. No progressive fill: `useKaraokeWordFill` drives one
  * element, and the sweep belongs to the lead the eye follows.
+ *
+ * Their direction is their own text's (`dir="auto"`), like the lead's:
+ * the word boxes are neutral to bidi, and would otherwise run in the
+ * interface's direction whatever the script.
  */
 export function BackgroundVocals({
   reading,
@@ -25,7 +29,11 @@ export function BackgroundVocals({
 }) {
   if (!active || !reading.words) {
     return (
-      <span className={`block ${className}`} style={{ opacity: 0.55 }}>
+      <span
+        dir="auto"
+        className={`block ${className}`}
+        style={{ opacity: 0.55 }}
+      >
         {reading.text}
       </span>
     );
@@ -33,7 +41,7 @@ export function BackgroundVocals({
   const words = reading.words;
   const separators = wordSeparators(words);
   return (
-    <span className={`block ${className}`}>
+    <span dir="auto" className={`block ${className}`}>
       {words.map((word, wi) => (
         <Fragment key={wi}>
           <span

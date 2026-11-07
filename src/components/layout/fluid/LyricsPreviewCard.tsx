@@ -55,9 +55,12 @@ export function LyricsPreviewCard({ onOpen }: { onOpen: () => void }) {
     >
       <p className="fe-label mb-2">{t("lyrics.title")}</p>
       {lines.map((line, i) => (
+        // Each line in its own direction, so an Arabic line starts at the
+        // right and `truncate` cuts its end, not its start.
         <p
           key={i}
-          className={`truncate text-[0.9375rem] leading-relaxed ${
+          dir="auto"
+          className={`truncate text-start text-[0.9375rem] leading-relaxed ${
             line.active ? "fe-ink font-[540]" : "fe-ink-3"
           }`}
         >

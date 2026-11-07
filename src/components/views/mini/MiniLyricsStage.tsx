@@ -185,6 +185,11 @@ export function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                   >
                     <button
                       type="button"
+                      // The line's direction is its own text's: bidi sees
+                      // the word boxes as neutral objects, so in a
+                      // left-to-right block an Arabic line's words would
+                      // be laid out backwards.
+                      dir="auto"
                       onClick={() => seekToLine(line)}
                       className={`block w-full rounded text-center leading-snug transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/70 ${
                         isActive

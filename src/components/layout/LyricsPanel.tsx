@@ -418,8 +418,9 @@ export function LyricsPanel({
               const romanizationSeparators = line.romanization?.words
                 ? wordSeparators(line.romanization.words)
                 : [];
-              // A duet's second voice answers from the other side.
-              const align = line.side === "end" ? "text-right" : "text-left";
+              // A duet's second voice answers from the other side, the
+              // sides being the line's own (`dir="auto"` below).
+              const align = line.side === "end" ? "text-end" : "text-start";
               return (
                 <Fragment key={`${line.timeMs}-${index}`}>
                   <li
@@ -429,6 +430,11 @@ export function LyricsPanel({
                   >
                     <button
                       type="button"
+                      // The line's direction is its own text's: bidi sees
+                      // the word boxes as neutral objects, so in a
+                      // left-to-right block an Arabic line's words would
+                      // be laid out backwards.
+                      dir="auto"
                       onClick={() => handleSeekToLine(line)}
                       className={`block w-full ${align} ${lyricsLineClass(isActive, isPast)}`}
                     >
@@ -474,11 +480,14 @@ export function LyricsPanel({
                           reading={line.background}
                           active={isActive}
                           activeWordIndex={lineBackgroundWordIndex}
-                          className="mt-0.5 text-sm font-normal"
+                          className="wf-lyrics-reading mt-0.5 text-sm font-normal"
                         />
                       )}
                       {localization === "romanization" && line.romanization && (
-                        <span className="block mt-0.5 text-sm font-normal">
+                        <span
+                          dir="auto"
+                          className="wf-lyrics-reading block mt-0.5 text-sm font-normal"
+                        >
                           {line.romanization.words ? (
                             // Word for word with the line above, sharing
                             // its bounds, so `lineWordIndex` addresses
@@ -520,13 +529,16 @@ export function LyricsPanel({
                         <span
                           key={ci}
                           dir="auto"
-                          className="block mt-0.5 text-sm font-normal opacity-80"
+                          className="wf-lyrics-reading block mt-0.5 text-sm font-normal opacity-80"
                         >
                           {companion}
                         </span>
                       ))}
                       {localization === "translation" && line.translation && (
-                        <span className="block mt-0.5 text-sm font-normal italic opacity-70">
+                        <span
+                          dir="auto"
+                          className="wf-lyrics-reading block mt-0.5 text-sm font-normal italic opacity-70"
+                        >
                           {line.translation}
                         </span>
                       )}
@@ -739,7 +751,7 @@ export function LyricsPanel({
 /** The interlude dots, in the panel's line size. */
 function PanelInterlude({
   progress,
-  align = "text-left",
+  align = "text-start",
 }: {
   progress: number;
   align?: string;
