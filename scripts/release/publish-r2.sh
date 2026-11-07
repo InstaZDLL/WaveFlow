@@ -138,8 +138,7 @@ for entry in json.load(open(sys.argv[1]))["platforms"].values():
   fi
   while IFS=$'\t' read -r url name; do
     expected="$(wc -c <"$assets/$name" | tr -d ' ')"
-    got="$(curl -fsSIL "$url?v=$RANDOM$RANDOM" | tr -d '\r' |
-      awk -F': ' 'tolower($1) == "content-length" { n = $2 } END { print n }')"
+    got="$(r2_served_size "$url")"
     if [ "$got" != "$expected" ]; then
       echo "::error::$url answers with ${got:-no} bytes, the payload has $expected; the manifest stays unpublished" >&2
       exit 1

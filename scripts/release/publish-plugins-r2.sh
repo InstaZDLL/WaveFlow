@@ -110,12 +110,10 @@ if [ "$dry_run" != "1" ]; then echo "Uploaded $count archives under plugins/."; 
 
 if [ "$dry_run" != "1" ]; then
   # Through the public domain, as the app will ask: the S3 API accepting
-  # a file says nothing about the custom domain serving it. The query
-  # string is a cache key the edge has not seen.
+  # a file says nothing about the custom domain serving it.
   while IFS= read -r key; do
     expected="$(wc -c <"$work/stage/$key" | tr -d ' ')"
-    got="$(curl -fsSIL "$public/$key?v=$RANDOM$RANDOM" | tr -d '\r' |
-      awk -F': ' 'tolower($1) == "content-length" { n = $2 } END { print n }')"
+    got="$(r2_served_size "$public/$key")"
     if [ "$got" != "$expected" ]; then
       echo "::error::$public/$key answers with ${got:-no} bytes, the archive has $expected; the registry stays unpublished" >&2
       exit 1

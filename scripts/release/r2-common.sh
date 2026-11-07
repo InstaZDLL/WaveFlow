@@ -97,3 +97,19 @@ r2_run() {
     "$@"
   fi
 }
+
+# The size the public domain announces for a file: the Content-Length of
+# the last response once redirects are followed, empty when that one
+# gives none or the request fails — never the length a redirect gave on
+# the way. The query string is a cache key the edge has not seen.
+r2_served_size() {
+  local headers
+  # Read whole first: a request that fails after a redirect has already
+  # printed that hop's headers, which must not count.
+  if ! headers="$(curl -fsSIL "$1?v=$RANDOM$RANDOM")"; then
+    echo
+    return 0
+  fi
+  printf '%s\n' "$headers" | tr -d '\r' |
+    awk -F': ' '/^HTTP\// { n = "" } tolower($1) == "content-length" { n = $2 } END { print n }'
+}
