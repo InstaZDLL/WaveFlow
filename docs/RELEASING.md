@@ -473,7 +473,8 @@ Builds older than 2.0 know only GitHub. They cannot be moved; if GitHub goes, th
 
 The parts that need GitHub to still answer have to be done while it does:
 
-- **Import the project into GitLab** (New project → Import project → GitHub): code, tags, issues, pull requests as merge requests, milestones, labels, the wiki and the releases' notes. The importer reads GitHub's API with your token, so it cannot run after the account is gone. Keep the import private and refresh it now and then (pull mirroring is a Premium feature; without it, `git push --mirror` from a local clone keeps code and tags current, not issues).
+- **The code and the tags are already there.** [`mirror-gitlab.yml`](../.github/workflows/mirror-gitlab.yml) pushes `main` and every tag to the private backup at `gitlab.com/waveflow-groupe/WaveFlow` as they land here, with a deploy key that may write to that one project (the `GITLAB_DEPLOY_KEY` secret; GitLab's pull mirroring is a paid feature). `main` and the `v*` tags are protected there with that key allowed, and the backup's CI/CD is off. The other WaveFlow repositories (server, QuickPlay, the mobile apps, the website, the plugins, Tempora) have the same job and a backup in the same group.
+- **Import what the mirror does not carry** (New project → Import project → GitHub, with **Import Markdown attachments** ticked so the screenshots in issues come along; check that they did): issues, pull requests as merge requests, milestones, labels, the wiki and the releases' notes. The importer reads GitHub's API with your token, so it cannot run after the account is gone. Keep the import private and redo it now and then: each import is a new project and never updates the previous one, so note the path of the latest. That project is where the issues and merge requests are read after the switch; the backup stays the code's home.
 - **Fill the R2 bucket** ([above](#what-the-maintainer-creates)), so the 2.0 builds already have a second host.
 - Keep a local clone with every tag: `git fetch --tags` from GitHub is the only source of history once it is gone.
 
@@ -521,11 +522,12 @@ Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` t
 
 ### The switch, in order
 
-1. Push the latest code and tags to the GitLab project; check that `.gitlab-ci.yml` runs green on the default branch.
-2. Recreate the variables and protect the `v*` tags.
+1. If GitHub still answers, stop pushing there, then disable `mirror-gitlab.yml`: it force-pushes, and would overwrite what lands on GitLab from then on. Disabling it stops no run already started or queued, so let those end (or cancel them and push what they carried by hand). Only then compare the backup's `main` and tags with GitHub's, or, if GitHub is gone, with your local clone's (the mirror's last run may not have finished), and push what the backup lacks before changing anything on GitLab. Turn the backup's CI/CD back on (Settings → General → Visibility, project features, permissions); that starts no pipeline, and every mirrored push carried `ci.skip`. Push a commit to `main` without `ci.skip` (an empty one will do) and check that the pipeline it starts runs green. Not Run pipeline: a pipeline started by hand runs only with `BASE_VERSION` set, and is then the beta cut.
+2. Recreate the variables; the `v*` tags are already protected.
 3. Register runners if the tier needs them.
 4. Cut the next release by hand as above. Its manifest replaces `stable/latest.json` on R2, and every 2.0+ installation sees it.
-5. Update the install links, then the downstream packages one by one.
+5. Make the backup public, since it is now the project's home and the source Flathub and the downstream packages build from, and open the latest import's issues to the public (or move them into the backup) so issues can be read and filed again.
+6. Update the install links, then the downstream packages one by one.
 
 ## The AppImage is post-processed, and it has to stay that way
 
