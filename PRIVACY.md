@@ -27,11 +27,10 @@ Every service you reach also sees your **IP address** and the time of the reques
 
 ## Offline mode
 
-**Settings → Connections → Connectivity → Offline mode** stops WaveFlow from contacting the online services in this list: covers and pictures, biographies, lyrics, Last.fm and ListenBrainz, MusicBrainz, the plugin store and the plugins' own requests, radio, podcasts, WaveFlow Server and network shares. What was already fetched stays in its cache and is still shown.
+**Settings → Connections → Connectivity → Offline mode** stops WaveFlow from contacting the online services in this list: the update check, covers and pictures, biographies, lyrics, Last.fm and ListenBrainz, MusicBrainz, the plugin store and the plugins' own requests, radio, podcasts, WaveFlow Server and network shares. What was already fetched stays in its cache and is still shown.
 
 Offline mode does **not** stop:
 
-- the update check (see below);
 - Discord Rich Presence, which talks to the Discord app on your computer; turn it off on its own switch;
 - the DLNA and MPD servers, which only serve your local network and are off unless you turn them on;
 - possibly, a picture that was never fetched before and that the interface loads straight from its address, such as a photo in a cover or artist picker.
@@ -40,13 +39,13 @@ Offline mode does **not** stop:
 
 ### Update check
 
-On every launch WaveFlow asks for the latest version: it requests a small manifest from GitHub (`github.com`, under `InstaZDLL/WaveFlow/releases`) and from the project's mirror, `download.waveflow.app`, served by Cloudflare. The request carries no information about you beyond what any download does. The update itself is downloaded only when you choose to install it, and its signature is checked before it runs. The beta channel reads two more manifests at the same places.
+When it starts, and when you switch the beta channel on or off, WaveFlow asks for the latest version: it requests a small manifest from GitHub (`github.com`, under `InstaZDLL/WaveFlow/releases`) and from the project's mirror, `download.waveflow.app`, served by Cloudflare. The request carries no information about you beyond what any download does. The update itself is downloaded only when you choose to install it, and its signature is checked before it runs. The beta channel reads two more manifests at the same places.
 
-There is currently no switch to turn the check off; one is planned. Builds made without the `updater` feature, such as distribution packages that update through their package manager, do not check at all.
+Turn the automatic check off in **Settings → Maintenance → Updates → Check for updates automatically**; WaveFlow then asks only when you press **Check now** on the same card. Offline mode stops the automatic check too, and refuses a check or an install you ask for. Builds made without the `updater` feature, such as distribution packages that update through their package manager, do not check at all.
 
 ### Album covers and artist pictures — Deezer
 
-To find a cover or an artist photo that your files do not carry, WaveFlow searches Deezer's public catalogue (`api.deezer.com`, images from `dzcdn.net`) with the album title and artist name, or the artist name alone. This happens when you open an album or artist page, when the artist playing changes, when a new track starts (the cover shown in Discord, and in the player), when you search for a cover yourself, and when you import a public Deezer playlist link. Results are cached on your computer and reused. No Deezer account is involved. Offline mode turns it off.
+To find a cover or an artist photo that your files do not carry, WaveFlow searches Deezer's public catalogue (`api.deezer.com`, images from `dzcdn.net`) with the album title and artist name, or the artist name alone. This happens when you open an album or artist page, when the artist playing changes, when a new track starts while Discord Rich Presence is on and the Discord app is running (the cover shown in Discord; once found, it is reused for the album's other tracks), when a radio station moves to a new song (that song's cover in the player, searched by its title and artist), when you search for a cover yourself, and when you import a public Deezer playlist link. Results are cached on your computer and reused. No Deezer account is involved. Offline mode turns it off.
 
 ### Artist backdrops and biographies — TheAudioDB
 

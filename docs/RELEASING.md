@@ -350,6 +350,13 @@ Toggling **off** returns the user to stable on the next check: a
 released `1.5.2` is semver-greater than their `1.5.2-beta.N`, so the
 stable endpoint serves it as an update.
 
+The check at launch and the one after a channel switch are automatic:
+they read no manifest while **Settings → Maintenance → Updates → Check
+for updates automatically** is off (`app_setting['updater.auto_check']`,
+on by default) or offline mode is on. **Check now** on the same card
+still reads them with the switch off
+([`ui.md`](features/ui.md#auto-updater)).
+
 **Staying on the beta channel follows stable releases too** (#793). Until 1.8.0 a tester read `latest-beta.json` alone, which only a pre-release tag ever rewrote, so someone on `1.8.0-beta.3` never saw `1.8.0`. Two changes close that, one per side:
 
 - the updater reads **both** manifests on the beta channel and keeps the newer answer ([`updater.rs`](../src-tauri/crates/app/src/commands/updater.rs), `is_newer`, by semver). One manifest failing does not hide what the other found;

@@ -102,17 +102,21 @@ Spotify-style card under "Listening to WaveFlow":
 
 ### Cover URL resolution
 
-Discord propagates `large_image` URLs to other users' clients, so local files / our `127.0.0.1` artwork shim are off-limits — only public HTTPS works. [`resolve_cover_url`](../../src-tauri/crates/app/src/discord_presence.rs) is two-stage:
+Discord propagates `large_image` URLs to other users' clients, so local files / our `127.0.0.1` artwork shim are off-limits — only public HTTPS works.
 
-1. **Cache hit** — `JOIN track → album → deezer_album` in the per-profile pool. Cheap, no network.
-2. **Cache miss** — call `commands::deezer::enrich_album_inner` which searches Deezer by title+artist and persists the result. Subsequent plays of the same album hit stage 1.
+**Nothing is looked up unless the card is shown.** The one way in is [`DiscordPresenceHandle::cover_url_for`](../../src-tauri/crates/app/src/discord_presence.rs), which first asks the presence thread (`Msg::Probe`) whether the presence is on and Discord is connected — trying one connection when it is on and not connected yet, the same retry a push makes. Off, or with Discord closed, a new track costs no cache read and no request: the metadata is still handed to the thread, which only keeps it for when the presence is turned on. Until then every track change searched Deezer for an album cover nobody was going to see.
+
+When the card is shown, `resolve_cover_url` is two-stage:
+
+1. **Cache hit** — [`cached_cover_url`](../../src-tauri/crates/core/src/repository/sqlite/album.rs) joins `track → album → app.metadata_album` (the shared cache in `app.db`, attached to every profile pool) through the album's `deezer_id`. Cheap, no network. Its expiry is not checked: an address the cache once held is still an address. This read named `deezer_album`, a table [`app/20260427000000_rename_deezer_to_metadata.sql`](../../src-tauri/migrations/app/20260427000000_rename_deezer_to_metadata.sql) had renamed; the error was swallowed and every track went to stage 2. The core tests run it on both real migration sets, foreign keys on, `app.db` attached the way the app attaches it.
+2. **Cache miss** — skipped in offline mode. Otherwise call `commands::deezer::enrich_album_inner`, which serves its own fresh cache row or asks Deezer and links the album's `deezer_id`, so the next track of the album is a stage-1 hit. An album that comes back empty is not asked about again for an hour (`COVER_MISS_TTL`, process memory): a miss links nothing, so every track of it used to search again.
 
 The first track of an unenriched album takes ~1 s for the Deezer round-trip; following tracks are instant. Empty Deezer results fall back to the `waveflow_logo` asset key.
 
 ### Lifecycle
 
 - **Default ON** — `read_enabled` returns `true` when `app_setting['integrations.discord_rpc']` is missing. Only an explicit toggle-off (writes the literal `"false"`) disables RPC. The UI toggle lives in `SettingsView` under "Intégrations".
-- **Boot** — `startup::setup` reads the persisted flag and spawns the worker. Discord IPC is **not** connected yet — the first connection attempt happens on the first `Msg::Metadata` after a track plays. Keeps the named pipe free when the user never plays anything.
+- **Boot** — `startup::setup` reads the persisted flag and spawns the worker. Discord IPC is **not** connected yet — the first connection attempt happens when the first track plays (its cover probe, then its `Msg::Metadata`). Keeps the named pipe free when the user never plays anything.
 - **Idle / Ended** — when the decoder transitions to `PlayerState::Idle` (Stop button) or `PlayerState::Ended` (queue exhausted), the worker calls `clear_activity` so the card disappears from the user's profile. Spotify-style: nothing playing → no presence.
 - **Pause** — the activity stays on screen with the `pause` badge and timestamps removed; same UX as Spotify pausing in the middle of a track.
 - **Discord restart** — `set_activity` failures drop the client back to `None`; the next push re-runs the handshake. No reconnect daemon needed — the next track-changed event triggers it organically.

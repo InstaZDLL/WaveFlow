@@ -4,6 +4,7 @@ import { RenderingCard } from "../RenderingCard";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
 import { SettingsGroup } from "../SettingsGroup";
 import { UpdateChannelCard } from "../UpdateChannelCard";
+import { UpdateCheckCard } from "../UpdateCheckCard";
 import {
   Check as CheckIcon,
   Copy,
@@ -35,6 +36,7 @@ export function DiagnosticsSection({
     >
       <SettingsCategoryHeader category="diagnostics" />
       <SettingsGroup id="updates" reveal={targetGroup === "updates"}>
+        <UpdateCheckCard />
         <UpdateChannelCard />
       </SettingsGroup>
       <SettingsGroup id="diagnostics" reveal={targetGroup === "diagnostics"}>

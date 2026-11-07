@@ -5,12 +5,14 @@ import { UPDATER_RECHECK_EVENT } from "../../../lib/tauri/updater";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
- * Settings → Diagnostics row opting the in-app updater into pre-release
+ * Settings → Maintenance row opting the in-app updater into pre-release
  * builds. Default **off** (stable). When toggled, the choice persists to
  * `app_setting['updater.channel']` and a window event nudges the
  * UpdateBanner's `useUpdater` to re-check against the new endpoint
- * immediately (no relaunch). Betas are served from the rolling
- * `beta-channel` manifest; stable users never see them.
+ * immediately (no relaunch) — an automatic check, which the backend
+ * skips while automatic checks are off or offline mode is on. Betas are
+ * served from the rolling `beta-channel` manifest; stable users never
+ * see them.
  */
 export function UpdateChannelCard() {
   const { t } = useTranslation();

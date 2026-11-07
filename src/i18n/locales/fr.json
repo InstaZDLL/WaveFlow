@@ -2420,7 +2420,7 @@
     },
     "offlineMode": {
       "title": "Mode hors ligne",
-      "subtitle": "Coupe Last.fm, Deezer et LRCLIB. Utilise uniquement les données déjà en cache."
+      "subtitle": "Coupe les services en ligne, vérification des mises à jour comprise, et s'en tient au cache ; Discord Rich Presence et les serveurs DLNA/MPD ont leurs propres interrupteurs."
     },
     "integrations": {
       "lastfm": {
@@ -3018,6 +3018,18 @@
     "lyricsDestination": {
       "title": "Destination des paroles",
       "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours changer ce choix à chaque édition, depuis le bas de l'éditeur."
+    },
+    "updateCheck": {
+      "title": "Rechercher les mises à jour automatiquement",
+      "subtitle": "Cherche une nouvelle version au lancement et au changement de canal. Le mode hors ligne l'arrête aussi.",
+      "checkNow": "Vérifier maintenant",
+      "checking": "Vérification…",
+      "upToDate": "WaveFlow est à jour.",
+      "available": "La version {{version}} est disponible.",
+      "offline": "Le mode hors ligne est activé : aucune vérification n'a été faite.",
+      "unavailable": "Cette version ne se met pas à jour d'elle-même : elle se met à jour par là où elle a été installée.",
+      "failed": "La vérification a échoué. Réessayez plus tard.",
+      "saveFailed": "Échec de l'enregistrement. Réessayez."
     },
     "updateChannel": {
       "title": "Canal bêta",

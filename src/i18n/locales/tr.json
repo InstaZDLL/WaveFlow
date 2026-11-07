@@ -2278,7 +2278,7 @@
     },
     "offlineMode": {
       "title": "Çevrimdışı mod",
-      "subtitle": "Last.fm, Deezer ve LRCLIB'i devre dışı bırakır. Yalnızca önbellekteki verileri kullanır."
+      "subtitle": "Güncelleme denetimi dahil çevrimiçi hizmetleri durdurur ve yalnızca önbelleği kullanır; Discord Rich Presence ile DLNA/MPD sunucularının kendi anahtarları vardır."
     },
     "integrations": {
       "lastfm": {
@@ -2950,6 +2950,18 @@
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
       "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Her düzenlemede, düzenleyicinin alt kısmından yine de farklı bir seçim yapabilirsin."
+    },
+    "updateCheck": {
+      "title": "Güncellemeleri otomatik denetle",
+      "subtitle": "Başlangıçta ve kanal değiştirdiğinde yeni sürüm arar. Çevrimdışı mod da bunu durdurur.",
+      "checkNow": "Şimdi denetle",
+      "checking": "Denetleniyor…",
+      "upToDate": "WaveFlow güncel.",
+      "available": "{{version}} sürümü mevcut.",
+      "offline": "Çevrimdışı mod açık: denetim yapılmadı.",
+      "unavailable": "Bu derleme kendini güncellemez: kurulduğu yoldan güncellenir.",
+      "failed": "Denetim başarısız oldu. Daha sonra yeniden dene.",
+      "saveFailed": "Kaydedilemedi. Yeniden dene."
     },
     "updateChannel": {
       "title": "Beta kanalı",

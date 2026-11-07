@@ -31,6 +31,12 @@
 //! version bound into the payload's signature, either host could pair a
 //! high version number with an older signed build.
 //!
+//! A check nobody asked for — the one the frontend makes at launch and
+//! after a channel switch — reads no manifest when the user turned
+//! `updater.auto_check` off or offline mode is on; a check asked for by
+//! hand still runs with the switch off and is refused in offline mode
+//! ([`check_for_update`]).
+//!
 //! The actual updater calls are compiled only into release builds with
 //! the `updater` feature (same gate as the plugin registration in
 //! `lib.rs`) — `app.updater_builder()` reads `self.state::<UpdaterState>()`
@@ -49,6 +55,24 @@ use crate::state::AppState;
 /// per-profile): an update replaces the whole binary, so the choice
 /// can't sensibly differ between profiles on the same machine.
 const KEY_CHANNEL: &str = "updater.channel";
+
+/// `app_setting` key holding whether the updater looks for a new version
+/// on its own (at launch, and when the channel changes). App-wide for the
+/// same reason as the channel. A missing row reads as on.
+const KEY_AUTO_CHECK: &str = "updater.auto_check";
+
+/// What [`check_for_update`] answers a check asked for by hand while
+/// offline mode is on, and [`install_update`] an install. The frontend
+/// recognises this exact text to say so in words rather than show it as a
+/// failure (`src/lib/tauri/updater.ts`).
+const OFFLINE_MESSAGE: &str = "updater: offline mode is on";
+
+/// What a build without the updater (dev, package-manager builds) answers
+/// a check asked for by hand, and any install. Recognised by the frontend
+/// like [`OFFLINE_MESSAGE`].
+// Unused when the updater is compiled in.
+#[allow(dead_code)]
+const UNAVAILABLE_MESSAGE: &str = "updater: unavailable in this build";
 
 /// Stable updater manifest. `/releases/latest/` resolves to the newest
 /// non-pre-release, so pre-releases are invisible here by construction.
@@ -175,6 +199,43 @@ async fn read_channel(db: &SqlitePool) -> UpdateChannel {
     UpdateChannel::parse(raw.as_deref())
 }
 
+/// Whether automatic checks are on. Only a stored `"false"` / `"0"` turns
+/// them off; a missing row or a read that fails keeps the default (on).
+async fn read_auto_check(db: &SqlitePool) -> bool {
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_AUTO_CHECK)
+        .fetch_optional(db)
+        .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(%err, "could not read updater.auto_check; using the default");
+            None
+        });
+    !matches!(raw.as_deref(), Some("false" | "0"))
+}
+
+/// What a check does before any manifest is read.
+#[derive(Debug, PartialEq, Eq)]
+enum CheckGate {
+    /// Read the manifests.
+    Read,
+    /// Answer "nothing new" without a request: an automatic check while
+    /// automatic checks are off, or while offline mode is on.
+    Skip,
+    /// Refuse with [`OFFLINE_MESSAGE`]: a check asked for by hand while
+    /// offline mode is on.
+    Offline,
+}
+
+fn check_gate(automatic: bool, auto_check_on: bool, offline: bool) -> CheckGate {
+    if automatic && (!auto_check_on || offline) {
+        CheckGate::Skip
+    } else if offline {
+        CheckGate::Offline
+    } else {
+        CheckGate::Read
+    }
+}
+
 /// Metadata surfaced to the UpdateBanner when a newer build is found.
 #[derive(serde::Serialize)]
 pub struct UpdateInfo {
@@ -213,6 +274,30 @@ pub async fn set_update_channel(
     )
     .bind(KEY_CHANNEL)
     .bind(normalized)
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_update_auto_check(state: tauri::State<'_, AppState>) -> AppResult<bool> {
+    Ok(read_auto_check(&state.app_db).await)
+}
+
+#[tauri::command]
+pub async fn set_update_auto_check(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_AUTO_CHECK)
+    .bind(if enabled { "true" } else { "false" })
     .bind(Utc::now().timestamp_millis())
     .execute(&state.app_db)
     .await?;
@@ -390,27 +475,65 @@ mod imp {
 #[cfg(all(not(debug_assertions), feature = "updater"))]
 pub use imp::PendingUpdate;
 
+/// Look for a newer build on the channel in force.
+///
+/// `automatic` is `true` for the checks nobody asked for — at launch, and
+/// after the channel changes. Those answer "nothing new" without a request
+/// when the user turned automatic checks off or offline mode is on. A
+/// check asked for by hand (`false`) still runs with automatic checks off,
+/// and fails with [`OFFLINE_MESSAGE`] in offline mode, or with
+/// [`UNAVAILABLE_MESSAGE`] in a build without the updater.
 #[tauri::command]
 pub async fn check_for_update(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
+    automatic: bool,
 ) -> AppResult<Option<UpdateInfo>> {
+    let auto_check_on = !automatic || read_auto_check(&state.app_db).await;
+    match check_gate(automatic, auto_check_on, crate::offline::is_offline()) {
+        CheckGate::Skip => {
+            tracing::info!(
+                auto_check_on,
+                "automatic update check skipped: switched off, or offline mode is on"
+            );
+            return Ok(None);
+        }
+        CheckGate::Offline => return Err(AppError::Other(OFFLINE_MESSAGE.into())),
+        CheckGate::Read => {}
+    }
     let channel = read_channel(&state.app_db).await;
+    tracing::info!(
+        channel = channel.as_str(),
+        automatic,
+        "update check allowed: the manifests are read when this build has an updater"
+    );
     #[cfg(all(not(debug_assertions), feature = "updater"))]
     {
         imp::check(&app, channel).await
     }
     #[cfg(not(all(not(debug_assertions), feature = "updater")))]
     {
-        // No updater plugin in this build (dev / app-store channel) —
-        // report "nothing available" so the UI stays quiet.
+        // No updater plugin in this build (dev / package-manager builds).
+        // An automatic check reports "nothing available" so the UI stays
+        // quiet; one asked for by hand is told there is nothing to ask,
+        // rather than "up to date" for a check that never happened.
         let _ = (&app, channel);
-        Ok(None)
+        if automatic {
+            Ok(None)
+        } else {
+            Err(AppError::Other(UNAVAILABLE_MESSAGE.into()))
+        }
     }
 }
 
 #[tauri::command]
 pub async fn install_update(app: tauri::AppHandle) -> AppResult<()> {
+    // Offline mode turned on after the check: the download is a request
+    // like any other. Before `imp::install`, which takes the pending
+    // update, so it can still be installed once offline mode is off.
+    if crate::offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_MESSAGE.into()));
+    }
     #[cfg(all(not(debug_assertions), feature = "updater"))]
     {
         imp::install(&app).await
@@ -418,7 +541,7 @@ pub async fn install_update(app: tauri::AppHandle) -> AppResult<()> {
     #[cfg(not(all(not(debug_assertions), feature = "updater")))]
     {
         let _ = &app;
-        Err(AppError::Other("updater: unavailable in this build".into()))
+        Err(AppError::Other(UNAVAILABLE_MESSAGE.into()))
     }
 }
 

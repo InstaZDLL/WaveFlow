@@ -1,8 +1,12 @@
 //! Process-wide offline-mode flag.
 //!
-//! When `true`, every code path that would otherwise hit Last.fm,
-//! Deezer or LRCLIB short-circuits and returns the locally cached
-//! result (or an empty payload). Stored as a global atomic because
+//! When `true`, every code path that would otherwise reach an online
+//! service — metadata and artwork, lyrics, scrobbling, plugins, radio,
+//! podcasts, the remote server and network shares, the automatic update
+//! check — short-circuits and returns the locally cached result (or an
+//! empty payload, or a refusal). Discord Rich Presence (a local pipe)
+//! and the DLNA / MPD servers (the local network) have their own
+//! switches and do not read it. Stored as a global atomic because
 //! offline is a network-stack concern, not a per-profile preference —
 //! switching profiles must not silently re-enable network calls.
 //!

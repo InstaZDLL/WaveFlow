@@ -2278,7 +2278,7 @@
     },
     "offlineMode": {
       "title": "Offlinemodus",
-      "subtitle": "Schakelt Last.fm, Deezer en LRCLIB uit. Gebruikt alleen gegevens uit de cache."
+      "subtitle": "Stopt online diensten, de updatecontrole inbegrepen, en gebruikt alleen de cache; Discord Rich Presence en de DLNA-/MPD-servers hebben een eigen schakelaar."
     },
     "integrations": {
       "lastfm": {
@@ -2950,6 +2950,18 @@
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
       "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking kun je nog anders kiezen, onderaan de songtekstbewerker."
+    },
+    "updateCheck": {
+      "title": "Automatisch naar updates zoeken",
+      "subtitle": "Zoekt bij het starten en bij een kanaalwissel naar een nieuwe versie. De offlinemodus stopt dit ook.",
+      "checkNow": "Nu controleren",
+      "checking": "Bezig met controleren…",
+      "upToDate": "WaveFlow is up-to-date.",
+      "available": "Versie {{version}} is beschikbaar.",
+      "offline": "De offlinemodus staat aan: er is niet gecontroleerd.",
+      "unavailable": "Deze build werkt zichzelf niet bij: hij wordt bijgewerkt via de weg waarlangs hij is geïnstalleerd.",
+      "failed": "Controleren is mislukt. Probeer het later opnieuw.",
+      "saveFailed": "Opslaan is mislukt. Probeer het opnieuw."
     },
     "updateChannel": {
       "title": "Bètakanaal",

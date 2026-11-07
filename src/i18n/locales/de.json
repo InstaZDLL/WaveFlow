@@ -2278,7 +2278,7 @@
     },
     "offlineMode": {
       "title": "Offline-Modus",
-      "subtitle": "Deaktiviert Last.fm, Deezer und LRCLIB. Es werden nur zwischengespeicherte Daten verwendet."
+      "subtitle": "Stoppt Online-Dienste, die Update-Suche eingeschlossen, und nutzt nur den Cache; Discord Rich Presence und die DLNA-/MPD-Server haben eigene Schalter."
     },
     "integrations": {
       "lastfm": {
@@ -2950,6 +2950,18 @@
     "lyricsDestination": {
       "title": "Speicherort für Songtexte",
       "subtitle": "Wo Songtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Bei jeder Bearbeitung kannst du unten im Editor trotzdem anders wählen."
+    },
+    "updateCheck": {
+      "title": "Automatisch nach Updates suchen",
+      "subtitle": "Sucht beim Start und beim Kanalwechsel nach einer neuen Version. Der Offline-Modus stoppt das ebenfalls.",
+      "checkNow": "Jetzt suchen",
+      "checking": "Wird gesucht…",
+      "upToDate": "WaveFlow ist auf dem neuesten Stand.",
+      "available": "Version {{version}} ist verfügbar.",
+      "offline": "Der Offline-Modus ist aktiv: Es wurde nicht gesucht.",
+      "unavailable": "Dieser Build aktualisiert sich nicht selbst: Er wird über den Weg aktualisiert, über den er installiert wurde.",
+      "failed": "Die Suche ist fehlgeschlagen. Versuche es später erneut.",
+      "saveFailed": "Konnte nicht gespeichert werden. Erneut versuchen."
     },
     "updateChannel": {
       "title": "Beta-Kanal",

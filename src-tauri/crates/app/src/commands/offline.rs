@@ -1,8 +1,9 @@
 //! Global offline-mode toggle.
 //!
-//! When enabled, every command that would otherwise hit Last.fm,
-//! Deezer or LRCLIB short-circuits and returns the locally cached
-//! result (or an empty payload). The flag is process-wide because
+//! When enabled, every code path that would otherwise reach an online
+//! service short-circuits and returns the locally cached result (or an
+//! empty payload); see [`crate::offline`] for what it covers and what it
+//! leaves to its own switch. The flag is process-wide because
 //! offline is a network-stack concern, not a per-profile preference —
 //! hopping between profiles shouldn't suddenly re-enable network calls.
 //!

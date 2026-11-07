@@ -121,10 +121,12 @@ import {
   setClipsInLibrary,
 } from "../../../lib/tauri/libraryMedia";
 import {
+  getUpdateAutoCheck,
   getUpdateChannel,
   setUpdateChannel,
   UPDATER_RECHECK_EVENT,
 } from "../../../lib/tauri/updater";
+import { setUpdateAutoCheck } from "../../../hooks/useUpdateAutoCheck";
 import {
   displayBackendSetXwayland,
   displayBackendStatus,
@@ -1181,6 +1183,12 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   ),
 
   // ---- Maintenance -----------------------------------------------------
+  // Through the switch's own setter, so the card shows the value put back.
+  "updater.auto_check": command(
+    "updater.auto_check",
+    getUpdateAutoCheck,
+    setUpdateAutoCheck,
+  ),
   "updater.channel": command(
     "updater.channel",
     getUpdateChannel,

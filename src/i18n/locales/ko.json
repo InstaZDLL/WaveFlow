@@ -2276,7 +2276,7 @@
     },
     "offlineMode": {
       "title": "오프라인 모드",
-      "subtitle": "Last.fm, Deezer, LRCLIB를 비활성화합니다. 캐시된 데이터만 사용합니다."
+      "subtitle": "업데이트 확인을 포함한 온라인 서비스를 멈추고 캐시만 사용합니다. Discord Rich Presence와 DLNA/MPD 서버는 각자 스위치가 있습니다."
     },
     "integrations": {
       "lastfm": {
@@ -2948,6 +2948,18 @@
     "lyricsDestination": {
       "title": "저장되는 가사의 위치",
       "subtitle": "가사를 디스크의 어디에 저장할지 정합니다. 직접 입력한 가사와 WaveFlow가 가져온 가사 모두에 적용됩니다. 각 편집 화면 아래에서 따로 변경할 수 있습니다."
+    },
+    "updateCheck": {
+      "title": "자동으로 업데이트 확인",
+      "subtitle": "실행할 때와 채널을 바꿀 때 새 버전을 확인합니다. 오프라인 모드에서도 멈춥니다.",
+      "checkNow": "지금 확인",
+      "checking": "확인 중…",
+      "upToDate": "WaveFlow가 최신 버전입니다.",
+      "available": "{{version}} 버전을 사용할 수 있습니다.",
+      "offline": "오프라인 모드가 켜져 있어 확인하지 않았습니다.",
+      "unavailable": "이 빌드는 스스로 업데이트되지 않습니다. 설치한 방식으로 업데이트해 주세요.",
+      "failed": "확인하지 못했습니다. 나중에 다시 시도해 주세요.",
+      "saveFailed": "저장하지 못했습니다. 다시 시도해 주세요."
     },
     "updateChannel": {
       "title": "베타 채널",

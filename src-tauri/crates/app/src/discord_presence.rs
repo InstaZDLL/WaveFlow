@@ -6,8 +6,10 @@
 //! a `crossbeam-channel` carries update messages from the player code.
 //!
 //! Update flow:
-//! - `commands::player::emit_track_changed` resolves the Deezer cover
-//!   URL (best-effort, async DB lookup) and pushes new metadata.
+//! - `commands::player::emit_track_changed` asks for the track's cover
+//!   address through [`DiscordPresenceHandle::cover_url_for`], which looks
+//!   nothing up unless the presence is on and Discord answers, then
+//!   pushes new metadata.
 //! - `audio::decoder::transition_state` pushes Playing / Paused
 //!   transitions so the elapsed/remaining timestamps refresh.
 //!
@@ -68,6 +70,11 @@ enum Msg {
         state: PlayerState,
         position_ms: u64,
     },
+    /// Whether a cover is worth resolving: the presence is on and the
+    /// IPC client is connected, after one connection attempt if it was
+    /// not. Answered on the thread that owns the client, the only place
+    /// both are known.
+    Probe(tokio::sync::oneshot::Sender<bool>),
     /// Clear the activity (used when playback stops entirely or when
     /// the user toggles RPC off). Currently reachable only through
     /// `DiscordPresenceHandle::clear`, which has no caller yet — kept
@@ -114,6 +121,38 @@ impl DiscordPresenceHandle {
 
     pub fn update_playback(&self, state: PlayerState, position_ms: u64) {
         let _ = self.tx.send(Msg::Playback { state, position_ms });
+    }
+
+    /// `true` when the presence is on and Discord is connected. When it
+    /// is on but not connected yet, one connection is tried first, the
+    /// same retry a push makes; the IPC is a local pipe, so nothing
+    /// leaves the computer. Off, it answers `false` without touching
+    /// Discord.
+    pub async fn is_live(&self) -> bool {
+        let (reply, answer) = tokio::sync::oneshot::channel();
+        if self.tx.send(Msg::Probe(reply)).is_err() {
+            return false;
+        }
+        answer.await.unwrap_or(false)
+    }
+
+    /// The public cover address to show for this track, or `None`.
+    ///
+    /// The one way into [`resolve_cover_url`]: nothing is looked up, in
+    /// the cache or on Deezer, unless [`Self::is_live`] says the card
+    /// will be shown. With the presence off or Discord closed, a new
+    /// track costs no request.
+    pub async fn cover_url_for(
+        &self,
+        pool: &sqlx::SqlitePool,
+        artwork_dir: &std::path::Path,
+        profile_id: i64,
+        track_id: i64,
+    ) -> Option<String> {
+        if !self.is_live().await {
+            return None;
+        }
+        resolve_cover_url(pool, artwork_dir, profile_id, track_id).await
     }
 
     #[allow(dead_code)]
@@ -190,6 +229,12 @@ pub fn init(initial_enabled: bool) -> Option<DiscordPresenceHandle> {
                                 push_activity(&mut client, meta, state);
                             }
                         }
+                    }
+                    Msg::Probe(reply) => {
+                        if enabled {
+                            ensure_connected(&mut client, &mut connect_failure_reported);
+                        }
+                        let _ = reply.send(enabled && client.is_some());
                     }
                     Msg::Clear => {
                         cached = None;
@@ -357,16 +402,48 @@ pub async fn read_enabled(app_db: &sqlx::SqlitePool) -> bool {
     !matches!(raw.as_deref(), Some("false"))
 }
 
+/// How long an album that Deezer gave no cover for is left alone. A miss
+/// links nothing on the album, so without this every track of such an
+/// album, and every replay of it, searched Deezer again. A failed request
+/// reads the same as a miss, so the wait stays short.
+const COVER_MISS_TTL: std::time::Duration = std::time::Duration::from_secs(60 * 60);
+
+/// Albums whose last lookup found no cover, by profile and album id, with
+/// when that was. Process memory only: a restart tries again.
+type CoverMisses = std::collections::HashMap<(i64, i64), std::time::Instant>;
+static COVER_MISSES: std::sync::Mutex<Option<CoverMisses>> = std::sync::Mutex::new(None);
+
+/// Whether this album missed within [`COVER_MISS_TTL`].
+fn missed_recently(key: (i64, i64)) -> bool {
+    let guard = COVER_MISSES.lock().unwrap_or_else(|e| e.into_inner());
+    guard
+        .as_ref()
+        .and_then(|misses| misses.get(&key))
+        .is_some_and(|at| at.elapsed() < COVER_MISS_TTL)
+}
+
+/// Remember a miss, and forget the ones that have expired.
+fn record_miss(key: (i64, i64)) {
+    let mut guard = COVER_MISSES.lock().unwrap_or_else(|e| e.into_inner());
+    let misses = guard.get_or_insert_with(CoverMisses::new);
+    misses.retain(|_, at| at.elapsed() < COVER_MISS_TTL);
+    misses.insert(key, std::time::Instant::now());
+}
+
 /// Best-effort lookup of a public Deezer cover URL for the given
-/// track. Two-stage:
+/// track. Reached only through [`DiscordPresenceHandle::cover_url_for`],
+/// so only while the presence is on and Discord is connected. Two-stage:
 ///
-/// 1. Cache hit — JOIN `track → album → deezer_album` in the per-
-///    profile pool. Cheap, no network.
+/// 1. Cache hit — [`cached_cover_url`] joins `track → album →
+///    app.metadata_album` through the album's Deezer id. Cheap, no
+///    network.
 /// 2. Cache miss but the track has an `album_id` — call
-///    [`crate::commands::deezer::enrich_album_inner`] to search
-///    Deezer by title+artist. The result is persisted in
-///    `deezer_album` for future lookups, so this auto-enrichment
-///    only fires once per untouched album.
+///    [`crate::commands::deezer::enrich_album_inner`], which serves its
+///    own fresh cache row or asks Deezer (by id, or by title + artist).
+///    The answer is stored in `app.metadata_album` and linked on the
+///    album, so the next track of it is a stage-1 hit. Skipped in
+///    offline mode, and for an album that found nothing within the last
+///    [`COVER_MISS_TTL`].
 ///
 /// Returns `None` if the track has no album row at all, or if the
 /// Deezer search came back empty. Discord requires a publicly
@@ -374,37 +451,27 @@ pub async fn read_enabled(app_db: &sqlx::SqlitePool) -> bool {
 /// natively — local artwork files are intentionally not used as a
 /// fallback because Discord propagates the URL to other users'
 /// clients (who can't reach our local files or `127.0.0.1` shim).
-pub async fn resolve_cover_url(
+///
+/// [`cached_cover_url`]: waveflow_core::repository::sqlite::album::cached_cover_url
+async fn resolve_cover_url(
     pool: &sqlx::SqlitePool,
     artwork_dir: &std::path::Path,
+    profile_id: i64,
     track_id: i64,
 ) -> Option<String> {
-    // Stage 1: cached URL via existing deezer_id link.
-    let cached: Option<String> = sqlx::query_scalar(
-        "SELECT da.cover_url
-           FROM track t
-           JOIN album a ON a.id = t.album_id
-           JOIN deezer_album da ON da.deezer_id = a.deezer_id
-          WHERE t.id = ?",
-    )
-    .bind(track_id)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten();
-    if let Some(url) = cached.filter(|u| !u.is_empty()) {
-        return Some(url);
+    // Stage 1: the address cached for the album's Deezer id.
+    match waveflow_core::repository::sqlite::album::cached_cover_url(pool, track_id).await {
+        Ok(Some(url)) => return Some(url),
+        Ok(None) => {}
+        Err(err) => {
+            tracing::warn!(track_id, %err, "discord_presence: cover cache read failed");
+        }
     }
 
-    // Stage 2: trigger an on-demand enrichment for this album. The
-    // helper handles cache check + Deezer search + DB upsert, so a
-    // subsequent call will hit the cache. Returns `None` if the
-    // album doesn't exist or Deezer has nothing matching.
-    // Skip the network leg when offline mode is on — the desktop's
-    // `offline::is_offline()` flag is the same one the Tauri command
-    // checks before any outbound HTTP call elsewhere in the app, so
-    // a Discord cover refresh shouldn't bypass it just because it
-    // happens on a worker thread.
+    // Stage 2: an on-demand enrichment of the album. Skip the network
+    // leg when offline mode is on — the same flag every other outbound
+    // call checks, and a Discord cover refresh shouldn't bypass it just
+    // because it happens on a worker thread.
     if crate::offline::is_offline() {
         return None;
     }
@@ -415,11 +482,23 @@ pub async fn resolve_cover_url(
         .ok()
         .flatten();
     let album_id = album_id?;
-    match crate::commands::deezer::enrich_album_inner(pool, artwork_dir, album_id).await {
+    let key = (profile_id, album_id);
+    if missed_recently(key) {
+        return None;
+    }
+    let found = match crate::commands::deezer::enrich_album_inner(pool, artwork_dir, album_id).await
+    {
         Ok(enrichment) => enrichment.cover_url.filter(|u| !u.is_empty()),
         Err(err) => {
             tracing::debug!(album_id, %err, "discord_presence: auto-enrich failed");
             None
         }
+    };
+    if found.is_none() {
+        record_miss(key);
     }
+    found
 }
+
+#[cfg(test)]
+mod tests;

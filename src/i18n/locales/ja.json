@@ -2733,7 +2733,7 @@
     },
     "offlineMode": {
       "title": "オフラインモード",
-      "subtitle": "Last.fm、Deezer、LRCLIB を無効化し、キャッシュデータのみを使用します。"
+      "subtitle": "アップデートの確認を含むオンラインサービスを停止し、キャッシュのみを使用します。Discord Rich Presence と DLNA/MPD サーバーにはそれぞれ専用のスイッチがあります。"
     },
     "profileIo": {
       "title": "プロフィールのバックアップ",
@@ -2948,6 +2948,18 @@
     "lyricsDestination": {
       "title": "歌詞の保存先",
       "subtitle": "入力した歌詞と WaveFlow が取得した歌詞の保存先を選びます。エディタ下部から編集ごとに変更することもできます。"
+    },
+    "updateCheck": {
+      "title": "アップデートを自動で確認",
+      "subtitle": "起動時とチャンネル変更時に新しいバージョンを確認します。オフラインモードでも停止します。",
+      "checkNow": "今すぐ確認",
+      "checking": "確認中…",
+      "upToDate": "WaveFlow は最新です。",
+      "available": "バージョン {{version}} を利用できます。",
+      "offline": "オフラインモードがオンのため、確認しませんでした。",
+      "unavailable": "このビルドは自動では更新されません。インストールした方法で更新してください。",
+      "failed": "確認に失敗しました。後でもう一度お試しください。",
+      "saveFailed": "保存できませんでした。もう一度お試しください。"
     },
     "updateChannel": {
       "title": "ベータチャンネル",

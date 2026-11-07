@@ -2733,7 +2733,7 @@
     },
     "offlineMode": {
       "title": "離線模式",
-      "subtitle": "停用 Last.fm、Deezer 和 LRCLIB，僅使用快取資料。"
+      "subtitle": "停止線上服務（包括更新檢查），僅使用快取；Discord Rich Presence 和 DLNA/MPD 伺服器有各自的開關。"
     },
     "profileIo": {
       "title": "個人檔案備份",
@@ -2948,6 +2948,18 @@
     "lyricsDestination": {
       "title": "已儲存歌詞的位置",
       "subtitle": "歌詞儲存到磁碟的位置：你輸入的歌詞和 WaveFlow 取得的歌詞都適用。每次編輯時仍可在編輯器底部另行選擇。"
+    },
+    "updateCheck": {
+      "title": "自動檢查更新",
+      "subtitle": "在啟動時和切換通道時檢查新版本。離線模式也會停止檢查。",
+      "checkNow": "立即檢查",
+      "checking": "正在檢查…",
+      "upToDate": "WaveFlow 已是最新版本。",
+      "available": "版本 {{version}} 可用。",
+      "offline": "離線模式已開啟：未進行檢查。",
+      "unavailable": "此版本不會自行更新：請透過安裝它的方式進行更新。",
+      "failed": "檢查失敗，請稍後重試。",
+      "saveFailed": "儲存失敗，請重試。"
     },
     "updateChannel": {
       "title": "測試版通道",

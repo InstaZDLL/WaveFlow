@@ -3,8 +3,10 @@ import { listen } from "@tauri-apps/api/event";
 import {
   checkForUpdate,
   installUpdate,
+  UPDATER_FOUND_EVENT,
   UPDATER_PROGRESS_EVENT,
   UPDATER_RECHECK_EVENT,
+  type UpdateInfo,
   type UpdateProgress,
 } from "../lib/tauri/updater";
 
@@ -15,6 +17,12 @@ import {
  * silent on builds without the updater (dev, app-store): the backend
  * returns `null` and `install_update` errors are surfaced only if the
  * user explicitly triggered an install.
+ *
+ * Its own checks are the automatic ones (at mount, after a channel
+ * switch): the backend skips them without a request while the user has
+ * automatic checks off or offline mode is on. A check made by hand in
+ * Settings runs there and hands a find over through
+ * {@link UPDATER_FOUND_EVENT}.
  */
 export type UpdaterState =
   | { kind: "idle" }
@@ -29,26 +37,35 @@ export function useUpdater() {
   // a newer one — only the latest check id may write state.
   const checkSeq = useRef(0);
 
+  // What a check found, unless an install is already under way: a check
+  // that lands during the download (a channel switch, "Check now") must
+  // neither hide its progress nor offer the install a second time.
+  const settle = useCallback((next: UpdaterState) => {
+    setState((prev) =>
+      prev.kind === "downloading" || prev.kind === "installed" ? prev : next,
+    );
+  }, []);
+
   const runCheck = useCallback(async () => {
     const seq = ++checkSeq.current;
     try {
-      const update = await checkForUpdate();
+      const update = await checkForUpdate({ automatic: true });
       if (seq !== checkSeq.current) return;
       if (update) {
-        setState({
+        settle({
           kind: "available",
           version: update.version,
           notes: update.notes,
         });
       } else {
-        setState({ kind: "idle" });
+        settle({ kind: "idle" });
       }
     } catch {
       // Swallow: updater unavailable (dev), no network, or pubkey
       // placeholder. None of these should surface on a passive check.
-      if (seq === checkSeq.current) setState({ kind: "idle" });
+      if (seq === checkSeq.current) settle({ kind: "idle" });
     }
-  }, []);
+  }, [settle]);
 
   useEffect(() => {
     // runCheck awaits an IPC round-trip before any setState, so the
@@ -66,6 +83,24 @@ export function useUpdater() {
     window.addEventListener(UPDATER_RECHECK_EVENT, handler);
     return () => window.removeEventListener(UPDATER_RECHECK_EVENT, handler);
   }, [runCheck]);
+
+  // A check made by hand in Settings found a newer build: offer it here,
+  // and drop any automatic check still in flight so it cannot hide it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (event: Event) => {
+      const update = (event as CustomEvent<UpdateInfo>).detail;
+      if (!update) return;
+      ++checkSeq.current;
+      settle({
+        kind: "available",
+        version: update.version,
+        notes: update.notes,
+      });
+    };
+    window.addEventListener(UPDATER_FOUND_EVENT, handler);
+    return () => window.removeEventListener(UPDATER_FOUND_EVENT, handler);
+  }, [settle]);
 
   // Bridge backend download progress into the downloading state.
   useEffect(() => {

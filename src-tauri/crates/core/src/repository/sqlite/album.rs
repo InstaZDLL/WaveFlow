@@ -85,5 +85,30 @@ pub async fn refresh_album_years(
     Ok(changed)
 }
 
+/// The public cover address cached for a track's album, when the album is
+/// linked to a Deezer id and the shared cache holds a non-empty one.
+///
+/// Reads `app.metadata_album`, the cache in `app.db` that every profile
+/// pool attaches as `app`. Nothing here reaches the network: a miss is
+/// `None`, and the caller decides whether a lookup is worth making. The
+/// row's expiry is not checked: an address the cache once held is still
+/// an address, and only a fresh lookup is ever bounded by it.
+pub async fn cached_cover_url(pool: &SqlitePool, track_id: i64) -> CoreResult<Option<String>> {
+    let url = sqlx::query_scalar(
+        "SELECT ma.cover_url
+           FROM track t
+           JOIN album a ON a.id = t.album_id
+           JOIN app.metadata_album ma ON ma.deezer_id = a.deezer_id
+          WHERE t.id = ? AND ma.cover_url <> ''",
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(url)
+}
+
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod cover_cache_tests;

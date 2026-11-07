@@ -666,6 +666,8 @@ pub fn run() {
             commands::preferences::clear_main_window_bounds,
             commands::updater::get_update_channel,
             commands::updater::set_update_channel,
+            commands::updater::get_update_auto_check,
+            commands::updater::set_update_auto_check,
             commands::updater::check_for_update,
             commands::updater::install_update,
             commands::tray::set_tray_labels,
