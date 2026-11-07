@@ -105,6 +105,14 @@ Word-synced lyrics with romanization and translations, the track's Canvas clip o
 
 Download the package for your system from the [latest release](https://github.com/InstaZDLL/WaveFlow/releases/latest). Every release page lists the one-liner for your package manager (AUR, COPR, apt, winget) and the standalone installers for Windows, macOS and Linux. Installed builds update themselves, and a beta channel can be switched on in Settings.
 
+On macOS, one command downloads the latest release, checks it and installs it into `/Applications`:
+
+```sh
+curl -fsSL https://waveflow.app/install.sh | bash
+```
+
+WaveFlow is not notarized by Apple yet, so macOS refuses to open a copy downloaded by a browser. The script removes the quarantine flag from WaveFlow.app only and changes no system setting; `--help` lists its options (`--beta`, `--user`, `--uninstall`, …). The script is [`scripts/install-macos.sh`](scripts/install-macos.sh), to read before running it.
+
 ## Features
 
 The essentials of each area; every heading links to its full description.

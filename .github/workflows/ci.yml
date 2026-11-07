@@ -72,6 +72,31 @@ jobs:
       - run: python3 scripts/check-windows-core-pair.py --self-test
       - run: python3 scripts/check-windows-core-pair.py
 
+  # The macOS one-command installer (docs/RELEASING.md). No job here
+  # builds or runs anything on macOS, so this is the only check it gets:
+  # ShellCheck, then the bench that runs it against fakes of every macOS
+  # tool and of GitHub. A second each, on every pull request, for the
+  # reason the two jobs above give: `scripts/**` is outside the filter.
+  macos-installer:
+    name: macOS installer
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          # The scripts this job runs come from the pull request. Leave
+          # no token behind in `.git/config` for them to find.
+          persist-credentials: false
+      # ShellCheck ships with the runner image; installed only if an
+      # image ever stops carrying it.
+      - run: |
+          if ! command -v shellcheck >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          fi
+          shellcheck --version
+          shellcheck scripts/install-macos.sh scripts/tests/install-macos.test.sh
+      - run: bash scripts/tests/install-macos.test.sh
+
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
