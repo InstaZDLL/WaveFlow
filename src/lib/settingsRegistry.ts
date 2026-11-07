@@ -508,11 +508,14 @@ export const SETTINGS = {
     false,
     PLAYER_BAR_BUTTON_LABEL,
   ),
+  /** On since 2.0: the strip says in words what is playing and how it
+   *  reaches the output, which is worth showing before anyone goes
+   *  looking for it. A profile that turned it off keeps its choice. */
   "ui.show_audio_quality_footer": setting(
     "appearance",
     "profile",
     "bool",
-    false,
+    true,
     PLAYER_BAR_BUTTON_LABEL,
   ),
   "ui.cover_action": setting<CoverAction>(
