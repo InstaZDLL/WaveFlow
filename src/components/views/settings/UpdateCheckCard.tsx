@@ -124,7 +124,7 @@ export function UpdateCheckCard() {
       </div>
       <div aria-live="polite">
         {statusText && (
-          <div className="mt-2 pl-8 text-xs settings-description">
+          <div className="mt-2 pl-12 text-xs settings-description">
             {statusText}
           </div>
         )}
@@ -132,7 +132,7 @@ export function UpdateCheckCard() {
       {saveFailed && (
         <div
           role="alert"
-          className="mt-2 pl-8 text-xs text-rose-500 break-words"
+          className="mt-2 pl-12 text-xs text-rose-500 break-words"
         >
           {t("settings.updateCheck.saveFailed")}
         </div>
