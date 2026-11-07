@@ -574,14 +574,14 @@ jobs:
 
           DETAILS=$(codesign -dv "$APP" 2>&1)
           echo "$DETAILS"
-          case "$DETAILS" in
-            *"Identifier=app.waveflow"*) ;;
-            *) echo "::error::Bundle identifier is not app.waveflow — TCC grants will not persist"; exit 1 ;;
-          esac
-          case "$DETAILS" in
-            *"Sealed Resources"*) ;;
-            *) echo "::error::Bundle has no sealed resources — the signature is linker-only"; exit 1 ;;
-          esac
+          # Whole lines: a linker-only signature prints
+          # "Sealed Resources=none", which a substring match accepts.
+          if ! printf '%s\n' "$DETAILS" | grep -Fx "Identifier=app.waveflow" >/dev/null; then
+            echo "::error::Bundle identifier is not app.waveflow — TCC grants will not persist"; exit 1
+          fi
+          if ! printf '%s\n' "$DETAILS" | grep -E '^Sealed Resources version=' >/dev/null; then
+            echo "::error::Bundle has no sealed resources — the signature is linker-only"; exit 1
+          fi
 
           if [ "${MACOS_NOTARIZE:-false}" = "true" ]; then
             spctl --assess --type exec --verbose=4 "$APP"
