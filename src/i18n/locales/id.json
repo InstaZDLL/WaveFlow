@@ -2957,6 +2957,7 @@
       "upToDate": "WaveFlow sudah versi terbaru.",
       "available": "Versi {{version}} tersedia.",
       "offline": "Mode luring aktif: tidak ada pemeriksaan yang dilakukan.",
+      "unavailable": "Build ini tidak memperbarui dirinya sendiri: build ini diperbarui lewat cara ia dipasang.",
       "failed": "Pemeriksaan gagal. Coba lagi nanti.",
       "saveFailed": "Gagal menyimpan. Coba lagi."
     },

@@ -2959,6 +2959,7 @@
       "upToDate": "WaveFlow güncel.",
       "available": "{{version}} sürümü mevcut.",
       "offline": "Çevrimdışı mod açık: denetim yapılmadı.",
+      "unavailable": "Bu derleme kendini güncellemez: kurulduğu yoldan güncellenir.",
       "failed": "Denetim başarısız oldu. Daha sonra yeniden dene.",
       "saveFailed": "Kaydedilemedi. Yeniden dene."
     },

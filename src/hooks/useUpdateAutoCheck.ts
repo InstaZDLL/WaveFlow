@@ -60,22 +60,31 @@ export async function setUpdateAutoCheck(next: boolean): Promise<void> {
   if (mine === revision) publish(next);
 }
 
+/**
+ * Read the stored value. A toggle made while the read was in flight wins
+ * over it; if that toggle's save failed, nothing was published, so the
+ * read starts again rather than leave the switch waiting for a value.
+ */
+function load() {
+  loaded = true;
+  const started = revision;
+  getUpdateAutoCheck()
+    .then((stored) => {
+      if (started === revision) publish(stored);
+      else if (!ready) void saving.then(load);
+    })
+    .catch((err) => {
+      loaded = false;
+      console.error("[useUpdateAutoCheck] load failed", err);
+    });
+}
+
 export function useUpdateAutoCheck() {
   const current = useSyncExternalStore(subscribe, () => value);
   const isReady = useSyncExternalStore(subscribe, () => ready);
 
   useEffect(() => {
-    if (loaded) return;
-    loaded = true;
-    const started = revision;
-    getUpdateAutoCheck()
-      .then((stored) => {
-        if (started === revision) publish(stored);
-      })
-      .catch((err) => {
-        loaded = false;
-        console.error("[useUpdateAutoCheck] load failed", err);
-      });
+    if (!loaded) load();
   }, []);
 
   return {

@@ -66,6 +66,13 @@ const KEY_AUTO_CHECK: &str = "updater.auto_check";
 /// in words rather than show it as a failure (`src/lib/tauri/updater.ts`).
 const OFFLINE_MESSAGE: &str = "updater: offline mode is on";
 
+/// What a build without the updater (dev, package-manager builds) answers
+/// a check asked for by hand, and any install. Recognised by the frontend
+/// like [`OFFLINE_MESSAGE`].
+// Unused when the updater is compiled in.
+#[allow(dead_code)]
+const UNAVAILABLE_MESSAGE: &str = "updater: unavailable in this build";
+
 /// Stable updater manifest. `/releases/latest/` resolves to the newest
 /// non-pre-release, so pre-releases are invisible here by construction.
 // Consumed only by the release-gated `imp` module — dead in dev builds.
@@ -473,7 +480,8 @@ pub use imp::PendingUpdate;
 /// after the channel changes. Those answer "nothing new" without a request
 /// when the user turned automatic checks off or offline mode is on. A
 /// check asked for by hand (`false`) still runs with automatic checks off,
-/// and fails with [`OFFLINE_MESSAGE`] in offline mode.
+/// and fails with [`OFFLINE_MESSAGE`] in offline mode, or with
+/// [`UNAVAILABLE_MESSAGE`] in a build without the updater.
 #[tauri::command]
 pub async fn check_for_update(
     app: tauri::AppHandle,
@@ -504,10 +512,16 @@ pub async fn check_for_update(
     }
     #[cfg(not(all(not(debug_assertions), feature = "updater")))]
     {
-        // No updater plugin in this build (dev / app-store channel) —
-        // report "nothing available" so the UI stays quiet.
+        // No updater plugin in this build (dev / package-manager builds).
+        // An automatic check reports "nothing available" so the UI stays
+        // quiet; one asked for by hand is told there is nothing to ask,
+        // rather than "up to date" for a check that never happened.
         let _ = (&app, channel);
-        Ok(None)
+        if automatic {
+            Ok(None)
+        } else {
+            Err(AppError::Other(UNAVAILABLE_MESSAGE.into()))
+        }
     }
 }
 
@@ -520,7 +534,7 @@ pub async fn install_update(app: tauri::AppHandle) -> AppResult<()> {
     #[cfg(not(all(not(debug_assertions), feature = "updater")))]
     {
         let _ = &app;
-        Err(AppError::Other("updater: unavailable in this build".into()))
+        Err(AppError::Other(UNAVAILABLE_MESSAGE.into()))
     }
 }
 

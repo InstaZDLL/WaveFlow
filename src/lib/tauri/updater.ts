@@ -46,6 +46,13 @@ export const UPDATER_FOUND_EVENT = "waveflow:updater-found";
  */
 export const UPDATER_OFFLINE_ERROR = "updater: offline mode is on";
 
+/**
+ * The error a build without the updater (dev, package-manager builds)
+ * answers a check asked for by hand, and any install
+ * (`UNAVAILABLE_MESSAGE` in `commands/updater.rs`).
+ */
+export const UPDATER_UNAVAILABLE_ERROR = "updater: unavailable in this build";
+
 export function getUpdateChannel(): Promise<UpdateChannel> {
   return invoke<UpdateChannel>("get_update_channel");
 }
@@ -76,7 +83,8 @@ export function setUpdateAutoCheck(enabled: boolean): Promise<void> {
  * the backend answers `null` without a request when automatic checks
  * are off or offline mode is on. A check asked for by hand
  * (`automatic: false`) rejects with {@link UPDATER_OFFLINE_ERROR} in
- * offline mode.
+ * offline mode, and with {@link UPDATER_UNAVAILABLE_ERROR} in a build
+ * without the updater.
  */
 export function checkForUpdate(options: {
   automatic: boolean;
@@ -86,10 +94,19 @@ export function checkForUpdate(options: {
   });
 }
 
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 /** Whether a rejected {@link checkForUpdate} was refused for offline mode. */
 export function isUpdaterOfflineError(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err);
-  return message === UPDATER_OFFLINE_ERROR;
+  return errorText(err) === UPDATER_OFFLINE_ERROR;
+}
+
+/** Whether a rejected {@link checkForUpdate} came from a build that has no
+ *  updater, where nothing could be checked. */
+export function isUpdaterUnavailableError(err: unknown): boolean {
+  return errorText(err) === UPDATER_UNAVAILABLE_ERROR;
 }
 
 /**

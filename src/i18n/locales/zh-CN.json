@@ -2957,6 +2957,7 @@
       "upToDate": "WaveFlow 已是最新版本。",
       "available": "版本 {{version}} 可用。",
       "offline": "离线模式已开启：未进行检查。",
+      "unavailable": "此版本不会自行更新：请通过安装它的方式进行更新。",
       "failed": "检查失败，请稍后重试。",
       "saveFailed": "保存失败，请重试。"
     },

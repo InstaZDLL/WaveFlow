@@ -2959,6 +2959,7 @@
       "upToDate": "WaveFlow is up-to-date.",
       "available": "Versie {{version}} is beschikbaar.",
       "offline": "De offlinemodus staat aan: er is niet gecontroleerd.",
+      "unavailable": "Deze build werkt zichzelf niet bij: hij wordt bijgewerkt via de weg waarlangs hij is geïnstalleerd.",
       "failed": "Controleren is mislukt. Probeer het later opnieuw.",
       "saveFailed": "Opslaan is mislukt. Probeer het opnieuw."
     },

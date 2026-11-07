@@ -2959,6 +2959,7 @@
       "upToDate": "WaveFlow is up to date.",
       "available": "Version {{version}} is available.",
       "offline": "Offline mode is on: no check was made.",
+      "unavailable": "This build does not update itself: it is updated the way it was installed.",
       "failed": "The check failed. Try again later.",
       "saveFailed": "Could not save it. Try again."
     },

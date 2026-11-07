@@ -3027,6 +3027,7 @@
       "upToDate": "WaveFlow est à jour.",
       "available": "La version {{version}} est disponible.",
       "offline": "Le mode hors ligne est activé : aucune vérification n'a été faite.",
+      "unavailable": "Cette version ne se met pas à jour d'elle-même : elle se met à jour par là où elle a été installée.",
       "failed": "La vérification a échoué. Réessayez plus tard.",
       "saveFailed": "Échec de l'enregistrement. Réessayez."
     },

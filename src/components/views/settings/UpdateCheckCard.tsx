@@ -5,6 +5,7 @@ import { useUpdateAutoCheck } from "../../../hooks/useUpdateAutoCheck";
 import {
   checkForUpdate,
   isUpdaterOfflineError,
+  isUpdaterUnavailableError,
   UPDATER_FOUND_EVENT,
 } from "../../../lib/tauri/updater";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
@@ -15,6 +16,7 @@ type CheckStatus =
   | { kind: "upToDate" }
   | { kind: "available"; version: string }
   | { kind: "offline" }
+  | { kind: "unavailable" }
   | { kind: "failed" };
 
 /**
@@ -25,7 +27,8 @@ type CheckStatus =
  * (`useUpdateAutoCheck`); a save that fails leaves it where it was and
  * says so. Off, the launch and a channel switch read no manifest, and
  * "Check now" is how the user looks. A check made here that finds a
- * build hands it to the UpdateBanner, which offers the install.
+ * build hands it to the UpdateBanner, which offers the install; in a
+ * build without the updater it says so instead of "up to date".
  */
 export function UpdateCheckCard() {
   const { t } = useTranslation();
@@ -60,6 +63,8 @@ export function UpdateCheckCard() {
     } catch (err) {
       if (isUpdaterOfflineError(err)) {
         setStatus({ kind: "offline" });
+      } else if (isUpdaterUnavailableError(err)) {
+        setStatus({ kind: "unavailable" });
       } else {
         console.error("[UpdateCheckCard] check failed", err);
         setStatus({ kind: "failed" });
@@ -76,9 +81,11 @@ export function UpdateCheckCard() {
           ? t("settings.updateCheck.available", { version: status.version })
           : status.kind === "offline"
             ? t("settings.updateCheck.offline")
-            : status.kind === "failed"
-              ? t("settings.updateCheck.failed")
-              : null;
+            : status.kind === "unavailable"
+              ? t("settings.updateCheck.unavailable")
+              : status.kind === "failed"
+                ? t("settings.updateCheck.failed")
+                : null;
 
   return (
     <section aria-label={t("settings.updateCheck.title")} className="px-4 py-3">
@@ -117,11 +124,16 @@ export function UpdateCheckCard() {
       </div>
       <div aria-live="polite">
         {statusText && (
-          <div className="mt-2 text-xs settings-description">{statusText}</div>
+          <div className="mt-2 pl-8 text-xs settings-description">
+            {statusText}
+          </div>
         )}
       </div>
       {saveFailed && (
-        <div role="alert" className="mt-2 text-xs text-rose-500 break-words">
+        <div
+          role="alert"
+          className="mt-2 pl-8 text-xs text-rose-500 break-words"
+        >
           {t("settings.updateCheck.saveFailed")}
         </div>
       )}

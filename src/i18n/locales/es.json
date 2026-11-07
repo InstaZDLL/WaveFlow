@@ -3027,6 +3027,7 @@
       "upToDate": "WaveFlow está actualizado.",
       "available": "La versión {{version}} está disponible.",
       "offline": "El modo sin conexión está activado: no se ha hecho ninguna comprobación.",
+      "unavailable": "Esta compilación no se actualiza sola: se actualiza por donde se instaló.",
       "failed": "La comprobación ha fallado. Inténtalo más tarde.",
       "saveFailed": "No se pudo guardar. Inténtalo de nuevo."
     },

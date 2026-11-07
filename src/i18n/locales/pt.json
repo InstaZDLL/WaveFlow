@@ -3028,6 +3028,7 @@
       "upToDate": "O WaveFlow está atualizado.",
       "available": "A versão {{version}} está disponível.",
       "offline": "O modo offline está ativo: não foi feita nenhuma verificação.",
+      "unavailable": "Esta versão não se atualiza sozinha: é atualizada pela via onde foi instalada.",
       "failed": "A verificação falhou. Tenta mais tarde.",
       "saveFailed": "Não foi possível guardar. Tenta novamente."
     },
