@@ -62,8 +62,9 @@ const KEY_CHANNEL: &str = "updater.channel";
 const KEY_AUTO_CHECK: &str = "updater.auto_check";
 
 /// What [`check_for_update`] answers a check asked for by hand while
-/// offline mode is on. The frontend recognises this exact text to say so
-/// in words rather than show it as a failure (`src/lib/tauri/updater.ts`).
+/// offline mode is on, and [`install_update`] an install. The frontend
+/// recognises this exact text to say so in words rather than show it as a
+/// failure (`src/lib/tauri/updater.ts`).
 const OFFLINE_MESSAGE: &str = "updater: offline mode is on";
 
 /// What a build without the updater (dev, package-manager builds) answers
@@ -527,6 +528,12 @@ pub async fn check_for_update(
 
 #[tauri::command]
 pub async fn install_update(app: tauri::AppHandle) -> AppResult<()> {
+    // Offline mode turned on after the check: the download is a request
+    // like any other. Before `imp::install`, which takes the pending
+    // update, so it can still be installed once offline mode is off.
+    if crate::offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_MESSAGE.into()));
+    }
     #[cfg(all(not(debug_assertions), feature = "updater"))]
     {
         imp::install(&app).await

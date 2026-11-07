@@ -41,7 +41,7 @@ Offline mode does **not** stop:
 
 When it starts, and when you switch the beta channel on or off, WaveFlow asks for the latest version: it requests a small manifest from GitHub (`github.com`, under `InstaZDLL/WaveFlow/releases`) and from the project's mirror, `download.waveflow.app`, served by Cloudflare. The request carries no information about you beyond what any download does. The update itself is downloaded only when you choose to install it, and its signature is checked before it runs. The beta channel reads two more manifests at the same places.
 
-Turn the automatic check off in **Settings → Maintenance → Updates → Check for updates automatically**; WaveFlow then asks only when you press **Check now** on the same card. Offline mode stops the automatic check too, and refuses a check you ask for. Builds made without the `updater` feature, such as distribution packages that update through their package manager, do not check at all.
+Turn the automatic check off in **Settings → Maintenance → Updates → Check for updates automatically**; WaveFlow then asks only when you press **Check now** on the same card. Offline mode stops the automatic check too, and refuses a check or an install you ask for. Builds made without the `updater` feature, such as distribution packages that update through their package manager, do not check at all.
 
 ### Album covers and artist pictures — Deezer
 
