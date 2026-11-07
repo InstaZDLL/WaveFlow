@@ -87,6 +87,10 @@ def linux(version: str, base_url: str, dist_release: pathlib.Path, dist_manifest
     else:
         fail("Missing AppImage updater signature (looked for .AppImage.sig and .AppImage.tar.gz.sig)")
 
+    # rpm refuses a "-" in its version, so a pre-release has no .rpm and
+    # the build does not ask for one; a stable release must have both.
+    prerelease = "-" in version
+    installers = {}
     for folder, pattern, suffix in [
         ("deb", "*.deb", "deb"),
         ("rpm", "*.rpm", "rpm"),
@@ -94,9 +98,12 @@ def linux(version: str, base_url: str, dist_release: pathlib.Path, dist_manifest
         folder_path = root / folder
         matches = sorted(folder_path.glob(pattern)) if folder_path.exists() else []
         if not matches:
+            if suffix == "rpm" and prerelease:
+                print(f"No .rpm for pre-release {version} (rpm rejects '-' in a version).")
+                continue
             fail(f"No {pattern} produced under bundle/{folder}/")
-        dest = dist_release / f"WaveFlow_{version}_linux-x86_64.{suffix}"
-        shutil.copy2(matches[0], dest)
+        installers[suffix] = f"WaveFlow_{version}_linux-x86_64.{suffix}"
+        shutil.copy2(matches[0], dist_release / installers[suffix])
 
     signature = sig_path_for_manifest.read_text(encoding="utf-8").strip()
     write_manifest(dist_manifest, "linux", {
@@ -112,8 +119,7 @@ def linux(version: str, base_url: str, dist_release: pathlib.Path, dist_manifest
     })
     print(json.dumps({
         "appimage": renamed,
-        "deb": f"WaveFlow_{version}_linux-x86_64.deb",
-        "rpm": f"WaveFlow_{version}_linux-x86_64.rpm",
+        **installers,
         "updater_payload": payload_filename,
         "updater_sig": sig_renamed,
     }, indent=2))
