@@ -346,7 +346,7 @@ Every feature in detail, the architecture and the storage layout live under [`do
 - 🙌 **Show off your setup or playlist?** → [Discussions › Show and tell](https://github.com/InstaZDLL/WaveFlow/discussions/categories/show-and-tell)
 - 🔒 **Security?** → [Private disclosure](.github/SECURITY.md) — never post vulnerabilities publicly.
 
-English and French both welcome.
+🌍 **Every language is welcome.** Write in the one you are most at ease with — English, Français, 中文, Español, العربية or any other — and we will answer you.
 
 ## License
 

@@ -346,7 +346,7 @@ cargo test  --manifest-path src-tauri/Cargo.toml --workspace
 - 🙌 **想展示你的配置或歌单？** → [Discussions › Show and tell](https://github.com/InstaZDLL/WaveFlow/discussions/categories/show-and-tell)
 - 🔒 **安全问题？** → [私下披露](.github/SECURITY.md)——请勿公开发布漏洞。
 
-欢迎使用英文或法文交流。
+🌍 **欢迎使用任何语言。** 用你最顺手的语言写就好——中文、English、Français、Español、العربية 或其他任何语言，我们都会回复你。
 
 ## 许可证
 
