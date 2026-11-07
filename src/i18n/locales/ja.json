@@ -2733,7 +2733,7 @@
     },
     "offlineMode": {
       "title": "オフラインモード",
-      "subtitle": "Last.fm、Deezer、LRCLIB を無効化し、キャッシュデータのみを使用します。"
+      "subtitle": "アップデートの確認を含むオンラインサービスを停止し、キャッシュのみを使用します。Discord Rich Presence と DLNA/MPD サーバーにはそれぞれ専用のスイッチがあります。"
     },
     "profileIo": {
       "title": "プロフィールのバックアップ",

@@ -2278,7 +2278,7 @@
     },
     "offlineMode": {
       "title": "Çevrimdışı mod",
-      "subtitle": "Last.fm, Deezer ve LRCLIB'i devre dışı bırakır. Yalnızca önbellekteki verileri kullanır."
+      "subtitle": "Güncelleme denetimi dahil çevrimiçi hizmetleri durdurur ve yalnızca önbelleği kullanır; Discord Rich Presence ile DLNA/MPD sunucularının kendi anahtarları vardır."
     },
     "integrations": {
       "lastfm": {

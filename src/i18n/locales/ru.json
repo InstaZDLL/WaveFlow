@@ -2402,7 +2402,7 @@
     },
     "offlineMode": {
       "title": "Офлайн-режим",
-      "subtitle": "Отключает Last.fm, Deezer и LRCLIB. Используются только данные из кэша."
+      "subtitle": "Отключает онлайн-сервисы, включая проверку обновлений, и использует только кэш; у Discord Rich Presence и серверов DLNA/MPD есть свои переключатели."
     },
     "integrations": {
       "lastfm": {

@@ -2733,7 +2733,7 @@
     },
     "offlineMode": {
       "title": "离线模式",
-      "subtitle": "禁用 Last.fm、Deezer 和 LRCLIB，仅使用缓存数据。"
+      "subtitle": "停止在线服务（包括更新检查），仅使用缓存；Discord Rich Presence 和 DLNA/MPD 服务器有各自的开关。"
     },
     "profileIo": {
       "title": "个人资料备份",

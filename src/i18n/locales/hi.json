@@ -2278,7 +2278,7 @@
     },
     "offlineMode": {
       "title": "ऑफ़लाइन मोड",
-      "subtitle": "Last.fm, Deezer और LRCLIB को अक्षम करता है। केवल कैश्ड डेटा का उपयोग करता है।"
+      "subtitle": "अपडेट जाँच सहित ऑनलाइन सेवाएँ रोकता है और केवल कैश का उपयोग करता है; Discord Rich Presence और DLNA/MPD सर्वर के अपने स्विच हैं।"
     },
     "integrations": {
       "lastfm": {

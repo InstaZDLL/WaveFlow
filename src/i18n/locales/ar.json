@@ -2484,7 +2484,7 @@
     },
     "offlineMode": {
       "title": "وضع عدم الاتصال",
-      "subtitle": "يعطّل Last.fm وDeezer وLRCLIB، ولا يستخدم إلا البيانات المخزّنة مؤقتًا."
+      "subtitle": "يوقف الخدمات عبر الإنترنت، بما فيها التحقق من التحديثات، ولا يستخدم إلا البيانات المخزّنة مؤقتًا؛ ولـ Discord Rich Presence وخادمَي DLNA/MPD مفاتيحها الخاصة."
     },
     "integrations": {
       "lastfm": {

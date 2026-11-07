@@ -2340,7 +2340,7 @@
     },
     "offlineMode": {
       "title": "Modalità offline",
-      "subtitle": "Disattiva Last.fm, Deezer e LRCLIB. Usa solo i dati in cache."
+      "subtitle": "Ferma i servizi online, controllo degli aggiornamenti compreso, e usa solo la cache; Discord Rich Presence e i server DLNA/MPD hanno i propri interruttori."
     },
     "integrations": {
       "lastfm": {

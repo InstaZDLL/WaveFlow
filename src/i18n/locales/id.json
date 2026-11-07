@@ -2276,7 +2276,7 @@
     },
     "offlineMode": {
       "title": "Mode luring",
-      "subtitle": "Menonaktifkan Last.fm, Deezer, dan LRCLIB. Hanya menggunakan data cache."
+      "subtitle": "Menghentikan layanan daring, termasuk pemeriksaan pembaruan, dan hanya memakai cache; Discord Rich Presence serta server DLNA/MPD punya sakelar sendiri."
     },
     "integrations": {
       "lastfm": {

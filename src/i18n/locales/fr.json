@@ -2420,7 +2420,7 @@
     },
     "offlineMode": {
       "title": "Mode hors ligne",
-      "subtitle": "Coupe Last.fm, Deezer et LRCLIB. Utilise uniquement les données déjà en cache."
+      "subtitle": "Coupe les services en ligne, vérification des mises à jour comprise, et s'en tient au cache ; Discord Rich Presence et les serveurs DLNA/MPD ont leurs propres interrupteurs."
     },
     "integrations": {
       "lastfm": {

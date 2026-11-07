@@ -2733,7 +2733,7 @@
     },
     "offlineMode": {
       "title": "離線模式",
-      "subtitle": "停用 Last.fm、Deezer 和 LRCLIB，僅使用快取資料。"
+      "subtitle": "停止線上服務（包括更新檢查），僅使用快取；Discord Rich Presence 和 DLNA/MPD 伺服器有各自的開關。"
     },
     "profileIo": {
       "title": "個人檔案備份",
