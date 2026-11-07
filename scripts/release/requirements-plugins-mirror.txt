@@ -1,0 +1,6 @@
+# mirror-plugins.py hashes plugin.wasm as the registry pins it. Installed
+# by plugins-mirror.yml with --require-hashes on the Python that
+# workflow sets up (3.12, x86_64 Linux): the hash is that one wheel's.
+# Bumping the version means taking the new wheel's hash from PyPI.
+blake3==1.0.9 \
+    --hash=sha256:bcd56a7a972c4185070f7042ccc20166927eec3c0f98b8405f375d007b604a0b

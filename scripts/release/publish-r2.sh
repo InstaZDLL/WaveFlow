@@ -47,46 +47,12 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-r2_state() {
-  local set=0
-  for v in R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET; do
-    [ -n "${!v:-}" ] && set=$((set + 1))
-  done
-  case "$set" in
-    0) echo absent ;;
-    4) echo configured ;;
-    *) echo partial ;;
-  esac
-}
+# shellcheck source-path=SCRIPTDIR source=r2-common.sh
+. "$here/r2-common.sh"
 
-# The account id, or the S3 endpoint the dashboard shows right beside it,
-# https://<id>.r2.cloudflarestorage.com: the secret has been set to the second
-# once already (on the server's repository), and the upload then failed on
-# DNS with nothing saying why. Prints the bare id; anything else is refused
-# by name.
-r2_account() {
-  local account="${R2_ACCOUNT_ID#https://}"
-  account="${account%%/*}"
-  account="${account%%.*}"
-  case "$account" in
-    "" | *[!0-9a-f]*) ;;
-    *) if [ "${#account}" -eq 32 ]; then echo "$account"; return 0; fi ;;
-  esac
-  echo "::error::R2_ACCOUNT_ID is neither an account id nor https://<id>.r2.cloudflarestorage.com" >&2
-  return 1
-}
-
-state="$(r2_state)"
 if [ "${1:-}" = "--check" ]; then
-  if [ "$state" = "partial" ]; then
-    echo "::error::R2 mirror half configured: set all four of R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET, or none" >&2
-    exit 1
-  fi
-  # Checked here too, so a wrong id stops the job before the build's
-  # files are fetched rather than at the first upload.
-  if [ "$state" = "configured" ]; then r2_account >/dev/null || exit 1; fi
-  echo "$state"
-  exit 0
+  r2_check
+  exit
 fi
 
 assets="${1:?usage: publish-r2.sh <assets dir> <latest.json>}"
@@ -95,9 +61,10 @@ dry_run="${R2_DRY_RUN:-0}"
 : "${TAG_NAME:?TAG_NAME is required}"
 : "${IS_PRERELEASE:?IS_PRERELEASE is required}"
 
+state="$(r2_state)"
 case "$state" in
   partial)
-    echo "::error::R2 mirror half configured: set all four of R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET, or none" >&2
+    echo "::error::$R2_HALF_CONFIGURED" >&2
     exit 1
     ;;
   absent)
@@ -105,9 +72,6 @@ case "$state" in
       echo "No R2_* secret set: the R2 mirror is not configured, nothing to publish."
       exit 0
     fi
-    # A dry run needs names to print, not credentials.
-    R2_ACCOUNT_ID="<account-id>"
-    R2_BUCKET="<bucket>"
     ;;
 esac
 
@@ -128,29 +92,8 @@ if [ "v$version" != "$TAG_NAME" ]; then
   exit 1
 fi
 
-export AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID:-}"
-export AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY:-}"
-export AWS_DEFAULT_REGION=auto
-# AWS CLI 2.23 started sending CRC checksums R2 does not take on every
-# request; Cloudflare's guidance is to send them only where required.
-export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
-export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
-if [ "$state" = "absent" ]; then
-  endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
-else
-  account="$(r2_account)"
-  endpoint="https://$account.r2.cloudflarestorage.com"
-fi
-
-run() {
-  if [ "$dry_run" = "1" ]; then
-    printf '[dry-run]'
-    printf ' %q' "$@"
-    printf '\n'
-  else
-    "$@"
-  fi
-}
+r2_aws_env "$state"
+endpoint="$R2_ENDPOINT"
 
 # Five minutes at the edge, not a year: a re-run of the release workflow
 # rebuilds the payloads under the same names, and a cached old copy
@@ -162,7 +105,7 @@ for f in "$assets"/*; do
   case "$name" in
     latest*.json) continue ;; # the manifests go up rewritten, below
   esac
-  run aws s3 cp "$f" "s3://$R2_BUCKET/$prefix/$name" \
+  r2_run aws s3 cp "$f" "s3://$R2_BUCKET/$prefix/$name" \
     --endpoint-url "$endpoint" \
     --cache-control "public, max-age=300" \
     --only-show-errors
@@ -195,8 +138,7 @@ for entry in json.load(open(sys.argv[1]))["platforms"].values():
   fi
   while IFS=$'\t' read -r url name; do
     expected="$(wc -c <"$assets/$name" | tr -d ' ')"
-    got="$(curl -fsSIL "$url?v=$RANDOM$RANDOM" | tr -d '\r' |
-      awk -F': ' 'tolower($1) == "content-length" { n = $2 } END { print n }')"
+    got="$(r2_served_size "$url")"
     if [ "$got" != "$expected" ]; then
       echo "::error::$url answers with ${got:-no} bytes, the payload has $expected; the manifest stays unpublished" >&2
       exit 1
@@ -244,7 +186,7 @@ if [ "$dry_run" != "1" ] && [ "${R2_FORCE:-0}" != "1" ]; then
   esac
 fi
 
-run aws s3 cp "$work/latest.json" "s3://$R2_BUCKET/$channel/latest.json" \
+r2_run aws s3 cp "$work/latest.json" "s3://$R2_BUCKET/$channel/latest.json" \
   --endpoint-url "$endpoint" \
   --content-type application/json \
   --cache-control "no-cache" \

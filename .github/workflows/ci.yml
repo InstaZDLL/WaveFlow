@@ -97,6 +97,22 @@ jobs:
           shellcheck scripts/install-macos.sh scripts/tests/install-macos.test.sh
       - run: bash scripts/tests/install-macos.test.sh
 
+  # The plugin store's R2 mirror (plugins-mirror.yml) runs on a schedule,
+  # long after the pull request that changed it: these tests are what
+  # stands between a broken refusal and an emptied mirror. Standard
+  # library only, on the runner's own Python; `scripts/**` is outside
+  # the paths filter, hence its own job.
+  plugins-mirror:
+    name: Plugins mirror script
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+      - run: shellcheck -x scripts/release/r2-common.sh scripts/release/publish-r2.sh scripts/release/publish-plugins-r2.sh
+      - run: python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+
   changes:
     name: Detect changes
     runs-on: ubuntu-latest

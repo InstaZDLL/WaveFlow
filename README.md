@@ -387,3 +387,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 See [LICENSE](LICENSE) for the full text. Third-party notices are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Trademark
+
+The WaveFlow logo (the files under [`assets/`](assets/) and the app icons) is a trademark of InstaZDLL. The GPL-3.0 license covers the code and grants no right to use the logo (GPL-3.0 section 7(e)).
+
+You may use the logo to refer to WaveFlow, in an article, a review, a link or a talk, and keep it in a package that ships WaveFlow unmodified, built from this repository. A fork or a modified build must use its own icon, and nothing may suggest that it is official or endorsed by the project.

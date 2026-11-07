@@ -1,0 +1,91 @@
+name: Mirror to GitLab
+
+# Keeps the backup at gitlab.com/waveflow-groupe/WaveFlow current: every push
+# to `main` and every `v*` tag goes there as it lands here, so the day this
+# repository or its account stops answering, the code and its tags are already
+# on GitLab, where `.gitlab-ci.yml` can take over
+# (docs/RELEASING.md#switching-to-gitlab).
+#
+# Pull mirroring would do this from GitLab's side, but it is a paid feature
+# there. This pushes with a deploy key that may write to that one project and
+# nothing else, held in the `GITLAB_DEPLOY_KEY` secret. Without it the job says
+# so and succeeds: a fork has no backup to keep.
+#
+# `ci.skip` keeps the push from starting GitLab pipelines; the backup's CI/CD
+# is also disabled in its settings.
+#
+# Only `main` and tags: a branch is work in progress, and its pull request is
+# here, not there. `--force` because the backup follows this repository, never
+# the other way round, so a rewritten history must reach it too.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  # Release Please and Cut beta push their tags with GITHUB_TOKEN, and a push
+  # made with that token starts no workflow: without these, a release's tag
+  # would wait on GitLab for the next push to `main`. Whatever their outcome,
+  # the run pushes what is there.
+  workflow_run:
+    workflows: ["Release Please", "Cut beta"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One push at a time, in order: two runs racing could leave `main` on GitLab
+# behind the commit that started the later one.
+concurrency:
+  group: mirror-gitlab
+  cancel-in-progress: false
+
+jobs:
+  push:
+    name: Push to GitLab
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GITLAB_REPOSITORY: ${{ vars.GITLAB_REPOSITORY || 'git@gitlab.com:waveflow-groupe/WaveFlow.git' }}
+    steps:
+      - id: key
+        env:
+          DEPLOY_KEY: ${{ secrets.GITLAB_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::notice::GITLAB_DEPLOY_KEY is not set: nothing is mirrored"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The whole history and every tag: a push of `main` alone would be refused
+      # by GitLab if its tip were not a descendant of what the backup holds.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.key.outputs.present == 'true'
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      # GitLab's host keys, as published at
+      # https://docs.gitlab.com/user/gitlab_com/#ssh-known_hosts-entries, so
+      # the push trusts nothing it is shown on the way.
+      - name: Push main and the tags
+        if: steps.key.outputs.present == 'true'
+        env:
+          DEPLOY_KEY: ${{ secrets.GITLAB_DEPLOY_KEY }}
+        run: |
+          key="$RUNNER_TEMP/gitlab-deploy-key"
+          known="$RUNNER_TEMP/gitlab-known-hosts"
+          trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          chmod 600 "$key"
+          cat > "$known" <<'HOSTS'
+          gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf
+          gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9
+          gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=
+          HOSTS
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o UserKnownHostsFile=$known -o StrictHostKeyChecking=yes"
+          git push --force -o ci.skip "$GITLAB_REPOSITORY" refs/remotes/origin/main:refs/heads/main
+          git push --force -o ci.skip "$GITLAB_REPOSITORY" 'refs/tags/*:refs/tags/*'
