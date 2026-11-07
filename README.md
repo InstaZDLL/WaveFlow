@@ -348,6 +348,17 @@ Every feature in detail, the architecture and the storage layout live under [`do
 
 🌍 **Every language is welcome.** Write in the one you are most at ease with — English, Français, 中文, Español, العربية or any other — and we will answer you.
 
+## Privacy
+
+WaveFlow has no account, no telemetry and no analytics: your library, your history and your settings stay on your computer. Some features reach online services — covers, lyrics, the update check — and [PRIVACY.md](PRIVACY.md) lists each of them, with what it sends and how to turn it off. One switch, **Offline mode**, cuts the online lookups at once; PRIVACY.md also says what it leaves on.
+
+## Code signing policy
+
+- Every release is built by GitHub Actions from a tagged commit of this repository ([`release.yml`](.github/workflows/release.yml)); no release binary is built on a personal machine.
+- The build pipeline and its scripts live in this repository, in the open.
+- Committers and reviewers: [InstaZDLL](https://github.com/InstaZDLL). Approver of each release: [InstaZDLL](https://github.com/InstaZDLL), by hand, before it is published.
+- What the app sends over the network is described in [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 ```

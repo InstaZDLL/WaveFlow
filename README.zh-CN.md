@@ -348,6 +348,17 @@ cargo test  --manifest-path src-tauri/Cargo.toml --workspace
 
 🌍 **欢迎使用任何语言。** 用你最顺手的语言写就好——中文、English、Français、Español、العربية 或其他任何语言，我们都会回复你。
 
+## 隐私
+
+WaveFlow 没有账号、没有遥测、也没有统计分析：你的曲库、收听记录和设置都保存在你的电脑上。部分功能会访问在线服务——封面、歌词、检查更新——[PRIVACY.md](PRIVACY.md)（英文）逐一列出了它们发送的内容以及关闭方法。只需一个开关——**离线模式**——即可一次性切断这些在线查询；PRIVACY.md 也说明了它不会关闭的部分。
+
+## 代码签名政策
+
+- 每个版本都由 GitHub Actions 从本仓库带标签的提交构建（[`release.yml`](.github/workflows/release.yml)），不会在个人电脑上构建任何发布用的二进制文件。
+- 构建流程及其脚本都公开保存在本仓库中。
+- 提交者与审核者：[InstaZDLL](https://github.com/InstaZDLL)。每个版本的批准者：[InstaZDLL](https://github.com/InstaZDLL)，在发布前人工批准。
+- 应用通过网络发送的内容详见 [PRIVACY.md](PRIVACY.md)。
+
 ## 许可证
 
 本程序以 **GPL-3.0-only** 许可发布。以下为英文原文的许可声明，以原文为准：
