@@ -805,6 +805,9 @@ export const SETTINGS_CATEGORIES = [
         labelKey: "settings.organization.groups.updates",
         hintKey: "settings.organization.groupHints.updates",
         searchKeys: [
+          "settings.updateCheck.title",
+          "settings.updateCheck.subtitle",
+          "settings.updateCheck.checkNow",
           "settings.updateChannel.title",
           "settings.updateChannel.subtitle",
         ],

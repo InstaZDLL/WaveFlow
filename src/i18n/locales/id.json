@@ -2949,6 +2949,17 @@
       "title": "Tujuan lirik tersimpan",
       "subtitle": "Tempat lirik disimpan di disk: yang kamu tulis dan yang diambil WaveFlow. Kamu tetap bisa memilih tujuan lain untuk setiap suntingan, dari bagian bawah editor."
     },
+    "updateCheck": {
+      "title": "Periksa pembaruan secara otomatis",
+      "subtitle": "Mencari versi baru saat aplikasi dibuka dan saat saluran diganti. Mode luring juga menghentikannya.",
+      "checkNow": "Periksa sekarang",
+      "checking": "Memeriksa…",
+      "upToDate": "WaveFlow sudah versi terbaru.",
+      "available": "Versi {{version}} tersedia.",
+      "offline": "Mode luring aktif: tidak ada pemeriksaan yang dilakukan.",
+      "failed": "Pemeriksaan gagal. Coba lagi nanti.",
+      "saveFailed": "Gagal menyimpan. Coba lagi."
+    },
     "updateChannel": {
       "title": "Saluran beta",
       "subtitle": "Terima versi pra-rilis sebelum rilis stabil. Versi beta mungkin tidak stabil."

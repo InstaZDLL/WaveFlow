@@ -3019,6 +3019,17 @@
       "title": "Destino de las letras guardadas",
       "subtitle": "Dónde se guardan las letras en el disco: las que escribes y las que WaveFlow descarga. Aun así, puedes elegir otro destino en cada edición, desde la parte inferior del editor."
     },
+    "updateCheck": {
+      "title": "Buscar actualizaciones automáticamente",
+      "subtitle": "Busca una nueva versión al iniciar y al cambiar de canal. El modo sin conexión también lo detiene.",
+      "checkNow": "Comprobar ahora",
+      "checking": "Comprobando…",
+      "upToDate": "WaveFlow está actualizado.",
+      "available": "La versión {{version}} está disponible.",
+      "offline": "El modo sin conexión está activado: no se ha hecho ninguna comprobación.",
+      "failed": "La comprobación ha fallado. Inténtalo más tarde.",
+      "saveFailed": "No se pudo guardar. Inténtalo de nuevo."
+    },
     "updateChannel": {
       "title": "Canal beta",
       "subtitle": "Recibe versiones preliminares antes del lanzamiento estable. Las betas pueden ser inestables."

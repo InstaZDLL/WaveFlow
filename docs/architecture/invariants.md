@@ -372,7 +372,7 @@ Default it into the overflow ("⋯") menu via [`MoreActionsMenu`](../../src/comp
 
 ### Process-wide offline mode
 
-Every outbound HTTP path (Deezer, Last.fm, similar, LRCLIB, the plugin registry, the bound server) checks `offline::is_offline()` first and short-circuits to an empty payload or the cache. Persisted in `app_setting['network.offline_mode']`. **Treat new HTTP code paths the same way.** A request nobody asked for counts too: building a `RemoteClient` refreshes a lapsed token, so `remote::client::refresh` tests the flag itself, as does the replay after a `401` and the redemption of a sign-in code, which comes minutes after the test `begin_login` made.
+Every outbound HTTP path (Deezer, Last.fm, similar, LRCLIB, the plugin registry, the bound server, the update check) checks `offline::is_offline()` first and short-circuits to an empty payload or the cache. Persisted in `app_setting['network.offline_mode']`. **Treat new HTTP code paths the same way.** A request nobody asked for counts too: building a `RemoteClient` refreshes a lapsed token, so `remote::client::refresh` tests the flag itself, as does the replay after a `401` and the redemption of a sign-in code, which comes minutes after the test `begin_login` made.
 
 ### MusicBrainz is paced process-wide
 

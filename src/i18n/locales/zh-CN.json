@@ -2949,6 +2949,17 @@
       "title": "已保存歌词的位置",
       "subtitle": "歌词在磁盘上的保存位置：你输入的歌词和 WaveFlow 获取的歌词都适用。每次编辑时仍可在编辑器底部另行选择。"
     },
+    "updateCheck": {
+      "title": "自动检查更新",
+      "subtitle": "在启动时和切换通道时检查新版本。离线模式也会停止检查。",
+      "checkNow": "立即检查",
+      "checking": "正在检查…",
+      "upToDate": "WaveFlow 已是最新版本。",
+      "available": "版本 {{version}} 可用。",
+      "offline": "离线模式已开启：未进行检查。",
+      "failed": "检查失败，请稍后重试。",
+      "saveFailed": "保存失败，请重试。"
+    },
     "updateChannel": {
       "title": "测试版通道",
       "subtitle": "在稳定版发布前接收预发布版本。测试版可能不稳定。"

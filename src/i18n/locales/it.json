@@ -3019,6 +3019,17 @@
       "title": "Destinazione dei testi salvati",
       "subtitle": "Dove finiscono i testi sul disco: quelli che scrivi e quelli che WaveFlow scarica. Puoi comunque cambiare questa scelta a ogni modifica, dal piè di pagina dell'editor."
     },
+    "updateCheck": {
+      "title": "Cerca aggiornamenti automaticamente",
+      "subtitle": "Cerca una nuova versione all'avvio e quando cambi canale. Anche la modalità offline lo ferma.",
+      "checkNow": "Controlla ora",
+      "checking": "Controllo in corso…",
+      "upToDate": "WaveFlow è aggiornato.",
+      "available": "La versione {{version}} è disponibile.",
+      "offline": "La modalità offline è attiva: nessun controllo è stato fatto.",
+      "failed": "Il controllo non è riuscito. Riprova più tardi.",
+      "saveFailed": "Salvataggio non riuscito. Riprova."
+    },
     "updateChannel": {
       "title": "Canale beta",
       "subtitle": "Ricevi le versioni in anteprima prima del rilascio stabile. Le beta possono essere instabili."

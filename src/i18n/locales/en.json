@@ -2951,6 +2951,17 @@
       "title": "Saved-lyrics destination",
       "subtitle": "Where lyrics land on disk — the ones you write and the ones WaveFlow fetches. You can still choose differently for each edit, from the editor's footer."
     },
+    "updateCheck": {
+      "title": "Check for updates automatically",
+      "subtitle": "Looks for a new version at launch and when you change channel. Offline mode stops it too.",
+      "checkNow": "Check now",
+      "checking": "Checking…",
+      "upToDate": "WaveFlow is up to date.",
+      "available": "Version {{version}} is available.",
+      "offline": "Offline mode is on: no check was made.",
+      "failed": "The check failed. Try again later.",
+      "saveFailed": "Could not save it. Try again."
+    },
     "updateChannel": {
       "title": "Beta channel",
       "subtitle": "Receive pre-release builds before the stable release. Betas may be unstable."

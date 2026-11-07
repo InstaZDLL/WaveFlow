@@ -3,8 +3,10 @@ import { listen } from "@tauri-apps/api/event";
 import {
   checkForUpdate,
   installUpdate,
+  UPDATER_FOUND_EVENT,
   UPDATER_PROGRESS_EVENT,
   UPDATER_RECHECK_EVENT,
+  type UpdateInfo,
   type UpdateProgress,
 } from "../lib/tauri/updater";
 
@@ -15,6 +17,12 @@ import {
  * silent on builds without the updater (dev, app-store): the backend
  * returns `null` and `install_update` errors are surfaced only if the
  * user explicitly triggered an install.
+ *
+ * Its own checks are the automatic ones (at mount, after a channel
+ * switch): the backend skips them without a request while the user has
+ * automatic checks off or offline mode is on. A check made by hand in
+ * Settings runs there and hands a find over through
+ * {@link UPDATER_FOUND_EVENT}.
  */
 export type UpdaterState =
   | { kind: "idle" }
@@ -32,7 +40,7 @@ export function useUpdater() {
   const runCheck = useCallback(async () => {
     const seq = ++checkSeq.current;
     try {
-      const update = await checkForUpdate();
+      const update = await checkForUpdate({ automatic: true });
       if (seq !== checkSeq.current) return;
       if (update) {
         setState({
@@ -66,6 +74,24 @@ export function useUpdater() {
     window.addEventListener(UPDATER_RECHECK_EVENT, handler);
     return () => window.removeEventListener(UPDATER_RECHECK_EVENT, handler);
   }, [runCheck]);
+
+  // A check made by hand in Settings found a newer build: offer it here,
+  // and drop any automatic check still in flight so it cannot hide it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (event: Event) => {
+      const update = (event as CustomEvent<UpdateInfo>).detail;
+      if (!update) return;
+      ++checkSeq.current;
+      setState({
+        kind: "available",
+        version: update.version,
+        notes: update.notes,
+      });
+    };
+    window.addEventListener(UPDATER_FOUND_EVENT, handler);
+    return () => window.removeEventListener(UPDATER_FOUND_EVENT, handler);
+  }, []);
 
   // Bridge backend download progress into the downloading state.
   useEffect(() => {

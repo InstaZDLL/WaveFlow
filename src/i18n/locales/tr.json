@@ -2951,6 +2951,17 @@
       "title": "Kayıtlı şarkı sözü hedefi",
       "subtitle": "Şarkı sözlerinin diskte nereye kaydedileceği: hem senin yazdıkların hem de WaveFlow'un indirdikleri. Her düzenlemede, düzenleyicinin alt kısmından yine de farklı bir seçim yapabilirsin."
     },
+    "updateCheck": {
+      "title": "Güncellemeleri otomatik denetle",
+      "subtitle": "Başlangıçta ve kanal değiştirdiğinde yeni sürüm arar. Çevrimdışı mod da bunu durdurur.",
+      "checkNow": "Şimdi denetle",
+      "checking": "Denetleniyor…",
+      "upToDate": "WaveFlow güncel.",
+      "available": "{{version}} sürümü mevcut.",
+      "offline": "Çevrimdışı mod açık: denetim yapılmadı.",
+      "failed": "Denetim başarısız oldu. Daha sonra yeniden dene.",
+      "saveFailed": "Kaydedilemedi. Yeniden dene."
+    },
     "updateChannel": {
       "title": "Beta kanalı",
       "subtitle": "Kararlı sürümden önce beta derlemelerini al. Beta sürümleri kararsız olabilir."

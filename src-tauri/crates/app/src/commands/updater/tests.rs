@@ -1,7 +1,23 @@
 use super::{
-    install_order, is_newer, UpdateChannel, BETA_ENDPOINT, BETA_MIRROR_ENDPOINT, STABLE_ENDPOINT,
-    STABLE_MIRROR_ENDPOINT,
+    check_gate, install_order, is_newer, CheckGate, UpdateChannel, BETA_ENDPOINT,
+    BETA_MIRROR_ENDPOINT, STABLE_ENDPOINT, STABLE_MIRROR_ENDPOINT,
 };
+
+#[test]
+fn an_automatic_check_reads_nothing_when_switched_off_or_offline() {
+    assert_eq!(check_gate(true, true, false), CheckGate::Read);
+    assert_eq!(check_gate(true, false, false), CheckGate::Skip);
+    assert_eq!(check_gate(true, true, true), CheckGate::Skip);
+    assert_eq!(check_gate(true, false, true), CheckGate::Skip);
+}
+
+#[test]
+fn a_check_asked_for_by_hand_ignores_the_switch_but_not_offline_mode() {
+    assert_eq!(check_gate(false, false, false), CheckGate::Read);
+    assert_eq!(check_gate(false, true, false), CheckGate::Read);
+    assert_eq!(check_gate(false, false, true), CheckGate::Offline);
+    assert_eq!(check_gate(false, true, true), CheckGate::Offline);
+}
 
 #[test]
 fn a_release_outranks_its_own_betas() {

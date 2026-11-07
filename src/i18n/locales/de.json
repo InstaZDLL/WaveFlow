@@ -2951,6 +2951,17 @@
       "title": "Speicherort für Songtexte",
       "subtitle": "Wo Songtexte auf der Festplatte landen — die, die du schreibst, und die, die WaveFlow abruft. Bei jeder Bearbeitung kannst du unten im Editor trotzdem anders wählen."
     },
+    "updateCheck": {
+      "title": "Automatisch nach Updates suchen",
+      "subtitle": "Sucht beim Start und beim Kanalwechsel nach einer neuen Version. Der Offline-Modus stoppt das ebenfalls.",
+      "checkNow": "Jetzt suchen",
+      "checking": "Wird gesucht…",
+      "upToDate": "WaveFlow ist auf dem neuesten Stand.",
+      "available": "Version {{version}} ist verfügbar.",
+      "offline": "Der Offline-Modus ist aktiv: Es wurde nicht gesucht.",
+      "failed": "Die Suche ist fehlgeschlagen. Versuche es später erneut.",
+      "saveFailed": "Konnte nicht gespeichert werden. Erneut versuchen."
+    },
     "updateChannel": {
       "title": "Beta-Kanal",
       "subtitle": "Erhalte Vorabversionen vor der stabilen Veröffentlichung. Betas können instabil sein."

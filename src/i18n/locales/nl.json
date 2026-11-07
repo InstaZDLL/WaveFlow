@@ -2951,6 +2951,17 @@
       "title": "Bestemming voor opgeslagen songteksten",
       "subtitle": "Waar songteksten op schijf terechtkomen — die je zelf schrijft en die WaveFlow ophaalt. Per bewerking kun je nog anders kiezen, onderaan de songtekstbewerker."
     },
+    "updateCheck": {
+      "title": "Automatisch naar updates zoeken",
+      "subtitle": "Zoekt bij het starten en bij een kanaalwissel naar een nieuwe versie. De offlinemodus stopt dit ook.",
+      "checkNow": "Nu controleren",
+      "checking": "Bezig met controleren…",
+      "upToDate": "WaveFlow is up-to-date.",
+      "available": "Versie {{version}} is beschikbaar.",
+      "offline": "De offlinemodus staat aan: er is niet gecontroleerd.",
+      "failed": "Controleren is mislukt. Probeer het later opnieuw.",
+      "saveFailed": "Opslaan is mislukt. Probeer het opnieuw."
+    },
     "updateChannel": {
       "title": "Bètakanaal",
       "subtitle": "Ontvang voorlopige versies vóór de stabiele release. Bèta's kunnen instabiel zijn."

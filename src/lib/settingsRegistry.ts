@@ -836,6 +836,15 @@ export const SETTINGS = {
   ),
 
   // ---- Maintenance -----------------------------------------------------
+  /** On: the backend reads a missing row as on, the check every launch
+   *  made before the switch existed. */
+  "updater.auto_check": setting(
+    "diagnostics",
+    "app",
+    "bool",
+    true,
+    "settings.updateCheck.title",
+  ),
   "updater.channel": setting<UpdateChannel>(
     "diagnostics",
     "app",

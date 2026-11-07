@@ -3019,6 +3019,17 @@
       "title": "Destination des paroles",
       "subtitle": "Où les paroles atterrissent sur le disque : celles que vous saisissez et celles que WaveFlow récupère. Vous pouvez toujours changer ce choix à chaque édition, depuis le bas de l'éditeur."
     },
+    "updateCheck": {
+      "title": "Rechercher les mises à jour automatiquement",
+      "subtitle": "Cherche une nouvelle version au lancement et au changement de canal. Le mode hors ligne l'arrête aussi.",
+      "checkNow": "Vérifier maintenant",
+      "checking": "Vérification…",
+      "upToDate": "WaveFlow est à jour.",
+      "available": "La version {{version}} est disponible.",
+      "offline": "Le mode hors ligne est activé : aucune vérification n'a été faite.",
+      "failed": "La vérification a échoué. Réessayez plus tard.",
+      "saveFailed": "Échec de l'enregistrement. Réessayez."
+    },
     "updateChannel": {
       "title": "Canal bêta",
       "subtitle": "Recevez les préversions avant la sortie stable. Les bêtas peuvent être instables."
