@@ -17,7 +17,7 @@ The manifest is [`../app.waveflow.WaveFlow.yaml`](../app.waveflow.WaveFlow.yaml)
 These land in the release commit, since Flathub builds what the tag points to:
 
 1. **The release entry.** Add `<release version="2.0.0" date="YYYY-MM-DD">` at the top of `<releases>` in [`../app.waveflow.WaveFlow.metainfo.xml`](../app.waveflow.WaveFlow.metainfo.xml), in the release-please PR, dated the day it merges. release-please does not touch this file, and Flathub shows the newest entry as the app's version.
-2. **Fresh generated sources.** `py -3 packaging/flatpak/check-sources.py` must pass on the release commit. If `Cargo.lock` or `package.json` moved since the last refresh, run the `flatpak-sources-refresh` workflow and merge its PR first.
+2. **Fresh generated sources.** `python3 packaging/flatpak/check-sources.py` must pass on the release commit. If `Cargo.lock` or `package.json` moved since the last refresh, run the `flatpak-sources-refresh` workflow and merge its PR first.
 
 ## Filling in `commit`
 
@@ -47,14 +47,15 @@ Keep the quotes: a hash made only of digits would otherwise be read as a number.
 
    ```bash
    W=/path/to/WaveFlow
-   git -C "$W" show v2.0.0:packaging/flatpak/flathub/app.waveflow.WaveFlow.yaml > app.waveflow.WaveFlow.yaml
-   git -C "$W" show v2.0.0:packaging/flatpak/flathub/flathub.json > flathub.json
-   git -C "$W" show v2.0.0:packaging/flatpak/generated/cargo-sources.json > cargo-sources.json
-   git -C "$W" show v2.0.0:packaging/flatpak/generated/node-sources.json > node-sources.json
-   git submodule add https://github.com/flathub/shared-modules.git shared-modules
+   git -C "$W" fetch --tags origin &&
+     git -C "$W" show v2.0.0:packaging/flatpak/flathub/app.waveflow.WaveFlow.yaml > app.waveflow.WaveFlow.yaml &&
+     git -C "$W" show v2.0.0:packaging/flatpak/flathub/flathub.json > flathub.json &&
+     git -C "$W" show v2.0.0:packaging/flatpak/generated/cargo-sources.json > cargo-sources.json &&
+     git -C "$W" show v2.0.0:packaging/flatpak/generated/node-sources.json > node-sources.json &&
+     git submodule add https://github.com/flathub/shared-modules.git shared-modules
    ```
 
-   Then fill in `commit` as above.
+   The tags are fetched first and the chain stops at the first copy that fails, so a clone that predates the tag cannot leave an empty file behind. Then fill in `commit` as above.
 
 3. Build and lint it the way Flathub does (network off once the sources are downloaded; about a quarter of an hour on 8 cores, eight minutes of it in cargo):
 
@@ -106,7 +107,7 @@ Flathub creates `flathub/app.waveflow.WaveFlow` and invites the submitter as a c
 Each version is one PR to `flathub/app.waveflow.WaveFlow` (branch from `master`, PR against `master`):
 
 1. The release entry in the metainfo and fresh generated sources, before the tag, as above.
-2. In the Flathub repository: `tag` and `commit` set to the new tag, `cargo-sources.json` and `node-sources.json` copied again from that tag (`git show vX.Y.Z:packaging/flatpak/generated/...`), and the manifest copied again from `packaging/flatpak/flathub/` if it changed since the last release.
+2. In the Flathub repository: `tag` and `commit` set to the new tag, `cargo-sources.json` and `node-sources.json` copied again from that tag (`git show vX.Y.Z:packaging/flatpak/generated/...`), and the manifest and `flathub.json` copied again from `packaging/flatpak/flathub/` if they changed since the last release (`flathub.json` holds the architectures Flathub builds; a file removed there is removed in the Flathub repository too).
 3. Flathub's bot builds the PR; merging it publishes the update to every user within hours.
 
 A pre-release never goes there: Flathub's stable repository takes stable releases only.
