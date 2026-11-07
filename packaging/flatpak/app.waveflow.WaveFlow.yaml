@@ -85,6 +85,13 @@ finish-args:
   # name, so Flatpak does not grant it by itself.
   - --own-name=org.mpris.MediaPlayer2.waveflow
 
+  # Single instance: tauri-plugin-single-instance takes the session-bus
+  # name `<Tauri identifier>.SingleInstance`, and the identifier is
+  # `app.waveflow`, outside the app ID's own names. Refused, every launch
+  # (a file opened from the file manager included) started a second
+  # WaveFlow on the same databases instead of handing it to the first.
+  - --own-name=app.waveflow.SingleInstance
+
   # System tray (AppIndicator)
   - --talk-name=org.kde.StatusNotifierWatcher
 
@@ -190,6 +197,14 @@ modules:
           /app/share/icons/hicolor/256x256/apps/app.waveflow.WaveFlow.png
         install -Dm644 src-tauri/crates/app/icons/icon.png \
           /app/share/icons/hicolor/512x512/apps/app.waveflow.WaveFlow.png
+
+      # Bundled plugins: `bundle.resources` in tauri.conf.json, which
+      # --no-bundle does not install. Tauri looks for its resources in
+      # ../lib/<productName> next to the binary, so /app/lib/WaveFlow;
+      # without them the Flatpak had no Web Radio.
+      - |
+        mkdir -p /app/lib/WaveFlow
+        cp -r src-tauri/resources/plugins /app/lib/WaveFlow/
 
       # Desktop entry + AppStream metainfo
       - install -Dm644 packaging/flatpak/app.waveflow.WaveFlow.desktop /app/share/applications/app.waveflow.WaveFlow.desktop
