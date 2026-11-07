@@ -9,7 +9,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
 
-  <developer id="dev.waveflow">
+  <developer id="app.waveflow">
     <name>InstaZDLL</name>
   </developer>
 
@@ -44,28 +44,36 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>Home view — profile-aware greeting, mood radio, Daily Mix carousel</caption>
-      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/home.png</image>
+      <caption>Home, with the track to pick up where you left off and what plays next</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/home.png</image>
     </screenshot>
     <screenshot>
-      <caption>Library — virtualised album grid with Hi-Res badges and A-Z jump</caption>
-      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/library-albums.png</image>
+      <caption>An album page with its track list</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/album.png</image>
     </screenshot>
     <screenshot>
-      <caption>Album detail — multi-disc grouping with side Now Playing panel</caption>
-      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/album-detail.png</image>
+      <caption>The album grid of the library, with Hi-Res badges</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/library.png</image>
     </screenshot>
     <screenshot>
-      <caption>Immersive Now Playing — full-bleed artwork with real-time spectrum visualizer</caption>
-      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/immersive-view.png</image>
+      <caption>The immersive view, with the spectrum drawn above the controls</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/immersive.png</image>
     </screenshot>
     <screenshot>
-      <caption>Karaoke lyrics — word-level highlight with click-to-seek</caption>
-      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/karaoke-lyrics.png</image>
+      <caption>A smart playlist, its header tinted from the covers</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/playlist.png</image>
     </screenshot>
     <screenshot>
-      <caption>WaveFlow Wrapped — year-in-review with top tracks, average tempo, longest streak</caption>
-      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/wrapped.png</image>
+      <caption>The tag workshop's preview of a MusicBrainz match before writing</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/tag-workshop.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A year of listening statistics</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/stats.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Home in the Liquid skin, one of six</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/main/docs/screenshots/skins-liquid.png</image>
     </screenshot>
   </screenshots>
 
