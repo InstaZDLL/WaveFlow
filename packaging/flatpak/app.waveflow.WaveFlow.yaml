@@ -98,9 +98,10 @@ finish-args:
   # Native notifications (tauri-plugin-notification, through notify-rust)
   - --talk-name=org.freedesktop.Notifications
 
-  # Discord Rich Presence (opt-in in the app): its IPC socket, from the
-  # Discord Flatpak (`:create`, so the directory is bound even when
-  # Discord starts after WaveFlow) or from a Discord installed on the host.
+  # Discord Rich Presence (on by default, a switch in Settings): its IPC
+  # socket, from the Discord Flatpak (`:create`, so the directory is bound
+  # even when Discord starts after WaveFlow) or from a Discord installed
+  # on the host.
   - --filesystem=xdg-run/app/com.discordapp.Discord:create
   - --filesystem=xdg-run/discord-ipc-0
   - --filesystem=xdg-run/discord-ipc-1

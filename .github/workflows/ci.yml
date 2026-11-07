@@ -232,11 +232,12 @@ jobs:
           --all-targets
 
       - name: cargo check (opt-out build — no default features)
-        # The Flatpak / app-store builds compile with `--no-default-features`
-        # (they own updates and don't ship sync_v2's server surface). Now
-        # that sync_v2 is default, this is the ONLY step that exercises the
-        # code compiled WITHOUT it — the always-present stubs and the
-        # local-only halves of shared modules — so they can't rot silently.
+        # A build that owns its updates compiles with `--no-default-features`
+        # (the Flatpak adds `--features sync_v2` back), and one that does not
+        # want the server surface can drop sync_v2 the same way. Now that
+        # sync_v2 is default, this is the ONLY step that exercises the code
+        # compiled WITHOUT it — the always-present stubs and the local-only
+        # halves of shared modules — so they can't rot silently.
         if: runner.os == 'Linux'
         run: >-
           cargo check
