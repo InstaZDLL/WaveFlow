@@ -1,0 +1,223 @@
+# WaveFlow Flatpak manifest, as submitted to Flathub
+#
+# This file goes to the root of the Flathub repository
+# (github.com/flathub/app.waveflow.WaveFlow), next to cargo-sources.json
+# and node-sources.json copied from packaging/flatpak/generated/ at the
+# same tag, flathub.json, and the flathub/shared-modules submodule.
+#
+# It is packaging/flatpak/app.waveflow.WaveFlow.yaml with two differences
+# besides comments, and nothing else may differ: the project source is
+# the repository at a release tag (`tag` plus the `commit` it points to)
+# instead of the working tree, and the generated source lists are read
+# from the root of the Flathub repository instead of generated/.
+# Procedure, including the command that fills `commit`: README.md next
+# to this file.
+
+app-id: app.waveflow.WaveFlow
+runtime: org.gnome.Platform
+runtime-version: "51"
+# Build-time tools beyond the Rust / node SDK extensions below:
+# `cmake`, which `opusic-sys` uses to build the vendored libopus that
+# ships the Opus decoder. Taken from the SDK rather than declared as a
+# module — and worth knowing that **no CI job builds this manifest**,
+# so if a Flathub build ever fails looking for cmake, this is the line
+# that assumed it was there.
+sdk: org.gnome.Sdk
+sdk-extensions:
+  # rust-stable bundles rustc + cargo + clang + lld; covers every
+  # compile-time Rust crate WaveFlow depends on. node22 is for the
+  # frontend (Vite, tsc, tauri-cli).
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node22
+
+command: waveflow
+
+# Sandbox permissions ------------------------------------------------------
+finish-args:
+  # Display + GPU + input
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+
+  # Audio — PulseAudio socket also covers PipeWire's pulse-compat layer,
+  # which is what runs on every recent GNOME / KDE / Fedora install.
+  # Direct ALSA device enumeration (the cpal output-device picker's
+  # human-readable names on Linux) is degraded inside the sandbox
+  # without `--device=all`, but playback still works through the PA
+  # socket. We take that downgrade rather than ask for raw /dev/snd
+  # access, which Flathub reviewers reject on sight.
+  - --socket=pulseaudio
+
+  # Network: online lookups (Deezer, Last.fm, ListenBrainz, LRCLIB,
+  # MusicBrainz, TheAudioDB), podcasts and web radio, the plugin store,
+  # a WaveFlow Server, WebDAV and SMB shares, and the opt-in DLNA and MPD
+  # servers, which listen on the local network. Offline mode turns all
+  # of it off inside the app; the sandbox still has to allow it.
+  - --share=network
+
+  # File access for music libraries: ~/Music read-write, the one folder
+  # the app uses without being handed it. The tag editor writes the
+  # files, lyrics can be saved as sidecars next to them, generated clips
+  # go under `.waveflow/` in the library folder, and a dropped file is
+  # copied into ~/Music/WaveFlow, a folder the app creates itself;
+  # read-only, every one of those failed there.
+  #
+  # Everything else comes through the FileChooser portal, which needs no
+  # permission: rfd's GTK3 backend opens a GtkFileChooserNative, which GTK
+  # sends to the portal inside a Flatpak. A folder or file picked there
+  # (a library elsewhere, a file to play without importing it, a Canvas
+  # clip, a playlist to import) is shared through the document portal, so
+  # no blanket `home`, `host` or Downloads access is asked for.
+  - --filesystem=xdg-music
+
+  # MPRIS (souvlaki): media_controls.rs registers the bus name
+  # org.mpris.MediaPlayer2.waveflow, which is not the app ID's MPRIS
+  # name, so Flatpak does not grant it by itself.
+  - --own-name=org.mpris.MediaPlayer2.waveflow
+
+  # Single instance: tauri-plugin-single-instance takes the session-bus
+  # name `<Tauri identifier>.SingleInstance`, and the identifier is
+  # `app.waveflow`, outside the app ID's own names. Refused, every launch
+  # (a file opened from the file manager included) started a second
+  # WaveFlow on the same databases instead of handing it to the first.
+  - --own-name=app.waveflow.SingleInstance
+
+  # System tray (AppIndicator)
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+  # Native notifications (tauri-plugin-notification, through notify-rust)
+  - --talk-name=org.freedesktop.Notifications
+
+  # Discord Rich Presence (on by default, a switch in Settings): its IPC
+  # socket, from the Discord Flatpak (`:create`, so the directory is bound
+  # even when Discord starts after WaveFlow) or from a Discord installed
+  # on the host.
+  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+  - --filesystem=xdg-run/discord-ipc-0
+  - --filesystem=xdg-run/discord-ipc-1
+  - --filesystem=xdg-run/discord-ipc-2
+  - --filesystem=xdg-run/discord-ipc-3
+
+  # Persist Tauri config + per-profile databases under XDG_CONFIG_HOME
+  # (Tauri uses ~/.config/<identifier>/ on Linux by default — already
+  # inside the Flatpak sandbox at ~/.var/app/app.waveflow.WaveFlow/config/).
+
+# Build modules ------------------------------------------------------------
+modules:
+  # libayatana-appindicator / libappindicator-gtk3 — Tauri's tray-icon
+  # crate dlopens libayatana-appindicator3.so.1 at runtime, falling
+  # back to the original Canonical libappindicator3.so.1.
+  #
+  # The Flathub shared-modules repo ships authoritative recipes for
+  # libappindicator-gtk3 12.10 + intltool + dbus-glib + libindicator,
+  # including the FTBFS patches needed for modern toolchains. In the
+  # Flathub repository it is the usual `shared-modules` git submodule;
+  # the WaveFlow repository vendors an older, frozen copy of it.
+  - shared-modules/libappindicator/libappindicator-gtk3-12.10.json
+
+  - name: waveflow
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node22/bin
+      append-ld-library-path: /usr/lib/sdk/rust-stable/lib
+      env:
+        # Vendored cargo config + crates land in $CARGO_HOME/cargo (the
+        # `config` file and the `vendor/` dir) per flatpak-cargo-generator
+        # convention. CARGO_NET_OFFLINE makes any accidental network
+        # fetch a hard error instead of a silent stall.
+        CARGO_HOME: /run/build/waveflow/cargo
+        CARGO_NET_OFFLINE: "true"
+        # npm offline knobs. The cache dir matches where
+        # flatpak-node-generator places its content-addressed store
+        # (flatpak-node/npm-cache/_cacache/...).
+        npm_config_offline: "true"
+        npm_config_audit: "false"
+        npm_config_fund: "false"
+        npm_config_loglevel: "error"
+    build-commands:
+      # Swap bun.lock for the npm-flavored lockfile produced by
+      # generate-sources.sh. Same package.json, same registry, same
+      # tarball hashes — just npm's lockfile schema so `npm ci` can
+      # consume the offline cache that flatpak-node-generator built.
+      - cp packaging/flatpak/generated/package-lock.json .
+
+      # Install frontend deps from the vendored npm cache. HOME=$PWD
+      # keeps npm's user state (logs, prefix) inside the build dir
+      # instead of writing to the sandbox HOME, which speeds up clean
+      # rebuilds and avoids leaking into other modules.
+      - HOME=$PWD npm ci --offline --cache flatpak-node/npm-cache --prefix .
+
+      # Tauri 2 build:
+      #   --no-bundle           Skip installer creation (.deb / .rpm /
+      #                         .AppImage). Flatpak repackages the bare
+      #                         binary, the bundler step is wasted work.
+      #   --no-sign             Defense-in-depth: with --no-bundle the
+      #                         signing path isn't reached anyway, but
+      #                         this makes "this build is unsigned"
+      #                         explicit and survives any future change
+      #                         to --no-bundle semantics.
+      #   --config              Override beforeBuildCommand from
+      #                         `bun run build` (no bun in the sandbox)
+      #                         to `npm run build`.
+      #   --no-default-features Drops the `updater` Cargo feature so
+      #     --features sync_v2  tauri-plugin-updater isn't compiled in
+      #                         (flatpak update owns the upgrade flow
+      #                         uncontested) and adds back the other
+      #                         default feature, the WaveFlow Server
+      #                         source. Keep this list in step with
+      #                         `default` in crates/app/Cargo.toml.
+      - |
+        HOME=$PWD npx tauri build \
+          --no-bundle \
+          --no-sign \
+          --config '{"build":{"beforeBuildCommand":"npm run build"}}' \
+          -- --no-default-features --features sync_v2
+
+      # Install the binary
+      - install -Dm755 src-tauri/target/release/waveflow /app/bin/waveflow
+
+      # Icons
+      - |
+        for size in 32 64 128; do
+          install -Dm644 src-tauri/crates/app/icons/${size}x${size}.png \
+            /app/share/icons/hicolor/${size}x${size}/apps/app.waveflow.WaveFlow.png
+        done
+        install -Dm644 src-tauri/crates/app/icons/128x128@2x.png \
+          /app/share/icons/hicolor/256x256/apps/app.waveflow.WaveFlow.png
+        install -Dm644 src-tauri/crates/app/icons/icon.png \
+          /app/share/icons/hicolor/512x512/apps/app.waveflow.WaveFlow.png
+
+      # Bundled plugins: `bundle.resources` in tauri.conf.json, which
+      # --no-bundle does not install. Tauri looks for its resources in
+      # ../lib/<productName> next to the binary, so /app/lib/WaveFlow;
+      # without them the Flatpak had no Web Radio.
+      - |
+        mkdir -p /app/lib/WaveFlow
+        cp -r src-tauri/resources/plugins /app/lib/WaveFlow/
+
+      # Desktop entry + AppStream metainfo
+      - install -Dm644 packaging/flatpak/app.waveflow.WaveFlow.desktop /app/share/applications/app.waveflow.WaveFlow.desktop
+      - install -Dm644 packaging/flatpak/app.waveflow.WaveFlow.metainfo.xml /app/share/metainfo/app.waveflow.WaveFlow.metainfo.xml
+
+    sources:
+      # The project source tree, at the release tag. `commit` is the
+      # commit the tag points to; flatpak-builder refuses the build when
+      # they disagree, so a moved tag cannot change what Flathub ships.
+      # Quoted: a hash made only of digits would otherwise be read as a
+      # number, which flatpak-builder refuses.
+      - type: git
+        url: https://github.com/InstaZDLL/WaveFlow.git
+        tag: v2.0.0
+        commit: "0000000000000000000000000000000000000000"
+
+      # Vendored Rust deps (1483 entries: 741 crate tarballs + their
+      # .cargo-checksum.json inline siblings + final cargo/config).
+      # Regenerate via packaging/flatpak/generate-sources.sh after any
+      # change to src-tauri/Cargo.lock.
+      - cargo-sources.json
+
+      # Vendored npm packages (668 entries: 333 tarballs + cacache
+      # metadata). Regenerate via the same script after any change to
+      # package.json.
+      - node-sources.json

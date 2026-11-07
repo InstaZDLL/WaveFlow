@@ -613,6 +613,30 @@ It deliberately does **not** regenerate-and-diff: the generator runs `npm instal
 
 > **The manifest's own paths go stale the same way.** No CI job runs `flatpak-builder`, and `check-sources.py` only reads the lockfiles, so nothing checks the repository paths the [manifest](../packaging/flatpak/app.waveflow.WaveFlow.yaml)'s `build-commands` install from — the binary, the icons, the desktop entry. The icon step kept reading `src-tauri/icons/` long after the workspace split moved them under `src-tauri/crates/app/icons/`. Moving or renaming anything under `src-tauri/crates/app/` means grepping the manifest for it.
 
+## Flathub
+
+WaveFlow is not on Flathub yet. Everything a submission needs is in [`packaging/flatpak/flathub/`](../packaging/flatpak/flathub/), and its [README](../packaging/flatpak/flathub/README.md) is the procedure, command by command: first submission, domain verification, and the PR each release after that. What follows is why it is shaped that way.
+
+**Two manifests, one content.** [`packaging/flatpak/app.waveflow.WaveFlow.yaml`](../packaging/flatpak/app.waveflow.WaveFlow.yaml) builds the working tree through a `type: dir` source, for local tests. Flathub refuses a `dir` source, and its build sandbox refuses any local path outside the manifest's directory, so the copy in `flathub/` reads the repository at a `tag` plus the `commit` it points to (flatpak-builder checks the two agree, so a moved tag cannot change what ships), and reads `cargo-sources.json` / `node-sources.json` from the root of the Flathub repository, where they are copied **from the tag**. Nothing else may differ: a change to one manifest is made to the other in the same commit.
+
+**What Flathub builds is the tag.** The metainfo, the desktop entry, the icons and the npm lockfile are installed from the WaveFlow checkout at the tag, so they have to be right **before** tagging:
+
+- **The metainfo's release entry.** release-please bumps `package.json`, `tauri.conf.json` and the crates, not [`app.waveflow.WaveFlow.metainfo.xml`](../packaging/flatpak/app.waveflow.WaveFlow.metainfo.xml), whose `<releases>` stopped at 1.3.0. Flathub shows the newest entry as the app's version, so each release adds its `<release version="…" date="…">` in the release-please PR. A date cannot be left out: the linter refuses a release without one.
+- **The generated sources.** `check-sources.py` passing on the release commit, as in the section above. A stale list fails inside Flathub's offline build, after the tag.
+- **The screenshots.** The metainfo points at `docs/screenshots/` on `main`; Flathub copies them to its own host at each build, so a later change on `main` reaches the store only with the next release.
+
+**The build that Flathub runs.** `flathub-build` (inside `org.flatpak.Builder`) is `flatpak-builder --sandbox --force-clean --install-deps-from=flathub --mirror-screenshots-url=https://dl.flathub.org/media --repo=repo builddir <manifest>`: no network once the sources are downloaded, no path outside the manifest's directory. The local manifest therefore cannot go through it (its `dir` source is two levels up); to test the Flathub copy before a tag exists, point its `url` at a bare clone placed **inside** the Flathub checkout (`url: file:///…/flathub/WaveFlow.git`) and set `tag` / `commit` to a test tag there. The manifest linter then reports `module-waveflow-source-git-url-not-http` for that URL, and nothing else.
+
+**Runtime.** Flathub accepts a new app only on the latest runtime, and its linter warns as soon as a newer one is out. GNOME 51 still ships `webkit2gtk-4.1` beside `webkitgtk-6.0`; a runtime that drops 4.1 cannot be adopted until Tauri moves to WebKitGTK 6 ([B1](upstream-blockers.md#b1--webkit2gtk-41--gtk3-chrome-on-linux)).
+
+**Features and resources.** The build passes `--no-default-features --features sync_v2`: the updater is compiled out (`flatpak update` owns updates), the WaveFlow Server source is kept. A feature added to `default` in `crates/app/Cargo.toml` is added to that list too, or the Flatpak silently lacks it. `--no-bundle` also skips `bundle.resources`, so the manifest copies the bundled plugins itself into `/app/lib/WaveFlow`, where Tauri looks for resources next to `/app/bin`; a resource added to `tauri.conf.json` outside `resources/plugins/` needs a line there too.
+
+**Permissions.** Each one is justified by a comment in the manifest, and the PR has to explain them again. Folders other than `~/Music` come through the FileChooser portal (GTK3's native chooser goes there inside a Flatpak), so the manifest asks for none; a `--talk-name` for a portal is refused by the linter, since portals need no permission. Flatpak lets the app own only bus names under its app ID, and two of WaveFlow's are not: MPRIS's `org.mpris.MediaPlayer2.waveflow` and the single-instance plugin's `app.waveflow.SingleInstance` (the Tauri identifier, not the app ID). Without the second, the plugin logs that the bus is unavailable and every launch starts another copy on the same databases. The ALSA exclusive output and its DoP path need the raw `/dev/snd` devices, which the Flatpak does not ask for: there, playback goes through the sound server.
+
+**Architectures.** [`flathub.json`](../packaging/flatpak/flathub/flathub.json) limits the build to x86_64, the only Linux architecture any WaveFlow build has run on. Dropping it makes Flathub build aarch64 as well, and a failure there fails the whole update.
+
+**After the merge.** Flathub creates `flathub/app.waveflow.WaveFlow` and invites the submitter. Verification proves the app ID's domain: the token from the Developer Portal goes in `https://waveflow.app/.well-known/org.flathub.VerifiedApps.txt`, served by the `waveflow-landing` site.
+
 ## macOS signing and the TCC prompt
 
 Signing the macOS bundle is not only about Gatekeeper. It is what stops macOS from asking for folder permission **on every single launch**.
