@@ -17,7 +17,7 @@
   },
   "skinRecovery": {
     "title": "Studio geri yüklendi",
-    "message": "WaveFlow, olası bir görünüm sorununun ardından güvenli modda başlatıldı. Uygulamayı yeniden kullanabilmeniz için Studio etkinleştirildi.",
+    "message": "WaveFlow, olası bir görünüm sorununun ardından güvenli modda başlatıldı. Uygulamayı yeniden kullanabilmen için Studio etkinleştirildi.",
     "saveFailed": "Kaydedilemedi. Yeniden dene."
   },
   "rendering": {
@@ -203,8 +203,8 @@
     "done": {
       "title": "WaveFlow'un hazır",
       "lede": "Kütüphanen yerinde. Keyifli dinlemeler!",
-      "ledeEmpty": "Müziğinizi istediğiniz zaman ekleyin: Ana sayfadan, kütüphaneden ya da bir klasörü pencereye sürükleyerek.",
-      "ledeFailed": "Tarama yarıda kaldı. Kütüphaneden yeniden başlatın: ayarlarınız kaydedildi.",
+      "ledeEmpty": "Müziğini istediğin zaman ekle: Ana sayfadan, kütüphaneden ya da bir klasörü pencereye sürükleyerek.",
+      "ledeFailed": "Tarama yarıda kaldı. Kütüphaneden yeniden başlat: ayarların kaydedildi.",
       "ledeScanning": "Tarama arka planda sürüyor: bulduklarını şimdiden dinleyebilirsin.",
       "firstSteps": "Ana sayfa'daki “İlk adımlar”, WaveFlow'un başka neler yapabildiğini gösterir.",
       "nothingYet": "Henüz parça yok: tarama şimdilik bir şey bulamadı.",
@@ -383,11 +383,11 @@
       },
       "chill": {
         "title": "Rahatlama",
-        "subtitle": "Gevşemek için hafif dinleme"
+        "subtitle": "Rahatlamak için hafif müzikler"
       },
       "workout": {
         "title": "Antrenman",
-        "subtitle": "Hareketi sürdürmek için kararlı tempo"
+        "subtitle": "Hareketi sürdürmek için düzenli tempo"
       },
       "party": {
         "title": "Parti",
@@ -415,7 +415,7 @@
         "vibe2": "Tam senin havanda",
         "vibe3": "Şu sıralar dinlediklerinle uyumlu",
         "unplayed1": "Hiç dinlenmedi",
-        "unplayed2": "Kitaplığında seni bekliyor",
+        "unplayed2": "Kütüphanende seni bekliyor",
         "unplayed3": "İlk kez dinle"
       },
       "reason": {
@@ -429,7 +429,7 @@
         "unplayedArtist1": "Sık dinlediğin sanatçı: {{artist}}",
         "unplayedArtist2": "{{artist}} sevdiğin bir sanatçı ama bunu henüz dinlemedin",
         "unplayedNew1": "{{date}} tarihinde eklendi, henüz dinlenmedi",
-        "unplayedNew2": "{{date}} tarihinden beri kitaplığında, hâlâ dinlenmedi"
+        "unplayedNew2": "{{date}} tarihinden beri kütüphanende, hâlâ dinlenmedi"
       },
       "play": "Dinle",
       "playAria": "{{title}} parçasını, ardından benzerlerini çal",
@@ -459,12 +459,12 @@
     "genreMix": {
       "label": "Tür miksi",
       "name": "{{name}} Miksi",
-      "description": "Kitaplığındaki en iyi {{name}} parçaları"
+      "description": "Kütüphanendeki en iyi {{name}} parçaları"
     },
     "decadeMix": {
       "label": "On yıl miksi",
-      "name": "{{decade}}'ler",
-      "description": "{{decade}}'lerden müziğin"
+      "name": "{{decade}} ile başlayan on yıl",
+      "description": "{{decade}} ile başlayan on yıldan müziklerin"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -489,7 +489,7 @@
       "tempo": "Tempo",
       "featuredKicker": "Hep buna dönüyorsun",
       "featuredCta": "Yeniden dinle",
-      "yourMixes": "Mixlerin",
+      "yourMixes": "Mikslerin",
       "leadKicker": "Son eklenen",
       "liked_zero": "0 favori",
       "liked_one": "{{count}} favori",
@@ -500,7 +500,7 @@
     },
     "releaseRadar": {
       "label": "Release Radar",
-      "description": "Sanatçılarınızın yeni çıkanları, kitaplığınızdan"
+      "description": "Sanatçılarının yeni çıkanları, kütüphanenden"
     }
   },
   "library": {
@@ -638,7 +638,7 @@
     },
     "yearList": {
       "unknown": "Bilinmeyen yıl",
-      "decade": "{{decade}} yılları"
+      "decade": "{{decade}} ile başlayan on yıl"
     },
     "folderList": {
       "trackCount_zero": "0 parça",
@@ -792,7 +792,7 @@
     "trackOnUnreachableShare": "Ağ paylaşımına erişilemiyor ve bu parça önbellekte değil",
     "quality": {
       "progress": "{{lossless}} kayıpsız dosyadan {{measured}} tanesi analiz edildi",
-      "noLossless": "Kitaplıkta kayıpsız dosya yok: ölçülecek bir şey yok.",
+      "noLossless": "Kütüphanede kayıpsız dosya yok: ölçülecek bir şey yok.",
       "status": {
         "running": "Analiz ediliyor: {{total}} dosyadan {{current}}",
         "starting": "Analiz başlıyor…",
@@ -827,8 +827,8 @@
       "empty": "Burada dosya yok.",
       "loadFailed": "Liste okunamadı.",
       "analyseAgain": "Yeniden analiz et",
-      "confirmAnalyse": "Yeniden tıklayın: her kayıpsız dosya yeniden çözülür",
-      "requested": "Analiz başladı. Durum çubuğundan izleyin.",
+      "confirmAnalyse": "Yeniden tıkla: her kayıpsız dosya yeniden çözülür",
+      "requested": "Analiz başladı. Durum çubuğundan izle.",
       "alreadyRunning": "Zaten bir analiz sürüyor.",
       "requestFailed": "Analiz başlatılamadı."
     }
@@ -1057,7 +1057,7 @@
       "empty": "Kayıt yok",
       "expand": "{{count}} kayıt daha göster",
       "collapse": "Daha az göster",
-      "breaking": "Kritik değişiklik"
+      "breaking": "Uyumluluğu bozan değişiklik"
     },
     "credits": {
       "text": "Tutkuyla tasarlandı ve geliştirildi. Açık kaynak teknolojilerle inşa edildi.",
@@ -1163,7 +1163,7 @@
       "basedOn": "Şuna dayalı: “{{title}}”"
     },
     "saveAsPlaylist": "Çalma listesi olarak kaydet",
-    "defaultPlaylistName": "{{date}} tarihli kuyruk"
+    "defaultPlaylistName": "{{date}} tarihli çalma sırası"
   },
   "deviceMenu": {
     "activeLabel": "Etkin çıkış",
@@ -1330,7 +1330,7 @@
     "smartLabel": "Daily Mix",
     "smartLabelCustom": "Akıllı çalma listesi",
     "placeholder": {
-      "missing": "Kitaplığınızda yok",
+      "missing": "Kütüphanende yok",
       "remove": "Çalma listesinden kaldır",
       "count_one": "{{count}} eksik",
       "count_other": "{{count}} eksik"
@@ -1426,7 +1426,7 @@
     "save": "Kaydet",
     "saving": "Kaydediliyor…",
     "saveFailed": "Kaydedilemedi: {{reason}}",
-    "fileChanged": "Bu pencere açıldıktan sonra dosya başka bir program tarafından değiştirildi. Bu değişikliklerin üzerine yazmamak için kaydetmeden önce değerleri yeniden yükleyin.",
+    "fileChanged": "Bu pencere açıldıktan sonra dosya başka bir program tarafından değiştirildi. Bu değişikliklerin üzerine yazmamak için kaydetmeden önce değerleri yeniden yükle.",
     "reloadFromFile": "Dosyadan yeniden yükle",
     "stampUnavailable": "Dosya diskte okunamıyor: taşınmış, silinmiş ya da erişilemez hâle gelmiş olabilir. Okunabilir olana kadar kaydetme devre dışı kalır.",
     "fields": {
@@ -1450,7 +1450,7 @@
     "bandwidthCutoff": "{{khz}} kHz'de kesiliyor",
     "bandwidthFake": "{{khz}} kHz'de kesiliyor — muhtemelen kayıplı bir dosyadan yapılmış",
     "spectrogram": {
-      "hint": "Parça boyunca tizlerin nerede kesildiğini görün. Dosyanın tamamı çözülür.",
+      "hint": "Parça boyunca tizlerin nerede kesildiğini gör. Dosyanın tamamı çözülür.",
       "show": "Spektrumu göster",
       "stop": "Durdur",
       "decoding": "Dosya çözülüyor",
@@ -1651,7 +1651,7 @@
     },
     "toggleNowPlayingPanel": "Şimdi Çalıyor panelini göster / gizle",
     "pipeline": {
-      "title": "Dosyadan kulağınıza",
+      "title": "Dosyandan kulağına",
       "openHint": "Ses zincirini ayrıntılı görüntüle",
       "bitPerfect": "Bit-perfect",
       "loading": "Yükleniyor…",
@@ -1668,7 +1668,7 @@
         "other": "{{value}} kanal"
       },
       "file": {
-        "title": "Dosyanız",
+        "title": "Dosyan",
         "lossless": "Kaydedilen her şey yerinde: yer kazanmak için hiçbir şey çıkarılmadı.",
         "lossy": "Daha az yer kaplaması için sıkıştırıldı: kulağın pek fark etmediği ayrıntılar çıkarıldı.",
         "dsd": "SACD'lerin biçimi: ses, çok hızlı tek bitlik bir akışla tanımlanır.",
@@ -1680,24 +1680,24 @@
           "body": "WaveFlow sesi dosyadan çıktığı gibi gönderir."
         },
         "dop": {
-          "title": "Yerel DSD",
-          "body": "DSD olduğu gibi gider: onu dönüştürücünüz kendisi çözer."
+          "title": "Doğrudan DSD",
+          "body": "DSD olduğu gibi gider: onu dönüştürücün kendisi çözer."
         },
         "dsdToPcm": {
           "title": "DSD dönüştürüldü",
-          "body": "Çıkışınız DSD'yi olduğu gibi almıyor: WaveFlow onu çıkışın okuyabildiği bir biçime, duyulur kayıp olmadan dönüştürür."
+          "body": "Çıkışın DSD'yi olduğu gibi almıyor: WaveFlow onu çıkışın okuyabildiği bir biçime, duyulur kayıp olmadan dönüştürür."
         },
         "resample": {
           "title": "Frekans uyarlandı",
-          "body": "Dosyanız {{source}}, çıkışınız {{output}} hızında çalışıyor: WaveFlow birinden diğerine duyulur kayıp olmadan dönüştürür."
+          "body": "Dosyan {{source}}, çıkışın {{output}} hızında çalışıyor: WaveFlow birinden diğerine duyulur kayıp olmadan dönüştürür."
         },
         "downmix": {
           "title": "Kanallar birleştirildi",
-          "body": "Dosyanız {{source}}, çıkışınız {{output}}: WaveFlow hiçbir şey eksik kalmasın diye kanalları karıştırır."
+          "body": "Dosyan {{source}}, çıkışın {{output}}: WaveFlow hiçbir şey eksik kalmasın diye kanalları karıştırır."
         },
         "eq": {
           "title": "Ekolayzer",
-          "body": "Bas, orta ve tiz ayarlarınıza göre düzenlenir."
+          "body": "Bas, orta ve tiz ayarlarına göre düzenlenir."
         },
         "replayGain": {
           "title": "Dengelenmiş ses düzeyi (ReplayGain)",
@@ -1743,7 +1743,7 @@
         "changes": "Sesi değiştirir"
       },
       "verdict": {
-        "bitPerfect": "Ses, çıkışınıza tam olarak dosyadaki gibi ulaşır.",
+        "bitPerfect": "Ses, çıkışına tam olarak dosyadaki gibi ulaşır.",
         "shared": "WaveFlow hiçbir şeyi değiştirmez; ancak sistem sesi hâlâ diğer uygulamalarınkiyle karıştırır."
       },
       "output": {
@@ -1779,7 +1779,7 @@
       "empty": "Bu parça için şarkı sözü yok"
     },
     "dragHandle": "Taşımak için sürükle · Boyutu ve konumu geri yüklemek için çift tıkla",
-    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini açın."
+    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini aç."
   },
   "window": {
     "minimize": "Simge durumuna küçült",
@@ -1810,11 +1810,11 @@
       "clear": "Sözleri temizle",
       "fullscreen": "Tam ekran",
       "edit": "Sözleri düzenle",
-      "cycleLocalization": "Ek okumayı değiştir",
+      "cycleLocalization": "Ek metni değiştir",
       "searchAnyway": "Yine de ara"
     },
     "localization": {
-      "off": "Ek okuma yok",
+      "off": "Ek metin yok",
       "romanization": "Romanizasyon gösteriliyor",
       "translation": "Çeviri gösteriliyor"
     },
@@ -1845,9 +1845,9 @@
     "share": {
       "open": "Alıntı paylaş",
       "title": "Şarkı sözlerinden alıntı paylaş",
-      "hint": "En fazla {{max}} satır seçin.",
+      "hint": "En fazla {{max}} satır seç.",
       "counter": "{{selected}} / {{max}}",
-      "empty": "Kartı görmek için bir satır seçin.",
+      "empty": "Kartı görmek için bir satır seç.",
       "previewAlt": "Kart önizlemesi",
       "linesLabel": "Şarkı sözü satırları",
       "eyebrow": "Şarkı sözleri"
@@ -1855,33 +1855,33 @@
   },
   "duplicates": {
     "title": "Yinelenenler algılandı",
-    "summary": "{{groups}} grup · silinecek {{duplicates}} yineleme",
+    "summary": "{{groups}} grup · silinecek {{duplicates}} kopya",
     "scanning": "Taranıyor…",
-    "empty": "Yineleme yok",
+    "empty": "Yinelenen dosya yok",
     "emptyHint": "Kütüphanen temiz.",
     "rescan": "Yeniden tara",
     "trashOthers_zero": "Taşınacak bir şey yok",
-    "trashOthers_one": "{{count}} yinelemeyi çöp kutusuna taşı",
-    "trashOthers_other": "{{count}} yinelemeyi çöp kutusuna taşı",
+    "trashOthers_one": "{{count}} kopyayı çöp kutusuna taşı",
+    "trashOthers_other": "{{count}} kopyayı çöp kutusuna taşı",
     "keepAria": "{{title}} parçasını tut",
     "confirmTitle": "Bu dosyalar çöp kutusuna taşınsın mı?",
-    "confirmBody": "Bu kopyalar sisteminizin çöp kutusuna gidecek; oradan hâlâ geri yükleyebilirsiniz. Her grupta tuttuğunuz kopya yerinde kalır.",
+    "confirmBody": "Bu kopyalar sisteminin çöp kutusuna gidecek; oradan hâlâ geri yükleyebilirsin. Her grupta tuttuğun kopya yerinde kalır.",
     "confirmAction": "Çöp kutusuna taşı",
     "trashed": "Çöp kutusuna taşındı: {{count}}",
     "notTrashed": "Taşınamadı: {{count}}",
     "reasonPlaying": "şu anda çalıyor",
     "reasonRowKept": "çöp kutusuna taşındı, ancak sonraki taramaya kadar listede kalıyor ({{message}})",
-    "reasonKeptCopyGone": "tuttuğunuz kopya yok ya da artık aynı değil, bu yüzden bu kopya kalıyor",
-    "reasonMissing": "dosya yerinde değil (silinmiş ya da bağlı olmayan bir sürücüde); sonraki tarama kitaplığı güncelleyecek"
+    "reasonKeptCopyGone": "tuttuğun kopya yok ya da artık aynı değil, bu yüzden bu kopya kalıyor",
+    "reasonMissing": "dosya yerinde değil (silinmiş ya da bağlı olmayan bir sürücüde); sonraki tarama kütüphaneyi güncelleyecek"
   },
   "dragDrop": {
     "play": {
       "title": "Şimdi çal",
-      "hint": "Kitaplığa eklemeden"
+      "hint": "Kütüphaneye eklemeden"
     },
     "import": {
-      "title": "Kitaplığa ekle",
-      "hint": "Müziğinizin WaveFlow klasörüne kopyalandı"
+      "title": "Kütüphaneye ekle",
+      "hint": "Müzik klasöründeki WaveFlow klasörüne kopyalandı"
     }
   },
   "abLoop": {
@@ -2009,7 +2009,7 @@
   "lyricsEditor": {
     "title": "Şarkı sözü düzenleyicisi",
     "exportToFile": "Dosyaya kaydet…",
-    "exportToFileHint": "Sözleri seçilen biçimde (.ttml, .lrc veya .txt) istediğiniz yere dışa aktarır, ses dosyasına dokunmaz",
+    "exportToFileHint": "Sözleri seçilen biçimde (.ttml, .lrc veya .txt) istediğin yere dışa aktarır, ses dosyasına dokunmaz",
     "exportedToFile": "{{path}} konumuna aktarıldı",
     "destinationLabel": "Varsayılan şarkı sözü hedefi",
     "destination": {
@@ -2034,7 +2034,7 @@
     },
     "undo": "Geri al (Ctrl+Z)",
     "redo": "Yinele (Ctrl+Shift+Z)",
-    "otherTrackPlaying": "Çalan parça, sözlerini düzenlediğiniz parça değil: eşitleme ve önizleme oynatıcıyı izler.",
+    "otherTrackPlaying": "Çalan parça, sözlerini düzenlediğin parça değil: eşitleme ve önizleme oynatıcıyı izler.",
     "formatLabel": "Biçim",
     "format": {
       "ttml": "TTML",
@@ -2073,7 +2073,7 @@
         "languagePlaceholder": "tr, en, ja…"
       },
       "singers": "Şarkıcılar",
-      "singersHint": "Tek ses. Düet için şarkıcı ekleyin.",
+      "singersHint": "Tek ses. Düet için şarkıcı ekle.",
       "singerName": "Şarkıcı adı",
       "singerKind": "Tek başına veya birlikte",
       "kind": {
@@ -2082,7 +2082,7 @@
       },
       "removeSinger": "Bu şarkıcıyı kaldır",
       "addSinger": "Şarkıcı ekle",
-      "textPlaceholder": "Sözleri buraya yapıştırın, her satıra bir satır.\nBoş satırlar yok sayılır.",
+      "textPlaceholder": "Şarkı sözlerini her dize ayrı bir satırda olacak şekilde buraya yapıştır.\nBoş satırlar yok sayılır.",
       "useText": "Bu satırları kullan",
       "useTextKeepsTiming": "Değiştirilmeyen satırlar eşitlemesini korur.",
       "addLine": "Satır ekle",
@@ -2090,7 +2090,7 @@
       "linePlaceholder": "Satır metni",
       "lineLabel": "Satır {{n}}",
       "badge": {
-        "background": "vokal",
+        "background": "arka vokal",
         "translation": "çev.",
         "romanization": "lat."
       },
@@ -2104,7 +2104,7 @@
       "backgroundPlaceholder": "(bu satırın üzerine söylenen)",
       "translation": "Çeviri",
       "translationLang": "dil",
-      "romanization": "Latin harfleri"
+      "romanization": "Latin harfleriyle yazım"
     },
     "sync": {
       "modeLabel": "Eşitle",
@@ -2138,7 +2138,7 @@
         "seek": "2 sn geri / ileri",
         "line": "satır seç"
       },
-      "empty": "Henüz söz yok. Düzenle adımında yazın veya yapıştırın.",
+      "empty": "Henüz söz yok. Düzenle adımında yaz veya yapıştır.",
       "emptyLine": "boş satır",
       "notTimed": "Henüz eşitlenmedi",
       "nudgeEarlier": "{{ms}} ms erken",
@@ -2148,7 +2148,7 @@
     "preview": {
       "hiddenLines": "Henüz eşitlenmemiş satırlar, burada gizli: {{n}}",
       "writing": "Önizleme hazırlanıyor…",
-      "nothingSynced": "Burada akışını görmek için Eşitle adımında birkaç satır eşitleyin."
+      "nothingSynced": "Burada akışını görmek için Eşitle adımında birkaç satır eşitle."
     }
   },
   "sort": {
@@ -2198,7 +2198,7 @@
     },
     "plugins": {
       "title": "Yüklü eklentiler",
-      "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen uzantıları yönet.",
+      "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen eklentileri yönet.",
       "loading": "Yükleniyor…",
       "emptyTitle": "Yüklü eklenti yok",
       "emptyHint": "Yukarıdaki mağazadan bir tane yükle veya eklenti klasörüne bir klasör bırak.",
@@ -2269,7 +2269,7 @@
         "toggleQueue": "Sıra panelini aç/kapat",
         "toggleNowPlaying": "“Şimdi çalıyor” panelini aç/kapat",
         "toggleLyrics": "Söz panelini aç/kapat",
-        "toggleLike": "Mevcut parçayı beğen / beğenme",
+        "toggleLike": "Mevcut parçayı beğen / beğenilerden çıkar",
         "focusSearch": "Aramaya git",
         "toggleFullscreen": "Tam ekran",
         "openFiles": "Dosyaları içe aktarmadan çal",
@@ -2317,11 +2317,11 @@
         "subtitle": "WaveFlow'u herhangi bir MPD istemcisinden yönet: telefon kumandası, terminal veya durum çubuğu",
         "port": "Bağlantı noktası",
         "portHint": "Varsayılan 6600",
-        "password": "Şifre",
+        "password": "Parola",
         "passwordPlaceholder": "Yok",
-        "passwordHint": "İsteğe bağlı. Paylaşılan bir ağda önerilir — MPD protokolü şifreyi düz metin olarak gönderir.",
+        "passwordHint": "İsteğe bağlı. Paylaşılan bir ağda önerilir — MPD protokolü parolayı düz metin olarak gönderir.",
         "lanWarning": "Tüm yerel ağından erişilebilir: ağdaki herkes oynatmayı kontrol edebilir.",
-        "lanWarningAuth": "Tüm yerel ağından erişilebilir, ancak oynatma kontrolü belirlediğin şifreyi gerektirir.",
+        "lanWarningAuth": "Tüm yerel ağından erişilebilir, ancak oynatma kontrolü belirlediğin parolayı gerektirir.",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
         "copyAddress": "Adresi kopyala",
@@ -2330,7 +2330,7 @@
         "suggestGenerate": "Parola oluştur",
         "suggestChoose": "Kendim seçeyim",
         "suggestDismiss": "Şimdi değil",
-        "generatedHint": "Parola kaydedildi: MPD istemcinize girin.",
+        "generatedHint": "Parola kaydedildi: MPD istemcine gir.",
         "showPassword": "Parolayı göster",
         "hidePassword": "Parolayı gizle",
         "saveFailed": "MPD sunucusu ayarları kaydedilemedi: hiçbir şey değiştirilmedi."
@@ -2341,9 +2341,9 @@
       },
       "listenbrainz": {
         "subtitle": "Dinlemelerini ve şu an çalanı açık dinleme kaydı ListenBrainz'e gönder.",
-        "tokenPrompt": "ListenBrainz hesabındaki kullanıcı jetonunu yapıştır.",
-        "getToken": "Jetonumu bul",
-        "tokenPlaceholder": "Kullanıcı jetonu"
+        "tokenPrompt": "ListenBrainz hesabındaki kullanıcı belirtecini yapıştır.",
+        "getToken": "Belirtecimi bul",
+        "tokenPlaceholder": "Kullanıcı belirteci"
       }
     },
     "crossfade": {
@@ -2388,10 +2388,10 @@
       "title": "Özel çıkış",
       "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır. Aygıt reddederse paylaşımlı moda döner.",
       "fallback": "Aygıt özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor.",
-      "fallbackBusy": "Başka bir uygulama bu cihazı zaten özel modda kullanıyor. Onu kapatıp yeniden çalın.",
-      "fallbackNotAllowed": "Windows bu cihazda özel modu yasaklıyor. Gelişmiş özelliklerde (Ses ayarları) “Uygulamaların bu cihazın özel denetimini almasına izin ver” seçeneğini açın.",
+      "fallbackBusy": "Başka bir uygulama bu cihazı zaten özel modda kullanıyor. Onu kapatıp yeniden çal.",
+      "fallbackNotAllowed": "Windows bu cihazda özel modu yasaklıyor. Gelişmiş özelliklerde (Ses ayarları) “Uygulamaların bu cihazın özel denetimini almasına izin ver” seçeneğini aç.",
       "fallbackFormat": "Cihaz özel modda kullanılabilecek bir biçim sunmuyor. Paylaşılan moda dönüldü.",
-      "hardwareVolume": "Sistem ses düzeyi artık uygulanmaz: aygıt kendi donanım düzeyinde çalar. Ses çok kısıksa bu düzeyi sistem karıştırıcısından yükseltin."
+      "hardwareVolume": "Sistem ses düzeyi artık uygulanmaz: aygıt kendi donanım düzeyinde çalar. Ses çok kısıksa bu düzeyi sistem karıştırıcısından yükselt."
     },
     "matchSourceRate": {
       "title": "Her parçanın örnekleme hızını kullan",
@@ -2496,13 +2496,13 @@
         "origin": "{{date}} tarihinde WaveFlow {{version}} ile dışa aktarıldı.",
         "loading": "Arşiv okunuyor…",
         "unreadable": "Bu dosya okunamıyor: hasarlı ya da bir WaveFlow profil arşivi değil.",
-        "failed": "Arşiv okunamadı. Ayrıntılar için günlüğe bakın.",
-        "newer": "Bu arşiv WaveFlow'un daha yeni bir sürümünden geliyor. İçe aktarmak için WaveFlow'u güncelleyin.",
+        "failed": "Arşiv okunamadı. Ayrıntılar için günlüğe bak.",
+        "newer": "Bu arşiv WaveFlow'un daha yeni bir sürümünden geliyor. İçe aktarmak için WaveFlow'u güncelle.",
         "differentBuild": "Bu arşiv, veritabanı bundan farklı olan başka bir WaveFlow sürümünden geliyor: içe aktarılamaz.",
         "unsupported": "Bu arşivin biçimi artık desteklenmiyor.",
         "schema": "Veritabanı sürümü: {{archive}} (bu uygulama: {{local}}).",
         "schemaUnknown": "Veritabanı sürümü bilinmiyor (bu uygulama: {{local}}).",
-        "asNewProfile": "Yeni bir profil olarak içe aktarılır: mevcut profilleriniz olduğu gibi kalır.",
+        "asNewProfile": "Yeni bir profil olarak içe aktarılır: mevcut profillerin olduğu gibi kalır.",
         "cancel": "İptal",
         "import": "İçe aktar",
         "rows": {
@@ -2511,7 +2511,7 @@
           "smartPlaylists": "Akıllı çalma listeleri",
           "likedTracks": "Beğenilen parçalar",
           "plays": "Dinlemeler",
-          "libraryFolders": "Kitaplık klasörleri",
+          "libraryFolders": "Kütüphane klasörleri",
           "settings": "Ayarlar",
           "covers": "Özel kapaklar",
           "coverCache": "Önbellekteki kapaklar",
@@ -2798,7 +2798,7 @@
           "amber": "Kehribar",
           "lime": "Limon yeşili",
           "green": "Yeşil",
-          "teal": "Çamurcun",
+          "teal": "Mavi yeşil",
           "sky": "Gök mavisi",
           "blue": "Mavi",
           "violet": "Mor",
@@ -2844,7 +2844,7 @@
       "legend": "Wrapped afişi görünürlüğü",
       "seasonActive": "Wrapped sezonu sürüyor — afiş görünür durumda.",
       "seasonIdle": "Sezon dışı — afiş 1 Aralık'ta otomatik olarak geri dönecek.",
-      "dismissed": "{{year}} özetini Ana sayfadan kapattınız.",
+      "dismissed": "{{year}} özetini Ana sayfadan kapattın.",
       "showAgain": "Yeniden göster",
       "modes": {
         "auto": {
@@ -3036,7 +3036,7 @@
     },
     "motionCovers": {
       "title": "Hareketli kapakları göster",
-      "subtitle": "Çalan parçanın arkasındaki hareketli albüm kapakları; bir eklentiden gelsin ya da sizin seçtiğiniz olsun. Kapalıyken hiçbir eklentiye sorulmaz."
+      "subtitle": "Çalan parçanın arkasındaki hareketli albüm kapakları; bir eklentiden gelsin ya da senin seçtiğin olsun. Kapalıyken hiçbir eklentiye sorulmaz."
     },
     "artistHero": {
       "title": "Sanatçı afişi",
@@ -3306,7 +3306,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
-      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğunuz yerde kalır. Bunun için Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini açın.",
+      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğun yerde kalır. Bunun için Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini aç.",
       "previewSung": "Şarkıyı izleyen",
       "previewUnsung": "sözler",
       "fontSize": "Metin boyutu",
@@ -3323,7 +3323,7 @@
     },
     "testTone": {
       "title": "Çıkışı test et",
-      "subtitle": "Çıkışın gerçek biçiminde önce solda, sonra sağda, sonra her iki tarafta bir bip çalar. Çalan parça kenara alınır ve Oynat ile geri gelir.",
+      "subtitle": "Çıkışın gerçek biçiminde önce solda, sonra sağda, sonra her iki tarafta bir bip çalar. Çalan parça kenara alınır ve Çal ile geri gelir.",
       "play": "Test sesini çal",
       "playing": "Çalıyor…",
       "left": "Sol",
@@ -3344,7 +3344,7 @@
       "sharedNote": "Paylaşımlı modda sistem karıştırıcısı bu biçimi ardından cihazın kendi biçimine dönüştürür.",
       "monoNote": "Mono çıkış açık: her bip iki taraftan da gelir.",
       "surroundNote": "Surround çıkış: her hoparlör sırayla bip sesi verir, subwoofer düşük bir tonla.",
-      "swapped": "Sol bip sağdan mı geldi? Kanallar ters: bağlantıyı veya sistemin hoparlör ayarlarını kontrol edin.",
+      "swapped": "Sol bip sağdan mı geldi? Kanallar ters: bağlantıyı veya sistemin hoparlör ayarlarını kontrol et.",
       "interrupted": "Test kesildi.",
       "failed": "Test sesi çalınamadı: {{message}}",
       "format": {
@@ -3362,7 +3362,7 @@
       "subtitle": "Wayland'de bileşimci \"her zaman üstte\" isteğini yok sayar ve pencerelerin yerine kendisi karar verir. XWayland üzerinden mini oynatıcı ve masaüstü şarkı sözleri üstte ve yerinde kalır; kesirli ölçeklemede metin biraz daha az net olabilir.",
       "nextStart": "WaveFlow bir sonraki açılışında geçerli olur.",
       "active": "Açık: WaveFlow XWayland üzerinden çalışıyor.",
-      "setByUser": "Ortamınızdaki GDK_BACKEND değişkeni tarafından belirleniyor."
+      "setByUser": "Ortamındaki GDK_BACKEND değişkeni tarafından belirleniyor."
     },
     "modified": {
       "count_one": "{{count}} değiştirildi",
@@ -3373,7 +3373,7 @@
         "title": "“{{category}}” sıfırlansın mı?",
         "body_one": "Bu ayar varsayılan değerine döner:",
         "body_other": "Bu {{count}} ayar varsayılan değerlerine döner:",
-        "untouched": "Hesaplar, kitaplık klasörleri, eklentiler ve yedekler değişmez.",
+        "untouched": "Hesaplar, kütüphane klasörleri, eklentiler ve yedekler değişmez.",
         "cancel": "İptal",
         "confirm": "Sıfırla",
         "failed_one": "{{count}} ayar sıfırlanamadı.",
@@ -3382,12 +3382,12 @@
     },
     "autoplay": {
       "title": "Otomatik oynatma",
-      "subtitle": "Sıra tekrar kapalıyken bittiğinde kitaplığınızdan benzer parçalar ekleyip çalmaya devam eder"
+      "subtitle": "Sıra tekrar kapalıyken bittiğinde kütüphanenden benzer parçalar ekleyip çalmaya devam eder"
     },
     "stereoImage": {
       "balance": {
         "title": "Denge",
-        "subtitle": "Karşı kanalı kısar; kaydırdığınız taraf asla yükseltilmez",
+        "subtitle": "Karşı kanalı kısar; kaydırdığın taraf asla yükseltilmez",
         "center": "Orta",
         "left": "S %{{value}}",
         "right": "Sğ %{{value}}",
@@ -3416,14 +3416,14 @@
       "failed": "Disk alanı ölçülemedi.",
       "rebuildableTitle": "Kendini yeniden oluşturur",
       "rebuildableHint": "Boşaltmak hiçbir şey kaybettirmez: bu dosyalar gerektiğinde yeniden alınır.",
-      "keptTitle": "Verileriniz",
+      "keptTitle": "Verilerin",
       "keptHint": "Buradakilerin hiçbiri kendini yeniden oluşturmaz: her öğe kendi bölümünden yönetilir.",
       "empty": "Boşalt",
       "confirmEmpty": "Onayla",
       "emptyLabel": "Boşalt: {{item}}",
       "items": {
         "artwork": {
-          "label": "Kitaplık kapakları",
+          "label": "Kütüphane kapakları",
           "description": "Bu profilin albüm kapakları ve küçük resimleri. Kullanılmayan kapaklar “{{section}}” bölümünden kaldırılır."
         },
         "metadataArtwork": {
@@ -3440,7 +3440,7 @@
         },
         "remoteArtwork": {
           "label": "Sunucu kapakları",
-          "description": "Sunucunuzdan gelen küçük resimler, gerektiğinde yeniden indirilir."
+          "description": "Sunucundan gelen küçük resimler, gerektiğinde yeniden indirilir."
         },
         "remoteStream": {
           "label": "Önbellekteki sunucu parçaları",
@@ -3448,15 +3448,15 @@
         },
         "remoteDownloads": {
           "label": "Çevrimdışı sunucu parçaları",
-          "description": "Çevrimdışı tutmayı seçtikleriniz. Parçadan veya albümden kaldırılır."
+          "description": "Çevrimdışı tutmayı seçtiklerin. Parçadan veya albümden kaldırılır."
         },
         "manualMedia": {
           "label": "Elle seçilen medya",
-          "description": "Kendiniz belirlediğiniz hareketli kapaklar ve Canvas klipleri."
+          "description": "Kendi belirlediğin hareketli kapaklar ve Canvas klipleri."
         },
         "databases": {
           "label": "Veritabanları",
-          "description": "Tüm profillerin kitaplığı, çalma listeleri, geçmişi ve ayarları."
+          "description": "Tüm profillerin kütüphanesi, çalma listeleri, geçmişi ve ayarları."
         },
         "databaseSnapshots": {
           "label": "Yükseltme öncesi kopyalar",
@@ -3476,42 +3476,42 @@
         },
         "podcastDownloads": {
           "label": "İndirilen podcast bölümleri",
-          "description": "Bu bilgisayarda tutmayı seçtikleriniz. Bölümün kendisinden kaldırılır."
+          "description": "Bu bilgisayarda tutmayı seçtiklerin. Bölümün kendisinden kaldırılır."
         }
       },
       "confirmEmptyLabel": "Boşaltmayı onayla: {{item}}",
-      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden deneyin.",
+      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden dene.",
       "atLeast": "en az {{size}}",
       "incomplete": "Bir klasör tamamen okunamadı: gerçek boyut daha büyük."
     },
     "globalShortcuts": {
-      "subtitle": "WaveFlow arka planda olsa bile çalmayı herhangi bir uygulamadan kontrol edin. Siz tanımlayana kadar hiçbiri etkin değildir.",
-      "captureHelp": "Ctrl, Alt veya Windows / Cmd tuşunu bir tuşla birleştirin ya da F13–F24 tuşlarını tek başına kullanın. Bir kombinasyona bastığınızda hiçbir şey olmuyorsa, onu zaten başka bir uygulama tutuyordur.",
+      "subtitle": "WaveFlow arka planda olsa bile çalmayı herhangi bir uygulamadan kontrol et. Sen tanımlayana kadar hiçbiri etkin değildir.",
+      "captureHelp": "Ctrl, Alt veya Windows / Cmd tuşunu bir tuşla birleştir ya da F13–F24 tuşlarını tek başına kullan. Bir kombinasyona bastığında hiçbir şey olmuyorsa, onu zaten başka bir uygulama tutuyordur.",
       "clearAll": "Tümünü temizle",
       "backend": {
-        "portal": "Wayland'de masaüstünüz her değişikliği kendi penceresinde onaylar ve farklı bir kombinasyon atayabilir: seçtiği kombinasyon eylemin altında gösterilir.",
-        "unavailable": "Bu Wayland oturumunda kullanılamıyor: masaüstü genel kısayollar portalını sunmuyor. Klavyenizin medya tuşları çalışmaya devam eder."
+        "portal": "Wayland'de masaüstün her değişikliği kendi penceresinde onaylar ve farklı bir kombinasyon atayabilir: seçtiği kombinasyon eylemin altında gösterilir.",
+        "unavailable": "Bu Wayland oturumunda kullanılamıyor: masaüstü genel kısayollar portalını sunmuyor. Klavyenin medya tuşları çalışmaya devam eder."
       },
       "states": {
         "taken": "Zaten başka bir uygulama tarafından kullanılıyor.",
         "refused": "Sistem bu kombinasyonu reddetti (ayrılmış veya zaten alınmış).",
-        "dismissed": "Masaüstünüzün penceresinde onaylanmadı.",
+        "dismissed": "Masaüstünün penceresinde onaylanmadı.",
         "unavailable": "Bu oturumda kullanılamıyor.",
         "invalid": {
-          "empty": "Değiştirici tuşlarla birlikte bir tuşa basın.",
+          "empty": "Değiştirici tuşlarla birlikte bir tuşa bas.",
           "unsupportedKey": "Bu tuş genel kısayol olarak kullanılamaz.",
-          "needsModifier": "Ctrl, Alt veya Windows / Cmd tuşunu ekleyin: yalnızca F13–F24 tek başına çalışır."
+          "needsModifier": "Ctrl, Alt veya Windows / Cmd tuşunu ekle: yalnızca F13–F24 tek başına çalışır."
         }
       },
       "rejected": "{{combo}} kaydedilmedi: {{reason}}",
-      "assigned": "Masaüstünüzün atadığı: {{trigger}}",
-      "waitingForDesktop": "Masaüstünde onaylayın…",
+      "assigned": "Masaüstünün atadığı: {{trigger}}",
+      "waitingForDesktop": "Masaüstünde onayla…",
       "registering": "Kaydediliyor…"
     },
     "enrichment": {
-      "title": "Kitaplık zenginleştirme",
-      "subtitle": "Türleri, çıkış tarihlerini, katkıda bulunanları ve eksik kapakları MusicBrainz'den tamamlar. Yalnızca WaveFlow veritabanı değişir, dosyalarınız asla.",
-      "policy": "Kesin bir eşleşme kendiliğinden ve yalnızca eksik bir şey olan yerde uygulanır. Şüpheli albümler ve tüm sanatçılar incelemenizi bekler.",
+      "title": "Kütüphane zenginleştirme",
+      "subtitle": "Türleri, çıkış tarihlerini, katkıda bulunanları ve eksik kapakları MusicBrainz'den tamamlar. Yalnızca WaveFlow veritabanı değişir, dosyaların asla.",
+      "policy": "Kesin bir eşleşme kendiliğinden ve yalnızca eksik bir şey olan yerde uygulanır. Şüpheli albümler ve tüm sanatçılar incelemeni bekler.",
       "fieldsTitle": "Neler tamamlanır",
       "run": "Şimdi çalıştır",
       "stop": "Durdur",
@@ -3542,7 +3542,7 @@
     },
     "whatsNew": {
       "title": "Yenilikler",
-      "subtitle": "Bu sürümde nelerin değiştiğini yeniden görün.",
+      "subtitle": "Bu sürümde nelerin değiştiğini yeniden gör.",
       "action": "Aç",
       "autoOpen": {
         "title": "Güncellemeden sonra yenilikleri göster",
@@ -3550,12 +3550,12 @@
       },
       "button": {
         "title": "Üst çubukta Yenilikler düğmesi",
-        "subtitle": "Gizliyken panele buradan ve Hakkında'dan ulaşabilirsiniz."
+        "subtitle": "Gizliyken panele buradan ve Hakkında'dan ulaşabilirsin."
       }
     },
     "networkLibrary": {
       "title": "Ağ paylaşımları (WebDAV, SMB)",
-      "subtitle": "Bir paylaşımı, sistem bağlamadan doğrudan okuyun. WaveFlow yalnızca okur: oradaki dosyalar asla değiştirilmez.",
+      "subtitle": "Bir paylaşımı, sistem bağlamadan doğrudan oku. WaveFlow yalnızca okur: oradaki dosyalar asla değiştirilmez.",
       "add": "Paylaşım ekle",
       "addConfirm": "Ekle ve tara",
       "cancel": "İptal",
@@ -3597,7 +3597,7 @@
         "session-refused": "Bu sunucu parolayı değerlendirmeden oturumu reddetti. Bu hesabın erişimi olmayabilir veya sunucu bu bağlantının kullanamadığı bir şifreleme gerektiriyor olabilir.",
         "not-found": "Bu paylaşım veya klasör mevcut değil.",
         "protocol": "Bu sunucu bir paylaşım gibi yanıt vermiyor.",
-        "plain-http": "Bir http:// adresi aşağıda onayınızı gerektirir."
+        "plain-http": "Bir http:// adresi aşağıda onayını gerektirir."
       },
       "testOk_one": "Bağlandı: bu klasörde {{count}} öğe.",
       "testOk_other": "Bağlandı: bu klasörde {{count}} öğe.",
@@ -3633,18 +3633,18 @@
       },
       "resampling": {
         "term": "Yeniden örnekleme",
-        "body": "Çıkışınız dosyanın frekansında çalışmadığında WaveFlow birini diğerine dönüştürür. İyi yapıldığında duyulmaz."
+        "body": "Çıkışın dosyanın frekansında çalışmadığında WaveFlow birini diğerine dönüştürür. İyi yapıldığında duyulmaz."
       },
       "replayGain": {
         "term": "ReplayGain",
-        "body": "Her parçanın ses yüksekliğinin ölçüsü; dosyadan okunur ya da WaveFlow tarafından hesaplanır. Açıkken parçadan parçaya ses düzeyini ayarlamanız gerekmez ve sesin geri kalanı değişmez."
+        "body": "Her parçanın ses yüksekliğinin ölçüsü; dosyadan okunur ya da WaveFlow tarafından hesaplanır. Açıkken parçadan parçaya ses düzeyini ayarlaman gerekmez ve sesin geri kalanı değişmez."
       },
       "exclusive": {
         "term": "Özel mod",
         "body": "Normalde sistem tüm uygulamaların seslerini karıştırır. Özel modda WaveFlow çıkışı ayırır: sistem sese artık dokunmaz, ancak diğer uygulamalar bu çıkıştan duyulmaz."
       },
-      "stripShown": "Oynatıcının altındaki ses kalitesi şeridi bu kavramları çalan parçaya uygular: WaveFlow'un onunla ne yaptığını görmek için üzerine gelin.",
-      "stripHidden": "Ses kalitesi şeridi bu kavramları çalan parçaya uygular. Onu oynatıcının altında gösterin, ardından WaveFlow'un ne yaptığını görmek için üzerine gelin.",
+      "stripShown": "Oynatıcının altındaki ses kalitesi şeridi bu kavramları çalan parçaya uygular: WaveFlow'un onunla ne yaptığını görmek için üzerine gel.",
+      "stripHidden": "Ses kalitesi şeridi bu kavramları çalan parçaya uygular. Onu oynatıcının altında göster, ardından WaveFlow'un ne yaptığını görmek için üzerine gel.",
       "showStrip": "Ses kalitesi şeridini göster"
     }
   },
@@ -3708,7 +3708,7 @@
       "title": "İstasyon ekle",
       "renameTitle": "İstasyonu yeniden adlandır",
       "rename": "{{name}} adını değiştir",
-      "help": "Yayının ya da bir .m3u / .pls listesinin adresini yapıştırın veya böyle bir dosya açın. İstasyon favorilerinize eklenir.",
+      "help": "Yayının ya da bir .m3u / .pls listesinin adresini yapıştır veya böyle bir dosya aç. İstasyon favorilerine eklenir.",
       "urlLabel": "Yayın adresi",
       "openFile": ".m3u / .pls dosyası aç",
       "nameLabel": "Ad",
@@ -3723,7 +3723,7 @@
         "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
         "hls": "Bu HLS akışı WaveFlow'un çalamadığı bir biçim kullanıyor (şifreleme, parçalı MP4 veya bayt aralıkları).",
         "noStream": "Listede http:// ya da https:// yayını yok.",
-        "notSaved": "Favorileriniz henüz yüklenmedi; birazdan yeniden deneyin."
+        "notSaved": "Favorilerin henüz yüklenmedi; birazdan yeniden dene."
       }
     }
   },
@@ -3732,7 +3732,7 @@
     "subtitle": "{{name}} için özel biyografi ve benzer sanatçılar.",
     "bio": {
       "label": "Özel biyografi",
-      "reset": "Çevrimiçine sıfırla",
+      "reset": "Çevrimiçi biyografiye dön",
       "placeholder": "Bir biyografi yaz. Çevrimiçi alınanı kullanmak için boş bırak.",
       "help": "Last.fm / TheAudioDB biyografisinin yerini alır. Çevrimdışı çalışır."
     },
@@ -4009,10 +4009,10 @@
       "upload": "Yükleme",
       "backup": "Yedekleme",
       "thumbnails": "Kapak önizlemeleri",
-      "drop_import": "Kitaplığa kopyalama",
+      "drop_import": "Kütüphaneye kopyalama",
       "cache_move": "Önbellekler taşınıyor",
       "spectrogram": "Parça spektrumu",
-      "enrichment": "Kitaplık zenginleştirme",
+      "enrichment": "Kütüphane zenginleştirme",
       "release_radar": "Release Radar",
       "tag_workshop": "Etiket atölyesi",
       "podcast_refresh": "Podcast yenileme",
@@ -4112,8 +4112,8 @@
   "queueToast": {
     "playNext_one": "{{count}} parça sıradaki olarak çalacak",
     "playNext_other": "{{count}} parça sıradaki olarak çalacak",
-    "added_one": "{{count}} parça kuyruğa eklendi",
-    "added_other": "{{count}} parça kuyruğa eklendi"
+    "added_one": "{{count}} parça sıraya eklendi",
+    "added_other": "{{count}} parça sıraya eklendi"
   },
   "ratingNotice": {
     "notInFile": "Puan yalnızca WaveFlow'a kaydedildi: dosyaya yazılamadı."
@@ -4136,7 +4136,7 @@
   },
   "replaceFile": {
     "title": "Dosyayı değiştir",
-    "pickTitle": "Daha iyi kopyayı seçin",
+    "pickTitle": "Daha iyi kopyayı seç",
     "checking": "Dosya denetleniyor…",
     "current": "Geçerli dosya",
     "replacement": "Yeni dosya",
@@ -4148,47 +4148,47 @@
     "keptAside": "Değiştirildi, ancak eski dosya çöp kutusuna gönderilemedi. Şurada tutuluyor: {{path}}.",
     "bits": "{{value}} bit",
     "refusals": {
-      "playing": "Bu parça çalıyor. Önce durdurun.",
+      "playing": "Bu parça çalıyor. Önce durdur.",
       "sameFile": "Bu, parçanın kendi dosyası.",
       "notAudio": "Bu dosya oynatıcının okuyabileceği bir ses değil.",
       "durationMismatch": "Süreler farklı ({{current}} ile {{replacement}}): muhtemelen başka bir kayıt ya da sürüm.",
       "targetTaken": "Başka bir dosya zaten {{path}} adını taşıyor."
     },
-    "adopts": "Bu dosya kitaplıkta zaten ayrı bir parça olarak var. O kayıt kısa geçmişiyle birlikte kaldırılır ve bu parça dosyasını devralır."
+    "adopts": "Bu dosya kütüphanede zaten ayrı bir parça olarak var. O kayıt kısa geçmişiyle birlikte kaldırılır ve bu parça dosyasını devralır."
   },
   "openToPlay": {
     "files": "Dosyaları çal…",
     "folder": "Bir klasörü çal…",
-    "filesTitle": "Çalınacak dosyaları seçin",
-    "folderTitle": "Çalınacak klasörü seçin",
+    "filesTitle": "Çalınacak dosyaları seç",
+    "folderTitle": "Çalınacak klasörü seç",
     "filterName": "Ses dosyaları"
   },
   "importNotice": {
     "dropped": {
-      "title": "Kitaplığa eklendi",
+      "title": "Kütüphaneye eklendi",
       "titleNothing": "Eklenecek yeni bir şey yok",
       "copied": "Kopyalanan dosyalar: {{n}}",
       "alreadyCopied": "Daha önce kopyalanmış: {{n}}",
-      "inLibrary": "Zaten kitaplıkta, atlandı: {{n}}",
-      "refused": "Bir kitaplık klasörü içerdiği için reddedilen klasörler: {{n}}",
+      "inLibrary": "Zaten kütüphanede, atlandı: {{n}}",
+      "refused": "Bir kütüphane klasörü içerdiği için reddedilen klasörler: {{n}}",
       "errors": "Başarısız kopyalar: {{n}}",
-      "truncated": "Sınıra ulaşıldı: kalanını birkaç seferde bırakın.",
+      "truncated": "Sınıra ulaşıldı: kalanını birkaç seferde bırak.",
       "cancelled": "Kopyalama durduruldu; zaten kopyalananlar eklendi."
     },
     "overlap": {
       "title": "Klasör zaten kapsanıyor",
-      "same": "Bu klasör zaten kitaplıkta: {{folder}}",
-      "inside": "Bu klasör zaten kitaplıkta, {{folder}} içinde.",
-      "contains": "Bu klasör, zaten kitaplıkta olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekleyin."
+      "same": "Bu klasör zaten kütüphanede: {{folder}}",
+      "inside": "Bu klasör zaten kütüphanede, {{folder}} içinde.",
+      "contains": "Bu klasör, zaten kütüphanede olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekle."
     },
     "unreachable": {
-      "title": "Kitaplık klasörüne ulaşılamıyor",
-      "body": "Klasör yok veya okunamıyor; sürücü çıkarılmış olabilir. Parçaları kitaplıkta olduğu gibi kalır."
+      "title": "Kütüphane klasörüne ulaşılamıyor",
+      "body": "Klasör yok veya okunamıyor; sürücü çıkarılmış olabilir. Parçaları kütüphanede olduğu gibi kalır."
     }
   },
   "playlistImport": {
     "title": "Çalma listesi içe aktar",
-    "help": "Zaten sahip olduğunuz parçalar eklenir. Diğerleri yerlerini gri olarak korur ve kitaplığınıza geldiklerinde tamamlanır.",
+    "help": "Zaten sahip olduğun parçalar eklenir. Diğerleri yerlerini gri olarak korur ve kütüphanene geldiklerinde tamamlanır.",
     "fromFile": "Bir dosyadan",
     "fromFileHint": "M3U, CSV veya JSON",
     "fileDialogTitle": "Çalma listesi dosyası içe aktar",
@@ -4218,7 +4218,7 @@
   },
   "viewError": {
     "title": "Bu sayfa gösterilemedi",
-    "description": "Bir hata yüklenmesini engelledi. Uygulamanın geri kalanı çalışmaya devam ediyor.",
+    "description": "Bir hata bu sayfanın yüklenmesini engelledi. Uygulamanın geri kalanı çalışmaya devam ediyor.",
     "retry": "Yeniden dene"
   },
   "enrichmentReview": {
@@ -4231,15 +4231,15 @@
       "rejected": "Reddedilenler"
     },
     "hints": {
-      "albums": "Belirsiz eşleşmeler: kabul etmeden önce yayını kontrol edin.",
-      "artists": "Her sanatçı onayınızı bekler; adın altındaki not adaşları ayırt eder.",
+      "albums": "Belirsiz eşleşmeler: kabul etmeden önce yayını kontrol et.",
+      "artists": "Her sanatçı onayını bekler; adın altındaki not adaşları ayırt eder.",
       "applied": "Otomatik uygulandı. Geri al, yalnızca doldurulanı kaldırır.",
       "accepted": "Bu bilgiler sanatçı sayfasında görünür.",
-      "rejected": "Siz yeniden denemedikçe bir daha önerilmez."
+      "rejected": "Sen yeniden denemedikçe bir daha önerilmez."
     },
     "empty": "Burada henüz bir şey yok.",
-    "yourAlbum": "Albümünüz",
-    "yourArtist": "Sanatçınız",
+    "yourAlbum": "Albümün",
+    "yourArtist": "Sanatçın",
     "release": "MusicBrainz yayını · {{score}}",
     "noRelease": "Yayın yok",
     "fromName": "Adla bulundu · {{score}}",
@@ -4258,7 +4258,7 @@
   },
   "releaseRadar": {
     "badge": "Yeni çıkanlar",
-    "subtitle": "MusicBrainz'e göre kitaplığınızdaki sanatçıların yeni çıkışları.",
+    "subtitle": "MusicBrainz'e göre kütüphanendeki sanatçıların yeni yayınları.",
     "followed": "Takip edilen sanatçı: {{n}}",
     "lastChecked": "Son kontrol: {{when}}",
     "neverChecked": "Hiç kontrol edilmedi",
@@ -4272,15 +4272,15 @@
     "offline": "Çevrimdışı mod: hiçbir arama gönderilmez. Daha önce bulunan çıkışlar görünmeye devam eder.",
     "filter": {
       "all": "Tümü",
-      "playable": "Kitaplığınızda",
+      "playable": "Kütüphanende",
       "discovered": "Keşfedilenler"
     },
     "state": {
-      "playable": "Kitaplığınızda ({{n}})",
+      "playable": "Kütüphanende ({{n}})",
       "discovered": "Keşfedildi · MusicBrainz'de gör"
     },
     "upcoming": "Yakında",
-    "play": "{{title}} çal",
+    "play": "Çal: {{title}}",
     "openMusicBrainz": "MusicBrainz'de gör",
     "outcome": {
       "rateLimited": "MusicBrainz yavaşlamayı istedi. Bir sonraki arama bunun durduğu yerden devam eder.",
@@ -4289,8 +4289,8 @@
       "profileChanged": "Arama sırasında profil değişti, bu yüzden arama durdu.",
       "error": "Arama başarısız oldu: {{detail}}"
     },
-    "emptyTitle": "Release Radar'a hoş geldiniz",
-    "emptyHint": "Kitaplığınızdaki sanatçıların yeni çıkışlarını bulmak için bir arama başlatın. Yalnızca bilgileri ve kapakları indirilir, müziğin kendisi asla.",
+    "emptyTitle": "Release Radar'a hoş geldin",
+    "emptyHint": "Kütüphanendeki sanatçıların yeni çıkışlarını bulmak için bir arama başlat. Yalnızca bilgileri ve kapakları indirilir, müziğin kendisi asla.",
     "noneTitle": "Yeni çıkış yok",
     "noneHint": "MusicBrainz, takip edilen sanatçıların son altı aydaki hiçbir çıkışını bilmiyor.",
     "filterEmpty": "Bu filtrede çıkış yok.",
@@ -4308,14 +4308,14 @@
     },
     "pluginNotice": {
       "title": "Release Radar artık yerleşik",
-      "body": "Bu sayfa artık gerekmeyen Release Radar eklentisinin yerini alıyor: eklentiyi Eklentiler sayfasından kaldırabilirsiniz.",
+      "body": "Bu sayfa artık gerekmeyen Release Radar eklentisinin yerini alıyor: eklentiyi Eklentiler sayfasından kaldırabilirsin.",
       "openExtensions": "Eklentiler'i aç"
     }
   },
   "tagWorkshop": {
     "title": "Etiket atölyesi",
     "eyebrow": "Etiketler",
-    "emptyHint": "Bir parça seçimini, bir albümü veya bir klasörü menüsünden atölyede açın.",
+    "emptyHint": "Bir parça seçimini, bir albümü veya bir klasörü menüsünden atölyede aç.",
     "openFromMenu": "Etiket atölyesinde düzenle",
     "summary_one": "{{count}} dosya · {{changed}} değişiklikli",
     "summary_other": "{{count}} dosya · {{changed}} değişiklikli",
@@ -4339,8 +4339,8 @@
     },
     "appliesToSelection_one": "Seçili dosyaya uygulanır.",
     "appliesToSelection_other": "Seçili {{count}} dosyaya uygulanır.",
-    "appliesToAll_one": "Tek dosyaya uygulanır. Daraltmak için satırları işaretleyin.",
-    "appliesToAll_other": "{{count}} dosyanın tümüne uygulanır. Daraltmak için satırları işaretleyin.",
+    "appliesToAll_one": "Tek dosyaya uygulanır. Daraltmak için satırları işaretle.",
+    "appliesToAll_other": "{{count}} dosyanın tümüne uygulanır. Daraltmak için satırları işaretle.",
     "noFiles": "Burada düzenlenecek dosya yok.",
     "selectAll": "Tümünü seç",
     "file": "Dosya",
@@ -4389,13 +4389,13 @@
     "numberApply": "Tablo sırasına göre numarala",
     "releasePlaceholder": "MusicBrainz yayın bağlantısı veya kimliği (isteğe bağlı)",
     "matchSearch": "Yayını bul",
-    "matchHint": "Bağlantı yoksa dosyaların etiketlerinin belirttiği yayın, o da yoksa bir aramanın bulduğu en iyi yayın kullanılır. Tablo yalnızca öneriyi kullandığınızda değişir ve önizlemeden önce hiçbir şey yazılmaz.",
+    "matchHint": "Bağlantı yoksa dosyaların etiketlerinin belirttiği yayın, o da yoksa bir aramanın bulduğu en iyi yayın kullanılır. Tablo yalnızca öneriyi kullandığında değişir ve önizlemeden önce hiçbir şey yazılmaz.",
     "matchNone": "Bu dosyalara uyan bir MusicBrainz yayını yok.",
     "releaseTracks_one": "{{count}} parça",
     "releaseTracks_other": "{{count}} parça",
     "verdicts": {
       "confident": "Kesin eşleşme · %{{score}}",
-      "doubtful": "Kontrol edin · %{{score}}",
+      "doubtful": "Kontrol et · %{{score}}",
       "no_match": "Eşleşme yok"
     },
     "matchPaired_one": "{{count}} dosyadan {{paired}} tanesi bir parçayla eşleşti",
@@ -4410,7 +4410,7 @@
     "reportCovers_other": "{{count}} kapak eklendi",
     "reportCancelled": "bitmeden durduruldu",
     "problems": {
-      "changed_since": "önizlemeden veya topluluktan sonra değişmiş, olduğu gibi bırakıldı",
+      "changed_since": "önizlemeden veya toplu işlemden sonra değişmiş, olduğu gibi bırakıldı",
       "missing": "dosya bulunamadı",
       "interrupted": "yazma hiç onaylanmadı, olduğu gibi bırakıldı",
       "invalid": "bir değer yazılamıyor",
@@ -4418,8 +4418,8 @@
     },
     "moreProblems_one": "ve {{count}} tane daha",
     "moreProblems_other": "ve {{count}} tane daha",
-    "batches": "Yazılan topluluklar",
-    "batchesHint": "Her topluluk, yazdığı her alanın eski değerini saklar. Geri almak bu değerleri o zamandan beri değişmemiş her dosyaya geri yazar; diğer dosyalar bildirilir ve olduğu gibi bırakılır.",
+    "batches": "Yazılan toplu işlemler",
+    "batchesHint": "Her toplu işlem, yazdığı her alanın eski değerini saklar. Geri almak bu değerleri o zamandan beri değişmemiş her dosyaya geri yazar; diğer dosyalar bildirilir ve olduğu gibi bırakılır.",
     "undoRestored_one": "{{count}} dosya geri yüklendi",
     "undoRestored_other": "{{count}} dosya geri yüklendi",
     "noBatches": "Atölyeden henüz hiçbir şey yazılmadı.",
@@ -4430,14 +4430,14 @@
     "batchFailed_one": "{{count}} reddedildi",
     "batchFailed_other": "{{count}} reddedildi",
     "batchIsUndone": "Geri alındı",
-    "undoConfirm": "Geri almak için tekrar tıklayın",
-    "undo": "Bu topluluğu geri al",
+    "undoConfirm": "Geri almak için tekrar tıkla",
+    "undo": "Bu toplu işlemi geri al",
     "previewTitle": "Yazmadan önce değişiklikler",
     "previewNothing": "Bu düzenlemeler dosyalarda hiçbir şeyi değiştirmiyor.",
     "previewSummary_one": "{{count}} dosya, yazılacak {{fields}} alan",
     "previewSummary_other": "{{count}} dosya, yazılacak {{fields}} alan",
-    "previewBlocked_one": "{{count}} dosyada yazılamayan bir değer var: önce tabloda düzeltin.",
-    "previewBlocked_other": "{{count}} dosyada yazılamayan değerler var: önce tabloda düzeltin.",
+    "previewBlocked_one": "{{count}} dosyada yazılamayan bir değer var: önce tabloda düzelt.",
+    "previewBlocked_other": "{{count}} dosyada yazılamayan değerler var: önce tabloda düzelt.",
     "invalid": {
       "not_a_number": "{{field}}: sayı değil",
       "out_of_range": "{{field}}: aralık dışında",
@@ -4450,8 +4450,8 @@
     "coverFill": "Kapağı olmayan albümlere Cover Art Archive kapağını ekle",
     "write_one": "{{count}} dosyayı yaz",
     "write_other": "{{count}} dosyayı yaz",
-    "otherProfile": "Bu atölye başka bir profilde açıldı. Bu profilden yeniden açın.",
-    "truncated": "{{total}} dosyanın yalnızca ilk {{shown}} tanesi açık: geri kalanları düzenlemek için seçimi daraltın."
+    "otherProfile": "Bu atölye başka bir profilde açıldı. Bu profilden yeniden aç.",
+    "truncated": "{{total}} dosyanın yalnızca ilk {{shown}} tanesi açık: geri kalanları düzenlemek için seçimi daralt."
   },
   "firstSteps": {
     "kicker": "İlk adımlar",
@@ -4574,31 +4574,31 @@
     "done": "Bitti",
     "try": "Dene",
     "addMusic": "Müzik ekle",
-    "openLibrary": "Kitaplığı aç",
+    "openLibrary": "Kütüphaneyi aç",
     "dontShow": "Başlangıçta gösterme",
     "history": "Tüm geçmiş",
     "open": "Yenilikler",
     "openUnseen": "Yenilikler, henüz görülmedi",
     "needs": {
-      "library": "Bunun için önce kitaplığınızda müzik olmalı.",
-      "track": "Düzenleyiciyi şarkı sözleriyle açmak için kitaplığınızdan bir parça çalın.",
-      "startsPlayback": "Şu anda hiçbir şey çalmıyor: denediğinizde kitaplığınız karışık çalmaya başlar.",
+      "library": "Bunun için önce kütüphanende müzik olmalı.",
+      "track": "Düzenleyiciyi şarkı sözleriyle açmak için kütüphanenden bir parça çal.",
+      "startsPlayback": "Şu anda hiçbir şey çalmıyor: denediğinde kütüphanen karışık çalmaya başlar.",
       "podcastsWarning": "Düğme önce bir uyarı açar: senin onayın olmadan hiçbir şey açılmaz."
     },
     "pages": {
       "fluidInterface": {
         "title": "Beş malzemede yeni bir arayüz",
-        "body": "Yan çubukta gezinme, yeniden düşünülmüş bir Ana sayfa ve müziğin arkasında kapağın ışığı. Fluid, Liquid, Pulse, Editorial ve Lounge beş malzemesidir; Studio ise bildiğiniz düzeni korur.",
+        "body": "Yan çubukta gezinme, yeniden düşünülmüş bir Ana sayfa ve müziğin arkasında kapağın ışığı. Fluid, Liquid, Pulse, Editorial ve Lounge beş malzemesidir; Studio ise bildiğin düzeni korur.",
         "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
       },
       "automix": {
         "title": "AutoMix, vuruşa oturan geçişler",
-        "body": "AutoMix, müziğinizin analizine dayanarak her geçişi iki parçanın vuruşlarına yerleştirir. Bir geçiş süresi gerekir; henüz analiz edilmemiş bir parça olağan geçişini korur.",
+        "body": "AutoMix, müziğinin analizine dayanarak her geçişi iki parçanın vuruşlarına yerleştirir. Bir geçiş süresi gerekir; henüz analiz edilmemiş bir parça olağan geçişini korur.",
         "keywords": "Vuruşlar|Tempo|Geçiş|Geçişler|Analiz|BPM"
       },
       "lyricsEditor": {
         "title": "Baştan yapılmış bir söz düzenleyici",
-        "body": "Üç adım: düzenleyin, satır veya sözcük bazında eşitleyin, kaydetmeden önce sonucu kontrol edin. Şarkı çalarken boşluk tuşu zamanları işaretler; söyleyenler, arka vokaller ve çevirilerle birlikte LRC, Enhanced LRC veya TTML olarak.",
+        "body": "Üç adım: düzenle, satır veya sözcük bazında eşitle, kaydetmeden önce sonucu kontrol et. Şarkı çalarken boşluk tuşu zamanları işaretler; söyleyenler, arka vokaller ve çevirilerle birlikte LRC, Enhanced LRC veya TTML olarak.",
         "keywords": "Sözcük sözcük|Eşitleme|LRC|TTML|Söyleyenler|Çeviriler"
       },
       "theater": {
@@ -4608,22 +4608,22 @@
       },
       "tagWorkshop": {
         "title": "Etiket atölyesi",
-        "body": "Bir albümün, klasörün veya seçimin etiketleri tek tabloda: doldurun, bulup değiştirin, numaralandırın ya da bir MusicBrainz yayınından başlayın. Her değişikliğin önizlemesi olmadan hiçbir şey yazılmaz ve her toplu işlem geri alınabilir. Denediğinizde çalan albüm veya son eklenen açılır.",
+        "body": "Bir albümün, klasörün veya seçimin etiketleri tek tabloda: doldur, bulup değiştir, numaralandır ya da bir MusicBrainz yayınından başla. Her değişikliğin önizlemesi olmadan hiçbir şey yazılmaz ve her toplu işlem geri alınabilir. Denediğinde çalan albüm veya son eklenen açılır.",
         "keywords": "Toplu|Regex|Numaralandırma|MusicBrainz|Önizleme|Geri alma"
       },
       "enrichment": {
-        "title": "MusicBrainz ile tamamlanan kitaplık",
-        "body": "Türler, tarihler, katkıda bulunanlar, kapaklar, sanatçı bilgileri: WaveFlow eksikleri yalnızca kendi veritabanında tamamlar, dosyalarınıza asla dokunmaz ve hepsi geri alınabilir. Varsayılan olarak kapalıdır, çünkü bağlantı gerektirir ve albüm adlarıyla sanatçı adlarını MusicBrainz'e gönderir.",
+        "title": "MusicBrainz ile tamamlanan kütüphane",
+        "body": "Türler, tarihler, katkıda bulunanlar, kapaklar, sanatçı bilgileri: WaveFlow eksikleri yalnızca kendi veritabanında tamamlar, dosyalarına asla dokunmaz ve hepsi geri alınabilir. Varsayılan olarak kapalıdır, çünkü bağlantı gerektirir ve albüm adlarıyla sanatçı adlarını MusicBrainz'e gönderir.",
         "keywords": "Türler|Çıkış tarihleri|Katkıda bulunanlar|Kapaklar|Sanatçılar|MusicBrainz"
       },
       "releaseRadar": {
         "title": "Eklentisiz Release Radar",
-        "body": "Kitaplığınızdaki sanatçıların yeni çıkanları doğrudan WaveFlow'da. Arama bağlantı gerektirir ve biraz sürer; zaten sahip olduklarınız bir Release Radar çalma listesine girer, bir tık uzağınızda.",
+        "body": "Kütüphanendeki sanatçıların yeni çıkanları doğrudan WaveFlow'da. Arama bağlantı gerektirir ve biraz sürer; zaten sahip oldukların bir Release Radar çalma listesine girer, bir tık uzağında.",
         "keywords": "Release Radar|Yeni çıkanlar|Sanatçılar|Albümler|Single'lar|MusicBrainz"
       },
       "playlistImport": {
-        "title": "Çalma listelerinizi aktarın",
-        "body": "Bir M3U, CSV veya JSON dosyası ya da herkese açık bir Deezer çalma listesinin bağlantısı. Sizde olmayan parçalar yerlerini korur ve kitaplığınıza geldiklerinde kendiliğinden oraya yerleşir.",
+        "title": "Çalma listelerini aktar",
+        "body": "Bir M3U, CSV veya JSON dosyası ya da herkese açık bir Deezer çalma listesinin bağlantısı. Sende olmayan parçalar yerlerini korur ve kütüphanene geldiklerinde kendiliğinden oraya yerleşir.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Eksik parçalar"
       },
       "podcasts": {
@@ -4690,7 +4690,7 @@
         },
         "server": {
           "title": "Bağlı bir sunucu varsa",
-          "body": "Bu profil, podcast'leri açık bir WaveFlow sunucusuna bağlıysa onun kanalları da görünür. Bunlar sunucunuz üzerinden gelir: barındırıcı sizi değil, sunucunuzu görür."
+          "body": "Bu profil, podcast'leri açık bir WaveFlow sunucusuna bağlıysa onun kanalları da görünür. Bunlar sunucun üzerinden gelir: barındırıcı seni değil, sunucunu görür."
         }
       }
     },
@@ -4774,7 +4774,7 @@
       "seasonEpisode": "S{{season}} · B{{episode}}",
       "number": "Bölüm {{episode}}",
       "remaining": "{{time}} kaldı",
-      "pause": "{{title}} duraklat",
+      "pause": "{{title}} bölümünü duraklat",
       "queued": "Bekliyor",
       "deletedWhilePlaying": "Dosya silindi. Çalan bölüm devam ediyor; yeniden başlatmak için ağ ya da yeni bir indirme gerekecek.",
       "open": "“{{title}}” bölümünü aç",
@@ -4811,10 +4811,10 @@
       "no_source": "Bu bölümün ne dosyası ne de adresi var: kanala yeniden abone ol.",
       "not_seekable": "Bu barındırıcı bölüm içinde ilerleyip gerilemene izin vermiyor.",
       "write_failed": "Dosya diske yazılamadı.",
-      "invalid_document": "Bu dosya, söylediği şey değil.",
+      "invalid_document": "Dosyanın içeriği belirtilen biçimle uyuşmuyor.",
       "not_stored": "Sunucuda bu bölüm yok: önce indirmesi gerekir.",
       "server_unreachable": "Sunucu yanıt vermiyor.",
-      "server_signed_out": "Bu sunucuda artık oturumunuz açık değil.",
+      "server_signed_out": "Bu sunucuda artık oturumun açık değil.",
       "server_refused": "Sunucu reddetti ya da bu öğeyi artık tanımıyor.",
       "server_conflict": "Sunucu bu akışı zaten izliyor ya da daha fazlasını izleyemiyor.",
       "destination_refused": "Sunucunun bu adrese erişme izni yok."
@@ -4832,7 +4832,7 @@
     "transcript": {
       "title": "Döküm",
       "none": "Bu bölümün dökümü yok.",
-      "noEpisode": "Dökümünü görmek için bir bölüm başlatın.",
+      "noEpisode": "Dökümünü görmek için bir bölüm başlat.",
       "loading": "Döküm alınıyor…",
       "failed": "Döküm okunamadı: {{reason}}",
       "untimed": "Bu dökümde zaman bilgisi yok, bu yüzden çalmayı takip etmez.",
@@ -4840,7 +4840,7 @@
       "jump": "{{time}} anına git: {{text}}"
     },
     "server": {
-      "title": "Sunucunuzda",
+      "title": "Sunucunda",
       "chip": "Sunucu",
       "refresh": "Sunucuda denetle",
       "refreshAsked": "Sunucu akışlarını denetliyor. Yenilikler birazdan görünür.",
@@ -4851,7 +4851,7 @@
       "unsubscribeTitle": "{{title}} sunucudan kaldırılsın mı?",
       "unsubscribeBody": "Kanal, bölümleri ve dosyaları, tüm hesaplar için sunucudan kaldırılır.",
       "removeConfirm": "Kaldır",
-      "deleteEpisode": "{{title}} sunucudan kaldır",
+      "deleteEpisode": "{{title}} bölümünü sunucudan kaldır",
       "deleteEpisodeTitle": "Bu bölüm sunucudan kaldırılsın mı?",
       "deleteEpisodeBody": "“{{title}}” ve dosyası, tüm hesaplar için sunucudan kaldırılır. Bir sonraki denetimde geri gelmez.",
       "requestDownload": "Sunucudan {{title}} bölümünü indirmesini iste",
