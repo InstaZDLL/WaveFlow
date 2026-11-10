@@ -40,18 +40,35 @@ export function useProfileStats(): ProfileStats {
   const { activeProfile } = useProfile();
   const { libraries } = useLibrary();
   const profileId = activeProfile?.id ?? null;
-  const [stats, setStats] = useState<ProfileStats>(EMPTY_STATS);
+  // Kept with the profile they were read for, and given out only while
+  // that profile is the active one: the sidebar stays mounted through a
+  // switch, and must not show the last profile's counts until — or, if
+  // the read fails, instead of — the next profile's.
+  const [loaded, setLoaded] = useState<{
+    profileId: number | null;
+    stats: ProfileStats;
+  }>({ profileId: null, stats: EMPTY_STATS });
   const [listening, setListening] = useState(false);
+  // Read by the event listeners, which outlive a render.
+  const profileIdRef = useRef(profileId);
+  useEffect(() => {
+    profileIdRef.current = profileId;
+  }, [profileId]);
 
   // Only the answer to the latest request lands: an older one, slower,
   // may have been read before the change that triggered the newer one —
-  // or for the profile that was active before.
+  // or for the profile that was active before. The backend switches
+  // before this side learns of it, so a read labelled with the profile
+  // known here may hold the next one's counts, never the previous one's.
   const seqRef = useRef(0);
   const refresh = useCallback(() => {
+    const requestedFor = profileIdRef.current;
+    if (requestedFor === null) return;
     const seq = ++seqRef.current;
     getProfileStats()
-      .then((s) => {
-        if (seq === seqRef.current) setStats(s);
+      .then((stats) => {
+        if (seq === seqRef.current)
+          setLoaded({ profileId: requestedFor, stats });
       })
       .catch((err) => console.error("[useProfileStats] fetch failed", err));
   }, []);
@@ -87,5 +104,7 @@ export function useProfileStats(): ProfileStats {
     refresh();
   }, [listening, profileId, libraries, refresh]);
 
-  return stats;
+  return profileId !== null && loaded.profileId === profileId
+    ? loaded.stats
+    : EMPTY_STATS;
 }
