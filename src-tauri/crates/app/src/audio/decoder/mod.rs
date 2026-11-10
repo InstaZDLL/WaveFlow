@@ -111,6 +111,28 @@ fn was_released(error: &str) -> bool {
     error.contains(waveflow_core::playback::read_ahead::READ_RELEASED)
 }
 
+/// What the user is told when a library track will not open, or `None`
+/// when the open was given up for a newer command (`replaced`, or a read
+/// released under it) and there is nothing to report.
+///
+/// The one report for every way a track is reached — a queue step, an
+/// auto-advance, and the first track of a queue just started, which
+/// `play_tracks_with_intent` hands here rather than checking itself
+/// (#1065): a file that is gone says `track-failed`, a share that is down
+/// `network-source-lost`.
+fn open_failure_report(
+    path: &std::path::Path,
+    err: String,
+    replaced: bool,
+) -> Option<ErrorPayload> {
+    if replaced || was_released(&err) {
+        return None;
+    }
+    Some(ErrorPayload::from_failure(
+        crate::netlib::explain_open_failure(path, err),
+    ))
+}
+
 /// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
 /// analytics message depending on how the stream finished. Live
 /// radio (`finished.track_id < 0`, `finished.source_type == "radio"`)
@@ -432,9 +454,8 @@ fn decoder_loop(
                         tracing::warn!(?err, path = %path.display(), "open failed");
                         let replaced = waveflow_core::network_locator::is_locator_path(&path)
                             && crate::netlib::media::release_count() != releases;
-                        if !replaced && !was_released(&err) {
-                            let err = crate::netlib::explain_open_failure(&path, err);
-                            let _ = app.emit(EVENT_ERROR, ErrorPayload::from_failure(err));
+                        if let Some(payload) = open_failure_report(&path, err, replaced) {
+                            let _ = app.emit(EVENT_ERROR, payload);
                         }
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
@@ -1045,6 +1066,9 @@ mod apply_setting_tests;
 
 #[cfg(test)]
 mod idle_stop_tests;
+
+#[cfg(test)]
+mod open_failure_tests;
 
 #[cfg(test)]
 mod load_ordering_tests;

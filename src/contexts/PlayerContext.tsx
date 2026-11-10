@@ -306,6 +306,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // reads of the same row in flight, and the older one must not be the
   // one that lands.
   const trackRefreshTokenRef = useRef(0);
+  // Generation counter for `playTracks`: a failure of an older pick must
+  // not put back the bar a newer pick has since taken over.
+  const playRequestRef = useRef(0);
 
   // Keep that ref in step with the state it mirrors.
   useEffect(() => {
@@ -891,9 +894,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       const chosen = tracks[startIndex];
+      const request = ++playRequestRef.current;
+      const shown = currentTrackRef.current;
       // Optimistic UI: show the clicked track + duration immediately
-      // so the PlayerBar doesn't lag the invoke round-trip.
+      // so the PlayerBar doesn't lag the invoke round-trip. The ref is
+      // moved with it rather than after the render, so a refusal that
+      // comes back first still finds its own label there.
       setCurrentTrack(chosen);
+      currentTrackRef.current = chosen;
       setDurationMs(chosen.duration_ms);
       setPlayerPosition(0);
       setPlaybackState("loading");
@@ -907,7 +915,35 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
       } catch (err) {
         console.error("[PlayerContext] play tracks failed", err);
-        setPlaybackState("idle");
+        // A track that will not open is no longer a refusal: the decoder
+        // reports it through `player:error` (#1065). What still lands here
+        // was refused before anything reached the decoder, so whatever
+        // played before the click plays on — and the bar has to say so
+        // rather than keep the label it put up in advance. Unless a newer
+        // pick, or an event, has already replaced that label.
+        if (
+          request !== playRequestRef.current ||
+          currentTrackRef.current !== chosen
+        ) {
+          return;
+        }
+        setCurrentTrack(shown);
+        setDurationMs(shown?.duration_ms ?? 0);
+        setPlaybackAlert({
+          id: ++alertSeqRef.current,
+          severity: "error",
+          kind: "unknown",
+          detail: String(err),
+        });
+        try {
+          const snap = await playerGetState();
+          if (request !== playRequestRef.current) return;
+          setPlaybackState(snap.state);
+          setPlayerPosition(snap.position_ms);
+        } catch (snapErr) {
+          console.error("[PlayerContext] resync after play failed", snapErr);
+          if (request === playRequestRef.current) setPlaybackState("idle");
+        }
       }
     },
     [],

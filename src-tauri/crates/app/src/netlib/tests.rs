@@ -536,6 +536,29 @@ async fn the_queue_steps_over_what_cannot_play_and_ends_when_nothing_can() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn a_blocked_track_fails_at_the_decoders_open_without_asking_the_share() {
+    // #1065: a blocked track the user picks is no longer refused before the
+    // decoder; it reaches the decoder's open, which must still answer from
+    // memory and with the share's sentence. The share itself is up and holds
+    // the file, so an open that asked it would succeed.
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/a.wav", wav(6), 1);
+    let locator = "wfnet://11111111-aaaa/Music/a.wav";
+    source(UUID)
+        .unwrap()
+        .set_state(SourceState::Unreachable, None);
+    assert!(is_blocked(locator));
+
+    let opened = tokio::task::spawn_blocking(move || media::open(locator).map(|_| ()))
+        .await
+        .unwrap();
+    let err = opened.expect_err("a share known to be down is not asked");
+    assert_eq!(err, UNREACHABLE_MESSAGE);
+    assert!(explain_open_failure(std::path::Path::new(locator), err).contains(UNREACHABLE_MESSAGE));
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn playback_keeps_what_it_reads_and_plays_it_without_the_share() {
     use std::io::Read;
 
