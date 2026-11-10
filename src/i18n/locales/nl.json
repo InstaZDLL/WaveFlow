@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fm-sessie verlopen",
-    "message": "Je scrobbles worden niet meer verzonden. Log opnieuw in om door te gaan.",
+    "message": "Je scrobbles worden niet meer verzonden. Meld je opnieuw aan om door te gaan.",
     "action": "Instellingen openen"
   },
   "skinRecovery": {
@@ -67,7 +67,7 @@
     "defaultLibraryName": "Muziek",
     "phase": {
       "setup": "Aan de slag · {{current}}/{{total}}",
-      "compose": "Maak WaveFlow van jou · {{current}}/{{total}}"
+      "compose": "Maak WaveFlow persoonlijk · {{current}}/{{total}}"
     },
     "actions": {
       "close": "Rondleiding sluiten",
@@ -186,8 +186,8 @@
         "password": "Wachtwoord",
         "toggleSecret": "Geheim tonen of verbergen",
         "togglePassword": "Wachtwoord tonen of verbergen",
-        "missingFields": "Vul alle vier de velden in om in te loggen.",
-        "signIn": "Inloggen"
+        "missingFields": "Vul alle vier de velden in om je aan te melden.",
+        "signIn": "Aanmelden"
       },
       "discord": {
         "title": "Discord-status",
@@ -799,16 +799,16 @@
         "idle": "In rust. Laatste bestand geanalyseerd op {{when}}.",
         "never": "Er is nog geen lossless bestand geanalyseerd."
       },
-      "help": "Gemeten in de audio, niet gelezen uit de container: waar de hoge tonen ophouden. Elke lossy encoder snijdt ze af, en een lossless bestand dat van een MP3 is gemaakt houdt die snede, rond 16 kHz bij een MP3 van 128 kbps. ‘Geen teken van een lossy bron’ is geen bewijs: een encoder die de volle band houdt, laat niets te vinden over.",
+      "help": "Gemeten in de audio, niet afgelezen uit het bestandsformaat: waar de hoge frequenties worden afgekapt. Elke encoder met verlies kapt ze af, en een verliesvrij bestand dat van een MP3 is gemaakt behoudt die afkapping, rond 16 kHz bij een MP3 van 128 kbps. ‘Geen aanwijzing voor een bron met verlies’ is geen bewijs: een encoder die de volledige frequentieband behoudt, laat geen afkapping achter.",
       "helpVerdicts": "Een bestand boven 48 kHz waarvan de hoge tonen vóór 30 kHz stoppen, is gemaakt van een cd- of 48 kHz-bron. Een bestand is stil als geen enkele sample boven −60 dBFS komt: een drempel op de piek, niet op het niveau van elk moment.",
       "filters": "Filteren op oordeel",
       "all": "Alle bestanden",
       "verdicts": {
-        "lossy_source": "Waarschijnlijk van een lossy bestand",
+        "lossy_source": "Waarschijnlijk afkomstig van een bestand met verlies",
         "upsampled": "Waarschijnlijk opgesampled",
         "silent": "Stil",
         "pending": "Wacht op analyse",
-        "consistent": "Geen teken van een lossy bron",
+        "consistent": "Geen aanwijzing voor een bron met verlies",
         "lossy": "Lossy",
         "not_measured": "Niet gemeten"
       },
@@ -820,7 +820,7 @@
         "highs": "Hoge tonen stoppen bij",
         "verdict": "Wat de audio zegt"
       },
-      "fullBand": "Volle band",
+      "fullBand": "Volledige frequentieband",
       "khz": "{{value}} kHz",
       "kbps": "{{value}} kbps",
       "bits": "{{value}} bit",
@@ -935,7 +935,7 @@
     },
     "topGenres": {
       "title": "Topgenres",
-      "empty": "Geen genre beluisterd."
+      "empty": "Geen genres beluisterd in deze periode."
     }
   },
   "wrapped": {
@@ -1274,7 +1274,7 @@
     "addCover": "Hoes toevoegen",
     "coverUploadError": "De afspeellijst is aangemaakt, maar de hoes kon niet worden opgeslagen. Probeer het opnieuw of rond af zonder hoes.",
     "coverSaveError": "De hoes kon niet worden opgeslagen. Probeer een andere afbeelding.",
-    "retryCover": "Hoes opnieuw proberen",
+    "retryCover": "Hoes opnieuw opslaan",
     "finishWithoutCover": "Afronden zonder hoes",
     "createError": "De afspeellijst kon niet worden aangemaakt. Probeer het opnieuw.",
     "editError": "De afspeellijst kon niet worden opgeslagen. Probeer het opnieuw.",
@@ -1328,7 +1328,7 @@
     "notFoundTitle": "Afspeellijst niet gevonden",
     "notFoundDescription": "Deze afspeellijst bestaat niet meer in het actieve profiel.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Slimme playlist",
+    "smartLabelCustom": "Slimme afspeellijst",
     "placeholder": {
       "missing": "Niet in je bibliotheek",
       "remove": "Uit de afspeellijst verwijderen",
@@ -1446,7 +1446,7 @@
       "presets": "Gangbare genres"
     },
     "bandwidth": "Hoge frequenties",
-    "bandwidthFull": "Volledige band",
+    "bandwidthFull": "Volledige frequentieband",
     "bandwidthCutoff": "Stoppen bij {{khz}} kHz",
     "bandwidthFake": "Stoppen bij {{khz}} kHz — waarschijnlijk gemaakt van een lossy bestand",
     "spectrogram": {
@@ -1573,7 +1573,7 @@
   },
   "canvasPicker": {
     "title": "Canvas van het nummer",
-    "subtitle": "Kies een korte lokale MP4-video. Die speelt in een lus achter het afspelen, in plaats van de hoes.",
+    "subtitle": "Kies een korte lokale MP4-video. Die wordt tijdens het afspelen in een lus op de achtergrond getoond, in plaats van de hoes.",
     "pickFile": "MP4-bestand kiezen",
     "removeAction": "Canvas verwijderen"
   },
@@ -1594,7 +1594,7 @@
     "emptyTitle": "Jaar niet gevonden",
     "emptyDescription": "Dit jaar heeft geen nummers meer in het actieve profiel.",
     "emptyTracksTitle": "Geen nummers",
-    "emptyTracksDescription": "Geen beschikbaar nummer heeft dit jaar."
+    "emptyTracksDescription": "Geen van de beschikbare nummers heeft dit jaartal."
   },
   "genreImagePicker": {
     "title": "Genre-afbeelding wijzigen",
@@ -2269,7 +2269,7 @@
         "toggleQueue": "Wachtrijpaneel in-/uitschakelen",
         "toggleNowPlaying": "Paneel ‘Speelt nu’ in-/uitschakelen",
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
-        "toggleLike": "Huidig nummer favoriet maken / verwijderen",
+        "toggleLike": "Huidig nummer aan favorieten toevoegen / uit favorieten verwijderen",
         "focusSearch": "Naar zoeken",
         "toggleFullscreen": "Volledig scherm",
         "openFiles": "Bestanden afspelen zonder ze te importeren",
@@ -2481,7 +2481,7 @@
         "dialogTitle": "WaveFlow-profiel exporteren",
         "done": "Profiel succesvol geëxporteerd.",
         "busy": "Bezig met exporteren… Een grote bibliotheek kan een paar minuten duren.",
-        "failed": "Export mislukt. Raadpleeg de logs voor details."
+        "failed": "Export mislukt. Zie de logboeken voor details."
       },
       "import": {
         "action": "Importeren",
@@ -2496,7 +2496,7 @@
         "origin": "Geëxporteerd op {{date}} met WaveFlow {{version}}.",
         "loading": "Archief wordt gelezen…",
         "unreadable": "Dit bestand is onleesbaar: het is beschadigd of geen WaveFlow-profielarchief.",
-        "failed": "Het archief kon niet worden gelezen. Zie het logboek voor details.",
+        "failed": "Het archief kon niet worden gelezen. Zie de logboeken voor details.",
         "newer": "Dit archief komt van een nieuwere versie van WaveFlow. Werk WaveFlow bij om het te importeren.",
         "differentBuild": "Dit archief komt van een andere versie van WaveFlow waarvan de database verschilt van deze: het kan niet worden geïmporteerd.",
         "unsupported": "De indeling van dit archief wordt niet meer ondersteund.",
@@ -2555,7 +2555,7 @@
       "action": "Resetten",
       "confirm": {
         "title": "De hele app resetten?",
-        "warning": "Hiermee worden alle profielen, bibliotheken, afspeellijsten, beoordelingen, luistergeschiedenis en albumhoezen in de cache verwijderd. De app start opnieuw op met een schone onboarding. Dit kan niet ongedaan worden gemaakt.",
+        "warning": "Hiermee worden alle profielen, bibliotheken, afspeellijsten, beoordelingen, luistergeschiedenis en albumhoezen in de cache verwijderd. De app start opnieuw op met de eerste configuratie. Dit kan niet ongedaan worden gemaakt.",
         "typeToConfirm": "Typ RESET om te bevestigen",
         "error": "Reset mislukt. Sluit elk extern programma dat een WaveFlow-bestand vasthoudt (een geopende muziekspeler, verkenner in de gegevensmap) en probeer het opnieuw.",
         "cancel": "Annuleren",
@@ -2563,12 +2563,12 @@
       }
     },
     "diagnostics": {
-      "title": "Applicatielog",
-      "subtitle": "Open de logmap of kopieer recente logs en plak ze in een ticket om een bug te melden.",
+      "title": "Applicatielogboek",
+      "subtitle": "Open de map met logboeken of kopieer recente logboekregels en plak ze in een ticket om een bug te melden.",
       "openFolder": "Map openen",
-      "copyLogs": "Logs kopiëren",
-      "copied": "Logs gekopieerd",
-      "copyFailed": "Logs konden niet worden gekopieerd"
+      "copyLogs": "Logboekregels kopiëren",
+      "copied": "Logboekregels gekopieerd",
+      "copyFailed": "Logboekregels konden niet worden gekopieerd"
     },
     "syncStatus": {
       "title": "Synchronisatiestatus",
@@ -2708,11 +2708,11 @@
       "runNow": "Nu een back-up maken",
       "runOk_one": "{{count}} archief geschreven.",
       "runOk_other": "{{count}} archieven geschreven.",
-      "runPartial": "Geschreven: {{created}}, mislukt: {{failed}}. Bekijk de logs.",
+      "runPartial": "Geschreven: {{created}}, mislukt: {{failed}}. Bekijk de logboeken.",
       "errors": {
         "loadFailed": "De back-upconfiguratie kon niet worden geladen.",
         "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
-        "runFailed": "Back-up mislukt. Bekijk de logs."
+        "runFailed": "Back-up mislukt. Bekijk de logboeken."
       }
     },
     "uiZoom": {
@@ -2767,11 +2767,11 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "Luisterkamer — de hoes verlicht de hele kamer, gerookt wijnrood glas, een lichtlijn die de balk vult, een afstemschaal voor de stemmingen."
+          "description": "Luisterkamer — de hoes verlicht de hele kamer, wijnrood rookglas, een lichtlijn die de balk vult en een afstemknop voor de stemmingen."
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon Deck — OLED-zwart, chroom in haarlijnen, het accent van het thema als neon op wat actief is, mono-labels, veerkrachtige animaties."
+          "description": "Neon Deck — OLED-zwart, flinterdunne chroomlijnen, de accentkleur van het thema als neon op actieve elementen, labels in een monospacelettertype en veerkrachtige animaties."
         },
         "liquid": {
           "label": "Liquid",
@@ -2844,7 +2844,7 @@
       "legend": "Zichtbaarheid van Wrapped-banner",
       "seasonActive": "Wrapped-seizoen loopt — de banner is zichtbaar.",
       "seasonIdle": "Buiten het seizoen — de banner komt automatisch terug op 1 december.",
-      "dismissed": "Je hebt het overzicht van {{year}} op Home gesloten.",
+      "dismissed": "Je hebt het overzicht van {{year}} op Start gesloten.",
       "showAgain": "Weer tonen",
       "modes": {
         "auto": {
@@ -2863,7 +2863,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD / Lossless-badges",
-      "subtitle": "Toon de ‘Hi-Res 24-bit’-, ‘DSD128’- of ‘Lossless’-pil (verliesvrij, cd-kwaliteit) naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
+      "subtitle": "Toon het label ‘Hi-Res 24-bit’, ‘DSD128’ of ‘Lossless’ (verliesvrij, cd-kwaliteit) naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
     },
     "serverAccount": {
       "title": "WaveFlow-serveraccount",
@@ -3147,7 +3147,7 @@
     },
     "effects": {
       "title": "Visuele effecten",
-      "subtitle": "Vervaging, glas, gloed en sfeeranimaties. Beperkt wordt elk vlak plat getekend, zodat de interface soepel blijft op een computer zonder grafische versnelling.",
+      "subtitle": "Vervaging, glas, gloed en sfeeranimaties. In de beperkte modus wordt elk vlak zonder effecten getekend, zodat de interface soepel blijft op een computer zonder grafische versnelling.",
       "modes": {
         "auto": {
           "label": "Automatisch",
@@ -3166,7 +3166,7 @@
     },
     "cacheLocation": {
       "title": "Cachelocatie",
-      "subtitle": "Hoesafbeeldingen, bewegende hoezen en Canvas-clips. Alles is opnieuw op te bouwen, dus verplaatsen kost niets. Databases en zelf gekozen bestanden blijven waar ze zijn.",
+      "subtitle": "Hoesafbeeldingen, bewegende hoezen en Canvas-clips. Alles kan opnieuw worden opgebouwd, dus bij het verplaatsen gaat niets verloren. Databases en zelf gekozen bestanden blijven waar ze zijn.",
       "pickTitle": "Cachemap kiezen",
       "choose": "Verplaatsen…",
       "reset": "Terug naar standaard",
@@ -3258,7 +3258,7 @@
         "integrations": "Diensten, server, netwerk",
         "shortcuts": "Toetsenbord en mediatoetsen",
         "data": "Back-ups, mappen, caches",
-        "diagnostics": "Updates, logs, resetten"
+        "diagnostics": "Updates, logboeken, resetten"
       },
       "groupHints": {
         "profile": "Hoe het in de app verschijnt",
@@ -3295,7 +3295,7 @@
         "storage": "Waar WaveFlow zijn gegevens en caches bewaart",
         "cleanup": "Gecachete miniaturen en hoezen",
         "updates": "Stabiele of bètaversies",
-        "diagnostics": "Logs en grafische weergave",
+        "diagnostics": "Logboeken en grafische weergave",
         "reset": "Opnieuw beginnen met een verse app",
         "diskUsage": "Wat WaveFlow op deze computer bewaart",
         "globalShortcuts": "Vanuit elke toepassing",
@@ -3312,7 +3312,7 @@
       "fontSize": "Tekstgrootte",
       "background": "Achtergrond",
       "textColor": "Tekstkleur",
-      "highlightColor": "Gezongen kleur",
+      "highlightColor": "Kleur van de gezongen tekst",
       "outline": "Omlijning",
       "outlineNone": "Geen",
       "showTranslation": "Vertaling tonen",
@@ -3387,7 +3387,7 @@
     "stereoImage": {
       "balance": {
         "title": "Balans",
-        "subtitle": "Zet het tegenoverliggende kanaal zachter; de kant waarheen u schuift wordt nooit versterkt",
+        "subtitle": "Zet het tegenoverliggende kanaal zachter; de kant waar je de schuifregelaar naartoe beweegt, wordt nooit versterkt",
         "center": "Midden",
         "left": "L {{value}}%",
         "right": "R {{value}}%",
@@ -3415,7 +3415,7 @@
       "refresh": "Opnieuw meten",
       "failed": "De schijfruimte kon niet worden gemeten.",
       "rebuildableTitle": "Bouwt zichzelf opnieuw op",
-      "rebuildableHint": "Leegmaken kost niets: deze bestanden worden opnieuw opgehaald wanneer nodig.",
+      "rebuildableHint": "Bij het leegmaken gaat niets verloren: deze bestanden worden zo nodig opnieuw opgehaald.",
       "keptTitle": "Je gegevens",
       "keptHint": "Niets hiervan bouwt zichzelf op: elk onderdeel beheer je in zijn eigen sectie.",
       "empty": "Leegmaken",
@@ -3655,8 +3655,8 @@
     "cancelledTitle": "Scan gestopt",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
     "scanningIn": "{{dir}} wordt gescand…",
-    "doneErrors_one": "{{count}} bestand mislukt",
-    "doneErrors_other": "{{count}} bestanden mislukt"
+    "doneErrors_one": "Scannen van {{count}} bestand mislukt",
+    "doneErrors_other": "Scannen van {{count}} bestanden mislukt"
   },
   "system": {
     "tray": {
@@ -3708,7 +3708,7 @@
       "title": "Zender toevoegen",
       "renameTitle": "Zender hernoemen",
       "rename": "{{name}} hernoemen",
-      "help": "Plak het adres van de stream of van een .m3u-/.pls-playlist, of open zo'n bestand. De zender komt bij je favorieten.",
+      "help": "Plak het adres van de stream of van een .m3u-/.pls-afspeellijst, of open zo'n bestand. De zender komt bij je favorieten.",
       "urlLabel": "Streamadres",
       "openFile": ".m3u-/.pls-bestand openen",
       "nameLabel": "Naam",
@@ -3722,7 +3722,7 @@
         "unreachable": "De zender reageert niet op dit adres.",
         "notAudio": "Dit adres leidt niet naar een audiostream.",
         "hls": "Deze HLS-stream gebruikt een formaat dat WaveFlow niet kan afspelen (versleuteling, gefragmenteerde MP4 of bytebereiken).",
-        "noStream": "De playlist bevat geen http://- of https://-stream.",
+        "noStream": "De afspeellijst bevat geen http://- of https://-stream.",
         "notSaved": "Je favorieten zijn nog niet geladen; probeer het zo opnieuw."
       }
     }
@@ -3761,7 +3761,7 @@
   "pluginView": {
     "refresh": "Vernieuwen",
     "error": "Kan deze weergave niet laden",
-    "retry": "Opnieuw",
+    "retry": "Opnieuw proberen",
     "empty": "Niets om te tonen",
     "rateLimited": "De dienst van deze extensie beperkt het aantal verzoeken of is niet bereikbaar (misschien staat de offlinemodus aan). Probeer het over een ogenblik opnieuw.",
     "statusError": "De extensie is op een fout gestuit. {{detail}}"
@@ -3803,8 +3803,8 @@
         "cachedTracks_one": "nummer in cache",
         "cachedTracks_other": "nummers in cache"
       },
-      "awaitingMetadata_one": "{{count}} nummer wacht op metadata — verdwijnt bij de volgende ronde.",
-      "awaitingMetadata_other": "{{count}} nummers wachten op metadata — verdwijnt bij de volgende ronde.",
+      "awaitingMetadata_one": "{{count}} nummer wacht op metadata — dit wordt bij de volgende synchronisatie opgelost.",
+      "awaitingMetadata_other": "{{count}} nummers wachten op metadata — dit wordt bij de volgende synchronisatie opgelost.",
       "pendingChanges_one": "{{count}} lokale wijziging wacht op verzending.",
       "pendingChanges_other": "{{count}} lokale wijzigingen wachten op verzending.",
       "failedChanges_one": "{{count}} lokale wijziging is geweigerd en wordt niet opnieuw geprobeerd.",
@@ -4141,7 +4141,7 @@
     "current": "Huidig bestand",
     "replacement": "Nieuw bestand",
     "target": "Wordt opgeslagen als",
-    "keeps": "Het nummer houdt zijn afspeelbeurten, likes en playlists. Het huidige bestand gaat naar de prullenbak van het systeem.",
+    "keeps": "Het nummer behoudt zijn luisterbeurten, favorietenstatus en plek in afspeellijsten. Het huidige bestand gaat naar de prullenbak van het systeem.",
     "confirm": "Vervangen",
     "replacing": "Bezig met vervangen…",
     "done": "Vervangen. Het oude bestand staat in de prullenbak.",
@@ -4172,7 +4172,7 @@
       "inLibrary": "Al in de bibliotheek, overgeslagen: {{n}}",
       "refused": "Mappen geweigerd omdat ze een bibliotheekmap bevatten: {{n}}",
       "errors": "Mislukte kopieën: {{n}}",
-      "truncated": "Limiet bereikt: zet de rest in meerdere keren neer.",
+      "truncated": "Limiet bereikt: sleep de rest in meerdere delen naar het venster.",
       "cancelled": "Kopiëren gestopt; wat al gekopieerd was, is toegevoegd."
     },
     "overlap": {
@@ -4268,7 +4268,7 @@
     "scanningIndeterminate": "Zoeken…",
     "stop": "Stoppen",
     "playAll": "Afspelen",
-    "openPlaylist": "Playlist openen",
+    "openPlaylist": "Afspeellijst openen",
     "offline": "Offlinemodus: er wordt geen zoekopdracht verstuurd. De releases die al gevonden zijn blijven zichtbaar.",
     "filter": {
       "all": "Alles",
@@ -4378,7 +4378,7 @@
     "caseMode": "Hoofdletters",
     "cases": {
       "title": "Elk Woord Met Hoofdletter",
-      "sentence": "Zinsopbouw",
+      "sentence": "Hoofdletter aan het begin van de zin",
       "upper": "HOOFDLETTERS",
       "lower": "kleine letters"
     },
@@ -4404,8 +4404,8 @@
     "matchUse": "Deze tags in de tabel gebruiken",
     "reportWritten_one": "{{count}} bestand geschreven",
     "reportWritten_other": "{{count}} bestanden geschreven",
-    "reportUnchanged_one": "{{count}} al bijgewerkt",
-    "reportUnchanged_other": "{{count}} al bijgewerkt",
+    "reportUnchanged_one": "{{count}} al up-to-date",
+    "reportUnchanged_other": "{{count}} al up-to-date",
     "reportCovers_one": "{{count}} hoes toegevoegd",
     "reportCovers_other": "{{count}} hoezen toegevoegd",
     "reportCancelled": "vóór het einde gestopt",
@@ -4682,7 +4682,7 @@
         },
         "downloads": {
           "title": "Schijfruimte",
-          "body": "Gedownloade afleveringen nemen schijfruimte in beslag, tot aan het limiet."
+          "body": "Gedownloade afleveringen nemen schijfruimte in beslag, tot aan de limiet."
         },
         "stop": {
           "title": "Hoe je alles stopt",
@@ -4740,7 +4740,7 @@
       "resume": "Hervatten",
       "listen": "Luisteren",
       "showAll": "Alles tonen ({{n}} meer)",
-      "playing": "Speelt nu af",
+      "playing": "Speelt nu",
       "pause": "Pauzeren"
     },
     "channel": {
@@ -4789,7 +4789,7 @@
     },
     "unsubscribe": {
       "title": "Je abonnement op {{title}} opzeggen?",
-      "body": "Het kanaal, de afleveringen, je luisterposities en de downloads worden vergeten. Je kunt je weer abonneren, maar je weet dan niet meer waar je was gebleven.",
+      "body": "Het kanaal, de afleveringen, je luisterposities en de downloads worden verwijderd. Je kunt je opnieuw abonneren, maar je eerdere luisterposities worden dan niet hersteld.",
       "confirm": "Abonnement opzeggen"
     },
     "errors": {
@@ -4805,11 +4805,11 @@
       "http": "De host antwoordde met een fout ({{status}}).",
       "invalid_feed": "Dit is geen leesbare podcastfeed.",
       "not_audio": "Dit bestand is geen audio.",
-      "quota_exceeded": "Het downloadlimiet is bereikt.",
+      "quota_exceeded": "De downloadlimiet is bereikt.",
       "unknown": "Er ging iets mis.",
       "episode_gone": "Deze aflevering bestaat niet meer.",
       "no_source": "Deze aflevering heeft geen bestand en geen adres: abonneer je opnieuw op het kanaal.",
-      "not_seekable": "Deze host staat niet toe dat je door de aflevering beweegt.",
+      "not_seekable": "Deze host staat niet toe dat je binnen de aflevering vooruit- of terugspoelt.",
       "write_failed": "Het bestand kon niet naar de schijf worden geschreven.",
       "invalid_document": "Dit bestand is niet wat het beweert te zijn.",
       "not_stored": "De server heeft deze aflevering niet: die moet hij eerst downloaden.",
