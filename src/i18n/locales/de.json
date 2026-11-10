@@ -67,7 +67,7 @@
     "defaultLibraryName": "Musik",
     "phase": {
       "setup": "Einrichtung · {{current}}/{{total}}",
-      "compose": "Mach WaveFlow zu deinem · {{current}}/{{total}}"
+      "compose": "Gestalte dein WaveFlow · {{current}}/{{total}}"
     },
     "actions": {
       "close": "Tour schließen",
@@ -413,7 +413,7 @@
         "forgotten3": "Erinnerst du dich?",
         "vibe1": "Passt zu dem, was du gerade hörst",
         "vibe2": "Genau deine Stimmung",
-        "vibe3": "Ganz im Stil deiner letzten Tage",
+        "vibe3": "Passend zu dem, was du zuletzt gehört hast",
         "unplayed1": "Noch nie gehört",
         "unplayed2": "Wartet in deiner Bibliothek",
         "unplayed3": "Zum ersten Mal hören"
@@ -490,7 +490,7 @@
       "featuredKicker": "Dazu kehrst du immer wieder zurück",
       "featuredCta": "Noch einmal hören",
       "yourMixes": "Deine Mixe",
-      "leadKicker": "Neuester Zugang",
+      "leadKicker": "Zuletzt hinzugefügt",
       "liked_zero": "0 Favoriten",
       "liked_one": "{{count}} Favorit",
       "liked_other": "{{count}} Favoriten",
@@ -670,7 +670,7 @@
       "batchTag": "Tags stapelweise bearbeiten",
       "densityList": "Liste"
     },
-    "skeletonAriaLabel": "{{name}} werden geladen…",
+    "skeletonAriaLabel": "Wird geladen: {{name}}…",
     "playlistsGrid": {
       "emptyTitle": "Noch keine Playlists",
       "emptyHint": "Von dir erstellte Playlists erscheinen hier als Raster.",
@@ -792,7 +792,7 @@
     "trackOnUnreachableShare": "Netzwerkfreigabe nicht erreichbar, und dieser Titel ist nicht im Cache",
     "quality": {
       "progress": "{{measured}} von {{lossless}} verlustfreien Dateien analysiert",
-      "noLossless": "Keine verlustfreie Datei in der Mediathek: Es gibt nichts zu messen.",
+      "noLossless": "Keine verlustfreie Datei in der Bibliothek: Es gibt nichts zu messen.",
       "status": {
         "running": "Analyse läuft: {{current}} von {{total}} Dateien",
         "starting": "Die Analyse startet …",
@@ -1057,7 +1057,7 @@
       "empty": "Keine Einträge verfügbar",
       "expand": "{{count}} weitere Einträge anzeigen",
       "collapse": "Weniger anzeigen",
-      "breaking": "Wichtige Änderung"
+      "breaking": "Inkompatible Änderung"
     },
     "credits": {
       "text": "Mit Leidenschaft entworfen und entwickelt. Gebaut mit Open-Source-Technologien.",
@@ -1107,7 +1107,7 @@
       "transposeReset": "Zurück zur Originaltonhöhe",
       "transposeNotForEpisodes": "Gilt nicht für Episoden"
     },
-    "seek": "Suchlauf",
+    "seek": "Wiedergabeposition",
     "alert": {
       "error": {
         "device-lost": "Das Audiogerät wurde getrennt",
@@ -1123,9 +1123,9 @@
       },
       "notice": {
         "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im gemeinsamen Modus",
-        "exclusive-refused-busy": "Eine andere App nutzt dieses Gerät im Exklusivmodus: Wiedergabe im geteilten Modus",
-        "exclusive-refused-not-allowed": "Windows erlaubt für dieses Gerät keinen Exklusivmodus: Wiedergabe im geteilten Modus",
-        "exclusive-refused-format": "Dieses Gerät bietet kein im Exklusivmodus nutzbares Format: Wiedergabe im geteilten Modus",
+        "exclusive-refused-busy": "Eine andere App nutzt dieses Gerät im Exklusivmodus: Wiedergabe im gemeinsamen Modus",
+        "exclusive-refused-not-allowed": "Windows erlaubt für dieses Gerät keinen Exklusivmodus: Wiedergabe im gemeinsamen Modus",
+        "exclusive-refused-format": "Dieses Gerät bietet kein im Exklusivmodus nutzbares Format: Wiedergabe im gemeinsamen Modus",
         "dop-refused": "Dieser DAC verweigert natives DSD: Umwandlung in PCM",
         "paused-device-lost": "Gerät getrennt: Wiedergabe pausiert",
         "unknown": "Die Audioausgabe hat sich geändert"
@@ -1330,7 +1330,7 @@
     "smartLabel": "Daily Mix",
     "smartLabelCustom": "Intelligente Playlist",
     "placeholder": {
-      "missing": "Nicht in deiner Mediathek",
+      "missing": "Nicht in deiner Bibliothek",
       "remove": "Aus der Playlist entfernen",
       "count_one": "{{count}} fehlt",
       "count_other": "{{count}} fehlen"
@@ -1463,13 +1463,13 @@
     "creditRoles": {
       "composer": "Komposition",
       "lyricist": "Text",
-      "writer": "Autor",
+      "writer": "Text und Musik",
       "arranger": "Arrangement",
       "orchestrator": "Orchestrierung",
-      "conductor": "Dirigent",
+      "conductor": "Dirigat",
       "producer": "Produktion",
       "mix": "Mischung",
-      "engineer": "Toningenieur",
+      "engineer": "Tontechnik",
       "remixer": "Remix",
       "vocal": "Gesang",
       "instrument": "Instrumente",
@@ -1631,7 +1631,7 @@
       "details": "Details",
       "fromAlbum": "Wiedergabe aus dem Album",
       "artist": "Künstler",
-      "openLyrics": "Liedtext ansehen"
+      "openLyrics": "Songtext ansehen"
     }
   },
   "playerBar": {
@@ -1681,7 +1681,7 @@
         },
         "dop": {
           "title": "Natives DSD",
-          "body": "Das DSD geht unverändert hinaus: Dein Wandler dekodiert es selbst."
+          "body": "Das DSD-Signal wird unverändert ausgegeben: Dein Wandler dekodiert es selbst."
         },
         "dsdToPcm": {
           "title": "DSD umgewandelt",
@@ -1723,7 +1723,7 @@
         },
         "volume": {
           "title": "Lautstärke",
-          "body": "WaveFlow senkt den Klang auf {{value}} %, bevor es ihn ausgibt."
+          "body": "WaveFlow senkt die Lautstärke vor der Ausgabe auf {{value}} %."
         },
         "speed": {
           "title": "Geschwindigkeit",
@@ -1748,10 +1748,10 @@
       },
       "output": {
         "title": "Ausgabe",
-        "shared": "Geteilter Modus: Das System mischt WaveFlow mit den anderen Klängen des Computers. Ideal für den Alltag.",
+        "shared": "Gemeinsamer Modus: Das System mischt WaveFlow mit den anderen Klängen des Computers. Ideal für den Alltag.",
         "exclusive": "Exklusiver Modus: WaveFlow hat die Ausgabe für sich allein, kein anderer Klang mischt sich ein.",
         "dop": "Exklusiver Modus: WaveFlow hat die Ausgabe für sich allein und schickt ihr das DSD unverändert.",
-        "exclusiveRefused": "Die Ausgabe hat den exklusiven Modus abgelehnt: WaveFlow spielt im geteilten Modus."
+        "exclusiveRefused": "Die Ausgabe hat den exklusiven Modus abgelehnt: WaveFlow spielt im gemeinsamen Modus."
       }
     },
     "outputMode": {
@@ -1815,7 +1815,7 @@
     },
     "localization": {
       "off": "Keine Zusatzzeile",
-      "romanization": "Romanisierung wird angezeigt",
+      "romanization": "Umschrift wird angezeigt",
       "translation": "Übersetzung wird angezeigt"
     },
     "source": {
@@ -1865,14 +1865,14 @@
     "trashOthers_other": "{{count}} Duplikate in den Papierkorb verschieben",
     "keepAria": "{{title}} behalten",
     "confirmTitle": "Diese Dateien in den Papierkorb verschieben?",
-    "confirmBody": "Diese Kopien landen im Papierkorb Ihres Systems, aus dem Sie sie wiederherstellen können. Die in jeder Gruppe behaltene Kopie bleibt, wo sie ist.",
+    "confirmBody": "Diese Kopien werden in den Papierkorb deines Systems verschoben. Von dort kannst du sie wiederherstellen. Die in jeder Gruppe beibehaltene Kopie bleibt an ihrem Speicherort.",
     "confirmAction": "In den Papierkorb verschieben",
     "trashed": "In den Papierkorb verschoben: {{count}}",
     "notTrashed": "Nicht verschoben: {{count}}",
     "reasonPlaying": "wird gerade abgespielt",
     "reasonRowKept": "in den Papierkorb verschoben, aber bis zum nächsten Scan noch aufgeführt ({{message}})",
     "reasonKeptCopyGone": "die behaltene Kopie fehlt oder ist nicht mehr identisch, daher bleibt diese",
-    "reasonMissing": "die Datei ist nicht da (gelöscht oder auf einem nicht verbundenen Laufwerk); der nächste Scan aktualisiert die Mediathek"
+    "reasonMissing": "die Datei ist nicht da (gelöscht oder auf einem nicht verbundenen Laufwerk); der nächste Scan aktualisiert die Bibliothek"
   },
   "dragDrop": {
     "play": {
@@ -1955,7 +1955,7 @@
       "bits": "{{value}} Bit",
       "pickTag": "Tag wählen…",
       "days_one": "Tag",
-      "days_other": "Tage"
+      "days_other": "Tagen"
     },
     "predicates": {
       "titleContains": "Titel enthält",
@@ -1974,12 +1974,12 @@
       "ratingMin": "Bewertung ≥",
       "pathContains": "Pfad enthält",
       "discNumberIs": "Disc =",
-      "addedInLastDays": "Hinzugefügt in den letzten",
+      "addedInLastDays": "Hinzugefügt vor höchstens",
       "sampleRateMin": "Abtastrate ≥",
       "bitDepthMin": "Bittiefe ≥",
       "playCountMin": "Wiedergaben ≥",
       "playCountMax": "Wiedergaben ≤",
-      "playedInLastDays": "Gespielt in den letzten",
+      "playedInLastDays": "Gespielt vor höchstens",
       "tagPresent": "Hat Tag",
       "tagContains": "Tag enthält",
       "fakeLossless": "Vermutlich falsches Lossless"
@@ -2049,8 +2049,8 @@
       "confirm": "Verwerfen und schließen"
     },
     "unsynced": {
-      "line": "{{format}}: Zeile {{line}} hat keine Zeit",
-      "word": "{{format}}: Wort {{word}} in Zeile {{line}} hat keine Zeit",
+      "line": "{{format}}: Für Zeile {{line}} fehlt ein Zeitstempel.",
+      "word": "{{format}}: Für Wort {{word}} in Zeile {{line}} fehlt ein Zeitstempel.",
       "show": "Hinspringen"
     },
     "transport": {
@@ -2082,7 +2082,7 @@
       },
       "removeSinger": "Diese Stimme entfernen",
       "addSinger": "Stimme hinzufügen",
-      "textPlaceholder": "Füge den Songtext hier ein, eine Zeile pro Zeile.\nLeere Zeilen werden ignoriert.",
+      "textPlaceholder": "Füge den Songtext hier ein, jede Songtextzeile in eine eigene Zeile.\nLeere Zeilen werden ignoriert.",
       "useText": "Diese Zeilen übernehmen",
       "useTextKeepsTiming": "Unveränderte Zeilen behalten ihre Synchronisierung.",
       "addLine": "Zeile hinzufügen",
@@ -2390,7 +2390,7 @@
       "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den gemeinsamen Modus ausgewichen.",
       "fallbackBusy": "Eine andere App nutzt dieses Gerät bereits im Exklusivmodus. Schließe sie und starte die Wiedergabe erneut.",
       "fallbackNotAllowed": "Windows verbietet den Exklusivmodus für dieses Gerät. Aktiviere „Anwendungen haben alleinige Kontrolle über das Gerät“ in den erweiterten Eigenschaften (Soundeinstellungen).",
-      "fallbackFormat": "Das Gerät bietet kein im Exklusivmodus nutzbares Format. Zurück im geteilten Modus.",
+      "fallbackFormat": "Das Gerät bietet kein im Exklusivmodus nutzbares Format. Zurück im gemeinsamen Modus.",
       "hardwareVolume": "Die Systemlautstärke gilt nicht mehr: Das Gerät spielt mit seinem eigenen Hardwarepegel. Ist es zu leise, erhöhe diesen Pegel im Mixer des Systems."
     },
     "matchSourceRate": {
@@ -2439,7 +2439,7 @@
     },
     "showAbLoop": {
       "title": "A-B-Schleife in der Leiste anheften",
-      "subtitle": "Wenn deaktiviert, bleibt A-B-Schleife über das „…“-Menü erreichbar"
+      "subtitle": "Wenn deaktiviert, bleibt die A-B-Schleife über das „…“-Menü erreichbar."
     },
     "duplicates": {
       "title": "Duplikate erkennen",
@@ -2771,15 +2771,15 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon Deck — OLED-Schwarz, Chrome aus Haarlinien, der Akzent des Themas als Neon auf allem Aktiven, Mono-Labels, federnde Animationen."
+          "description": "Neon Deck — OLED-Schwarz, feine Chromlinien, die Akzentfarbe des Designs als Neon für aktive Elemente, Beschriftungen in Monospace-Schrift, federnde Animationen."
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Aurora Glass — leuchtendes Glas, vom Cover getönt, Pastelltöne, Stimmungskapseln, Licht, das auf die Hand antwortet, helles oder dunkles Thema."
+          "description": "Aurora Glass — leuchtendes Glas, vom Cover getönt, Pastelltöne, Stimmungskapseln, Licht, das auf die Hand antwortet, helles oder dunkles Design."
         },
         "fluid": {
           "label": "Fluid",
-          "description": "Kinematisch-editorial — das Cover beleuchtet die Seite, Magazin-Typografie, Wellenkurven, ein Stimmungsspektrum."
+          "description": "Filmisch-editorial — das Cover beleuchtet die Seite, Magazin-Typografie, Wellenkurven, ein Stimmungsspektrum."
         }
       },
       "accent": {
@@ -3147,7 +3147,7 @@
     },
     "effects": {
       "title": "Visuelle Effekte",
-      "subtitle": "Unschärfe, Glas, Leuchten und Ambient-Animationen. Reduziert wird jede Fläche flach gezeichnet, damit die Oberfläche auch ohne Grafikbeschleunigung flüssig bleibt.",
+      "subtitle": "Unschärfe, Glas, Leuchten und Ambient-Animationen. Im reduzierten Modus werden alle Flächen ohne diese Effekte dargestellt, damit die Oberfläche auch ohne Grafikbeschleunigung flüssig bleibt.",
       "modes": {
         "auto": {
           "label": "Automatisch",
@@ -3156,7 +3156,7 @@
         },
         "full": {
           "label": "Vollständig",
-          "description": "Alle Effekte des Skins, auch ohne GPU."
+          "description": "Alle Effekte des Oberflächenstils, auch ohne GPU."
         },
         "reduced": {
           "label": "Reduziert",
@@ -3198,7 +3198,7 @@
         "library": "Scan, Musikanalyse, Cover, Biografien und Radio.",
         "playback": "Audioausgabe, Titelübergänge, Lautstärke und Equalizer.",
         "appearance": "Oberflächenstil, Design, Lesbarkeit und Fenster.",
-        "media": "Woher Songtexte kommen, wie sie erscheinen, und auf dem Desktop.",
+        "media": "Quellen, Anzeige und Desktop-Fenster für Songtexte.",
         "integrations": "Verbinde deine Dienste, Server und Netzwerkgeräte.",
         "plugins": "Entdecke Erweiterungen und verwalte ihre Einstellungen.",
         "shortcuts": "Wähle Tastenkürzel für alltägliche Aktionen.",
@@ -3340,8 +3340,8 @@
       "stereo": "Stereo",
       "channels": "{{count}} Kanäle",
       "exclusive": "Exklusiv",
-      "shared": "Geteilt",
-      "sharedNote": "Im geteilten Modus wandelt der System-Mixer dieses Format anschließend in das des Geräts um.",
+      "shared": "Gemeinsam",
+      "sharedNote": "Im gemeinsamen Modus wandelt der System-Mixer dieses Format anschließend in das des Geräts um.",
       "monoNote": "Die Mono-Ausgabe ist aktiv: Jeder Piepton kommt aus beiden Seiten.",
       "surroundNote": "Surround-Ausgabe: Jeder Lautsprecher piept nacheinander, der Subwoofer mit einem tiefen Ton.",
       "swapped": "Kam der linke Piepton von rechts? Dann sind die Kanäle vertauscht: Prüfe den Anschluss oder die Lautsprechereinstellungen des Systems.",
@@ -3382,12 +3382,12 @@
     },
     "autoplay": {
       "title": "Autoplay",
-      "subtitle": "Wenn die Warteschlange ohne Wiederholung endet, ähnliche Titel aus deiner Mediathek hinzufügen und weiterspielen"
+      "subtitle": "Wenn die Warteschlange ohne Wiederholung endet, ähnliche Titel aus deiner Bibliothek hinzufügen und weiterspielen"
     },
     "stereoImage": {
       "balance": {
         "title": "Balance",
-        "subtitle": "Senkt den gegenüberliegenden Kanal; die Seite, zu der Sie schieben, wird nie verstärkt",
+        "subtitle": "Senkt den gegenüberliegenden Kanal ab; die Seite, zu der du den Regler schiebst, wird nie verstärkt.",
         "center": "Mitte",
         "left": "L {{value}} %",
         "right": "R {{value}} %",
@@ -3415,7 +3415,7 @@
       "refresh": "Neu messen",
       "failed": "Der Speicherplatz konnte nicht gemessen werden.",
       "rebuildableTitle": "Baut sich selbst wieder auf",
-      "rebuildableHint": "Leeren kostet nichts: Diese Dateien werden bei Bedarf erneut geholt.",
+      "rebuildableHint": "Beim Leeren geht nichts dauerhaft verloren: Diese Dateien werden bei Bedarf erneut heruntergeladen.",
       "keptTitle": "Deine Daten",
       "keptHint": "Nichts davon baut sich selbst wieder auf: Jeder Eintrag wird in seinem eigenen Bereich verwaltet.",
       "empty": "Leeren",
@@ -3423,7 +3423,7 @@
       "emptyLabel": "Leeren: {{item}}",
       "items": {
         "artwork": {
-          "label": "Cover der Mediathek",
+          "label": "Cover der Bibliothek",
           "description": "Albumcover dieses Profils und ihre Vorschaubilder. Ungenutzte Cover werden unter „{{section}}“ entfernt."
         },
         "metadataArtwork": {
@@ -3456,7 +3456,7 @@
         },
         "databases": {
           "label": "Datenbanken",
-          "description": "Mediathek, Playlists, Verlauf und Einstellungen aller Profile."
+          "description": "Bibliothek, Playlists, Verlauf und Einstellungen aller Profile."
         },
         "databaseSnapshots": {
           "label": "Kopien vor Upgrades",
@@ -3637,7 +3637,7 @@
       },
       "replayGain": {
         "term": "ReplayGain",
-        "body": "Ein Maß für die Lautheit jedes Titels, aus der Datei gelesen oder von WaveFlow berechnet. Eingeschaltet musst du die Lautstärke nicht mehr von Titel zu Titel nachregeln, und sonst ändert sich nichts am Klang."
+        "body": "Ein Maß für die Lautheit jedes Titels, aus der Datei gelesen oder von WaveFlow berechnet. Ist ReplayGain eingeschaltet, musst du die Lautstärke nicht mehr von Titel zu Titel nachregeln, und sonst ändert sich nichts am Klang."
       },
       "exclusive": {
         "term": "Exklusiver Modus",
@@ -3655,8 +3655,8 @@
     "cancelledTitle": "Scan gestoppt",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen",
     "scanningIn": "{{dir}} wird gescannt…",
-    "doneErrors_one": "{{count}} Datei fehlgeschlagen",
-    "doneErrors_other": "{{count}} Dateien fehlgeschlagen"
+    "doneErrors_one": "Fehler bei {{count}} Datei",
+    "doneErrors_other": "Fehler bei {{count}} Dateien"
   },
   "system": {
     "tray": {
@@ -4061,9 +4061,9 @@
       "playCountMin_other": "mindestens {{count}} Mal gespielt",
       "playCountMax_one": "höchstens {{count}} Mal gespielt",
       "playCountMax_other": "höchstens {{count}} Mal gespielt",
-      "playedInLastDays_one": "am letzten Tag gespielt",
+      "playedInLastDays_one": "innerhalb des letzten Tages gespielt",
       "playedInLastDays_other": "in den letzten {{count}} Tagen gespielt",
-      "addedInLastDays_one": "am letzten Tag hinzugefügt",
+      "addedInLastDays_one": "innerhalb des letzten Tages hinzugefügt",
       "addedInLastDays_other": "in den letzten {{count}} Tagen hinzugefügt",
       "fakeLossless": "vermutlich falsches Lossless"
     }
@@ -4141,20 +4141,20 @@
     "current": "Aktuelle Datei",
     "replacement": "Neue Datei",
     "target": "Wird gespeichert als",
-    "keeps": "Der Titel behält seine Wiedergaben, Likes und Playlists. Die aktuelle Datei wandert in den Papierkorb des Systems.",
+    "keeps": "Der Titel behält seine Wiedergaben, seinen Favoritenstatus und seine Playlist-Zuordnungen. Die aktuelle Datei wird in den Papierkorb des Systems verschoben.",
     "confirm": "Ersetzen",
     "replacing": "Wird ersetzt…",
     "done": "Ersetzt. Die alte Datei liegt im Papierkorb.",
     "keptAside": "Ersetzt, aber die alte Datei konnte nicht in den Papierkorb. Sie liegt unter {{path}}.",
     "bits": "{{value}} Bit",
     "refusals": {
-      "playing": "Dieser Titel wird gerade abgespielt. Stoppen Sie ihn zuerst.",
+      "playing": "Dieser Titel wird gerade abgespielt. Stoppe ihn zuerst.",
       "sameFile": "Das ist die Datei des Titels selbst.",
       "notAudio": "Diese Datei ist kein Audio, das der Player lesen kann.",
       "durationMismatch": "Die Längen weichen ab ({{current}} gegenüber {{replacement}}): vermutlich eine andere Aufnahme oder Fassung.",
       "targetTaken": "Eine andere Datei heißt bereits {{path}}."
     },
-    "adopts": "Diese Datei ist bereits als eigener Titel in der Mediathek. Dieser Eintrag wird samt seinem kurzen Verlauf entfernt, und dieser Titel übernimmt seine Datei."
+    "adopts": "Diese Datei ist bereits als eigener Titel in der Bibliothek. Dieser Eintrag wird samt seinem kurzen Verlauf entfernt, und dieser Titel übernimmt seine Datei."
   },
   "openToPlay": {
     "files": "Dateien abspielen…",
@@ -4188,7 +4188,7 @@
   },
   "playlistImport": {
     "title": "Playlist importieren",
-    "help": "Titel, die du schon hast, werden hinzugefügt. Die anderen behalten ihren Platz, ausgegraut, und werden ergänzt, sobald sie in deiner Mediathek auftauchen.",
+    "help": "Titel, die du schon hast, werden hinzugefügt. Die anderen behalten ihren Platz, ausgegraut, und werden ergänzt, sobald sie in deiner Bibliothek auftauchen.",
     "fromFile": "Aus einer Datei",
     "fromFileHint": "M3U, CSV oder JSON",
     "fileDialogTitle": "Playlist-Datei importieren",
@@ -4348,22 +4348,22 @@
     "allTextFields": "Alle Textfelder",
     "fields": {
       "title": "Titel",
-      "artist": "Interpreten",
+      "artist": "Künstler",
       "album": "Album",
-      "album_artist": "Albuminterpret",
+      "album_artist": "Albumkünstler",
       "year": "Jahr",
       "track_number": "Titelnr.",
       "track_total": "Titelanzahl",
-      "disc_number": "CD",
-      "disc_total": "CD-Anzahl",
+      "disc_number": "Disc-Nr.",
+      "disc_total": "Disc-Anzahl",
       "genre": "Genres",
       "composer": "Komponist",
       "mb_release_id": "Release-ID",
       "mb_release_group_id": "Release-Group-ID",
       "mb_recording_id": "Aufnahme-ID",
       "mb_release_track_id": "Release-Track-ID",
-      "mb_artist_id": "Interpreten-IDs",
-      "mb_album_artist_id": "Albuminterpreten-IDs"
+      "mb_artist_id": "Künstler-IDs",
+      "mb_album_artist_id": "Albumkünstler-IDs"
     },
     "defaultLabel_one": "{{count}} Datei bearbeitet",
     "defaultLabel_other": "{{count}} Dateien bearbeitet",
@@ -4384,7 +4384,7 @@
     },
     "caseApply": "Anwenden",
     "numberFrom": "Beginnen bei",
-    "numberPerDisc": "Auf jeder CD neu beginnen",
+    "numberPerDisc": "Auf jeder Disc neu beginnen",
     "numberTotals": "Titelanzahl setzen",
     "numberApply": "In Tabellenreihenfolge nummerieren",
     "releasePlaceholder": "MusicBrainz-Release-Link oder -ID (optional)",
@@ -4581,7 +4581,7 @@
     "openUnseen": "Neuigkeiten, noch nicht gesehen",
     "needs": {
       "library": "Dafür braucht es zuerst Musik in deiner Bibliothek.",
-      "track": "Spiele einen Titel aus deiner Bibliothek ab, um den Editor mit seinem Liedtext zu öffnen.",
+      "track": "Spiele einen Titel aus deiner Bibliothek ab, um den Editor mit seinem Songtext zu öffnen.",
       "startsPlayback": "Gerade läuft nichts: Beim Ausprobieren startet deine Bibliothek in zufälliger Reihenfolge.",
       "podcastsWarning": "Die Schaltfläche öffnet zuerst einen Hinweis: Ohne deine Zustimmung wird nichts eingeschaltet."
     },
@@ -4597,7 +4597,7 @@
         "keywords": "Beats|Tempo|Überblendung|Übergänge|Analyse|BPM"
       },
       "lyricsEditor": {
-        "title": "Ein von Grund auf neuer Liedtext-Editor",
+        "title": "Ein von Grund auf neuer Songtext-Editor",
         "body": "Drei Schritte: bearbeiten, zeilen- oder wortweise synchronisieren und das Ergebnis vor dem Speichern prüfen. Die Leertaste setzt die Zeitmarken, während der Song läuft, mit Sängern, Backing Vocals und Übersetzungen, in LRC, Enhanced LRC oder TTML.",
         "keywords": "Wort für Wort|Synchronisation|LRC|TTML|Sänger|Übersetzungen"
       },
@@ -4752,7 +4752,7 @@
       "markAllUnplayed": "Alle als ungehört markieren",
       "openSite": "Website des Kanals",
       "unsubscribe": "Abo beenden",
-      "speed": "Tempo",
+      "speed": "Geschwindigkeit",
       "speedNormal": "Normal",
       "noEpisodes": "Dieser Kanal hat keine Folgen.",
       "lastFailure": "Letzte Prüfung: {{reason}}",
