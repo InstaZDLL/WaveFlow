@@ -778,12 +778,18 @@ function LyricsEditorDialog({
                   </span>
                 )}
                 {warning && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0">
+                  <span
+                    className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0"
+                    title={warning}
+                  >
                     {warning}
                   </span>
                 )}
                 {error && (
-                  <span className="text-xs text-red-500 truncate min-w-0">
+                  <span
+                    className="text-xs text-red-500 truncate min-w-0"
+                    title={error}
+                  >
                     {error}
                   </span>
                 )}
