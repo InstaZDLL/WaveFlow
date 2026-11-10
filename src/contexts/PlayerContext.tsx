@@ -316,6 +316,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // `player:radio-metadata`): one received during a play request is newer
   // than the label that request would put back.
   const trackEventsRef = useRef(0);
+  // Counts the position writes that are newer than a snapshot can be: a
+  // `player:position` tick and a seek made here.
+  const positionWritesRef = useRef(0);
 
   // Keep that ref in step with the state it mirrors.
   useEffect(() => {
@@ -577,6 +580,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       try {
         unlisten.push(
           await listen<PlayerPositionPayload>("player:position", (e) => {
+            positionWritesRef.current += 1;
             if (!isSeekingRef.current) {
               setPlayerPosition(e.payload.ms);
             }
@@ -948,7 +952,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           detail: String(err),
         });
         // The engine's own word, unless it has spoken since this read began.
+        // The position likewise, on its own: the track that plays on still
+        // ticks, and a tick, a seek or a new track is newer than the read.
         const stateEvents = stateEventsRef.current;
+        const positionWrites = positionWritesRef.current;
+        const trackEventsNow = trackEventsRef.current;
         const current = () =>
           request === playRequestRef.current &&
           stateEvents === stateEventsRef.current;
@@ -956,7 +964,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           const snap = await playerGetState();
           if (!current()) return;
           setPlaybackState(snap.state);
-          setPlayerPosition(snap.position_ms);
+          if (
+            positionWrites === positionWritesRef.current &&
+            trackEventsNow === trackEventsRef.current
+          ) {
+            setPlayerPosition(snap.position_ms);
+          }
         } catch (snapErr) {
           console.error("[PlayerContext] resync after play failed", snapErr);
           if (current()) setPlaybackState("idle");
@@ -1003,6 +1016,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seek = useCallback(async (ms: number) => {
     // Optimistic: update the UI position immediately; the backend
     // will also emit player:position after the seek lands.
+    positionWritesRef.current += 1;
     setPlayerPosition(ms);
     try {
       await playerSeek(ms);
