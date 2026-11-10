@@ -208,7 +208,8 @@ export function EnrichmentCard() {
           <div>
             <div className="flex justify-between gap-2 text-[11px] text-zinc-500 mb-1">
               <span className="truncate">{task.detail ?? ""}</span>
-              <span className="tabular-nums shrink-0">
+              {/* "a / b" left to right in every language. */}
+              <span dir="ltr" className="tabular-nums shrink-0">
                 {task.total > 0 ? `${task.current} / ${task.total}` : ""}
               </span>
             </div>

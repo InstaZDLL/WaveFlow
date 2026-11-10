@@ -130,7 +130,11 @@ function TaskRow({
               several minutes look frozen. */}
           {(determinate || task.current > 0) && (
             <span className="text-[11px] text-zinc-500 dark:text-zinc-400 ms-auto shrink-0 tabular-nums">
-              {determinate ? `${task.current} / ${task.total}` : task.current}
+              {/* "current / total" reads left to right in every language:
+                  isolated, or bidi would set it "total / current" in Arabic. */}
+              <span dir="ltr">
+                {determinate ? `${task.current} / ${task.total}` : task.current}
+              </span>
             </span>
           )}
         </div>

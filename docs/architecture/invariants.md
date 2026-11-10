@@ -385,6 +385,7 @@ What cannot be logical:
 - **the transport**: previous, play, next stay in a player's order, the way their icons point;
 - **charts**: the statistics bars and heatmap, the spectrogram, the equalizer curve (whose SVG `textAnchor` would follow the page), the spectrum visualizer;
 - **the mood radio's tempo axis**: Fluid's band and Lounge's dial put the slowest mood on the left on purpose; each segment's own text still reads in the interface's direction;
+- **counters and times written `a / b`** (a task's `12 / 100`, the lyrics editor's `0:12 / 3:45`): the spaces around the slash keep bidi from grouping the numbers, and Arabic would show `100 / 12`, so the text sits in a `dir="ltr"` span; a counter inside a translated string is left to the translation;
 - **number fields**: `app.css` keeps `input[type="number"]` and the numeric `inputmode`s left to right;
 - **a scrolling title** ([`MarqueeText`](../../src/components/common/MarqueeText.tsx)): its translate is physical, so it stays flush left, and the ping-pong shows both ends of a title whichever way it reads.
 

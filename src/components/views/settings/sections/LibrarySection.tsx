@@ -263,7 +263,8 @@ export function LibrarySection({
           {analysisTask && (
             <div className="mt-3 ms-9">
               <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
-                <span>
+                {/* "a / b" left to right in every language. */}
+                <span dir="ltr">
                   {analysisTask.total > 0
                     ? `${analysisTask.current} / ${analysisTask.total}`
                     : analysisTask.current}
