@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Moon, X } from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
+import { endCornerOrigin } from "../../lib/direction";
 
 /// Preset durations exposed in the popover. The list mirrors what
 /// Spotify, Apple Music, YouTube Music and most podcast apps offer.
@@ -124,7 +125,7 @@ export function SleepTimerMenu({
               damping: 30,
               mass: 0.5,
             }}
-            style={{ transformOrigin: "bottom right" }}
+            style={{ transformOrigin: endCornerOrigin("bottom") }}
             className="absolute bottom-full end-0 mb-2 w-64 p-3 rounded-2xl shadow-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 z-50 space-y-3"
           >
             <div className="flex items-center justify-between">

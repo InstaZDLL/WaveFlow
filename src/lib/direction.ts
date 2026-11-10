@@ -87,3 +87,13 @@ export function leftAligned(
 export function forwardArrowKey(el: Element): "ArrowLeft" | "ArrowRight" {
   return getComputedStyle(el).direction === "rtl" ? "ArrowLeft" : "ArrowRight";
 }
+
+/**
+ * The `transform-origin` of a popover anchored by its end edge (`end-0`),
+ * so it grows out of the corner nearest its trigger: `top right` /
+ * `bottom right`, or the left corner in a right-to-left language. CSS
+ * has no logical keyword for it.
+ */
+export function endCornerOrigin(edge: "top" | "bottom"): string {
+  return `${edge} ${interfaceIsRtl() ? "left" : "right"}`;
+}

@@ -374,6 +374,7 @@ Arabic runs the whole interface right to left: [`i18n/index.ts`](../../src/i18n/
 What cannot be logical:
 
 - **`translate-x-*`** moves physically: a knob or a badge pushed toward the end takes `rtl:-translate-x-*` with it, and a skin that overrides the translate adds a `:root[dir="rtl"]` rule.
+- **`transform-origin`** has no logical keyword: a menu anchored at `end-0` grows out of `endCornerOrigin("top" | "bottom")` (the right corner, the left one in Arabic), and a strip scaled from where reading starts takes a `:root[dir="rtl"]` origin.
 - **A popover placed in JavaScript** reads the direction when it opens: [`lib/direction.ts`](../../src/lib/direction.ts) gives `leftAtPoint` (a context menu at the pointer), `leftBeside` (a submenu after its item) and `leftAligned` (a dropdown lined up with its trigger's start or end), each kept inside the window, and `interfaceIsRtl` for the rest (a keyboard-opened menu's anchor, half a star). A row navigated with the arrow keys asks `forwardArrowKey(element)`, which reads the row's computed direction.
 - **An icon that points along the reading order** — back, a breadcrumb or disclosure chevron, previous / next of a carousel, a panel handle, undo / redo — turns with `rtl:rotate-180` (an asymmetric glyph mirrors with `rtl:-scale-x-100`).
 

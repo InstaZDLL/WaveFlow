@@ -54,6 +54,7 @@ import {
   type AlbumRow,
   type ArtistRow,
 } from "../../lib/tauri/browse";
+import { endCornerOrigin } from "../../lib/direction";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface TopBarProps {
@@ -990,7 +991,7 @@ export function TopBar({
                   damping: 32,
                   mass: 0.45,
                 }}
-                style={{ transformOrigin: "top right" }}
+                style={{ transformOrigin: endCornerOrigin("top") }}
                 data-topbar-popover
                 className="absolute top-full end-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
               >

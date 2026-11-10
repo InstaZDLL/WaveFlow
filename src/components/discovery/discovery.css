@@ -338,6 +338,23 @@
     transform: translateX(340%);
   }
 }
+/* A task's strip fills from where reading starts, like the other task
+   bars: from the right in a right-to-left language, and its waiting
+   segment travels that way too. */
+:root[dir="rtl"] .onboarding-scan__bar {
+  transform-origin: right;
+}
+:root[dir="rtl"] .onboarding-scan__bar[data-indeterminate] {
+  animation-name: onboarding-scan-travel-rtl;
+}
+@keyframes onboarding-scan-travel-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-340%);
+  }
+}
 
 /* ── Steps and screens ─────────────────────────────────────── */
 .onboarding-step {

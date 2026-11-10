@@ -23,6 +23,7 @@ import { getPlayerPosition } from "../../hooks/usePlayerPosition";
 import { isPodcastTrack } from "../../lib/playerSources";
 import { MAX_PITCH_SEMITONES } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
+import { endCornerOrigin } from "../../lib/direction";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
 import { PodcastPlayerMenu } from "../podcasts/PodcastPlayerMenu";
@@ -206,7 +207,7 @@ export function MoreActionsMenu({
               damping: 30,
               mass: 0.5,
             }}
-            style={{ transformOrigin: "bottom right" }}
+            style={{ transformOrigin: endCornerOrigin("bottom") }}
             className="absolute bottom-full end-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
           >
             {/* Back to a paused station's live edge: only while behind
