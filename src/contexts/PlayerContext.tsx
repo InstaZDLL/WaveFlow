@@ -312,6 +312,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Counts `player:state` events, so a snapshot read while one arrived does
   // not put back the state it replaced.
   const stateEventsRef = useRef(0);
+  // Counts the events that name what plays (`player:track-changed`,
+  // `player:radio-metadata`): one received during a play request is newer
+  // than the label that request would put back.
+  const trackEventsRef = useRef(0);
 
   // Keep that ref in step with the state it mirrors.
   useEffect(() => {
@@ -628,6 +632,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<QueueTrackPayload>("player:track-changed", (e) => {
+            trackEventsRef.current += 1;
             // Backend just selected a new track (via play_tracks,
             // next, previous, resume_last, or the analytics task's
             // auto-advance). Reflect it in the PlayerBar
@@ -666,6 +671,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<RadioMetadata>("player:radio-metadata", (e) => {
+            trackEventsRef.current += 1;
             // Web Radio (LoadUrlAndPlay) emits this in lieu of
             // `player:track-changed` — no library row to look up,
             // metadata rides on the event payload directly. The
@@ -899,6 +905,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       const chosen = tracks[startIndex];
       const request = ++playRequestRef.current;
+      const trackEvents = trackEventsRef.current;
       const shown = currentTrackRef.current;
       // Optimistic UI: show the clicked track + duration immediately
       // so the PlayerBar doesn't lag the invoke round-trip. The ref is
@@ -927,6 +934,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // pick, or an event, has already replaced that label.
         if (
           request !== playRequestRef.current ||
+          trackEvents !== trackEventsRef.current ||
           currentTrackRef.current !== chosen
         ) {
           return;
