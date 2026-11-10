@@ -349,7 +349,7 @@ cargo test  --manifest-path src-tauri/Cargo.toml --workspace
 ## 社区
 
 - 🐛 **发现 Bug？** → [提交 Bug 报告](https://github.com/InstaZDLL/WaveFlow/issues/new?template=bug_report_zh-CN.yml)
-- ✨ **有新想法？** → [Discussions › Ideas](https://github.com/InstaZDLL/WaveFlow/discussions/categories/ideas)（先讨论，想法成形后再转为[功能请求](https://github.com/InstaZDLL/WaveFlow/issues/new?template=feature_request.yml)）
+- ✨ **有新想法？** → [Discussions › Ideas](https://github.com/InstaZDLL/WaveFlow/discussions/categories/ideas)（先讨论，想法成形后再转为[功能请求](https://github.com/InstaZDLL/WaveFlow/issues/new?template=feature_request_zh-CN.yml)）
 - 🙏 **安装或使用求助？** → [Discussions › Q&A](https://github.com/InstaZDLL/WaveFlow/discussions/categories/q-a)
 - 🙌 **想展示你的配置或歌单？** → [Discussions › Show and tell](https://github.com/InstaZDLL/WaveFlow/discussions/categories/show-and-tell)
 - 🔒 **安全问题？** → [私下披露](.github/SECURITY.md)——请勿公开发布漏洞。
