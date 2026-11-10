@@ -10,11 +10,11 @@ WaveFlow is a Tauri 2 desktop app with a React/Vite frontend and a Rust backend.
 
 ### Requirements
 
-| Requirement               | Notes                                |
-| ------------------------- | ------------------------------------ |
-| Bun                       | Package manager and frontend scripts |
-| Rust 1.98.0               | Pinned in `rust-toolchain.toml`; rustup installs it |
-| Tauri system dependencies | Required to build the desktop app    |
+| Requirement               | Notes                                                           |
+| ------------------------- | --------------------------------------------------------------- |
+| Bun 1.4.4                 | Pinned in `package.json` (`packageManager`), which CI reads too |
+| Rust 1.98.0               | Pinned in `rust-toolchain.toml`; rustup installs it             |
+| Tauri system dependencies | Required to build the desktop app                               |
 
 On Linux, also install the native dependencies used by Tauri, WebKitGTK, and
 audio:

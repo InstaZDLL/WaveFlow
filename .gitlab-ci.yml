@@ -163,7 +163,8 @@ frontend:
   variables:
     BUN_INSTALL_CACHE_DIR: $CI_PROJECT_DIR/.bun-cache
   script:
-    - npm install --global bun
+    # The version package.json's packageManager names, as on GitHub.
+    - npm install --global "bun@$(node -p "require('./package.json').packageManager.split('@')[1]")"
     - bun install --frozen-lockfile
     - bun run lint
     - bun run typecheck
@@ -256,7 +257,7 @@ release-linux:
     - curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
     - export PATH="$HOME/.cargo/bin:$PATH"
     - rustup toolchain install
-    - curl -fsSL https://bun.sh/install | bash
+    - curl -fsSL https://bun.sh/install | bash -s "bun-v$(node -p "require('./package.json').packageManager.split('@')[1]")"
     - export PATH="$HOME/.bun/bin:$PATH"
     - *release-env-bash
     - bun install --frozen-lockfile
@@ -283,7 +284,8 @@ release-windows:
     - Write-Host "Building $env:TAG_NAME (version $env:VERSION, pre-release $env:IS_PRERELEASE)"
     - if (-not $env:TAURI_SIGNING_PRIVATE_KEY -or -not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { Write-Error 'TAURI_SIGNING_PRIVATE_KEY and its password are required'; exit 1 }
     - if (-not $env:SIGNTOOL_PFX_BASE64 -or -not $env:SIGNTOOL_PFX_PASSWORD) { Write-Error 'SIGNTOOL_PFX_BASE64 and SIGNTOOL_PFX_PASSWORD are required'; exit 1 }
-    - powershell -c "irm bun.sh/install.ps1 | iex"
+    - $bunVersion = (Get-Content package.json -Raw | ConvertFrom-Json).packageManager.Split('@')[1]
+    - iex "& {$(irm bun.sh/install.ps1)} -Version $bunVersion"
     - $env:Path = "$env:USERPROFILE\.bun\bin;$env:Path"
     - python -c "import json,os; p='src-tauri/crates/app/tauri.conf.json'; c=json.load(open(p,encoding='utf-8')); c['version']=os.environ['VERSION']; open(p,'w',encoding='utf-8').write(json.dumps(c,indent=2)+'\n')"
     # Authenticode, as release.yml does it: the object form of signCommand,
@@ -333,7 +335,7 @@ release-macos:
     - rustup target add aarch64-apple-darwin x86_64-apple-darwin
     - cmake --version || brew install cmake
     - node --version || brew install node
-    - curl -fsSL https://bun.sh/install | bash
+    - curl -fsSL https://bun.sh/install | bash -s "bun-v$(node -p "require('./package.json').packageManager.split('@')[1]")"
     - export PATH="$HOME/.bun/bin:$PATH"
     - *release-env-bash
     # The signing mode, with release.yml's rule: no APPLE_* variable is an
