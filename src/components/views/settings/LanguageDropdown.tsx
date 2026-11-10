@@ -6,6 +6,7 @@ import {
 } from "../../../i18n";
 import { Check, ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
+import { interfaceIsRtl } from "../../../lib/direction";
 
 // Tallest the listbox gets. With seventeen languages the list is taller
 // than most windows, so it scrolls inside its own box. The box opens below
@@ -33,7 +34,9 @@ export function LanguageDropdown({
   const [position, setPosition] = useState<{
     top?: number;
     bottom?: number;
-    right: number;
+    /** One of the two: the side the trigger's end edge is on. */
+    left?: number;
+    right?: number;
     maxHeight: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,27 +127,30 @@ export function LanguageDropdown({
     }
     // Opening: snapshot the trigger's viewport rect for the portaled
     // listbox, then focus the currently selected option. `mt-2` (= 8px)
-    // keeps the visual gap the old absolute markup had; `right` is
-    // measured from the viewport edge to mirror the original `right-0`
-    // anchor. A trigger near the bottom of the window opens the list above
+    // keeps the visual gap the old absolute markup had; the list lines
+    // up with the trigger's end edge, as the original `right-0` anchor
+    // did: `right` from the viewport edge, or `left` in a right-to-left
+    // language, where the end is the left. A trigger near the bottom of the window opens the list above
     // it instead (see `MENU_MAX_HEIGHT`). Computed here rather than in a
     // `setIsOpen` updater, which React may run more than once.
     const rect = triggerRef.current?.getBoundingClientRect();
     if (rect) {
-      const right = window.innerWidth - rect.right;
+      const side = interfaceIsRtl()
+        ? { left: rect.left }
+        : { right: window.innerWidth - rect.right };
       // Room on each side, less the 8px gap and an 8px window margin.
       const below = window.innerHeight - rect.bottom - 16;
       const above = rect.top - 16;
       if (below >= MENU_MAX_HEIGHT || below >= above) {
         setPosition({
           top: rect.bottom + 8,
-          right,
+          ...side,
           maxHeight: Math.max(0, Math.min(MENU_MAX_HEIGHT, below)),
         });
       } else {
         setPosition({
           bottom: window.innerHeight - rect.top + 8,
-          right,
+          ...side,
           maxHeight: Math.max(0, Math.min(MENU_MAX_HEIGHT, above)),
         });
       }
@@ -236,6 +242,7 @@ export function LanguageDropdown({
               position: "fixed",
               top: position.top,
               bottom: position.bottom,
+              left: position.left,
               right: position.right,
               maxHeight: position.maxHeight,
             }}
@@ -254,7 +261,7 @@ export function LanguageDropdown({
                     aria-selected={isSelected}
                     onClick={() => handleSelect(lang.code)}
                     onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                    className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors focus:outline-none ${
+                    className={`w-full flex items-center justify-between px-4 py-2 text-sm text-start transition-colors focus:outline-none ${
                       isSelected
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
                         : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 focus:bg-zinc-50 dark:focus:bg-zinc-700/30"

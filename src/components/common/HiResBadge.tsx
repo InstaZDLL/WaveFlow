@@ -93,7 +93,7 @@ export function HiResBadge({
   return (
     <div
       data-quality-badge={badge.kind}
-      className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md tracking-wide pointer-events-none select-none ${
+      className={`absolute top-2 start-2 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md tracking-wide pointer-events-none select-none ${
         quiet ? "bg-white/90 text-zinc-900" : "bg-emerald-500 text-white"
       }`}
     >

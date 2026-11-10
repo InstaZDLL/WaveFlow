@@ -117,7 +117,7 @@ export function PodcastTranscriptPanel({
       animate={{ width: 320, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full shrink-0 overflow-hidden border-s bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       {body}
     </motion.aside>

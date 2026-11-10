@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { Mood, MoodCounts } from "../../../lib/tauri/moodRadio";
+import { forwardArrowKey } from "../../../lib/direction";
 
 export interface MoodDef {
   id: Mood;
@@ -81,9 +82,13 @@ export function useMoodRadioGroup(
 
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, mood: MoodDef) => {
     const index = enabled.indexOf(mood);
+    // Along the group's own direction: the capsules follow the page, the
+    // tempo axes stay left to right.
+    const group = e.currentTarget.closest('[role="radiogroup"]');
+    const forward = forwardArrowKey(group ?? e.currentTarget);
     let to: number | null = null;
-    if (e.key === "ArrowRight") to = (index + 1) % enabled.length;
-    else if (e.key === "ArrowLeft")
+    if (e.key === forward) to = (index + 1) % enabled.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowRight")
       to = (index - 1 + enabled.length) % enabled.length;
     else if (e.key === "Home") to = 0;
     else if (e.key === "End") to = enabled.length - 1;

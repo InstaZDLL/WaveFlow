@@ -216,7 +216,7 @@ export function ArtistImagePickerModal({
             <div className="relative mb-4">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                className="absolute start-3 top-1/2 -translate-y-1/2 text-zinc-400"
               />
               <input
                 type="text"
@@ -224,12 +224,12 @@ export function ArtistImagePickerModal({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("library.searchDeezer")}
                 autoFocus
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
               {isSearching && (
                 <Loader2
                   size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
                 />
               )}
             </div>

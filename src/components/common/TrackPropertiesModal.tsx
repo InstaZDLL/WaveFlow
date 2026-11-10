@@ -758,7 +758,7 @@ export function TrackPropertiesModal({
           type="button"
           onClick={onClose}
           aria-label={t("common.close")}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+          className="absolute top-4 end-4 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
         >
           <X size={18} />
         </button>
@@ -771,7 +771,7 @@ export function TrackPropertiesModal({
             onClick={() => setEditing(true)}
             aria-label={t("trackProperties.edit")}
             title={t("trackProperties.edit")}
-            className="absolute top-4 right-14 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+            className="absolute top-4 end-14 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
           >
             <Pencil size={18} />
           </button>
@@ -803,7 +803,7 @@ export function TrackPropertiesModal({
               </button>
             )}
           </div>
-          <div className="flex-1 min-w-0 pr-20">
+          <div className="flex-1 min-w-0 pe-20">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               {t("trackProperties.title")}
             </div>

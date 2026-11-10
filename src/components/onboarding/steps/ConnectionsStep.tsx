@@ -364,7 +364,7 @@ function Field({
           autoComplete="off"
           spellCheck={false}
           className={`w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 ${
-            onReveal ? "pr-9" : ""
+            onReveal ? "pe-9" : ""
           }`}
         />
         {onReveal && (
@@ -372,7 +372,7 @@ function Field({
             type="button"
             onClick={onReveal}
             aria-label={revealLabel}
-            className="absolute inset-y-0 right-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+            className="absolute inset-y-0 end-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
           >
             {secret ? <Eye size={13} /> : <EyeOff size={13} />}
           </button>

@@ -391,13 +391,13 @@
 }
 /* The "Fig." caption under the canvas plate. */
 /* Below the strip of recent records, which hangs 2.25 rem under the
-   plate; the caption is right-aligned and would otherwise run under it. */
+   plate; the caption is end-aligned and would otherwise run under it. */
 :root[data-skin="editorial"] .fe-canvas__caption {
   margin-top: 3.25rem;
   color: var(--fe-ink-3);
   font-style: italic;
   font-size: 0.8125rem;
-  text-align: right;
+  text-align: end;
 }
 
 /* ── The masthead (`EditorialMasthead`, over the canvas) ─────── */
@@ -677,7 +677,7 @@
   content: "P. " counter(ed-page);
   position: absolute;
   top: 0.625rem;
-  right: 0.75rem;
+  inset-inline-end: 0.75rem;
   color: var(--fe-ink-3);
   font-size: 0.6875rem;
   font-style: italic;
@@ -1165,8 +1165,9 @@
   main
   div[class*="rounded-2xl"][class*="border"]
   > p[class*="leading-relaxed"][class*="whitespace-pre-line"]::first-letter {
-  float: left;
-  margin: 0.25rem 0.5rem 0 0;
+  float: inline-start;
+  margin: 0.25rem 0 0;
+  margin-inline-end: 0.5rem;
   color: var(--ed-ink);
   font-family: var(--ed-display);
   font-size: 3.6rem;
@@ -1375,7 +1376,9 @@
 }
 :root[data-skin="editorial"] ::-webkit-scrollbar-track {
   background: var(--ed-paper);
-  border-left: 1px solid var(--ed-rule);
+  /* On the content's side: the scrollbar is on the left in a
+     right-to-left language. */
+  border-inline-start: 1px solid var(--ed-rule);
 }
 html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb {
   background-color: var(--ed-ink);

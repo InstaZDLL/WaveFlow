@@ -91,7 +91,7 @@ export function PlaybackAlertToast() {
     <div
       role={isError ? "alert" : "status"}
       aria-live={isError ? "assertive" : "polite"}
-      className={`fixed bottom-44 right-6 z-100 w-80 rounded-2xl border bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl p-4 animate-fade-in ${
+      className={`fixed bottom-44 end-6 z-100 w-80 rounded-2xl border bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl p-4 animate-fade-in ${
         isError
           ? "border-amber-300 dark:border-amber-500/40"
           : "border-zinc-200 dark:border-zinc-700"

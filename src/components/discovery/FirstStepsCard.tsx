@@ -177,7 +177,7 @@ export function FirstStepsCard() {
                 type="button"
                 onClick={() => void run(id)}
                 data-done={ticked || undefined}
-                className={`first-steps__item group flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                className={`first-steps__item group flex w-full items-center gap-3 rounded-2xl p-2.5 text-start transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                   fluid
                     ? "hover:bg-[var(--fe-tone-2)]"
                     : "hover:bg-zinc-50 dark:hover:bg-white/5"

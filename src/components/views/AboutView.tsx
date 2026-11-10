@@ -266,7 +266,7 @@ export function AboutView({
           aria-label={t("common.back")}
           className="p-1 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft className="rtl:rotate-180" size={20} />
         </button>
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
@@ -286,7 +286,7 @@ export function AboutView({
           colour with a `dark:` variant lets the hero render
           correctly on every (theme × skin) combo. */}
       <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800 text-zinc-900 dark:text-white">
-        <div className="absolute top-0 right-0 text-[120px] font-black text-zinc-900/5 dark:text-white/5 leading-none pr-8 pt-4 select-none">
+        <div className="absolute top-0 end-0 text-[120px] font-black text-zinc-900/5 dark:text-white/5 leading-none pe-8 pt-4 select-none">
           {version}
         </div>
         <div className="relative z-10">

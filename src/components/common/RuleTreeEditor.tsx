@@ -188,7 +188,7 @@ function GroupView({
 
       {/* Children */}
       {node.children.length > 0 && (
-        <div className="space-y-2 pl-3 border-l-2 border-zinc-200 dark:border-zinc-700">
+        <div className="space-y-2 ps-3 border-s-2 border-zinc-200 dark:border-zinc-700">
           {node.children.map((child, idx) => (
             <NodeView
               key={idx}
@@ -276,7 +276,7 @@ function NotView({
           </button>
         )}
       </div>
-      <div className="pl-3 border-l-2 border-zinc-200 dark:border-zinc-700">
+      <div className="ps-3 border-s-2 border-zinc-200 dark:border-zinc-700">
         <NodeView
           node={node.child}
           onChange={(next) => onChange({ ...node, child: next })}

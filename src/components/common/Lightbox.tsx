@@ -26,7 +26,7 @@ export function Lightbox({ src, alt, isOpen, onClose }: Props) {
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        className="absolute top-4 end-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
       >
         <X size={20} />
       </button>

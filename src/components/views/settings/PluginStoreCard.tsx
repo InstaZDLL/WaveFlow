@@ -502,7 +502,7 @@ function PermissionsPreview({ entry }: { entry: MarketplaceEntry }) {
             <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
               {t("settings.pluginStore.canReach")}
             </span>
-            <ul className="inline-flex flex-wrap gap-1 ml-1 align-middle">
+            <ul className="inline-flex flex-wrap gap-1 ms-1 align-middle">
               {entry.http.map((host) => (
                 <li
                   key={host}

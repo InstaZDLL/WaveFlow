@@ -206,20 +206,20 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
       </div>
 
       {offline && !downloading && (
-        <p className="mt-3 ml-9 text-xs text-amber-600 dark:text-amber-400">
+        <p className="mt-3 ms-9 text-xs text-amber-600 dark:text-amber-400">
           {t("settings.radioCatalogue.offlineHint")}
         </p>
       )}
 
       {error && (
-        <p className="mt-3 ml-9 text-xs text-red-500" role="alert">
+        <p className="mt-3 ms-9 text-xs text-red-500" role="alert">
           {error}
         </p>
       )}
 
       {/* Local-first toggle — only meaningful once a catalogue exists. */}
       {hasCatalogue && (
-        <div className="mt-4 ml-9 flex items-center justify-between gap-4">
+        <div className="mt-4 ms-9 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="text-sm text-zinc-600 dark:text-zinc-300">
               {t("settings.radioCatalogue.localFirst")}

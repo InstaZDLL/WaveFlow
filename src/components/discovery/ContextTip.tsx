@@ -21,7 +21,7 @@ export function ContextTip({
   return (
     <div
       role="note"
-      className="relative flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 pr-9 text-left"
+      className="relative flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 pe-9 text-start"
     >
       <Lightbulb
         size={16}
@@ -49,7 +49,7 @@ export function ContextTip({
         type="button"
         onClick={onDismiss}
         aria-label={t("tips.dismiss")}
-        className="absolute right-2 top-2 rounded-full p-1 text-zinc-400 transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
+        className="absolute end-2 top-2 rounded-full p-1 text-zinc-400 transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
       >
         <X size={13} />
       </button>

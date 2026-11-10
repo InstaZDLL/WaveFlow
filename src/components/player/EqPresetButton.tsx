@@ -36,10 +36,11 @@ export function EqPresetButton() {
 
   // Position the popover above the trigger — the player bar lives at
   // the bottom of the viewport so a downward-opening popover would
-  // clip below the screen.
+  // clip below the screen. Flush with its end edge, which is the left
+  // one in a right-to-left language.
   const popoverStyle: CSSProperties = {
     bottom: "calc(100% + 8px)",
-    right: 0,
+    insetInlineEnd: 0,
   };
 
   // Outside-click + Escape to dismiss. Trigger excluded so the user
@@ -226,14 +227,15 @@ export function EqPresetPanel({
           enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
         }`}
       >
-        {/* Anchor the thumb with `left:` (not `translate-x:`) so the OFF
+        {/* Anchor the thumb with an inset (not `translate-x:`) so the OFF
             and ON positions are symmetric around the track edges — see
             #166 where `translate-x-0.5` left the thumb visually drifted
             in the OFF state on Windows. Mirrors the Settings
-            ToggleSwitch pattern. */}
+            ToggleSwitch pattern. The inset is the inline start, so the
+            switch mirrors in a right-to-left language. */}
         <span
           className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
-            enabled ? "left-[calc(100%-1.125rem)]" : "left-0.5"
+            enabled ? "start-[calc(100%-1.125rem)]" : "start-0.5"
           }`}
         />
       </button>
@@ -251,7 +253,7 @@ export function EqPresetPanel({
               role="option"
               aria-selected={isActive}
               onClick={() => handlePick(preset.key)}
-              className={`w-full flex items-center justify-between px-3 py-1.5 text-sm text-left transition-colors ${
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-sm text-start transition-colors ${
                 isActive
                   ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
                   : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -287,7 +289,7 @@ export function EqPresetPanel({
         aria-haspopup="listbox"
         aria-expanded={listExpanded}
         onClick={() => setListExpanded((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-start text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
       >
         <span className="truncate">{activePresetLabel}</span>
         <ChevronDown

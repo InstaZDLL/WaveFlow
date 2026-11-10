@@ -171,7 +171,7 @@ export function FolderBrowser({
             <span key={crumb.path} className="flex items-center min-w-0">
               <ChevronRight
                 size={14}
-                className="text-zinc-400 dark:text-zinc-600 shrink-0"
+                className="text-zinc-400 dark:text-zinc-600 shrink-0 rtl:rotate-180"
               />
               <button
                 type="button"
@@ -273,7 +273,7 @@ export function FolderBrowser({
                       `MenuActionItem` renders a button with no
                       `menuitem` role, and announcing a menu promises
                       arrow-key navigation nothing here implements. */}
-                  <div className="absolute right-0 top-full mt-1 z-50 w-60 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                  <div className="absolute end-0 top-full mt-1 z-50 w-60 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                     <MenuActionItem
                       icon={<Play size={15} />}
                       label={t("library.folderBrowser.play")}
@@ -386,7 +386,7 @@ export function FolderBrowser({
                 key={folder.path}
                 type="button"
                 onClick={() => onOpen(folder.path)}
-                className="flex w-full items-center gap-4 p-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
+                className="flex w-full items-center gap-4 p-3 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
               >
                 <Artwork
                   path={folder.artwork_path}
@@ -410,7 +410,7 @@ export function FolderBrowser({
                 </span>
                 <ChevronRight
                   size={16}
-                  className="text-zinc-400 dark:text-zinc-600 shrink-0"
+                  className="text-zinc-400 dark:text-zinc-600 shrink-0 rtl:rotate-180"
                 />
               </button>
             ))}
@@ -437,7 +437,7 @@ function FolderTile({
     <button
       type="button"
       onClick={() => onOpen(folder.path)}
-      className="group text-left"
+      className="group text-start"
     >
       <Artwork
         path={folder.artwork_path}

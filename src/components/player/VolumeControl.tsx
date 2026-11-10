@@ -124,6 +124,9 @@ export function VolumeControl() {
           onPointerCancel={handlePointerUp}
           onDragStart={(e) => e.preventDefault()}
           onKeyDown={handleKeyDown}
+          // Physical, like the progress bar: the level fills from the left
+          // in every language, where the pointer maths measures it.
+          dir="ltr"
           className="flex-1 flex items-center h-6 cursor-pointer touch-none select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
         >
           <div className="relative w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700">

@@ -272,7 +272,7 @@ export function AudioSection({
               className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
               aria-label={t("settings.crossfade.title")}
             />
-            <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
+            <span className="text-sm font-medium text-zinc-500 w-10 text-end tabular-nums">
               {crossfadeSec} s
             </span>
           </div>
@@ -419,7 +419,7 @@ export function AudioSection({
                   className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
                   aria-label={t("settings.replayGain.preamp.title")}
                 />
-                <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                <span className="text-sm font-medium text-zinc-500 w-16 text-end tabular-nums">
                   {t("settings.replayGain.decibels", {
                     value: replayGainPreamp.toFixed(1),
                   })}
@@ -450,7 +450,7 @@ export function AudioSection({
                   className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
                   aria-label={t("settings.replayGain.fallback.title")}
                 />
-                <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                <span className="text-sm font-medium text-zinc-500 w-16 text-end tabular-nums">
                   {t("settings.replayGain.decibels", {
                     value: replayGainFallback.toFixed(1),
                   })}

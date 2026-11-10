@@ -119,14 +119,14 @@ export function DataSection({
             // a hang.
             <div
               role="status"
-              className="mt-2 ml-9 text-xs text-zinc-500 dark:text-zinc-400"
+              className="mt-2 ms-9 text-xs text-zinc-500 dark:text-zinc-400"
             >
               {t(`settings.profileIo.${profileIoBusy}.busy`)}
             </div>
           )}
           {profileIoStatus && (
             <div
-              className={`mt-2 ml-9 text-xs ${
+              className={`mt-2 ms-9 text-xs ${
                 profileIoStatus.kind === "ok"
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-red-500"

@@ -160,7 +160,7 @@ export function EnrichmentCard() {
         />
       </div>
 
-      <div className="mt-3 ml-9 space-y-3">
+      <div className="mt-3 ms-9 space-y-3">
         <p className="text-xs settings-description">
           {t("settings.enrichment.policy")}
         </p>

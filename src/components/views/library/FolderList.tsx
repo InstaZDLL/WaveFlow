@@ -168,7 +168,7 @@ export function FolderList({
               <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <Folder size={22} />
               </div>
-              <div className="flex items-center gap-0.5 -mr-1.5 -mt-1.5">
+              <div className="flex items-center gap-0.5 -me-1.5 -mt-1.5">
                 {/* A share has no file system events to watch: its listing
                     is walked again on a schedule. */}
                 {!isNetworkPath(folder.path) && (
@@ -305,7 +305,7 @@ export function FolderList({
                 type="button"
                 onClick={() => onOpen(folder.path)}
                 title={t("library.folderBrowser.open")}
-                className="block w-full text-left text-sm font-semibold text-zinc-900 dark:text-white truncate hover:underline focus-visible:underline focus-visible:outline-none"
+                className="block w-full text-start text-sm font-semibold text-zinc-900 dark:text-white truncate hover:underline focus-visible:underline focus-visible:outline-none"
               >
                 {folderLeaf(displayTrackPath(folder.path, networkSources))}
               </button>

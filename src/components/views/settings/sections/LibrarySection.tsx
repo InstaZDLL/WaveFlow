@@ -242,7 +242,7 @@ export function LibrarySection({
                 background. Sits inside the same card so users
                 see it as a related option rather than a
                 disconnected setting. */}
-          <div className="mt-3 ml-9 flex items-center justify-between">
+          <div className="mt-3 ms-9 flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-zinc-900 dark:text-white">
                 {t("settings.analyze.autoTitle")}
@@ -261,7 +261,7 @@ export function LibrarySection({
                 started it (this card, or the automatic analysis after a
                 scan). */}
           {analysisTask && (
-            <div className="mt-3 ml-9">
+            <div className="mt-3 ms-9">
               <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
                 <span>
                   {analysisTask.total > 0

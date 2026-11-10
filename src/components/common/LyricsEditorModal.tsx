@@ -556,7 +556,7 @@ function LyricsEditorDialog({
                   : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
               }`}
             >
-              <span className="mr-1.5 text-xs tabular-nums opacity-60">
+              <span className="me-1.5 text-xs tabular-nums opacity-60">
                 {k + 1}
               </span>
               {t(`lyricsEditor.steps.${s}`)}
@@ -573,7 +573,7 @@ function LyricsEditorDialog({
             aria-label={t("lyricsEditor.undo")}
             className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
           >
-            <Undo2 size={16} />
+            <Undo2 className="rtl:-scale-x-100" size={16} />
           </button>
           <button
             type="button"
@@ -584,7 +584,7 @@ function LyricsEditorDialog({
             aria-label={t("lyricsEditor.redo")}
             className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
           >
-            <Redo2 size={16} />
+            <Redo2 className="rtl:-scale-x-100" size={16} />
           </button>
           <button
             type="button"
@@ -672,7 +672,7 @@ function LyricsEditorDialog({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
         {confirmDiscard ? (
           <div className="flex basis-full items-center justify-end gap-3 text-sm">
-            <span className="mr-auto text-amber-600 dark:text-amber-400">
+            <span className="me-auto text-amber-600 dark:text-amber-400">
               {t("lyricsEditor.discard.question")}
             </span>
             <button

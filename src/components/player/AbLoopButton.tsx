@@ -104,7 +104,7 @@ export function AbLoopButton() {
     >
       <Repeat2 size={20} />
       {(hasA || hasB) && (
-        <span className="absolute -top-1 -right-1 text-[9px] font-bold leading-none px-1 py-[2px] rounded bg-current text-white dark:text-zinc-900">
+        <span className="absolute -top-1 -end-1 text-[9px] font-bold leading-none px-1 py-[2px] rounded bg-current text-white dark:text-zinc-900">
           {armed ? "AB" : "A"}
         </span>
       )}

@@ -410,7 +410,7 @@ export function ReleaseRadarView({
               }`}
             >
               {t(`releaseRadar.filter.${id}`)}
-              <span className="ml-1.5 opacity-70 tabular-nums">
+              <span className="ms-1.5 opacity-70 tabular-nums">
                 {counts[id]}
               </span>
             </button>
@@ -641,7 +641,7 @@ function ReleaseCard({
             onClick={() => onPlay(release)}
             aria-label={t("releaseRadar.play", { title: release.title })}
             title={t("releaseRadar.play", { title: release.title })}
-            className="absolute bottom-3 right-3 w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            className="absolute bottom-3 end-3 w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
           >
             <Play size={18} fill="currentColor" />
           </button>
@@ -651,7 +651,7 @@ function ReleaseCard({
             onClick={() => void openUrl(release.musicbrainz_url)}
             aria-label={t("releaseRadar.openMusicBrainz")}
             title={t("releaseRadar.openMusicBrainz")}
-            className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-white/90 text-zinc-800 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            className="absolute bottom-3 end-3 w-10 h-10 rounded-full bg-white/90 text-zinc-800 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
           >
             <ExternalLink size={16} />
           </button>
@@ -667,7 +667,7 @@ function ReleaseCard({
         <button
           type="button"
           onClick={() => onNavigateToArtist(release.artist_id)}
-          className="block max-w-full text-xs text-zinc-500 dark:text-zinc-400 truncate hover:underline text-left"
+          className="block max-w-full text-xs text-zinc-500 dark:text-zinc-400 truncate hover:underline text-start"
           title={release.artist_credit}
         >
           {release.artist_credit || release.artist_name}

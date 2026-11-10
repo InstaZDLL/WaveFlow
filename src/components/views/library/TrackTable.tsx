@@ -536,7 +536,7 @@ export function TrackTable({
               }`}
             >
               <span
-                className={`text-right text-sm tabular-nums flex items-center justify-end ${
+                className={`text-end text-sm tabular-nums flex items-center justify-end ${
                   isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
                 }`}
               >
@@ -587,7 +587,7 @@ export function TrackTable({
                 const spec = specFor(id);
                 const align =
                   spec.align === "right"
-                    ? "text-right"
+                    ? "text-end"
                     : spec.align === "center"
                       ? "text-center"
                       : "";

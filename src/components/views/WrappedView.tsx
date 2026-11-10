@@ -27,6 +27,7 @@ import { saveShareImage } from "../../lib/tauri/share";
 import { renderWrappedCard } from "../../lib/wrappedCard";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 import { noteDiscovery } from "../../lib/discovery";
+import { interfaceIsRtl } from "../../lib/direction";
 
 interface WrappedViewProps {
   onNavigate: (view: ViewId) => void;
@@ -184,9 +185,10 @@ export function WrappedView({
       if (tileMenu.isOpen) return;
       if (e.key === "Escape") {
         onNavigate("home");
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key === (interfaceIsRtl() ? "ArrowLeft" : "ArrowRight")) {
+        // Forward in reading order, like the tap zones.
         setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         setSlideIdx((i) => (i > 0 ? i - 1 : 0));
       } else if (e.key === " ") {
         e.preventDefault();
@@ -304,7 +306,7 @@ export function WrappedView({
       )}
 
       {/* Top bar — progress segments + close */}
-      <div className="absolute top-0 left-0 right-0 z-10 px-6 pt-4 flex items-center gap-3">
+      <div className="absolute top-0 start-0 end-0 z-10 px-6 pt-4 flex items-center gap-3">
         <div className="flex-1 flex gap-1">
           {slides.map((_, i) => (
             <div
@@ -368,7 +370,7 @@ export function WrappedView({
               )}
             </button>
             {shareOpen && (
-              <div className="absolute right-0 top-full mt-2 min-w-56 rounded-2xl bg-zinc-900/95 backdrop-blur-md border border-white/10 shadow-2xl overflow-hidden">
+              <div className="absolute end-0 top-full mt-2 min-w-56 rounded-2xl bg-zinc-900/95 backdrop-blur-md border border-white/10 shadow-2xl overflow-hidden">
                 <button
                   onClick={async () => {
                     setShareOpen(false);
@@ -402,26 +404,27 @@ export function WrappedView({
         </button>
       </div>
 
-      {/* Tap zones — left/right thirds for prev/next. Keyboard focus
-          rings the chevron rather than outlining a third of the screen. */}
+      {/* Tap zones — start/end thirds for prev/next, in reading order.
+          Keyboard focus rings the chevron rather than outlining a third
+          of the screen. */}
       <button
         type="button"
         onClick={goPrev}
-        className="absolute top-16 bottom-0 left-0 w-1/3 z-5 group cursor-default focus-visible:outline-none!"
+        className="absolute top-16 bottom-0 start-0 w-1/3 z-5 group cursor-default focus-visible:outline-none!"
         aria-label={t("wrapped.prev")}
       >
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 reveal:opacity-100 group-[:focus-visible:not([data-pointer-focus])]:ring-2 group-[:focus-visible:not([data-pointer-focus])]:ring-white/80 transition-opacity">
-          <ChevronLeft size={20} />
+        <span className="absolute start-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 reveal:opacity-100 group-[:focus-visible:not([data-pointer-focus])]:ring-2 group-[:focus-visible:not([data-pointer-focus])]:ring-white/80 transition-opacity">
+          <ChevronLeft className="rtl:rotate-180" size={20} />
         </span>
       </button>
       <button
         type="button"
         onClick={goNext}
-        className="absolute top-16 bottom-0 right-0 w-1/3 z-5 group cursor-default focus-visible:outline-none!"
+        className="absolute top-16 bottom-0 end-0 w-1/3 z-5 group cursor-default focus-visible:outline-none!"
         aria-label={t("wrapped.next")}
       >
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 reveal:opacity-100 group-[:focus-visible:not([data-pointer-focus])]:ring-2 group-[:focus-visible:not([data-pointer-focus])]:ring-white/80 transition-opacity">
-          <ChevronRight size={20} />
+        <span className="absolute end-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 reveal:opacity-100 group-[:focus-visible:not([data-pointer-focus])]:ring-2 group-[:focus-visible:not([data-pointer-focus])]:ring-white/80 transition-opacity">
+          <ChevronRight className="rtl:rotate-180" size={20} />
         </span>
       </button>
 
@@ -603,7 +606,7 @@ function SlideRenderer({
                   <li key={ar.artist_id}>
                     <button
                       type="button"
-                      className="flex items-center gap-4 bg-white/10 rounded-2xl p-3 backdrop-blur-sm cursor-pointer hover:bg-white/15 transition-colors w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      className="flex items-center gap-4 bg-white/10 rounded-2xl p-3 backdrop-blur-sm cursor-pointer hover:bg-white/15 transition-colors w-full text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                       onClick={() => onNavigateToArtist(ar.artist_id)}
                       {...bindMenu({ kind: "artist", id: ar.artist_id })}
                     >
@@ -652,7 +655,7 @@ function SlideRenderer({
                     key={al.album_id}
                     onClick={() => onNavigateToAlbum(al.album_id)}
                     {...bindMenu({ kind: "album", id: al.album_id })}
-                    className="bg-white/10 rounded-2xl p-3 hover:bg-white/15 transition-colors backdrop-blur-sm text-left"
+                    className="bg-white/10 rounded-2xl p-3 hover:bg-white/15 transition-colors backdrop-blur-sm text-start"
                   >
                     <div className="aspect-square rounded-xl bg-white/10 overflow-hidden mb-3">
                       {src && (
@@ -711,7 +714,7 @@ function SlideRenderer({
                 </div>
                 <div className="text-7xl font-extrabold leading-none mb-2 tabular-nums">
                   {Math.round(bpm)}
-                  <span className="text-2xl ml-2 text-white/60">BPM</span>
+                  <span className="text-2xl ms-2 text-white/60">BPM</span>
                 </div>
               </>
             )}

@@ -129,7 +129,7 @@ function TaskRow({
               knows how many there are, and saying nothing made a walk of
               several minutes look frozen. */}
           {(determinate || task.current > 0) && (
-            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 ml-auto shrink-0 tabular-nums">
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 ms-auto shrink-0 tabular-nums">
               {determinate ? `${task.current} / ${task.total}` : task.current}
             </span>
           )}

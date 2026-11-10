@@ -110,10 +110,7 @@ export function WorkshopPreviewModal({
           </p>
         )}
 
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto px-6 py-3"
-        >
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-3">
           <div
             className="relative w-full"
             style={{ height: `${virtualizer.getTotalSize()}px` }}
@@ -125,7 +122,7 @@ export function WorkshopPreviewModal({
                   key={item.key}
                   data-index={item.index}
                   ref={virtualizer.measureElement}
-                  className="absolute left-0 top-0 w-full pb-2"
+                  className="absolute start-0 top-0 w-full pb-2"
                   style={{ transform: `translateY(${item.start}px)` }}
                 >
                   <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3">
@@ -165,7 +162,7 @@ export function WorkshopPreviewModal({
                             </span>
                             <ArrowRight
                               size={11}
-                              className="shrink-0 text-zinc-400"
+                              className="shrink-0 text-zinc-400 rtl:rotate-180"
                               aria-label={t("tagWorkshop.becomes")}
                             />
                             <span

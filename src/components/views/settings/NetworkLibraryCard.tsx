@@ -273,7 +273,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
       {sources.map((source) => (
         <div
           key={source.id}
-          className="ml-9 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 flex flex-col gap-2"
+          className="ms-9 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 flex flex-col gap-2"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -373,7 +373,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
       ))}
 
       {form != null && (
-        <div className="ml-9 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 flex flex-col gap-2">
+        <div className="ms-9 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 flex flex-col gap-2">
           {KINDS.length > 1 && (
             <select
               className={inputClass}
@@ -509,13 +509,13 @@ export function NetworkLibraryCard({ language }: { language: string }) {
       )}
 
       {error && (
-        <div role="alert" className="ml-9 text-xs text-red-500 break-words">
+        <div role="alert" className="ms-9 text-xs text-red-500 break-words">
           {error}
         </div>
       )}
 
       {sources.length > 0 && (
-        <div className="ml-9 flex flex-wrap items-center gap-3 text-xs settings-description">
+        <div className="ms-9 flex flex-wrap items-center gap-3 text-xs settings-description">
           <span>
             {t("settings.networkLibrary.cacheUsed", {
               size: cacheSize,

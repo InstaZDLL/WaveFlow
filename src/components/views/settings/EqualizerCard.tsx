@@ -18,6 +18,7 @@ import {
   type EqPresetEntry,
 } from "../../../lib/tauri/eq";
 import { SETTINGS } from "../../../lib/settingsRegistry";
+import { leftAligned } from "../../../lib/direction";
 
 /**
  * Spotify-style 6-band equaliser card. Renders a draggable curve over
@@ -64,10 +65,8 @@ export function EqualizerCard() {
   const openPreset = useCallback(() => {
     const rect = presetBtnRef.current?.getBoundingClientRect();
     if (rect) {
-      const left = Math.max(
-        8,
-        Math.min(rect.left, window.innerWidth - MENU_WIDTH - 8),
-      );
+      // Lined up with the trigger's start edge, in reading order.
+      const left = leftAligned(rect, MENU_WIDTH, 8, "start");
       // Clamp vertically too — a trigger near the viewport bottom would
       // otherwise push the menu off-screen below.
       const top = Math.max(
@@ -274,7 +273,7 @@ export function EqualizerCard() {
                       type="button"
                       role="menuitem"
                       onClick={() => handlePickPreset(p.key)}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                      className={`w-full text-start px-3 py-2 text-sm transition-colors ${
                         p.key === activePresetKey
                           ? "bg-emerald-500 text-white"
                           : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
@@ -451,7 +450,9 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
     ` L ${pts[pts.length - 1].x} ${midY} Z`;
 
   return (
-    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 p-3">
+    // A chart: frequencies run left to right in every language, and the
+    // SVG's `textAnchor` would follow a right-to-left page otherwise.
+    <div dir="ltr" className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 p-3">
       <div className="w-full" style={{ aspectRatio: `${VB_W} / ${VB_H}` }}>
         <svg
           ref={svgRef}
@@ -614,7 +615,7 @@ function ToggleSwitch({
     >
       <div
         className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform ${
-          enabled ? "left-[calc(100%-1.625rem)]" : "left-0.5"
+          enabled ? "start-[calc(100%-1.625rem)]" : "start-0.5"
         }`}
       />
     </button>

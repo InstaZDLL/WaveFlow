@@ -35,7 +35,7 @@ export function NavItem({
       )}
       {/* Kept, not dropped, when collapsed: the skins recognise a nav
           item by this column, and it is still the button's name. */}
-      <div className={`flex flex-col text-left ${collapsed ? "sr-only" : ""}`}>
+      <div className={`flex flex-col text-start ${collapsed ? "sr-only" : ""}`}>
         <span className={`text-sm ${active ? "font-medium" : ""}`}>
           {label}
         </span>

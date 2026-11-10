@@ -1,6 +1,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import type { ContextMenuPoint } from "../components/common/ContextMenu";
+import { interfaceIsRtl } from "./direction";
 
 /**
  * Shared keyboard contract for opening a context menu.
@@ -26,8 +27,9 @@ export function isContextMenuKey(event: ReactKeyboardEvent): boolean {
  *
  * A mouse-opened menu lands at the pointer; a keyboard one has no
  * pointer, so it anchors to the focused row the way the OS does — just
- * inside its bottom-left corner, so the menu reads as belonging to that
- * row and never covers the row it acts on.
+ * inside its bottom corner where reading starts (bottom-left, or
+ * bottom-right in a right-to-left language), so the menu reads as
+ * belonging to that row and never covers the row it acts on.
  *
  * Coordinates are viewport-relative because `ContextMenu` is
  * `position: fixed`, and it does its own flipping when the menu would
@@ -37,5 +39,6 @@ export function menuAnchorForElement(element: HTMLElement): ContextMenuPoint {
   const rect = element.getBoundingClientRect();
   // Inset a few pixels so the menu overlaps the row's edge rather than
   // floating detached from it.
-  return { x: rect.left + 8, y: rect.bottom - 4 };
+  const x = interfaceIsRtl() ? rect.right - 8 : rect.left + 8;
+  return { x, y: rect.bottom - 4 };
 }

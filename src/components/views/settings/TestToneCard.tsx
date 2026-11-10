@@ -254,7 +254,7 @@ export function TestToneCard() {
       </div>
 
       {status !== "idle" && status !== "failed" && output ? (
-        <div className="mt-3 ml-9 space-y-2">
+        <div className="mt-3 ms-9 space-y-2">
           <div className="flex flex-wrap gap-2" aria-live="polite">
             {output.phases.map((p) => (
               <span
@@ -297,13 +297,13 @@ export function TestToneCard() {
       ) : null}
 
       {status === "interrupted" ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ms-9">
           {t("settings.testTone.interrupted")}
         </p>
       ) : null}
 
       {status === "failed" ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ms-9">
           {t("settings.testTone.failed", { message: error ?? "" })}
         </p>
       ) : null}

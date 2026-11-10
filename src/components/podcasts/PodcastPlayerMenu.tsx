@@ -107,7 +107,7 @@ export function PodcastPlayerMenu({
         <button
           type="button"
           onClick={onOpenTranscript}
-          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start text-sm text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
           <FileText size={14} className="text-zinc-400" aria-hidden="true" />
           {t("podcasts.transcript.title")}

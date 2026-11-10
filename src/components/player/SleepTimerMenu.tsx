@@ -105,7 +105,7 @@ export function SleepTimerMenu({
       >
         <Moon size={18} />
         {triggerLabel && (
-          <span className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[16px] flex items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-bold leading-none">
+          <span className="absolute -top-1 -end-1 px-1 min-w-[18px] h-[16px] flex items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-bold leading-none">
             {triggerLabel}
           </span>
         )}
@@ -125,7 +125,7 @@ export function SleepTimerMenu({
               mass: 0.5,
             }}
             style={{ transformOrigin: "bottom right" }}
-            className="absolute bottom-full right-0 mb-2 w-64 p-3 rounded-2xl shadow-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 z-50 space-y-3"
+            className="absolute bottom-full end-0 mb-2 w-64 p-3 rounded-2xl shadow-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 z-50 space-y-3"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">

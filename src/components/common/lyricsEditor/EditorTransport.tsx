@@ -70,7 +70,7 @@ export function EditorTransport({
       >
         <RotateCw size={16} />
       </button>
-      <span className="ml-1 font-mono text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
+      <span className="ms-1 font-mono text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
         {formatEditorTime(positionMs)}
         {durationMs ? ` / ${formatEditorTime(durationMs)}` : ""}
       </span>
@@ -78,7 +78,7 @@ export function EditorTransport({
         role="radiogroup"
         aria-label={t("lyricsEditor.transport.speed")}
         title={t("lyricsEditor.transport.speed")}
-        className="ml-auto flex rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
+        className="ms-auto flex rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
       >
         {SPEEDS.map((value) => {
           const checked = Math.abs(speed - value) < 0.001;

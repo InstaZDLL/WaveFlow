@@ -23,7 +23,7 @@ export function ToggleSwitch({
     >
       <div
         className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform ${
-          enabled ? "left-[calc(100%-1.625rem)]" : "left-0.5"
+          enabled ? "start-[calc(100%-1.625rem)]" : "start-0.5"
         }`}
       />
     </button>

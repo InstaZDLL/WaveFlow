@@ -377,7 +377,7 @@ export function Sidebar({
       // `data-sidebar-*` marks the blocks — brand, profile, primary nav,
       // sections, rows — for the skins that recompose the column.
       data-sidebar
-      className={`${collapsed ? "w-20" : "w-64"} flex flex-col border-r h-full border-zinc-200 bg-surface-light dark:border-zinc-800 dark:bg-surface-dark`}
+      className={`${collapsed ? "w-20" : "w-64"} flex flex-col border-e h-full border-zinc-200 bg-surface-light dark:border-zinc-800 dark:bg-surface-dark`}
     >
       {/* Brand & Profile. The skins address these by position (the
           logo is the first child of the first row), so the narrow mode
@@ -420,7 +420,7 @@ export function Sidebar({
               className="w-6 h-6 rounded-full text-xs font-bold"
             />
             <span
-              className={`min-w-0 flex flex-col text-left ${collapsed ? "sr-only" : ""}`}
+              className={`min-w-0 flex flex-col text-start ${collapsed ? "sr-only" : ""}`}
             >
               <span className="text-sm font-medium truncate">
                 {activeProfile?.name ?? ""}
@@ -973,7 +973,7 @@ function SidebarRow({
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
       title={collapsed ? label : undefined}
-      className={`w-full flex items-center p-2 rounded-xl text-left transition-colors ${
+      className={`w-full flex items-center p-2 rounded-xl text-start transition-colors ${
         collapsed ? "justify-center" : "space-x-3"
       } ${
         active

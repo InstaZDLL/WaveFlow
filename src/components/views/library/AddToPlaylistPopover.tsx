@@ -5,6 +5,7 @@ import { resolvePlaylistColor } from "../../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../../lib/PlaylistIcon";
 import { Check, Plus } from "lucide-react";
 import { createPortal } from "react-dom";
+import { leftAligned } from "../../../lib/direction";
 
 interface AddToPlaylistPopoverProps {
   playlists: Playlist[];
@@ -98,11 +99,11 @@ export function AddToPlaylistPopover({
   }, [anchorEl]);
 
   // Compute placement: prefer below, flip above when below would clip,
-  // then clamp horizontally so the first-column trigger doesn't push
-  // the popover off the left edge.
+  // then line its end up with the trigger's (right edges, or left ones
+  // in a right-to-left language), clamped so a trigger near the window's
+  // edge doesn't push the popover off it.
   const placement = (() => {
     if (!anchorEl || !rect) return null;
-    const vw = window.innerWidth;
     const vh = window.innerHeight;
     let top = rect.bottom + 4;
     if (
@@ -116,11 +117,7 @@ export function AddToPlaylistPopover({
       VIEWPORT_MARGIN,
       Math.min(top, vh - popoverHeight - VIEWPORT_MARGIN),
     );
-    let left = rect.right - POPOVER_WIDTH;
-    left = Math.max(
-      VIEWPORT_MARGIN,
-      Math.min(left, vw - POPOVER_WIDTH - VIEWPORT_MARGIN),
-    );
+    const left = leftAligned(rect, POPOVER_WIDTH, VIEWPORT_MARGIN, "end");
     return { top, left };
   })();
 
@@ -149,7 +146,7 @@ export function AddToPlaylistPopover({
           : undefined
       }
       className={`${
-        anchorEl ? "z-100" : "absolute top-full right-0 mt-1 z-50 w-56"
+        anchorEl ? "z-100" : "absolute top-full end-0 mt-1 z-50 w-56"
       } rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in`}
     >
       <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-3 pt-3 pb-2">
@@ -177,7 +174,7 @@ export function AddToPlaylistPopover({
                     : t("trackActions.addToPlaylistNamed", { name: pl.name })
                 }
                 onClick={() => onPick(pl.id)}
-                className="w-full flex items-center space-x-2 p-2 rounded-lg text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+                className="w-full flex items-center space-x-2 p-2 rounded-lg text-start hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
               >
                 <div
                   className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
@@ -204,7 +201,7 @@ export function AddToPlaylistPopover({
           type="button"
           role="menuitem"
           onClick={onCreate}
-          className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm font-medium text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+          className="w-full flex items-center space-x-2 px-3 py-2 text-start text-sm font-medium text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
         >
           <Plus size={14} />
           <span>{t("trackActions.createPlaylist")}</span>

@@ -22,7 +22,7 @@ export function FeedbackView({ onNavigate }: FeedbackViewProps) {
           aria-label={t("common.back")}
           className="p-1 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft className="rtl:rotate-180" size={20} />
         </button>
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
@@ -75,7 +75,7 @@ export function FeedbackView({ onNavigate }: FeedbackViewProps) {
               <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center dark:bg-emerald-950/60 dark:text-emerald-400">
                 <Mail size={22} aria-hidden="true" />
               </div>
-              <div className="text-left">
+              <div className="text-start">
                 <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                   {FEEDBACK_EMAIL}
                 </div>
@@ -85,7 +85,11 @@ export function FeedbackView({ onNavigate }: FeedbackViewProps) {
               </div>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center dark:bg-emerald-950/60 dark:text-emerald-400">
-              <ArrowRight size={18} aria-hidden="true" />
+              <ArrowRight
+                className="rtl:rotate-180"
+                size={18}
+                aria-hidden="true"
+              />
             </div>
           </button>
         </div>

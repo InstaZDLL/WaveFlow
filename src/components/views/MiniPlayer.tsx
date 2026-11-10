@@ -580,7 +580,7 @@ export function MiniPlayer() {
           {Array.from({ length: 6 }).map((_, i) => (
             <span
               key={i}
-              className={`pointer-events-none block w-0.5 h-0.5 rounded-full bg-current${i === 3 ? " ml-1" : ""}`}
+              className={`pointer-events-none block w-0.5 h-0.5 rounded-full bg-current${i === 3 ? " ms-1" : ""}`}
             />
           ))}
         </div>
@@ -823,7 +823,9 @@ export function MiniPlayer() {
           on hover with timestamps revealed at both ends. Hidden for live
           radio (no seekable timeline). */}
         {!isRadio && (
-          <div className="mt-auto px-3 pb-2 group">
+          // A timeline reads left to right in every language: elapsed
+          // under the start of the fill, the duration at its end.
+          <div dir="ltr" className="mt-auto px-3 pb-2 group">
             <div
               ref={trackRef}
               onPointerDown={handleSeekDown}
@@ -855,7 +857,11 @@ export function MiniPlayer() {
             to be something to press, and a row that only exists in this
             mode keeps the cover view exactly as it was. */}
         {overlay === "lyrics" && (
-          <div className="flex items-center justify-center gap-4 px-3 pb-2">
+          // A player's order in every language, the way the icons point.
+          <div
+            dir="ltr"
+            className="flex items-center justify-center gap-4 px-3 pb-2"
+          >
             <IconButton
               onClick={previous}
               label={t("player.controls.previous")}
@@ -875,7 +881,7 @@ export function MiniPlayer() {
               {isPlaying ? (
                 <Pause size={16} className="fill-current" />
               ) : (
-                <Play size={16} className="fill-current ml-0.5" />
+                <Play size={16} className="fill-current ms-0.5" />
               )}
             </button>
             <IconButton onClick={next} label={t("player.controls.next")}>
@@ -898,7 +904,7 @@ export function MiniPlayer() {
               type="button"
               onClick={() => setOverlay("none")}
               aria-label={t("common.close")}
-              className="p-1 -mr-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1 -me-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
               <X size={13} />
             </button>
@@ -915,9 +921,9 @@ export function MiniPlayer() {
                   type="button"
                   onClick={() => handleJump(row.absoluteIndex)}
                   title={`${row.title} — ${row.artist ?? ""}`}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/10 transition-colors"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-start hover:bg-white/10 transition-colors"
                 >
-                  <span className="w-4 shrink-0 text-right text-[10px] tabular-nums text-white/40">
+                  <span className="w-4 shrink-0 text-end text-[10px] tabular-nums text-white/40">
                     {row.absoluteIndex - currentIndex}
                   </span>
                   <div className="min-w-0 flex-1">

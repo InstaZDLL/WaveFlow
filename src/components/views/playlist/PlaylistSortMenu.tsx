@@ -76,7 +76,7 @@ export function PlaylistSortMenu({
       {isOpen && (
         <ul
           role="listbox"
-          className="absolute top-full right-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
+          className="absolute top-full end-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
         >
           <li
             className="px-4 pt-1 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase"
@@ -96,7 +96,7 @@ export function PlaylistSortMenu({
                     onChange(mode);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors ${
+                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-start transition-colors ${
                     isSelected
                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
                       : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30"

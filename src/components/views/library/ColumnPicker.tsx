@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { interfaceIsRtl } from "../../../lib/direction";
 import {
   ChevronDown,
   ChevronUp,
@@ -61,7 +62,9 @@ export function ColumnPicker({
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<{
     top: number;
-    right: number;
+    /** One of the two is set: the side the trigger's end edge is on. */
+    left?: number;
+    right?: number;
     maxHeight: number;
     maxWidth: number;
   } | null>(null);
@@ -200,9 +203,14 @@ export function ColumnPicker({
         : rect.bottom + PANEL_MARGIN;
       setAnchor({
         top,
-        right: Math.max(PANEL_MARGIN, window.innerWidth - rect.right),
-        // The panel has a fixed width and is anchored by its right
-        // edge, so on a viewport narrower than that width its LEFT edge
+        // Lined up with the trigger's end edge: its right edge, or its
+        // left one in a right-to-left language, so the panel opens
+        // toward the table rather than out of the window.
+        ...(interfaceIsRtl()
+          ? { left: Math.max(PANEL_MARGIN, rect.left) }
+          : { right: Math.max(PANEL_MARGIN, window.innerWidth - rect.right) }),
+        // The panel has a fixed width and is anchored by its end edge,
+        // so on a viewport narrower than that width its other edge
         // goes off screen -- and nothing brings it back, because a
         // `fixed` element does not move with the page. Reachable at the
         // zoom levels this whole block exists for.
@@ -270,6 +278,7 @@ export function ColumnPicker({
             aria-label={t("library.columns.choose")}
             style={{
               top: anchor.top,
+              left: anchor.left,
               right: anchor.right,
               maxHeight: anchor.maxHeight,
               maxWidth: anchor.maxWidth,
@@ -366,7 +375,7 @@ export function ColumnPicker({
                         and it is the only way to change the order --
                         so without these the feature is closed to
                         keyboard and switch users entirely. */}
-                    <span className="ml-auto flex shrink-0 items-center">
+                    <span className="ms-auto flex shrink-0 items-center">
                       <button
                         type="button"
                         onClick={() => moveAndKeepFocus(index, index - 1)}
@@ -441,7 +450,7 @@ export function ColumnPicker({
                           {/* The count is what makes this list usable:
                               it separates the tag on every track from
                               the one on three. */}
-                          <span className="ml-auto shrink-0 text-[11px] text-zinc-400 tabular-nums">
+                          <span className="ms-auto shrink-0 text-[11px] text-zinc-400 tabular-nums">
                             {count}
                           </span>
                         </label>

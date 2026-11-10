@@ -296,7 +296,7 @@ export function DeviceMenu() {
             mass: 0.5,
           }}
           style={{ transformOrigin: "bottom right" }}
-          className="absolute bottom-4 right-20 w-96 rounded-xl shadow-2xl z-50 border py-2 flex flex-col max-h-[60vh] overflow-y-auto bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"
+          className="absolute bottom-4 end-20 w-96 rounded-xl shadow-2xl z-50 border py-2 flex flex-col max-h-[60vh] overflow-y-auto bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"
         >
           <div className="px-4 py-2 text-sm font-semibold flex items-center space-x-2 text-emerald-500 bg-emerald-500/10 mb-1">
             <Volume2 size={16} aria-hidden="true" />
@@ -335,7 +335,7 @@ export function DeviceMenu() {
                     title={
                       device.is_active ? t("deviceMenu.reopen") : undefined
                     }
-                    className="px-4 py-2 text-sm cursor-pointer flex items-center space-x-3 text-left disabled:opacity-60 disabled:cursor-wait flex-1 min-w-0"
+                    className="px-4 py-2 text-sm cursor-pointer flex items-center space-x-3 text-start disabled:opacity-60 disabled:cursor-wait flex-1 min-w-0"
                   >
                     <Speaker size={16} className="opacity-70 shrink-0" />
                     <span className="flex flex-col min-w-0 flex-1">

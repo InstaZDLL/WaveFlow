@@ -1627,7 +1627,7 @@ export function LibraryView({
                         onLetterClick={(idx) => {
                           artistScrollToIndexRef.current?.(idx);
                         }}
-                        className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm wf-glass rounded-full py-2 px-1.5 shadow-sm"
+                        className="hidden md:flex fixed end-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm wf-glass rounded-full py-2 px-1.5 shadow-sm"
                       />
                     )}
                 </div>
@@ -2121,7 +2121,7 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
       {isOpen && (
         <ul
           role="listbox"
-          className="absolute top-full right-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
+          className="absolute top-full end-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
         >
           {options.map((opt) => {
             const isSelected = opt.value === current.orderBy;
@@ -2137,7 +2137,7 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
                       direction: current.direction,
                     });
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors ${
+                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-start transition-colors ${
                     isSelected
                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
                       : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30"
@@ -2158,7 +2158,7 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
                   direction: current.direction === "asc" ? "desc" : "asc",
                 })
               }
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-left text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-2 text-sm text-start text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
             >
               <span>
                 {current.direction === "asc"

@@ -127,7 +127,7 @@ export function DoneStep({
         )}
       </div>
 
-      <div className="mt-8 grid gap-3 text-left sm:grid-cols-2">
+      <div className="mt-8 grid gap-3 text-start sm:grid-cols-2">
         {offerTour && !tourDeclined && (
           <div className="onboarding-tile flex flex-col rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
             <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">

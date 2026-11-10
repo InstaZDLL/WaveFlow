@@ -26,7 +26,7 @@ export function MoodSpectrum({
   loadingMood,
   onStart,
 }: MoodSpectrumProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { current, setSelected, refs, paths, onKeyDown } = useMoodRadioGroup(
     counts,
     onStart,
@@ -35,7 +35,11 @@ export function MoodSpectrum({
 
   return (
     <div>
+      {/* The band is a tempo axis, slow on the left, in every language;
+          each segment's own text still reads in the interface's
+          direction. */}
       <div
+        dir="ltr"
         className="fe-spectrum"
         role="radiogroup"
         aria-label={t("home.moodRadio.title")}
@@ -58,6 +62,7 @@ export function MoodSpectrum({
             // control is invalid HTML and reads wrong to assistive tech.
             <div
               key={m.id}
+              dir={i18n.dir()}
               className="fe-spectrum__seg"
               data-checked={isSel}
               data-disabled={disabled || undefined}
@@ -133,7 +138,7 @@ export function MoodSpectrum({
                   onClick={() => onStart(m.id)}
                   disabled={loadingMood != null}
                   aria-label={`${t("home.fluid.moodStart")} — ${title}`}
-                  className="fe-spectrum__cta fe-press absolute bottom-4 left-[1.125rem] bg-white/[0.14] hover:bg-white/[0.22] disabled:opacity-60"
+                  className="fe-spectrum__cta fe-press absolute bottom-4 start-[1.125rem] bg-white/[0.14] hover:bg-white/[0.22] disabled:opacity-60"
                 >
                   <Play size={12} className="fill-current" strokeWidth={0} />
                   {ctaLabel}
@@ -144,6 +149,7 @@ export function MoodSpectrum({
         })}
       </div>
       <div
+        dir="ltr"
         className="fe-spectrum__ruler fe-ink-3 fe-mono text-[0.6875rem] tracking-[0.08em] uppercase"
         aria-hidden="true"
       >

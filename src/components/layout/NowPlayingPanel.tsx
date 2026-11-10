@@ -424,7 +424,7 @@ export function NowPlayingPanel({
             <button
               type="button"
               onClick={openCurrentArtist}
-              className="text-left hover:underline hover:text-emerald-600 dark:hover:text-emerald-400"
+              className="text-start hover:underline hover:text-emerald-600 dark:hover:text-emerald-400"
             >
               {currentTrack.artist_name}
             </button>
@@ -580,7 +580,7 @@ export function NowPlayingPanel({
                 enabled={canvasEnabled}
                 onToggle={() => setCanvasEnabled(!canvasEnabled)}
                 size={16}
-                className={`absolute right-3 top-3 z-10 rounded-full p-2 transition-colors ${
+                className={`absolute end-3 top-3 z-10 rounded-full p-2 transition-colors ${
                   canvasEnabled
                     ? "bg-black/55 text-[var(--fe-accent)]"
                     : "bg-black/45 text-white/80 hover:text-white"
@@ -689,7 +689,7 @@ export function NowPlayingPanel({
                           console.error("[NowPlaying] jump failed", err),
                         );
                       }}
-                      className="w-full flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+                      className="w-full flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg text-start hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
@@ -808,7 +808,7 @@ export function NowPlayingPanel({
                   type="button"
                   onClick={openCurrentArtist}
                   disabled={!canOpenArtist}
-                  className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left truncate disabled:hover:no-underline disabled:hover:text-zinc-800 dark:disabled:hover:text-zinc-100 disabled:cursor-default"
+                  className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-start truncate disabled:hover:no-underline disabled:hover:text-zinc-800 dark:disabled:hover:text-zinc-100 disabled:cursor-default"
                 >
                   {primaryArtistName}
                 </button>
@@ -874,7 +874,7 @@ export function NowPlayingPanel({
       animate={{ width: 320, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full shrink-0 overflow-hidden border-s bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       {body}
       {lightbox}

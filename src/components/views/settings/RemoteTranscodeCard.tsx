@@ -139,7 +139,7 @@ export function RemoteTranscodeCard() {
               disabled={unsupported && id !== "off"}
               onClick={() => setFormat(id)}
               className={[
-                "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                "flex flex-col items-start gap-1 rounded-xl border p-3 text-start transition-all disabled:opacity-50 disabled:cursor-not-allowed",
                 selected
                   ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-500/40"
                   : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900",

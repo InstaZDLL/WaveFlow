@@ -291,7 +291,7 @@ function StereoSlider({
             className="w-36 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
           />
           <span
-            className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums"
+            className="text-sm font-medium text-zinc-500 w-16 text-end tabular-nums"
             aria-hidden="true"
           >
             {valueText}

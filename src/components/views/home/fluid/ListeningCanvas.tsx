@@ -149,7 +149,7 @@ export function ListeningCanvas({
           {statsLine.map((item, i) => (
             <span key={item} className="whitespace-nowrap">
               {(i > 0 || !masthead) && (
-                <span className="mr-2 opacity-50">·</span>
+                <span className="me-2 opacity-50">·</span>
               )}
               {item}
             </span>
@@ -243,7 +243,7 @@ export function ListeningCanvas({
                 <button
                   type="button"
                   onClick={() => onPlayQueueItem(i)}
-                  className="group flex w-full items-center gap-3 py-1.5 text-left"
+                  className="group flex w-full items-center gap-3 py-1.5 text-start"
                 >
                   <Artwork
                     path={q.artwork_path}
@@ -289,7 +289,7 @@ export function ListeningCanvas({
           />
           {strip.length > 0 && (
             <ul
-              className="absolute -bottom-5 -left-10 flex items-end gap-2 lg:-left-14"
+              className="absolute -bottom-5 -start-10 flex items-end gap-2 lg:-start-14"
               aria-label={t("home.fluid.recentStrip")}
             >
               {strip.map((a, i) => {

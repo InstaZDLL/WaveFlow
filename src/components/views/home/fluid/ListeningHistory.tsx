@@ -93,7 +93,7 @@ export function ListeningHistory({
                           onPlay(index);
                         }
                       }}
-                      className="group flex w-full cursor-pointer items-center gap-3.5 py-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-accent)]"
+                      className="group flex w-full cursor-pointer items-center gap-3.5 py-2.5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-accent)]"
                       aria-current={active ? "true" : undefined}
                     >
                       <Artwork
@@ -127,7 +127,7 @@ export function ListeningHistory({
                           )}
                         </span>
                       </span>
-                      <span className="fe-ink-3 fe-mono shrink-0 text-right text-[0.75rem] leading-tight">
+                      <span className="fe-ink-3 fe-mono shrink-0 text-end text-[0.75rem] leading-tight">
                         <span className="block">
                           {relativeTime(p.played_at, i18n.language)}
                         </span>

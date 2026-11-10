@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
+import { interfaceIsRtl } from "../../lib/direction";
 
 interface StarRatingProps {
   value: number | null;
@@ -17,6 +18,17 @@ function popmToScore(popm: number | null): number {
 
 function scoreToPopm(score: number): number {
   return Math.round((score / 5) * 255);
+}
+
+/**
+ * Whether the pointer is on the half of a star where reading starts: the
+ * stars run in reading order, and the half star fills from that side
+ * (its right in a right-to-left language).
+ */
+function onStartHalf(event: React.MouseEvent<HTMLButtonElement>): boolean {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const leftHalf = event.clientX - rect.left < rect.width / 2;
+  return leftHalf !== interfaceIsRtl();
 }
 
 export function StarRating({
@@ -38,9 +50,7 @@ export function StarRating({
   ) => {
     if (!interactive) return;
     event.stopPropagation();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const isLeftHalf = event.clientX - rect.left < rect.width / 2;
-    const score = starIndex + (isLeftHalf ? 0.5 : 1);
+    const score = starIndex + (onStartHalf(event) ? 0.5 : 1);
     onChange!(scoreToPopm(score));
   };
 
@@ -56,9 +66,7 @@ export function StarRating({
     starIndex: number,
   ) => {
     if (!interactive) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const isLeftHalf = event.clientX - rect.left < rect.width / 2;
-    setHoverScore(starIndex + (isLeftHalf ? 0.5 : 1));
+    setHoverScore(starIndex + (onStartHalf(event) ? 0.5 : 1));
   };
 
   return (

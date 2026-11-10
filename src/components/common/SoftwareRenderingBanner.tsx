@@ -59,7 +59,7 @@ export function SoftwareRenderingBanner({
   return (
     <div
       role="status"
-      className="fixed bottom-4 right-4 z-100 max-w-sm rounded-2xl border border-amber-200 bg-white shadow-xl dark:border-amber-500/30 dark:bg-zinc-900 animate-fade-in"
+      className="fixed bottom-4 end-4 z-100 max-w-sm rounded-2xl border border-amber-200 bg-white shadow-xl dark:border-amber-500/30 dark:bg-zinc-900 animate-fade-in"
     >
       <div className="flex items-start gap-3 p-4">
         <div className="shrink-0 mt-0.5 text-amber-500">
@@ -87,7 +87,7 @@ export function SoftwareRenderingBanner({
           type="button"
           onClick={() => setVisible(false)}
           aria-label={t("common.close")}
-          className="shrink-0 p-1 -mr-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          className="shrink-0 p-1 -me-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         >
           <X size={14} aria-hidden="true" />
         </button>

@@ -125,7 +125,7 @@ function LocalTracklist({ onAir }: { onAir: boolean }) {
             return (
               <li
                 key={row.key}
-                className="absolute left-0 w-full"
+                className="absolute start-0 w-full"
                 style={{
                   top: 0,
                   height: ROW_HEIGHT,
@@ -161,7 +161,7 @@ function LocalTracklist({ onAir }: { onAir: boolean }) {
                         }`
                   }`}
                 >
-                  <span className="w-7 shrink-0 text-right text-sm tabular-nums text-white/50">
+                  <span className="w-7 shrink-0 text-end text-sm tabular-nums text-white/50">
                     {isCurrent ? (
                       <AudioLines
                         size={16}

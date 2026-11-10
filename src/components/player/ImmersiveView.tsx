@@ -526,7 +526,7 @@ export function ImmersiveView({
         <div
           ref={buttonBarRef}
           data-theater-chrome
-          className="absolute top-0 right-0 z-10 flex items-center justify-end gap-3 px-8 py-6 pointer-events-none *:pointer-events-auto"
+          className="absolute top-0 end-0 z-10 flex items-center justify-end gap-3 px-8 py-6 pointer-events-none *:pointer-events-auto"
         >
           {currentTrack &&
             (dual ? (
@@ -542,7 +542,7 @@ export function ImmersiveView({
                     : "bg-white/10 hover:bg-white/20 text-white/80"
                 }`}
               >
-                <PanelRight size={22} />
+                <PanelRight className="rtl:-scale-x-100" size={22} />
               </button>
             ) : (
               <button
@@ -638,7 +638,7 @@ export function ImmersiveView({
           )}
           {/* NEW merged view → tabbed control panel on the right. */}
           {dual && panelShown && currentTrack && (
-            <div className="min-w-0 w-2/5 border-l border-white/10">
+            <div className="min-w-0 w-2/5 border-s border-white/10">
               <ImmersiveSidePanel
                 track={currentTrack}
                 lyrics={lyrics}

@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
+import { interfaceIsRtl, leftAtPoint, leftBeside } from "../../lib/direction";
 
 /**
  * Anchor point for a context menu — typically the right-click event's
@@ -79,16 +80,11 @@ export function ContextMenu({
     // settled menu and the flip would misfire near the viewport edges.
     const menuWidth = el.offsetWidth;
     const menuHeight = el.offsetHeight;
-    const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let left = point.x;
+    // Opens toward the reading direction's end: right of the pointer,
+    // or left of it in a right-to-left language.
+    const left = leftAtPoint(point.x, menuWidth, MENU_HORIZONTAL_MARGIN);
     let top = point.y;
-    if (left + menuWidth + MENU_HORIZONTAL_MARGIN > vw) {
-      left = Math.max(
-        MENU_HORIZONTAL_MARGIN,
-        vw - menuWidth - MENU_HORIZONTAL_MARGIN,
-      );
-    }
     if (top + menuHeight + MENU_VERTICAL_MARGIN > vh) {
       top = Math.max(
         MENU_VERTICAL_MARGIN,
@@ -249,7 +245,7 @@ export function ContextMenuItem({
       role="menuitem"
       onClick={handleClick}
       disabled={disabled}
-      className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left transition-colors ${
+      className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-start transition-colors ${
         disabled
           ? "text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
           : danger
@@ -289,7 +285,8 @@ interface ContextMenuSubProps {
 
 /**
  * Item that opens a submenu when hovered (or focused). The submenu
- * pops to the right, flipping left if it would overflow the viewport.
+ * pops out after the item in reading order (to the right, or to the left
+ * in a right-to-left language), flipping if it would overflow the viewport.
  */
 export function ContextMenuSub({
   icon,
@@ -331,14 +328,9 @@ export function ContextMenuSub({
     // pattern).
     const subWidth = sub.offsetWidth;
     const subHeight = sub.offsetHeight;
-    const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let left = tRect.right;
+    const left = leftBeside(tRect, subWidth, MENU_HORIZONTAL_MARGIN);
     let top = tRect.top;
-    if (left + subWidth + MENU_HORIZONTAL_MARGIN > vw) {
-      // Flip to the trigger's left edge.
-      left = Math.max(MENU_HORIZONTAL_MARGIN, tRect.left - subWidth);
-    }
     if (top + subHeight + MENU_VERTICAL_MARGIN > vh) {
       top = Math.max(
         MENU_VERTICAL_MARGIN,
@@ -363,7 +355,7 @@ export function ContextMenuSub({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-3 py-2 text-start text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
       >
         <span className="flex items-center gap-3 min-w-0">
           {icon != null && (
@@ -373,7 +365,7 @@ export function ContextMenuSub({
           )}
           <span className="truncate">{label}</span>
         </span>
-        <ChevronRight size={14} className="text-zinc-400" />
+        <ChevronRight size={14} className="text-zinc-400 rtl:rotate-180" />
       </button>
       {open && (
         <motion.div
@@ -381,7 +373,11 @@ export function ContextMenuSub({
           data-context-menu
           role="menu"
           style={subPos}
-          initial={{ opacity: 0, scale: 0.96, x: -4 }}
+          initial={{
+            opacity: 0,
+            scale: 0.96,
+            x: interfaceIsRtl() ? 4 : -4,
+          }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{
             type: "spring",

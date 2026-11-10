@@ -108,7 +108,7 @@ export function InventoryCategories({
               disabled={empty}
               aria-pressed={active}
               onClick={() => onSelect(category.key)}
-              className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+              className={`flex items-start gap-3 p-3 rounded-xl border text-start transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 active
                   ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40"
                   : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"

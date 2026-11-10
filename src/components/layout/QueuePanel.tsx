@@ -246,7 +246,7 @@ export function QueuePanel({
           <p className="text-xs text-zinc-500 mt-1">
             {!isDetached && t("queue.count", { count: total })}
             {!isActive && (
-              <span className="bg-zinc-200 dark:bg-zinc-700 text-[10px] px-2 py-0.5 rounded-full ml-2 font-medium">
+              <span className="bg-zinc-200 dark:bg-zinc-700 text-[10px] px-2 py-0.5 rounded-full ms-2 font-medium">
                 {t("queue.inactive")}
               </span>
             )}
@@ -380,7 +380,7 @@ export function QueuePanel({
       animate={{ width: 320, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full shrink-0 overflow-hidden border-s bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       {body}
     </motion.aside>
@@ -611,7 +611,7 @@ function SortableUpNext({
 function QueueRowPreview({ item }: { item: QueueTrackPayload }) {
   return (
     <div className="flex items-center space-x-2 p-2 rounded-lg bg-white dark:bg-zinc-800 shadow-lg border border-zinc-200 dark:border-zinc-700 select-none">
-      <div className="shrink-0 p-1 -ml-1 text-zinc-400">
+      <div className="shrink-0 p-1 -ms-1 text-zinc-400">
         <GripVertical size={14} />
       </div>
       <Artwork
@@ -743,7 +743,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
           {...attributes}
           {...listeners}
           aria-label={t("playlistView.actions.reorder")}
-          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 reveal:opacity-100 transition-opacity"
+          className="shrink-0 p-1 -ms-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 reveal:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >

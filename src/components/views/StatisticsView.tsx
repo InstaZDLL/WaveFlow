@@ -197,7 +197,7 @@ export function StatisticsView({
             aria-label={t("common.back")}
             className="p-1 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft className="rtl:rotate-180" size={20} />
           </button>
           <div>
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">

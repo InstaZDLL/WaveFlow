@@ -178,7 +178,7 @@ export function ProfileArchivePreviewModal({
                     <dt className="text-zinc-600 dark:text-zinc-400">
                       {t(`settings.profileIo.preview.rows.${key}`)}
                     </dt>
-                    <dd className="text-right tabular-nums text-zinc-900 dark:text-white">
+                    <dd className="text-end tabular-nums text-zinc-900 dark:text-white">
                       {value}
                     </dd>
                   </div>
