@@ -28,7 +28,7 @@
     },
     "card": {
       "title": "Renderizado de la interfaz",
-      "retryGpu": "Reintentar la GPU",
+      "retryGpu": "Volver a probar la GPU",
       "restartToApply": "En el próximo inicio",
       "retryFailed": "No se pudo guardar. Inténtalo de nuevo."
     },
@@ -108,14 +108,14 @@
       "failed": "El escaneo se ha interrumpido"
     },
     "look": {
-      "title": "Tu aspecto",
+      "title": "A tu gusto",
       "lede": "Un estilo cambia toda la interfaz; un tema, su color. Todo se aplica al momento y lo encontrarás en Configuración → Apariencia.",
       "skin": "Estilo",
       "theme": "Tema",
       "windows": "Ventanas"
     },
     "listening": {
-      "title": "Tu escucha",
+      "title": "Tu forma de escuchar",
       "lede": "Cómo se encadenan y cómo suenan las pistas. Cada tarjeta se activa con un clic y se ajusta con más detalle en Configuración → Audio.",
       "crossfade": {
         "title": "Crossfade",
@@ -123,7 +123,7 @@
       },
       "automix": {
         "title": "AutoMix",
-        "benefit": "Coloca el fundido sobre los tiempos de ambas pistas, como un DJ. También activa el crossfade."
+        "benefit": "Coloca el fundido sobre los pulsos de ambas pistas, como un DJ. También activa el crossfade."
       },
       "replaygain": {
         "title": "Volumen uniforme",
@@ -212,7 +212,7 @@
       "play": "Empezar a reproducir",
       "finish": "Terminar",
       "tourTitle": "¿Un recorrido por la barra de reproducción?",
-      "tourBody": "Un minuto para localizar las letras, la cola, el mini-reproductor y lo demás, icono a icono.",
+      "tourBody": "Un minuto para localizar las letras, la cola, el minirreproductor y lo demás, icono a icono.",
       "tourStart": "Hacer el recorrido",
       "tourLater": "Más tarde",
       "settingsTitle": "Hay mucho más por descubrir",
@@ -1321,7 +1321,7 @@
     "addCover": "Añadir una portada",
     "coverUploadError": "La lista de reproducción se creó, pero no se pudo guardar su portada. Inténtalo de nuevo o termina sin ella.",
     "coverSaveError": "No se pudo guardar la portada. Prueba con otra imagen.",
-    "retryCover": "Reintentar la portada",
+    "retryCover": "Volver a guardar la portada",
     "finishWithoutCover": "Terminar sin portada",
     "createError": "No se pudo crear la lista de reproducción. Inténtalo de nuevo.",
     "editError": "No se pudo guardar la lista de reproducción. Inténtalo de nuevo.",
@@ -1376,7 +1376,7 @@
     "notFoundTitle": "Lista no encontrada",
     "notFoundDescription": "Esta lista ya no existe en el perfil activo.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Playlist inteligente",
+    "smartLabelCustom": "Lista inteligente",
     "placeholder": {
       "missing": "No está en tu biblioteca",
       "remove": "Quitar de la lista",
@@ -1615,7 +1615,7 @@
   },
   "motionCoverPicker": {
     "title": "Portada animada manual",
-    "subtitle": "Elige un archivo MP4 local. Sustituye a la portada animada del complemento y nunca se sobrescribe con una actualización.",
+    "subtitle": "Elige un archivo MP4 local. Sustituye a la portada animada de la extensión y nunca se sobrescribe con una actualización.",
     "pickFile": "Elegir un archivo MP4",
     "replaceFile": "Reemplazar el archivo MP4",
     "customSet": "Portada animada personalizada activa",
@@ -1695,7 +1695,7 @@
     "lyrics": "Letras",
     "nowPlaying": "Mostrar reproducción actual",
     "queue": "Cola",
-    "miniPlayer": "Mini-reproductor (siempre en primer plano)",
+    "miniPlayer": "Minirreproductor (siempre en primer plano)",
     "previous": "Pista anterior",
     "next": "Pista siguiente",
     "openFullscreen": "Vista inmersiva",
@@ -1826,7 +1826,7 @@
     "maximize": "Restaurar ventana principal",
     "like": "Me gusta",
     "pin": "Siempre en primer plano",
-    "close": "Cerrar mini-reproductor",
+    "close": "Cerrar minirreproductor",
     "upNext": {
       "toggle": "Cola de reproducción",
       "title": "A continuación · {{count}}",
@@ -1868,11 +1868,11 @@
       "clear": "Borrar letras",
       "fullscreen": "Pantalla completa",
       "edit": "Editar letras",
-      "cycleLocalization": "Cambiar la lectura adicional",
+      "cycleLocalization": "Cambiar el texto adicional",
       "searchAnyway": "Buscar de todos modos"
     },
     "localization": {
-      "off": "Sin lectura adicional",
+      "off": "Sin texto adicional",
       "romanization": "Mostrando romanización",
       "translation": "Mostrando traducción"
     },
@@ -1983,7 +1983,7 @@
     },
     "sortOptions": {
       "addedDesc": "Añadidas recientemente",
-      "addedAsc": "Añadidas más antiguas",
+      "addedAsc": "Añadidas hace más tiempo",
       "yearDesc": "Año (descendente)",
       "yearAsc": "Año (ascendente)",
       "titleAsc": "Título (A → Z)",
@@ -2111,8 +2111,8 @@
       "confirm": "Cerrar sin guardar"
     },
     "unsynced": {
-      "line": "{{format}}: la línea {{line}} no tiene tiempo",
-      "word": "{{format}}: la palabra {{word}} de la línea {{line}} no tiene tiempo",
+      "line": "{{format}}: la línea {{line}} no tiene marca de tiempo",
+      "word": "{{format}}: la palabra {{word}} de la línea {{line}} no tiene marca de tiempo",
       "show": "Ir allí"
     },
     "transport": {
@@ -2144,7 +2144,7 @@
       },
       "removeSinger": "Quitar este cantante",
       "addSinger": "Añadir cantante",
-      "textPlaceholder": "Pega aquí la letra, una línea por línea.\nLas líneas vacías se ignoran.",
+      "textPlaceholder": "Pega aquí la letra, con cada verso en una línea.\nLas líneas vacías se ignoran.",
       "useText": "Usar estas líneas",
       "useTextKeepsTiming": "Las líneas sin cambios conservan su sincronía.",
       "addLine": "Añadir una línea",
@@ -2254,27 +2254,27 @@
       "appearance": "Apariencia",
       "storage": "Almacenamiento y datos",
       "data": "Datos",
-      "plugins": "Complementos",
+      "plugins": "Extensiones",
       "shortcuts": "Atajos de teclado",
       "diagnostics": "Diagnóstico"
     },
     "plugins": {
-      "title": "Complementos instalados",
+      "title": "Extensiones instaladas",
       "subtitle": "Gestiona las extensiones que añaden fuentes, metadatos o vistas a WaveFlow.",
       "loading": "Cargando…",
-      "emptyTitle": "No hay complementos instalados",
-      "emptyHint": "Instala uno desde la tienda de arriba o coloca una carpeta en la carpeta de complementos.",
+      "emptyTitle": "No hay extensiones instaladas",
+      "emptyHint": "Instala una desde la tienda de arriba o coloca una carpeta en la carpeta de extensiones.",
       "openFolder": "Abrir carpeta",
       "byAuthor": "Por {{author}}",
       "enabled": "Activado",
       "disabled": "Desactivado",
       "broken": {
         "badge": "No funciona",
-        "notAComponent": "Este complemento no tiene el formato esperado, así que WaveFlow no puede cargarlo. Su autor debe volver a publicarlo.",
-        "unreadable": "No se encuentra el archivo de este complemento o no se puede leer. Vuelve a instalarlo.",
-        "tooLarge": "El archivo de este complemento supera el tamaño permitido.",
-        "manifest": "La descripción de este complemento no es válida o no coincide con su carpeta.",
-        "loadFailed": "WaveFlow no ha podido iniciar este complemento."
+        "notAComponent": "Esta extensión no tiene el formato esperado, así que WaveFlow no puede cargarla. Su autor debe volver a publicarla.",
+        "unreadable": "No se encuentra el archivo de esta extensión o no se puede leer. Vuelve a instalarla.",
+        "tooLarge": "El archivo de esta extensión supera el tamaño permitido.",
+        "manifest": "La descripción de esta extensión no es válida o no coincide con su carpeta.",
+        "loadFailed": "WaveFlow no ha podido iniciar esta extensión."
       },
       "toggleAria": "Activar o desactivar {{name}}",
       "uninstall": "Desinstalar",
@@ -2584,7 +2584,7 @@
     },
     "clipsInLibrary": {
       "title": "Guardar los clips junto a la música",
-      "subtitle": "Los Canvas y las portadas animadas que eliges tú van a una carpeta oculta dentro de tu biblioteca, así que viajan con los archivos. Lo que descargan los complementos se queda en las cachés de arriba."
+      "subtitle": "Los Canvas y las portadas animadas que eliges tú van a una carpeta oculta dentro de tu biblioteca, así que viajan con los archivos. Lo que descargan las extensiones se queda en las cachés de arriba."
     },
     "dataFolder": {
       "title": "Carpeta de datos",
@@ -2839,7 +2839,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon Deck — negro OLED, cromo en líneas finas, el acento del tema como neón en lo que está activo, etiquetas mono, animaciones con rebote."
+          "description": "Neon Deck — negro OLED, cromo en líneas finas, el acento del tema como neón en lo que está activo, etiquetas con tipografía monoespaciada, animaciones con rebote."
         },
         "liquid": {
           "label": "Liquid",
@@ -2847,7 +2847,7 @@
         },
         "fluid": {
           "label": "Fluid",
-          "description": "Editorial cinematográfico — la carátula ilumina la página, tipografía de revista, curvas de onda, espectro de ánimo."
+          "description": "Editorial cinematográfico — la portada ilumina la página, tipografía de revista, curvas de onda, espectro de ánimo."
         }
       },
       "accent": {
@@ -2886,7 +2886,7 @@
         "lyrics": "Letras",
         "queue": "Cola",
         "device": "Salida de audio",
-        "miniPlayer": "Mini-reproductor",
+        "miniPlayer": "Minirreproductor",
         "immersive": "Vista inmersiva",
         "audioQualityFooter": "Franja de calidad de audio"
       },
@@ -2977,7 +2977,7 @@
     },
     "lyricsHighlightColor": {
       "title": "Color de la línea cantada",
-      "subtitle": "Para las letras en pantalla completa y el mini-reproductor. Blanco hasta que elijas uno; la ventana flotante de letras conserva sus propios colores.",
+      "subtitle": "Para las letras en pantalla completa y el minirreproductor. Blanco hasta que elijas uno; la ventana flotante de letras conserva sus propios colores.",
       "colors": {
         "default": "Blanco (predeterminado)",
         "rose": "Rosa",
@@ -3105,17 +3105,17 @@
     },
     "motionCovers": {
       "title": "Mostrar portadas animadas",
-      "subtitle": "Portadas animadas detrás de la reproducción actual, tanto las de un plugin como las que elegiste tú. Desactivado, no se consulta a ningún plugin."
+      "subtitle": "Portadas animadas detrás de la reproducción actual, tanto las de una extensión como las que elegiste tú. Desactivado, no se consulta a ninguna extensión."
     },
     "artistHero": {
       "title": "Banner de artista",
       "subtitle": "Muestra una imagen panorámica detrás de la cabecera de la página del artista (fanart de TheAudioDB o, en su defecto, la foto desenfocada)."
     },
     "pluginStore": {
-      "title": "Tienda de complementos",
-      "subtitle": "Explora e instala complementos aislados desde el registro de WaveFlow.",
+      "title": "Tienda de extensiones",
+      "subtitle": "Explora e instala extensiones aisladas desde el registro de WaveFlow.",
       "loading": "Cargando la tienda…",
-      "emptyTitle": "Aún no hay complementos disponibles",
+      "emptyTitle": "Aún no hay extensiones disponibles",
       "emptyHint": "El registro está vacío por ahora, vuelve pronto.",
       "refresh": "Actualizar la tienda",
       "retry": "Reintentar",
@@ -3130,13 +3130,13 @@
       "installAria": "Instalar {{name}}",
       "updateAria": "Actualizar {{name}}",
       "allInstalled": "Todo lo que hay en la tienda ya está instalado.",
-      "search": "Buscar complementos",
+      "search": "Buscar extensiones",
       "clearSearch": "Borrar la búsqueda",
-      "noMatch": "Ningún complemento coincide con «{{query}}»."
+      "noMatch": "Ninguna extensión coincide con «{{query}}»."
     },
     "motionArtwork": {
       "title": "Portadas animadas",
-      "subtitle": "Las portadas animadas de los complementos de metadatos (p. ej. Apple Motion Artwork) se muestran detrás de la reproducción actual.",
+      "subtitle": "Las portadas animadas de las extensiones de metadatos (p. ej. Apple Motion Artwork) se muestran detrás de la reproducción actual.",
       "cacheLabel": "Guardar las portadas animadas localmente",
       "usage": "{{size}} en uso · {{files}} portadas en caché",
       "clear": "Vaciar caché",
@@ -3150,8 +3150,8 @@
       "error": "No se pudo restablecer. Inténtalo de nuevo."
     },
     "miniPlayerBounds": {
-      "title": "Posición del mini-reproductor",
-      "subtitle": "Devolver el mini-reproductor a su tamaño original, en la esquina inferior derecha de la pantalla. Se aplica al instante; hacer doble clic en su asa hace lo mismo."
+      "title": "Posición del minirreproductor",
+      "subtitle": "Devolver el minirreproductor a su tamaño original, en la esquina inferior derecha de la pantalla. Se aplica al instante; hacer doble clic en su asa hace lo mismo."
     },
     "windowChrome": {
       "title": "Marco de la ventana",
@@ -3173,7 +3173,7 @@
     },
     "canvasCache": {
       "cacheLabel": "Guardar los Canvas localmente",
-      "subtitle": "Descarga el Canvas de cada pista desde los complementos de Canvas para reproducirlo sin conexión y sin volver a transmitirlo.",
+      "subtitle": "Descarga el Canvas de cada pista desde las extensiones de Canvas para reproducirlo sin conexión y sin volver a transmitirlo.",
       "usage": "{{size}} en uso · {{files}} Canvas en caché",
       "clear": "Vaciar caché",
       "clearConfirm": "¿Confirmar?"
@@ -3235,7 +3235,7 @@
     },
     "cacheLocation": {
       "title": "Ubicación de la caché",
-      "subtitle": "Imágenes, portadas animadas y clips de Canvas. Todo es reconstruible, así que moverlo no pierde nada. Las bases de datos y los archivos que elegiste a mano se quedan donde están.",
+      "subtitle": "Imágenes, portadas animadas y clips de Canvas. Todo se puede volver a obtener, así que no se pierde nada al moverlo. Las bases de datos y los archivos que elegiste a mano se quedan donde están.",
       "pickTitle": "Elegir la carpeta de caché",
       "choose": "Mover…",
       "reset": "Volver al valor predeterminado",
@@ -3267,7 +3267,7 @@
         "library": "Escaneo, análisis musical, portadas, biografías y radio.",
         "playback": "Salida de audio, transiciones entre pistas, volumen y ecualizador.",
         "appearance": "Estilo, tema, legibilidad y ventanas.",
-        "media": "De dónde salen las letras, cómo se muestran y en el escritorio.",
+        "media": "Fuentes de letras, visualización y letras en el escritorio.",
         "integrations": "Conecta tus servicios, servidor y dispositivos de red.",
         "plugins": "Descubre extensiones y gestiona sus ajustes.",
         "shortcuts": "Elige atajos de teclado para las acciones habituales.",
@@ -3315,7 +3315,7 @@
         "diskUsage": "Espacio en disco",
         "globalShortcuts": "Atajos globales",
         "enrichment": "Enriquecimiento",
-        "podcasts": "Podcasts",
+        "podcasts": "Pódcasts",
         "understanding": "Entender el audio"
       },
       "navHints": {
@@ -3381,7 +3381,7 @@
       "fontSize": "Tamaño del texto",
       "background": "Fondo",
       "textColor": "Color del texto",
-      "highlightColor": "Color cantado",
+      "highlightColor": "Color del texto cantado",
       "outline": "Contorno",
       "outlineNone": "Ninguno",
       "showTranslation": "Mostrar traducción",
@@ -3392,7 +3392,7 @@
     },
     "testTone": {
       "title": "Probar la salida",
-      "subtitle": "Reproduce un pitido a la izquierda, luego a la derecha y luego en ambos lados, en el formato real de la salida. La canción en curso se aparta y vuelve con Reproducir.",
+      "subtitle": "Reproduce un pitido a la izquierda, luego a la derecha y luego en ambos lados, en el formato real de la salida. La reproducción actual se interrumpe; pulsa «Reproducir» para reanudarla.",
       "play": "Reproducir tono de prueba",
       "playing": "Reproduciendo…",
       "left": "Izquierda",
@@ -3417,7 +3417,7 @@
       "interrupted": "Prueba interrumpida.",
       "failed": "No se pudo reproducir el tono de prueba: {{message}}",
       "format": {
-        "f32": "32 bits flotante",
+        "f32": "32 bits (coma flotante)",
         "s32": "32 bits",
         "s24": "24 bits",
         "s24In32": "24 bits (contenedor de 32 bits)",
@@ -3504,11 +3504,11 @@
         },
         "motionCache": {
           "label": "Portadas animadas",
-          "description": "Obtenidas por los complementos, se vuelven a descargar cuando hace falta."
+          "description": "Obtenidas por las extensiones, se vuelven a descargar cuando hace falta."
         },
         "canvasCache": {
           "label": "Clips de Canvas",
-          "description": "Obtenidos por los complementos, se vuelven a descargar cuando hace falta."
+          "description": "Obtenidos por las extensiones, se vuelven a descargar cuando hace falta."
         },
         "remoteArtwork": {
           "label": "Portadas del servidor",
@@ -3543,8 +3543,8 @@
           "description": "Registros de diagnóstico de los últimos días."
         },
         "plugins": {
-          "label": "Complementos",
-          "description": "Complementos instalados y sus datos."
+          "label": "Extensiones",
+          "description": "Extensiones instaladas y sus datos."
         },
         "podcastDownloads": {
           "label": "Episodios de pódcast descargados",
@@ -3630,7 +3630,7 @@
       "title": "Recursos de red (WebDAV, SMB)",
       "subtitle": "Lee un recurso compartido directamente, sin que el sistema lo monte. WaveFlow solo lee: los archivos nunca se modifican.",
       "add": "Añadir un recurso",
-      "addConfirm": "Añadir y analizar",
+      "addConfirm": "Añadir y escanear",
       "cancel": "Cancelar",
       "test": "Probar la conexión",
       "save": "Guardar",
@@ -3688,7 +3688,7 @@
       "subtitleOff": "Desactivados: no se contacta con nada. Para activarlos hay que pasar por un aviso.",
       "stays": "Lo que se conserva: tus suscripciones, tus posiciones y tus episodios descargados.",
       "staysCount": "Canales conservados: {{n}}.",
-      "open": "Abrir los podcasts",
+      "open": "Abrir los pódcasts",
       "seeStays": "Ver lo que se conserva",
       "downloadQuota": "Espacio máximo para los episodios descargados",
       "downloadQuotaHint": "Una descarga se detiene al llegar a esta cuota. Los archivos que ya están se quedan. En uso: {{used}}."
@@ -3770,7 +3770,7 @@
     "live": "EN DIRECTO",
     "nowPlaying": "Reproduciendo ahora",
     "unavailableTitle": "Radio Web está desactivada",
-    "unavailableHint": "Activa el complemento de Radio Web en la página Extensiones para explorar más de 30 000 emisoras.",
+    "unavailableHint": "Activa la extensión de Radio Web en la página Extensiones para explorar más de 30 000 emisoras.",
     "favorites": "Favoritos",
     "favoritesEmpty": "Aún no hay emisoras favoritas. Haz clic en la estrella de una emisora para guardarla.",
     "addFavorite": "Añadir a favoritos",
@@ -3876,9 +3876,9 @@
         "history_one": "reproducción",
         "history_other": "reproducciones",
         "history_many": "reproducciones",
-        "shares_one": "compartido",
-        "shares_other": "compartidos",
-        "shares_many": "compartidos",
+        "shares_one": "enlace compartido",
+        "shares_other": "enlaces compartidos",
+        "shares_many": "enlaces compartidos",
         "queue_one": "pista en cola",
         "queue_other": "pistas en cola",
         "queue_many": "pistas en cola",
@@ -4284,7 +4284,7 @@
       "inLibrary": "Ya en la biblioteca, omitidos: {{n}}",
       "refused": "Carpetas rechazadas porque contienen una carpeta de la biblioteca: {{n}}",
       "errors": "Copias fallidas: {{n}}",
-      "truncated": "Límite alcanzado: suelta el resto en varias veces.",
+      "truncated": "Límite alcanzado: arrastra el resto en varias tandas.",
       "cancelled": "Copia detenida; lo que ya se había copiado se ha añadido."
     },
     "overlap": {
@@ -4386,7 +4386,7 @@
     "scanningIndeterminate": "Buscando…",
     "stop": "Detener",
     "playAll": "Reproducir",
-    "openPlaylist": "Abrir la playlist",
+    "openPlaylist": "Abrir la lista",
     "offline": "Modo sin conexión: no se envía ninguna búsqueda. Los lanzamientos ya encontrados siguen visibles.",
     "filter": {
       "all": "Todo",
@@ -4481,10 +4481,10 @@
       "disc_total": "Discos",
       "genre": "Géneros",
       "composer": "Compositor",
-      "mb_release_id": "ID de la publicación",
+      "mb_release_id": "ID de la edición",
       "mb_release_group_id": "ID del grupo de publicaciones",
       "mb_recording_id": "ID de la grabación",
-      "mb_release_track_id": "ID de la pista de la publicación",
+      "mb_release_track_id": "ID de la pista de la edición",
       "mb_artist_id": "ID de los artistas",
       "mb_album_artist_id": "ID de los artistas del álbum"
     },
@@ -4511,10 +4511,10 @@
     "numberPerDisc": "Reiniciar en cada disco",
     "numberTotals": "Indicar el total de pistas",
     "numberApply": "Numerar en el orden de la tabla",
-    "releasePlaceholder": "Enlace o ID de publicación de MusicBrainz (opcional)",
-    "matchSearch": "Buscar la publicación",
-    "matchHint": "Sin enlace, se usa la publicación que nombran las etiquetas de los archivos, o si no la mejor que encuentre una búsqueda. La tabla solo cambia si usas la propuesta, y nada se escribe antes de la vista previa.",
-    "matchNone": "Ninguna publicación de MusicBrainz encaja con estos archivos.",
+    "releasePlaceholder": "Enlace o ID de edición de MusicBrainz (opcional)",
+    "matchSearch": "Buscar la edición",
+    "matchHint": "Sin enlace, se usa la edición que nombran las etiquetas de los archivos, o si no la mejor que encuentre una búsqueda. La tabla solo cambia si usas la propuesta, y nada se escribe antes de la vista previa.",
+    "matchNone": "Ninguna edición de MusicBrainz encaja con estos archivos.",
     "releaseTracks_one": "{{count}} pista",
     "releaseTracks_many": "{{count}} pistas",
     "releaseTracks_other": "{{count}} pistas",
@@ -4526,7 +4526,7 @@
     "matchPaired_one": "{{paired}} de {{count}} archivo emparejado con una pista",
     "matchPaired_many": "{{paired}} de {{count}} archivos emparejados con una pista",
     "matchPaired_other": "{{paired}} de {{count}} archivos emparejados con una pista",
-    "matchFromTags": "publicación nombrada por los archivos",
+    "matchFromTags": "edición indicada en las etiquetas",
     "matchUse": "Usar estas etiquetas en la tabla",
     "reportWritten_one": "{{count}} archivo escrito",
     "reportWritten_many": "{{count}} archivos escritos",
@@ -4602,7 +4602,7 @@
         "hint": "La portada en grande, la letra al lado."
       },
       "miniPlayer": {
-        "title": "Mini-reproductor",
+        "title": "Minirreproductor",
         "hint": "Una pequeña ventana siempre visible."
       },
       "desktopLyrics": {
@@ -4692,7 +4692,7 @@
         "body": "Ajusta el volumen; un clic en el icono lo silencia."
       },
       "miniPlayer": {
-        "title": "Mini-reproductor",
+        "title": "Minirreproductor",
         "body": "Una pequeña ventana que se queda en primer plano mientras haces otra cosa."
       },
       "immersive": {
@@ -4725,7 +4725,7 @@
     "pages": {
       "fluidInterface": {
         "title": "Una interfaz nueva en cinco materiales",
-        "body": "Navegación en una barra lateral, un Inicio repensado y la luz de la carátula detrás de la música. Fluid, Liquid, Pulse, Editorial y Lounge son sus cinco materiales, y Studio conserva la disposición que ya conoces.",
+        "body": "Navegación en una barra lateral, un Inicio repensado y la luz de la portada detrás de la música. Fluid, Liquid, Pulse, Editorial y Lounge son sus cinco materiales, y Studio conserva la disposición que ya conoces.",
         "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
       },
       "automix": {
@@ -4734,7 +4734,7 @@
         "keywords": "Pulsos|Tempo|Fundido|Transiciones|Análisis|BPM"
       },
       "lyricsEditor": {
-        "title": "Un editor de letras hecho de nuevo",
+        "title": "Un editor de letras rehecho desde cero",
         "body": "Tres pasos: editar, sincronizar por línea o por palabra y comprobar el resultado antes de guardar. La barra espaciadora marca los tiempos mientras suena la canción, con cantantes, coros y traducciones, en LRC, LRC mejorado o TTML.",
         "keywords": "Palabra a palabra|Sincronización|LRC|TTML|Cantantes|Traducciones"
       },
@@ -4750,8 +4750,8 @@
       },
       "enrichment": {
         "title": "Una biblioteca completada con MusicBrainz",
-        "body": "Géneros, fechas, créditos, carátulas, fichas de artista: WaveFlow rellena lo que falta, solo en su base de datos, nunca en tus archivos, y todo se puede deshacer. Desactivado por defecto, porque necesita conexión y envía a MusicBrainz títulos de álbumes y nombres de artistas.",
-        "keywords": "Géneros|Fechas de lanzamiento|Créditos|Carátulas|Artistas|MusicBrainz"
+        "body": "Géneros, fechas, créditos, portadas, fichas de artista: WaveFlow rellena lo que falta, solo en su base de datos, nunca en tus archivos, y todo se puede deshacer. Desactivado por defecto, porque necesita conexión y envía a MusicBrainz títulos de álbumes y nombres de artistas.",
+        "keywords": "Géneros|Fechas de lanzamiento|Créditos|Portadas|Artistas|MusicBrainz"
       },
       "releaseRadar": {
         "title": "Release Radar, sin extensión",
@@ -4764,8 +4764,8 @@
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Pistas que faltan"
       },
       "podcasts": {
-        "title": "Llegan los podcasts",
-        "body": "Suscríbete a un feed, retoma donde lo dejaste y descarga para más tarde. Siguen desactivados hasta que los aceptes: un podcast llega directamente de su servidor, que ve lo que escuchas.",
+        "title": "Llegan los pódcasts",
+        "body": "Suscríbete a un feed, retoma donde lo dejaste y descarga para más tarde. Siguen desactivados hasta que los aceptes: un pódcast llega directamente de su servidor, que ve lo que escuchas.",
         "keywords": "RSS|OPML|Para escuchar|Sin conexión"
       }
     }
@@ -4774,18 +4774,18 @@
     "kicker": "Escuchar",
     "channels": "Canales",
     "channelsCount_one": "{{count}} canal",
-    "channelsCount_many": "{{count}} de canales",
+    "channelsCount_many": "{{count}} canales",
     "channelsCount_other": "{{count}} canales",
     "unplayedCount_one": "{{count}} sin escuchar",
-    "unplayedCount_many": "{{count}} de sin escuchar",
+    "unplayedCount_many": "{{count}} sin escuchar",
     "unplayedCount_other": "{{count}} sin escuchar",
     "episodesCount_one": "{{count}} episodio",
-    "episodesCount_many": "{{count}} de episodios",
+    "episodesCount_many": "{{count}} episodios",
     "episodesCount_other": "{{count}} episodios",
     "usage": "{{used}} descargados de {{quota}}",
     "refreshAll": "Buscar novedades en todo",
     "refreshing": "Buscando novedades…",
-    "openSettings": "Configuración de podcasts",
+    "openSettings": "Configuración de pódcasts",
     "loading": "Cargando…",
     "retry": "Reintentar",
     "showMore": "Mostrar más",
@@ -4794,27 +4794,27 @@
     "untitledEpisode": "Episodio sin título",
     "offlineBanner": "Modo sin conexión: no se contacta con ningún feed. Solo se pueden escuchar los episodios descargados.",
     "off": {
-      "body": "Los podcasts están desactivados: no se contacta con nada. Tus suscripciones, tus posiciones y tus episodios descargados siguen aquí.",
-      "action": "Activar los podcasts…"
+      "body": "Los pódcasts están desactivados: no se contacta con nada. Tus suscripciones, tus posiciones y tus episodios descargados siguen aquí.",
+      "action": "Activar los pódcasts…"
     },
     "empty": {
       "title": "Ninguna suscripción",
       "body": "Escribe arriba la dirección de un feed o importa una lista OPML.",
-      "bodyOff": "Activa los podcasts para seguir tu primer feed."
+      "bodyOff": "Activa los pódcasts para seguir tu primer feed."
     },
     "dialog": {
       "cancel": "Cancelar",
       "close": "Cerrar"
     },
     "warning": {
-      "title": "Antes de activar los podcasts",
+      "title": "Antes de activar los pódcasts",
       "lead": "No cambia nada hasta que lo confirmes. Esto es lo que cambia después.",
       "confirm": "Lo entiendo, activar",
-      "failed": "No se ha podido guardar el cambio. Los podcasts siguen desactivados.",
+      "failed": "No se ha podido guardar el cambio. Los pódcasts siguen desactivados.",
       "points": {
         "hosts": {
           "title": "Lo que ven los servidores",
-          "body": "Los feeds y los episodios llegan directamente del servidor de cada podcast. Ese servidor, y los servicios de medición por los que suelen pasar los episodios, ven tu dirección IP y lo que escuchas."
+          "body": "Los feeds y los episodios llegan directamente del servidor de cada pódcast. Ese servidor, y los servicios de medición por los que suelen pasar los episodios, ven tu dirección IP y lo que escuchas."
         },
         "checks": {
           "title": "Cuándo busca novedades WaveFlow",
@@ -4826,17 +4826,17 @@
         },
         "stop": {
           "title": "Cómo parar todo",
-          "body": "El modo sin conexión lo detiene todo. Desactivar los podcasts lo detiene para siempre."
+          "body": "El modo sin conexión lo detiene todo. También puedes desactivar los pódcasts y volver a activarlos cuando quieras."
         },
         "server": {
           "title": "Si hay un servidor vinculado",
-          "body": "Si este perfil está vinculado a un servidor WaveFlow con los podcasts activados, sus canales también aparecen. Pasan por tu servidor WaveFlow: el servidor del podcast lo ve a él, no a ti."
+          "body": "Si este perfil está vinculado a un servidor WaveFlow con los pódcasts activados, sus canales también aparecen. Pasan por tu servidor WaveFlow: el servidor del pódcast lo ve a él, no a ti."
         }
       }
     },
     "subscribe": {
-      "label": "Suscribirte a un feed",
-      "action": "Suscribirme",
+      "label": "Suscribirse a un feed",
+      "action": "Suscribirse",
       "hint": "La dirección del feed RSS, con http o https. El feed se lee antes de añadirlo, así que un error al escribir no deja ningún rastro."
     },
     "opml": {
@@ -4858,7 +4858,7 @@
         "outcome": {
           "cancelled": "La importación se detuvo antes de terminar.",
           "offline": "El modo sin conexión detuvo la importación.",
-          "disabled": "Los podcasts se desactivaron durante la importación.",
+          "disabled": "Los pódcasts se desactivaron durante la importación.",
           "profile_changed": "El perfil cambió durante la importación, que se detuvo.",
           "already_running": "Ya hay una búsqueda de novedades en curso. Vuelve a intentarlo cuando termine."
         }
@@ -4868,7 +4868,7 @@
       "done": "Búsqueda terminada. Actualizados: {{refreshed}} · Sin cambios: {{unchanged}} · Con error: {{failed}}",
       "cancelled": "Se detuvo la búsqueda de novedades.",
       "offline": "El modo sin conexión detuvo la búsqueda de novedades.",
-      "disabled": "Los podcasts están desactivados.",
+      "disabled": "Los pódcasts están desactivados.",
       "profile_changed": "El perfil cambió durante la búsqueda, que se detuvo.",
       "already_running": "Ya hay una búsqueda de novedades en curso."
     },
@@ -4884,7 +4884,7 @@
       "pause": "Pausa"
     },
     "channel": {
-      "kicker": "Podcast",
+      "kicker": "Pódcast",
       "back": "Todos los canales",
       "checked": "revisado el {{when}}",
       "refresh": "Buscar novedades",
@@ -4896,7 +4896,7 @@
       "speedNormal": "Normal",
       "noEpisodes": "Este canal no tiene episodios.",
       "lastFailure": "Última revisión: {{reason}}",
-      "restoredChip": "Volver a suscribirte",
+      "restoredChip": "Volver a suscribirse",
       "failedChip": "Error"
     },
     "episode": {
@@ -4909,14 +4909,14 @@
       "cancelDownload": "Cancelar la descarga de {{title}}",
       "deleteDownload": "Eliminar el archivo de {{title}} ({{size}})",
       "downloaded": "Descargado",
-      "needsNetwork": "No disponible sin conexión ni con los podcasts desactivados: solo se puede escuchar un episodio descargado.",
+      "needsNetwork": "No disponible sin conexión ni con los pódcasts desactivados: solo se puede escuchar un episodio descargado.",
       "noAddress": "No se conoce la dirección de este episodio: vuelve a suscribirte al canal.",
       "seasonEpisode": "T{{season}} · E{{episode}}",
       "number": "Episodio {{episode}}",
       "remaining": "quedan {{time}}",
       "pause": "Pausar {{title}}",
       "queued": "En espera",
-      "deletedWhilePlaying": "El archivo se ha eliminado. Lo que suena sigue sonando; para volver a empezarlo hará falta la red o una nueva descarga.",
+      "deletedWhilePlaying": "El archivo se ha eliminado. La reproducción en curso continúa; para volver a iniciarla, necesitarás conexión o descargar el episodio de nuevo.",
       "open": "Abrir «{{title}}»",
       "playAgainShort": "Volver a escuchar"
     },
@@ -4933,7 +4933,7 @@
       "confirm": "Cancelar suscripción"
     },
     "errors": {
-      "disabled": "Los podcasts están desactivados.",
+      "disabled": "Los pódcasts están desactivados.",
       "offline": "El modo sin conexión está activado: no se ha contactado con nada.",
       "profile_changed": "El perfil cambió mientras tanto: no se ha escrito nada más.",
       "channel_gone": "Ya no sigues este canal.",
@@ -4943,7 +4943,7 @@
       "too_large": "El archivo es demasiado grande.",
       "unreached": "No se ha podido conectar con el servidor.",
       "http": "El servidor ha respondido con un error ({{status}}).",
-      "invalid_feed": "Esto no es un feed de podcast que se pueda leer.",
+      "invalid_feed": "Esto no es un feed de pódcast que se pueda leer.",
       "not_audio": "Este archivo no es de audio.",
       "quota_exceeded": "Has alcanzado el límite de descargas.",
       "unknown": "Algo ha salido mal.",
@@ -4954,7 +4954,7 @@
       "invalid_document": "Este archivo no es lo que dice ser.",
       "not_stored": "El servidor no guarda este episodio: primero tiene que descargarlo.",
       "server_unreachable": "El servidor no responde.",
-      "server_signed_out": "Ya no has iniciado sesión en este servidor.",
+      "server_signed_out": "Ya no tienes la sesión iniciada en este servidor.",
       "server_refused": "El servidor lo ha rechazado, o ya no conoce este elemento.",
       "server_conflict": "El servidor ya sigue este feed, o no puede seguir más.",
       "destination_refused": "El servidor no tiene permiso para acceder a esta dirección."
@@ -4975,7 +4975,7 @@
       "noEpisode": "Reproduce un episodio para ver su transcripción.",
       "loading": "Obteniendo la transcripción…",
       "failed": "No se ha podido leer la transcripción: {{reason}}",
-      "untimed": "Esta transcripción no tiene tiempos, así que no sigue la reproducción.",
+      "untimed": "Esta transcripción no tiene marcas de tiempo, así que no sigue la reproducción.",
       "notPlaying": "Este episodio no se está reproduciendo. Al hacer clic en una línea empieza en ese momento.",
       "jump": "Ir a {{time}}: {{text}}"
     },
@@ -4997,7 +4997,7 @@
       "requestDownload": "Pedir al servidor que descargue {{title}}",
       "notStored": "No está en el servidor",
       "notStoredHint": "El servidor solo reproduce lo que ha descargado. Un administrador puede pedírselo.",
-      "needsServer": "Sin conexión o con los podcasts desactivados: no se contacta con el servidor.",
+      "needsServer": "Sin conexión o con los pódcasts desactivados: no se contacta con el servidor.",
       "downloading": "Descargando en el servidor…",
       "downloadFailed": "Error en el servidor",
       "forgetPosition": "Reproducir {{title}} desde el principio"
