@@ -372,7 +372,10 @@ export function ContextMenuSub({
           ref={subRef}
           data-context-menu
           role="menu"
-          style={subPos}
+          // The width is applied on every render, the first included: the
+          // placement measures the panel at its final width, not at its
+          // content's, or it would sit over its item or apart from it.
+          style={{ ...subPos, width }}
           initial={{
             opacity: 0,
             scale: 0.96,
