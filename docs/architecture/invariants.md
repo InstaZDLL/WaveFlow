@@ -362,6 +362,35 @@ So a blurred cover goes through [`PrecomputedBlur`](../../src/components/common/
 
 `NowPlayingPanel` / `QueuePanel` / `LyricsPanel` / `PodcastTranscriptPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.
 
+### A side follows the reading direction
+
+Arabic runs the whole interface right to left: [`i18n/index.ts`](../../src/i18n/index.ts) sets `dir="rtl"` on `<html>`, and flex rows, grids and text flip on their own. A physical side does not. Before this rule the profile menu, anchored `right-0` to a button the flipped top bar had moved to the window's left, opened out of the window; gaps sat on the wrong side of their icons; the switches' knobs left their tracks. So anything placed relative to where reading starts or ends is written with **logical properties**:
+
+- utilities: `ms-*` / `me-*`, `ps-*` / `pe-*`, `start-*` / `end-*`, `text-start` / `text-end`, `border-s` / `border-e`, `rounded-s-*` / `rounded-e-*` (`rounded-ss`… for one corner); `space-x-*` and `divide-x` are logical already;
+- inline styles: `insetInlineStart` / `insetInlineEnd`, `marginInlineStart`…;
+- skin CSS: `inset-inline-*`, `margin-inline-*`, `padding-inline-*` (a four-value `padding` / `margin` / `inset` whose sides differ is physical too: split it into `*-block` and `*-inline`), `text-align: start | end`, `float: inline-start`;
+- a skin rule that overrides a utility uses the same logical property, or in Arabic it adds a second margin instead of replacing the first.
+
+What cannot be logical:
+
+- **`translate-x-*`** moves physically: a knob or a badge pushed toward the end takes `rtl:-translate-x-*` with it, and a skin that overrides the translate adds a `:root[dir="rtl"]` rule.
+- **A popover placed in JavaScript** reads the direction when it opens: [`lib/direction.ts`](../../src/lib/direction.ts) gives `leftAtPoint` (a context menu at the pointer), `leftBeside` (a submenu after its item) and `leftAligned` (a dropdown lined up with its trigger's start or end), each kept inside the window, and `interfaceIsRtl` for the rest (a keyboard-opened menu's anchor, half a star). A row navigated with the arrow keys asks `forwardArrowKey(element)`, which reads the row's computed direction.
+- **An icon that points along the reading order** — back, a breadcrumb or disclosure chevron, previous / next of a carousel, a panel handle, undo / redo — turns with `rtl:rotate-180` (an asymmetric glyph mirrors with `rtl:-scale-x-100`).
+
+**What stays physical, and why.** These keep left to right in every language, inside a container marked `dir="ltr"`, where sides are written physically:
+
+- **timelines**: the progress bar (every variant), the mini-player's seek bar, the desktop lyrics bar — a timeline runs left to right, and the seek maths measures from the rail's left edge;
+- **the volume sliders**, which sit with the progress bar in the player;
+- **the transport**: previous, play, next stay in a player's order, the way their icons point;
+- **charts**: the statistics bars and heatmap, the spectrogram, the equalizer curve (whose SVG `textAnchor` would follow the page), the spectrum visualizer;
+- **the mood radio's tempo axis**: Fluid's band and Lounge's dial put the slowest mood on the left on purpose; each segment's own text still reads in the interface's direction;
+- **number fields**: `app.css` keeps `input[type="number"]` and the numeric `inputmode`s left to right;
+- **a scrolling title** ([`MarqueeText`](../../src/components/common/MarqueeText.tsx)): its translate is physical, so it stays flush left, and the ping-pong shows both ends of a title whichever way it reads.
+
+A centred overlay (`left-1/2 -translate-x-1/2`) and a box stretched across (`left-0 right-0`, `inset-x-0`) are symmetric and stay as they are.
+
+**`rtl:` and `:dir()`.** Lightning CSS lowers `:dir(rtl)` to `:lang(ar…)`, the interface's language rather than an element's direction (see the karaoke fill in [integrations § lyrics](../features/integrations.md)). Tailwind's `rtl:` variant also matches `[dir="rtl"] *`, so it is right for the interface — but it matches inside a `dir="ltr"` island too: never use it there. Skin CSS writes `:root[dir="rtl"]`, never `:dir()`.
+
 ### Adding a new player-bar action
 
 Default it into the overflow ("⋯") menu via [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) first; promote to primary only when usage warrants it; add a Settings pin toggle if both modes make sense. See [UI § player-bar layout](../features/ui.md#player-bar-layout).
