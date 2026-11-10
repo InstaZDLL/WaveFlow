@@ -23,13 +23,13 @@
   "rendering": {
     "banner": {
       "title": "Software rendering is on",
-      "message": "The previous start never drew the interface. WaveFlow turned off hardware acceleration to get going again; drawing may be slower.",
+      "message": "The interface did not appear during the previous startup. WaveFlow disabled hardware acceleration to start again; rendering may be slower.",
       "action": "See the details"
     },
     "card": {
       "title": "Interface rendering",
       "retryGpu": "Try the GPU again",
-      "restartToApply": "From the next start",
+      "restartToApply": "Applies at next startup",
       "retryFailed": "Could not save it. Try again."
     },
     "mode": {
@@ -39,7 +39,7 @@
     "reason": {
       "default": "default setting",
       "forced": "set by WAVEFLOW_RENDERER",
-      "previous-launch-never-painted": "the previous start drew nothing",
+      "previous-launch-never-painted": "the interface did not appear during the previous startup",
       "remembered": "kept from the last successful start",
       "software-did-not-help": "software rendering changed nothing, back to the default",
       "software-unavailable": "this platform has no software rendering"
@@ -329,7 +329,7 @@
       },
       "artists": "Artists",
       "albums": "Albums",
-      "titles": "Titles"
+      "titles": "Tracks"
     },
     "theme": {
       "enableLight": "Switch to light mode",
@@ -421,7 +421,7 @@
       "reason": {
         "forgotten1_one": "{{count}} play · last played in {{date}}",
         "forgotten1_other": "{{count}} plays · last played in {{date}}",
-        "forgotten2_one": "You played it {{count}} time, in {{date}}",
+        "forgotten2_one": "You played it {{count}} time, the last in {{date}}",
         "forgotten2_other": "You played it {{count}} times, the last in {{date}}",
         "vibe1": "Because you've been playing {{artist}}",
         "vibe2": "If you're into {{artist}} lately, try this",
@@ -1068,7 +1068,7 @@
     "title": "Feedback",
     "hero": {
       "title": "Help us improve WaveFlow",
-      "description": "Spotted a bug, have an idea for improvement, or just want to share feedback? We read every message and take your suggestions into account."
+      "description": "Spotted a bug, have an idea for improvement, or want to share your thoughts? We read every message and take your suggestions into account."
     },
     "contact": {
       "section": "Contact us",
@@ -1274,7 +1274,7 @@
     "addCover": "Add a cover",
     "coverUploadError": "The playlist was created, but its cover could not be saved. Try again or finish without it.",
     "coverSaveError": "The cover could not be saved. Please try another image.",
-    "retryCover": "Retry cover",
+    "retryCover": "Retry saving cover",
     "finishWithoutCover": "Finish without cover",
     "createError": "Could not create the playlist. Please try again.",
     "editError": "Could not save the playlist. Please try again.",
@@ -1696,7 +1696,7 @@
           "body": "Your file is in {{source}}, your output in {{output}}: WaveFlow mixes the channels together so nothing is missing."
         },
         "eq": {
-          "title": "Equalizer",
+          "title": "Equaliser",
           "body": "Bass, mids and treble are shaped by your settings."
         },
         "replayGain": {
@@ -1704,7 +1704,7 @@
           "body": "The volume is adjusted so tracks sound as loud as one another."
         },
         "normalize": {
-          "title": "Normalization",
+          "title": "Normalisation",
           "body": "Tracks that are too loud are turned down to keep an even level."
         },
         "mono": {
@@ -1810,11 +1810,11 @@
       "clear": "Clear lyrics",
       "fullscreen": "Fullscreen",
       "edit": "Edit lyrics",
-      "cycleLocalization": "Change the extra reading",
+      "cycleLocalization": "Change the additional lyrics text",
       "searchAnyway": "Search anyway"
     },
     "localization": {
-      "off": "No extra reading",
+      "off": "No additional lyrics text",
       "romanization": "Showing romanisation",
       "translation": "Showing translation"
     },
@@ -1881,7 +1881,7 @@
     },
     "import": {
       "title": "Add to the library",
-      "hint": "Copied into the WaveFlow folder of your music"
+      "hint": "Copied into the WaveFlow folder inside your Music folder"
     }
   },
   "abLoop": {
@@ -2049,8 +2049,8 @@
       "confirm": "Discard and close"
     },
     "unsynced": {
-      "line": "{{format}}: line {{line}} has no time",
-      "word": "{{format}}: word {{word}} of line {{line}} has no time",
+      "line": "{{format}}: line {{line}} has no timestamp",
+      "word": "{{format}}: word {{word}} of line {{line}} has no timestamp",
       "show": "Show me"
     },
     "transport": {
@@ -2082,7 +2082,7 @@
       },
       "removeSinger": "Remove this singer",
       "addSinger": "Add singer",
-      "textPlaceholder": "Paste the lyrics here, one line per line.\nBlank lines are ignored.",
+      "textPlaceholder": "Paste the lyrics here, with each lyric line on a separate line.\nBlank lines are ignored.",
       "useText": "Use these lines",
       "useTextKeepsTiming": "Lines you did not change keep their timing.",
       "addLine": "Add a line",
@@ -2104,7 +2104,7 @@
       "backgroundPlaceholder": "(sung over this line)",
       "translation": "Translation",
       "translationLang": "lang",
-      "romanization": "Romanization"
+      "romanization": "Romanisation"
     },
     "sync": {
       "modeLabel": "Sync",
@@ -2201,7 +2201,7 @@
       "subtitle": "Manage extensions that add sources, metadata, or views to WaveFlow.",
       "loading": "Loading…",
       "emptyTitle": "No plugins installed",
-      "emptyHint": "Install one from the store above, or drop a folder into the plugins folder.",
+      "emptyHint": "Install one from the catalogue above, or drop its folder into the plugins folder.",
       "openFolder": "Open folder",
       "byAuthor": "By {{author}}",
       "enabled": "Enabled",
@@ -3022,7 +3022,7 @@
         "subtitle": "Fill the whole screen on open and restore your window on close. Turn off to keep an in-window overlay (useful on multi-monitor setups)."
       },
       "theaterMode": {
-        "title": "Theater mode",
+        "title": "Theatre mode",
         "subtitle": "Turns the immersive view into a display to read from across the room: larger, full screen, with the tracklist beside the cover. The controls and the pointer hide after a few seconds, and the screen stays on while music plays."
       }
     },
@@ -3043,12 +3043,12 @@
       "subtitle": "Shows a wide image behind the artist page header (TheAudioDB fanart, otherwise the blurred photo)."
     },
     "pluginStore": {
-      "title": "Plugin store",
+      "title": "Plugin catalogue",
       "subtitle": "Browse and install sandboxed plugins from the WaveFlow registry.",
-      "loading": "Loading store…",
+      "loading": "Loading catalogue…",
       "emptyTitle": "No plugins available yet",
       "emptyHint": "The registry is empty for now — check back soon.",
-      "refresh": "Refresh the store",
+      "refresh": "Refresh the catalogue",
       "retry": "Retry",
       "install": "Install",
       "installing": "Installing…",
@@ -3060,7 +3060,7 @@
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
       "updateAria": "Update {{name}}",
-      "allInstalled": "Everything in the store is already installed.",
+      "allInstalled": "Everything in the catalogue is already installed.",
       "search": "Search plugins",
       "clearSearch": "Clear search",
       "noMatch": "No plugin matches “{{query}}”."
@@ -3147,7 +3147,7 @@
     },
     "effects": {
       "title": "Visual effects",
-      "subtitle": "Blurs, glass, glows and ambient animations. Reduced, every surface is drawn flat, so the interface stays smooth on a machine without graphics acceleration.",
+      "subtitle": "Blurs, glass, glows and ambient animations. In Reduced mode, every surface is drawn flat, so the interface stays smooth on a machine without graphics acceleration.",
       "modes": {
         "auto": {
           "label": "Automatic",
@@ -3329,11 +3329,11 @@
       "left": "Left",
       "right": "Right",
       "both": "Both",
-      "center": "Center",
+      "center": "Centre",
       "lfe": "Subwoofer",
       "backLeft": "Back left",
       "backRight": "Back right",
-      "backCenter": "Back center",
+      "backCenter": "Back centre",
       "sideLeft": "Side left",
       "sideRight": "Side right",
       "mono": "Mono",
@@ -3511,7 +3511,7 @@
     "enrichment": {
       "title": "Library enrichment",
       "subtitle": "Completes genres, release dates, credits and missing covers from MusicBrainz. Only WaveFlow's database changes, never your files.",
-      "policy": "A sure match is applied on its own, and only where something is missing. Doubtful albums and every artist wait for your review.",
+      "policy": "A sure match is applied automatically, and only where something is missing. Albums with uncertain matches and every artist wait for your review.",
       "fieldsTitle": "What gets completed",
       "run": "Run now",
       "stop": "Stop",
@@ -3708,7 +3708,7 @@
       "title": "Add a station",
       "renameTitle": "Rename station",
       "rename": "Rename {{name}}",
-      "help": "Paste the stream's address, or a .m3u / .pls playlist's, or open such a file. The station joins your favorites.",
+      "help": "Paste the stream's address, or a .m3u / .pls playlist's, or open such a file. The station joins your favourites.",
       "urlLabel": "Stream address",
       "openFile": "Open a .m3u / .pls file",
       "nameLabel": "Name",
@@ -3723,7 +3723,7 @@
         "notAudio": "This address does not lead to an audio stream.",
         "hls": "This HLS stream uses a format WaveFlow cannot play (encryption, fragmented MP4 or byte ranges).",
         "noStream": "The playlist holds no http:// or https:// stream.",
-        "notSaved": "Your favorites have not loaded yet; try again in a moment."
+        "notSaved": "Your favourites have not loaded yet; try again in a moment."
       }
     }
   },
@@ -3752,7 +3752,7 @@
   "immersive": {
     "togglePanel": "Show / hide panel",
     "panelTabs": "Panel tabs",
-    "theater": "Theater mode",
+    "theater": "Theatre mode",
     "tracklist": {
       "tab": "Tracklist",
       "position": "Track {{current}} of {{total}}"
@@ -4544,7 +4544,7 @@
       },
       "device": {
         "title": "Audio output",
-        "body": "Choose the sound card, headphones or DAC that plays."
+        "body": "Choose the sound card, headphones or DAC used for playback."
       },
       "more": {
         "title": "More actions",
@@ -4602,7 +4602,7 @@
         "keywords": "Word by word|Sync|LRC|TTML|Singers|Translations"
       },
       "theater": {
-        "title": "Theater mode",
+        "title": "Theatre mode",
         "body": "The immersive view for a screen seen from across the room: fullscreen, everything scaled to the window, controls and pointer fading after a few seconds, and the display kept on while the music plays.",
         "keywords": "Fullscreen|TV|Large type|No controls|Display on"
       },
@@ -4686,7 +4686,7 @@
         },
         "stop": {
           "title": "How to stop all of it",
-          "body": "Offline mode stops all of it. Turning podcasts off stops it for good."
+          "body": "Offline mode pauses network access. Turning podcasts off stops it until you turn them on again."
         },
         "server": {
           "title": "If a server is linked",
@@ -4856,7 +4856,7 @@
       "deleteEpisodeBody": "“{{title}}” and its file leave the server, for every account on it. It will not come back at the next check.",
       "requestDownload": "Ask the server to download {{title}}",
       "notStored": "Not on the server",
-      "notStoredHint": "The server only plays what it has downloaded. An administrator can ask it to.",
+      "notStoredHint": "The server only plays episodes it has downloaded. An administrator can ask it to download them.",
       "needsServer": "Offline or podcasts off: the server is not contacted.",
       "downloading": "Downloading on the server…",
       "downloadFailed": "Failed on the server",
