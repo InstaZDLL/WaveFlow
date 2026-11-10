@@ -95,7 +95,7 @@
     },
     "folder": {
       "title": "你的音乐在哪里？",
-      "lede": "选择存放专辑的文件夹。读取会立即在后台开始，你可以同时继续浏览引导。",
+      "lede": "选择存放专辑的文件夹。WaveFlow 会立即在后台读取，你可以继续完成引导。",
       "pick": "选择文件夹",
       "drop": "或将文件夹或文件拖放到窗口上",
       "hint": "拖入的文件会被复制到“音乐”文件夹中的 WaveFlow 文件夹。之后还可以添加其他文件夹。"
@@ -108,7 +108,7 @@
       "failed": "扫描已中断"
     },
     "look": {
-      "title": "你的外观",
+      "title": "外观设置",
       "lede": "界面风格改变整个界面，主题改变它的配色。所有更改即时生效，之后也可以在“设置 → 外观”中找到。",
       "skin": "界面风格",
       "theme": "主题",
@@ -119,7 +119,7 @@
       "lede": "决定曲目之间如何衔接、听起来如何。每张卡片点一下即可开启，并可在“设置 → 音频”中进一步微调。",
       "crossfade": {
         "title": "交叉淡化",
-        "benefit": "每首曲目在 {{seconds}} 秒内淡入下一首，中间没有静音。"
+        "benefit": "每首曲目会在 {{seconds}} 秒内与下一首交叉淡化，衔接时没有静音间隔。"
       },
       "automix": {
         "title": "AutoMix",
@@ -142,7 +142,7 @@
     },
     "plugins": {
       "title": "你的扩展",
-      "lede": "精选官方扩展，一键即可安装。完整目录在“扩展”中等你探索。",
+      "lede": "官方精选扩展，一键即可安装。更多扩展可在“扩展”页面中探索。",
       "loading": "正在读取目录…",
       "unavailable": "暂时无法连接到目录。以下是它提供的内容，之后可在“扩展”中找到。",
       "inExtensions": "可在“扩展”中找到",
@@ -155,7 +155,7 @@
       "usage": {
         "lyrics": {
           "title": "逐字歌词",
-          "benefit": "歌词逐字点亮，并可根据来源提供翻译和罗马音。"
+          "benefit": "歌词逐字点亮，并可根据来源提供翻译和罗马字转写。"
         },
         "canvas": {
           "title": "Canvas",
@@ -337,7 +337,7 @@
     },
     "profile": {
       "user": "用户",
-      "changeProfile": "更改个人资料",
+      "changeProfile": "切换个人资料",
       "statistics": "统计数据",
       "settings": "设置",
       "feedback": "反馈",
@@ -441,7 +441,7 @@
       "regenerate": "重新生成",
       "regenerating": "生成中…",
       "emptyTitle": "暂无 Daily Mix",
-      "emptyDescription": "先听几首歌，然后点击重新生成以创建你的个性化合辑。",
+      "emptyDescription": "先听几首歌，再点击“重新生成”，创建你的个性化精选。",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} 首",
       "trackCount_other": "{{count}} 首"
@@ -450,17 +450,17 @@
       "label": "On Repeat"
     },
     "artistMix": {
-      "label": "艺人混音",
-      "name": "{{name}} 混音",
-      "description": "{{name}}及相似艺人"
+      "label": "艺人精选",
+      "name": "{{name}} 精选",
+      "description": "{{name}} 及相似艺人"
     },
     "genreMix": {
-      "label": "流派混音",
-      "name": "{{name}} 混音",
-      "description": "资料库中最好的{{name}}"
+      "label": "流派精选",
+      "name": "{{name}} 精选",
+      "description": "音乐库中的 {{name}} 精选"
     },
     "decadeMix": {
-      "label": "年代混音",
+      "label": "年代精选",
       "name": "{{decade}} 年代",
       "description": "你的 {{decade}} 年代音乐"
     },
@@ -483,22 +483,22 @@
       "remaining": "剩余 {{time}}",
       "radio": "电台",
       "hours": "已聆听 {{count}} 小时",
-      "moodStart": "开始电台",
-      "tempo": "节奏",
+      "moodStart": "播放电台",
+      "tempo": "速度",
       "featuredKicker": "你总是回到这张专辑",
       "featuredCta": "再听一次",
-      "yourMixes": "你的混音",
+      "yourMixes": "你的专属精选",
       "leadKicker": "最新添加",
-      "liked_zero": "0 首喜欢",
-      "liked_one": "{{count}} 首喜欢",
-      "liked_other": "{{count}} 首喜欢",
+      "liked_zero": "已喜欢 0 首",
+      "liked_one": "已喜欢 {{count}} 首",
+      "liked_other": "已喜欢 {{count}} 首",
       "plays_zero": "播放 0 次",
       "plays_one": "播放 {{count}} 次",
       "plays_other": "播放 {{count}} 次"
     },
     "releaseRadar": {
       "label": "Release Radar",
-      "description": "音乐库中你的艺术家的新发行"
+      "description": "音乐库中艺人的最新发行作品"
     }
   },
   "library": {
@@ -663,7 +663,7 @@
       "actions": "文件夹操作",
       "play": "播放文件夹",
       "queue": "添加到队列",
-      "playNext": "播放下一首",
+      "playNext": "接下来播放",
       "newPlaylist": "新建播放列表",
       "batchTag": "批量编辑标签",
       "densityList": "列表"
@@ -787,10 +787,10 @@
       "moveUp": "上移“{{column}}”列",
       "moveDown": "下移“{{column}}”列"
     },
-    "trackOnUnreachableShare": "无法访问网络共享,且此曲目不在缓存中",
+    "trackOnUnreachableShare": "无法访问网络共享，且此曲目不在缓存中",
     "quality": {
       "progress": "已分析 {{measured}} / {{lossless}} 个无损文件",
-      "noLossless": "资料库中没有无损文件：没有可测量的内容。",
+      "noLossless": "音乐库中没有无损文件：没有可测量的内容。",
       "status": {
         "running": "正在分析：{{current}} / {{total}} 个文件",
         "starting": "分析正在启动…",
@@ -982,7 +982,7 @@
       "subtitle": "收听 {{duration}} · {{count}} 首曲目"
     },
     "mood": {
-      "eyebrow": "你的平均拍速",
+      "eyebrow": "你的平均速度",
       "subtitle": "陪伴你一年的节奏",
       "loudness": "平均响度：{{lufs}} LUFS",
       "energy": {
@@ -1150,8 +1150,8 @@
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 首",
     "count_other": "{{count}} 首",
-    "emptyTitle": "没什么可听的",
-    "emptyDescription": "从你的音乐库选取一首歌，加入播放队列。",
+    "emptyTitle": "播放队列为空",
+    "emptyDescription": "从音乐库播放一首曲目，即可填充播放队列。",
     "nowPlaying": "正在播放",
     "upNext_zero": "接下来",
     "upNext_one": "接下来 · {{count}} 首",
@@ -1160,7 +1160,7 @@
       "label": "电台",
       "basedOn": "基于“{{title}}”"
     },
-    "saveAsPlaylist": "保存为歌单",
+    "saveAsPlaylist": "保存为播放列表",
     "defaultPlaylistName": "{{date}} 的播放队列"
   },
   "deviceMenu": {
@@ -1272,7 +1272,7 @@
     "addCover": "添加封面",
     "coverUploadError": "播放列表已创建，但封面未能保存。请重试，或不设封面直接完成。",
     "coverSaveError": "封面未能保存。请换一张图片。",
-    "retryCover": "重试封面",
+    "retryCover": "重新保存封面",
     "finishWithoutCover": "不设封面并完成",
     "createError": "无法创建播放列表。请重试。",
     "editError": "无法保存播放列表。请重试。",
@@ -1314,7 +1314,7 @@
       "share": "分享",
       "reorder": "重新排序",
       "removeFromPlaylist": "从播放列表中移除",
-      "keepAsPlaylist": "保存为歌单"
+      "keepAsPlaylist": "保存为播放列表"
     },
     "export": {
       "dialogTitle": "将播放列表导出为 M3U 格式"
@@ -1338,7 +1338,7 @@
     "addToPlaylist": "添加到播放列表",
     "noPlaylists": "没有播放列表。请在下方创建一个。",
     "createPlaylist": "新建播放列表",
-    "playNext": "播放下一首",
+    "playNext": "接下来播放",
     "addToQueue": "添加到队列",
     "like": "加入已喜欢",
     "unlike": "从已喜欢中移除",
@@ -1348,7 +1348,7 @@
     "showInExplorer": "在资源管理器中显示",
     "copyPath": "复制文件路径",
     "properties": "属性",
-    "startRadio": "开始电台",
+    "startRadio": "播放电台",
     "rating": "评分",
     "ratingNone": "无评分",
     "batchEdit": "编辑 {{count}} 首曲目的标签…",
@@ -1382,7 +1382,7 @@
     },
     "result": {
       "updated": "已更新 {{count}} 首",
-      "failed": "{{count}} 个失败："
+      "failed": "{{count}} 项失败："
     }
   },
   "trackProperties": {
@@ -1409,7 +1409,7 @@
     "year": "年份",
     "duration": "时长",
     "codec": "编解码器",
-    "bitDepth": "位深度",
+    "bitDepth": "位深",
     "sampleRate": "采样率",
     "channels": "声道",
     "bitrate": "比特率",
@@ -1444,7 +1444,7 @@
       "presets": "常用流派"
     },
     "bandwidth": "高频",
-    "bandwidthFull": "全频段",
+    "bandwidthFull": "全频带",
     "bandwidthCutoff": "截止于 {{khz}} kHz",
     "bandwidthFake": "截止于 {{khz}} kHz — 可能由有损文件转换而来",
     "spectrogram": {
@@ -1481,7 +1481,7 @@
     "count_other": "已选 {{count}} 项",
     "play": "播放",
     "addToQueue": "加入队列",
-    "playNext": "播放下一首",
+    "playNext": "接下来播放",
     "addToPlaylist": "添加到播放列表",
     "removeFromPlaylist": "从播放列表中移除",
     "clear": "取消选择",
@@ -1614,7 +1614,7 @@
       "title": "歌词",
       "comingSoon": "即将推出"
     },
-    "startRadio": "开始电台",
+    "startRadio": "播放电台",
     "share": {
       "open": "分享",
       "save": "保存为 PNG",
@@ -1729,8 +1729,8 @@
         },
         "pitch": {
           "title": "音高",
-          "bodyUp": "歌曲播放得比原曲高。",
-          "bodyDown": "歌曲播放得比原曲低。",
+          "bodyUp": "播放音高高于原曲。",
+          "bodyDown": "播放音高低于原曲。",
           "figures": "移调 {{value}}"
         }
       },
@@ -1741,7 +1741,7 @@
         "changes": "改变声音"
       },
       "verdict": {
-        "bitPerfect": "声音与文件中的完全一致地到达你的输出设备。",
+        "bitPerfect": "声音以与文件完全一致的形式传送到输出设备。",
         "shared": "WaveFlow 没有做任何修改，但系统仍会将声音与其他应用的声音混合。"
       },
       "output": {
@@ -1813,7 +1813,7 @@
     },
     "localization": {
       "off": "不显示附加行",
-      "romanization": "正在显示罗马音",
+      "romanization": "正在显示罗马字转写",
       "translation": "正在显示翻译"
     },
     "source": {
@@ -1879,7 +1879,7 @@
     },
     "import": {
       "title": "添加到音乐库",
-      "hint": "复制到音乐中的 WaveFlow 文件夹"
+      "hint": "复制到“音乐”文件夹中的 WaveFlow 文件夹"
     }
   },
   "abLoop": {
@@ -2040,15 +2040,15 @@
       "lrc": "LRC",
       "plain": "纯文本"
     },
-    "lrcTranslations": "翻译作为重复行",
+    "lrcTranslations": "译文另起一行（沿用原行时间戳）",
     "discard": {
       "question": "不保存更改就关闭吗？",
       "keep": "继续编辑",
       "confirm": "不保存并关闭"
     },
     "unsynced": {
-      "line": "{{format}}：第 {{line}} 行没有时间",
-      "word": "{{format}}：第 {{line}} 行的第 {{word}} 个词没有时间",
+      "line": "{{format}}：第 {{line}} 行尚未设置时间戳",
+      "word": "{{format}}：第 {{line}} 行的第 {{word}} 个词尚未设置时间戳",
       "show": "前往"
     },
     "transport": {
@@ -2090,7 +2090,7 @@
       "badge": {
         "background": "和声",
         "translation": "译",
-        "romanization": "拼"
+        "romanization": "罗马字"
       },
       "mergeNext": "与下一行合并",
       "removeLine": "删除此行",
@@ -2102,7 +2102,7 @@
       "backgroundPlaceholder": "（叠在这一行上演唱）",
       "translation": "翻译",
       "translationLang": "语言",
-      "romanization": "罗马化"
+      "romanization": "罗马字转写"
     },
     "sync": {
       "modeLabel": "同步",
@@ -2754,17 +2754,17 @@
       },
       "preview": {
         "title": "导入“{{name}}”？",
-        "titleUnknown": "导入配置文件",
+        "titleUnknown": "导入个人资料",
         "origin": "于 {{date}} 使用 WaveFlow {{version}} 导出。",
         "loading": "正在读取归档…",
-        "unreadable": "无法读取此文件：它已损坏，或不是 WaveFlow 配置文件归档。",
+        "unreadable": "无法读取此文件：它已损坏，或不是 WaveFlow 个人资料归档。",
         "failed": "无法读取归档。详情请查看日志。",
         "newer": "此归档来自更新版本的 WaveFlow。请更新 WaveFlow 后再导入。",
         "differentBuild": "此归档来自另一个版本的 WaveFlow，其数据库与当前版本不同，无法导入。",
         "unsupported": "已不再支持此归档的格式。",
         "schema": "数据库版本：{{archive}}（本应用：{{local}}）。",
         "schemaUnknown": "数据库版本未知（本应用：{{local}}）。",
-        "asNewProfile": "将作为新的配置文件导入：现有配置文件保持不变。",
+        "asNewProfile": "将作为新的个人资料导入：现有个人资料保持不变。",
         "cancel": "取消",
         "import": "导入",
         "rows": {
@@ -2773,7 +2773,7 @@
           "smartPlaylists": "智能播放列表",
           "likedTracks": "喜欢的曲目",
           "plays": "播放次数",
-          "libraryFolders": "资料库文件夹",
+          "libraryFolders": "音乐库文件夹",
           "settings": "设置",
           "covers": "自定义封面",
           "coverCache": "缓存的封面",
@@ -3149,12 +3149,12 @@
       "modes": {
         "auto": {
           "label": "自动",
-          "full": "在这台电脑上为完整；界面在没有 GPU 的情况下绘制时精简。",
-          "reduced": "在这台电脑上为精简：此处界面在没有 GPU 的情况下绘制。"
+          "full": "此电脑当前使用完整效果；采用软件渲染时会自动精简。",
+          "reduced": "此电脑采用软件渲染，已自动精简效果。"
         },
         "full": {
           "label": "完整",
-          "description": "皮肤的全部效果，即使没有 GPU。"
+          "description": "即使没有 GPU，也启用当前界面风格的全部效果。"
         },
         "reduced": {
           "label": "精简",
@@ -3298,7 +3298,7 @@
         "diskUsage": "WaveFlow 在这台电脑上保存的内容",
         "globalShortcuts": "在任何应用中",
         "enrichment": "来自 MusicBrainz 的流派、日期、制作人员和封面",
-        "podcasts": "经你同意后订阅订阅源",
+        "podcasts": "确认后即可订阅播客",
         "understanding": "几句话讲清声音的术语"
       }
     },
@@ -3310,7 +3310,7 @@
       "fontSize": "文字大小",
       "background": "背景",
       "textColor": "文字颜色",
-      "highlightColor": "已唱颜色",
+      "highlightColor": "已唱部分颜色",
       "outline": "描边",
       "outlineNone": "无",
       "showTranslation": "显示翻译",
@@ -3380,7 +3380,7 @@
     },
     "autoplay": {
       "title": "自动播放",
-      "subtitle": "队列在未开启循环时播完后，从你的资料库添加相关曲目并继续播放"
+      "subtitle": "队列在未开启循环时播完后，从你的音乐库添加相关曲目并继续播放"
     },
     "stereoImage": {
       "balance": {
@@ -3421,12 +3421,12 @@
       "emptyLabel": "清空：{{item}}",
       "items": {
         "artwork": {
-          "label": "资料库封面",
-          "description": "此配置文件的专辑封面及其缩略图。未使用的封面可在“{{section}}”中移除。"
+          "label": "音乐库封面",
+          "description": "此个人资料的专辑封面及其缩略图。未使用的封面可在“{{section}}”中移除。"
         },
         "metadataArtwork": {
           "label": "已下载的图片",
-          "description": "从网上获取的艺人照片和封面，所有配置文件共用。"
+          "description": "从网上获取的艺人照片和封面，所有个人资料共用。"
         },
         "motionCache": {
           "label": "动态封面",
@@ -3454,7 +3454,7 @@
         },
         "databases": {
           "label": "数据库",
-          "description": "所有配置文件的资料库、播放列表、历史和设置。"
+          "description": "所有个人资料的音乐库、播放列表、历史和设置。"
         },
         "databaseSnapshots": {
           "label": "升级前的副本",
@@ -3552,8 +3552,8 @@
       }
     },
     "networkLibrary": {
-      "title": "网络共享 (WebDAV、SMB)",
-      "subtitle": "直接读取共享,无需系统挂载。WaveFlow 只读取:共享上的文件绝不会被修改。",
+      "title": "网络共享（WebDAV、SMB）",
+      "subtitle": "直接读取共享，无需系统挂载。WaveFlow 只读取：共享上的文件绝不会被修改。",
       "add": "添加共享",
       "addConfirm": "添加并扫描",
       "cancel": "取消",
@@ -3564,22 +3564,22 @@
         "webdav": "WebDAV",
         "smb": "SMB"
       },
-      "name": "名称(可选)",
+      "name": "名称（可选）",
       "address": "地址",
       "addressHint": {
         "webdav": "https://nas.local/dav",
         "smb": "nas.local 或 192.168.1.10"
       },
-      "folder": "共享上的文件夹(可选)",
+      "folder": "共享上的文件夹（可选）",
       "username": "用户名",
       "password": "密码",
-      "passwordNotice": "密码与 WaveFlow 的其他凭据一样以明文保存在配置文件的数据库中,绝不会进入配置文件导出或备份。建议使用只读账户。",
-      "plainHttpWarning": "我同意不加密发送此密码和我的音乐:使用 http:// 时,此网络上的任何人都能读取它们。",
-      "plainHttpBadge": "未加密的连接 (http://)",
-      "passwordMissing": "需要重新输入密码:它不会随导入的配置文件或恢复的备份一起带来。",
+      "passwordNotice": "密码与 WaveFlow 的其他凭据一样以明文保存在个人资料的数据库中，绝不会进入个人资料导出或备份。建议使用只读账户。",
+      "plainHttpWarning": "我同意不加密发送此密码和我的音乐：使用 http:// 时，此网络上的任何人都能读取它们。",
+      "plainHttpBadge": "未加密的连接（http://）",
+      "passwordMissing": "请重新输入密码：导入个人资料或恢复备份时不会恢复密码。",
       "changePassword": "更改密码",
       "remove": "移除",
-      "removeConfirm": "移除此共享及其曲目?",
+      "removeConfirm": "移除此共享及其曲目？",
       "state": {
         "online": "已连接",
         "unknown": "尚未检查",
@@ -3589,21 +3589,21 @@
       "failure": {
         "offline": "离线模式已开启。",
         "unreachable": "此地址没有响应。",
-        "handshake": "此服务器在协商期间关闭了连接。WaveFlow 使用 SMB 2 及更新版本：仅支持 SMB 1 的服务器正是如此表现。",
-        "tls": "此服务器的证书被拒绝。WaveFlow 始终验证证书:需要有效的证书,或在可信网络上使用 http://。",
+        "handshake": "此服务器在协商期间关闭了连接。WaveFlow 支持 SMB 2 及更新版本；仅支持 SMB 1 的服务器会出现这种情况。",
+        "tls": "此服务器的证书被拒绝。WaveFlow 始终验证证书：需要有效的证书，或在可信网络上使用 http://。",
         "auth": "用户名或密码被拒绝。",
-        "session-refused": "此服务器未判定密码就拒绝了会话。此帐户可能没有访问权限，或者服务器要求此连接无法使用的加密。",
+        "session-refused": "服务器在验证密码前拒绝了会话。此账户可能没有访问权限，或服务器要求的加密方式不受当前连接支持。",
         "not-found": "此共享或文件夹不存在。",
-        "protocol": "此服务器的响应不像共享。",
-        "plain-http": "http:// 地址需要您在下方同意。"
+        "protocol": "此服务器未按共享协议响应。",
+        "plain-http": "使用 http:// 地址前，请在下方确认同意。"
       },
-      "testOk_one": "已连接:此文件夹中有 {{count}} 项。",
-      "testOk_other": "已连接:此文件夹中有 {{count}} 项。",
-      "cacheLimit": "上限 (GB)",
+      "testOk_one": "已连接：此文件夹中有 {{count}} 项。",
+      "testOk_other": "已连接：此文件夹中有 {{count}} 项。",
+      "cacheLimit": "上限（GB）",
       "cacheClear": "清空缓存",
       "share": "共享名称",
-      "cacheUsed_one": "本地缓存:{{size}},{{count}} 首曲目",
-      "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
+      "cacheUsed_one": "本地缓存：{{size}}，{{count}} 首曲目",
+      "cacheUsed_other": "本地缓存：{{size}}，{{count}} 首曲目"
     },
     "podcasts": {
       "title": "播客",
@@ -3653,8 +3653,8 @@
     "cancelledTitle": "已停止扫描",
     "doneSubtitle": "已添加 {{added}} · 已更新 {{updated}} · 已跳过 {{skipped}}",
     "scanningIn": "正在扫描 {{dir}}",
-    "doneErrors_one": "{{count}} 个文件失败",
-    "doneErrors_other": "{{count}} 个文件失败"
+    "doneErrors_one": "{{count}} 个文件扫描失败",
+    "doneErrors_other": "{{count}} 个文件扫描失败"
   },
   "system": {
     "tray": {
@@ -4139,7 +4139,7 @@
     "current": "当前文件",
     "replacement": "新文件",
     "target": "将保存为",
-    "keeps": "该曲目会保留播放记录、喜欢和歌单。当前文件将移到系统回收站。",
+    "keeps": "该曲目的播放记录、喜欢状态及其所属播放列表都会保留。当前文件将移到系统回收站。",
     "confirm": "替换",
     "replacing": "正在替换…",
     "done": "已替换。旧文件在回收站中。",
@@ -4180,8 +4180,8 @@
       "contains": "此文件夹包含已在音乐库中的 {{folder}}。请改为添加它的其他子文件夹。"
     },
     "unreachable": {
-      "title": "无法访问媒体库文件夹",
-      "body": "该文件夹不存在或无法读取，可能是磁盘未连接。其中的曲目仍保留在媒体库中，没有任何更改。"
+      "title": "无法访问音乐库文件夹",
+      "body": "该文件夹不存在或无法读取，可能是磁盘未连接。其中的曲目仍保留在音乐库中，没有任何更改。"
     }
   },
   "playlistImport": {
@@ -4256,8 +4256,8 @@
   },
   "releaseRadar": {
     "badge": "新发行",
-    "subtitle": "音乐库中艺术家的近期发行作品，信息来自 MusicBrainz。",
-    "followed": "关注的艺术家：{{n}}",
+    "subtitle": "音乐库中艺人的近期发行作品，信息来自 MusicBrainz。",
+    "followed": "关注的艺人：{{n}}",
     "lastChecked": "上次检查：{{when}}",
     "neverChecked": "从未检查",
     "scan": "查找新发行",
@@ -4266,7 +4266,7 @@
     "scanningIndeterminate": "正在查找…",
     "stop": "停止",
     "playAll": "播放",
-    "openPlaylist": "打开歌单",
+    "openPlaylist": "打开播放列表",
     "offline": "离线模式：不会发送任何查询。已找到的发行作品仍会显示。",
     "filter": {
       "all": "全部",
@@ -4284,13 +4284,13 @@
       "rateLimited": "MusicBrainz 要求放慢请求速度。下次查找会从这次停下的地方继续。",
       "failed": "网络没有响应。下次查找会从这次停下的地方继续。",
       "cancelled": "查找已停止。下次会从这次停下的地方继续。",
-      "profileChanged": "查找过程中切换了配置文件，因此查找已停止。",
+      "profileChanged": "查找过程中切换了个人资料，因此查找已停止。",
       "error": "查找失败：{{detail}}"
     },
     "emptyTitle": "欢迎使用 Release Radar",
-    "emptyHint": "开始查找，即可找到音乐库中艺术家的近期发行作品。只会下载发行信息和封面，绝不下载音乐本身。",
+    "emptyHint": "开始查找，即可找到音乐库中艺人的近期发行作品。只会下载发行信息和封面，绝不下载音乐本身。",
     "noneTitle": "没有近期发行",
-    "noneHint": "MusicBrainz 中没有所关注艺术家最近六个月的发行作品。",
+    "noneHint": "MusicBrainz 中没有所关注艺人最近六个月的发行作品。",
     "filterEmpty": "此筛选条件下没有发行作品。",
     "credits": "信息：MusicBrainz · 封面：Cover Art Archive",
     "type": {
@@ -4387,7 +4387,7 @@
     "numberApply": "按表格顺序编号",
     "releasePlaceholder": "MusicBrainz 发行链接或 ID（可选）",
     "matchSearch": "查找发行",
-    "matchHint": "没有链接时，使用文件标签中指明的发行，否则使用搜索找到的最佳发行。只有使用建议后表格才会改变，预览之前不会写入任何内容。",
+    "matchHint": "未提供链接时，优先使用文件标签中指定的发行版本；标签未指定时，再使用搜索结果中最匹配的版本。只有采用建议后，表格才会更新；预览前不会写入文件。",
     "matchNone": "MusicBrainz 上没有与这些文件匹配的发行。",
     "releaseTracks_one": "{{count}} 首曲目",
     "releaseTracks_other": "{{count}} 首曲目",
@@ -4398,7 +4398,7 @@
     },
     "matchPaired_one": "{{count}} 个文件中有 {{paired}} 个与曲目对应",
     "matchPaired_other": "{{count}} 个文件中有 {{paired}} 个与曲目对应",
-    "matchFromTags": "发行由文件指明",
+    "matchFromTags": "由文件标签指定的发行版本",
     "matchUse": "在表格中使用这些标签",
     "reportWritten_one": "已写入 {{count}} 个文件",
     "reportWritten_other": "已写入 {{count}} 个文件",
@@ -4412,7 +4412,7 @@
       "missing": "找不到文件",
       "interrupted": "写入未经确认，保持原样",
       "invalid": "有值无法写入",
-      "database_stale": "文件已更新，但资料库尚未更新：下次扫描该文件夹时会重新读取"
+      "database_stale": "文件已更新，但音乐库尚未更新：下次扫描该文件夹时会重新读取"
     },
     "moreProblems_one": "另有 {{count}} 个",
     "moreProblems_other": "另有 {{count}} 个",
@@ -4448,7 +4448,7 @@
     "coverFill": "为没有封面的专辑添加 Cover Art Archive 封面",
     "write_one": "写入 {{count}} 个文件",
     "write_other": "写入 {{count}} 个文件",
-    "otherProfile": "此工坊是在另一个配置文件中打开的。请从当前配置文件重新打开。",
+    "otherProfile": "此工坊是在另一个个人资料中打开的。请从当前个人资料重新打开。",
     "truncated": "只打开了 {{total}} 个文件中的前 {{shown}} 个：请缩小选择范围以编辑其余文件。"
   },
   "firstSteps": {
@@ -4602,7 +4602,7 @@
       "theater": {
         "title": "影院模式",
         "body": "专为远距离观看的屏幕打造的沉浸式视图：全屏显示，所有内容随窗口缩放，控件和指针几秒后隐藏，音乐播放期间屏幕保持常亮。",
-        "keywords": "全屏|电视|大尺寸|隐藏控件|屏幕常亮"
+        "keywords": "全屏|电视|大字号|隐藏控件|屏幕常亮"
       },
       "tagWorkshop": {
         "title": "标签工坊",
@@ -4685,14 +4685,14 @@
         },
         "server": {
           "title": "如果关联了服务器",
-          "body": "如果这个配置文件关联了开启播客的 WaveFlow 服务器，它的节目也会显示。这些内容经过你的服务器：托管方看到的是你的服务器，而不是你。"
+          "body": "如果这个个人资料关联了开启播客的 WaveFlow 服务器，它的节目也会显示。这些内容经过你的服务器：托管方看到的是你的服务器，而不是你。"
         }
       }
     },
     "subscribe": {
-      "label": "订阅一个订阅源",
+      "label": "订阅播客",
       "action": "订阅",
-      "hint": "RSS 订阅源的地址，以 http 或 https 开头。添加之前会先读取订阅源，所以输错了也不会留下任何东西。"
+      "hint": "输入以 http 或 https 开头的 RSS 订阅源地址。添加前会先验证订阅源，地址有误时不会创建订阅。"
     },
     "opml": {
       "import": "导入 OPML",
@@ -4714,7 +4714,7 @@
           "cancelled": "导入在完成之前被停止了。",
           "offline": "离线模式停止了导入。",
           "disabled": "导入期间播客被关闭了。",
-          "profile_changed": "导入期间配置文件发生了变化，导入已停止。",
+          "profile_changed": "导入期间已切换个人资料，导入已停止。",
           "already_running": "已经在检查了。请等它结束后再试。"
         }
       }
@@ -4724,7 +4724,7 @@
       "cancelled": "检查已停止。",
       "offline": "离线模式停止了检查。",
       "disabled": "播客已关闭。",
-      "profile_changed": "检查期间配置文件发生了变化，检查已停止。",
+      "profile_changed": "检查期间已切换个人资料，检查已停止。",
       "already_running": "已经在检查了。"
     },
     "toListen": {
@@ -4765,7 +4765,7 @@
       "deleteDownload": "删除 {{title}} 的文件（{{size}}）",
       "downloaded": "已下载",
       "needsNetwork": "离线或播客关闭时无法使用，只能播放已下载的单集。",
-      "noAddress": "不知道这一集的地址，请重新订阅这个节目。",
+      "noAddress": "此单集的播放地址缺失，请重新订阅该节目。",
       "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
       "number": "第 {{episode}} 集",
       "remaining": "剩余 {{time}}",
@@ -4776,8 +4776,8 @@
       "playAgainShort": "再听一遍"
     },
     "restored": {
-      "title": "已不知道这个订阅源的地址",
-      "body": "这个节目来自备份或导入的配置文件，它们不会保存订阅源的地址，所以它不再更新。请用同一个地址重新订阅，或重新导入你的 OPML，你的播放进度和已听记录都会保留。",
+      "title": "订阅源地址缺失",
+      "body": "这个节目来自备份或导入的个人资料，它们不会保存订阅源的地址，所以它不再更新。请用同一个地址重新订阅，或重新导入你的 OPML，你的播放进度和已听记录都会保留。",
       "hint": "和之前相同的地址。OPML 列表只接受公开地址，本地网络中的订阅源请在这里输入。",
       "summary": "需要重新订阅的节目：{{n}} 个。备份不会保存订阅源的地址。请重新输入地址或重新导入 OPML，你的播放进度会保留。",
       "downloads": "已下载的单集不会随备份一起保存，需要重新下载。"
@@ -4790,11 +4790,11 @@
     "errors": {
       "disabled": "播客已关闭。",
       "offline": "离线模式已开启，没有连接任何地方。",
-      "profile_changed": "期间配置文件发生了变化，没有再写入更多内容。",
+      "profile_changed": "个人资料已切换，已停止继续写入。",
       "channel_gone": "已不再订阅这个节目。",
       "open_failed": "无法打开浏览器。",
       "address_refused": "这个地址不能用。它必须以 http 或 https 开头，包含主机名，且不能带有账号和密码。公开的订阅源不能指向本地网络。",
-      "too_many_redirects": "这个订阅源被连续转到了太多个地址。",
+      "too_many_redirects": "此订阅源的重定向次数过多。",
       "too_large": "文件太大了。",
       "unreached": "连接不上托管方。",
       "http": "托管方返回了错误（{{status}}）。",
@@ -4803,16 +4803,16 @@
       "quota_exceeded": "已达到下载上限。",
       "unknown": "出了点问题。",
       "episode_gone": "这一集已不存在。",
-      "no_source": "这一集既没有文件也没有地址：请重新订阅该频道。",
+      "no_source": "此单集既没有本地文件，也没有播放地址，请重新订阅该节目。",
       "not_seekable": "此托管方不支持在这一集中跳转。",
       "write_failed": "无法将文件写入磁盘。",
       "invalid_document": "此文件与其声明的内容不符。",
       "not_stored": "服务器没有保存这一集：需要它先下载。",
       "server_unreachable": "服务器没有响应。",
-      "server_signed_out": "你已不再登录这台服务器。",
-      "server_refused": "服务器拒绝了，或已不再有这一项。",
-      "server_conflict": "服务器已在关注这个订阅源，或无法再关注更多。",
-      "destination_refused": "服务器不允许访问这个地址。"
+      "server_signed_out": "你当前未登录此服务器。",
+      "server_refused": "服务器拒绝了请求，或此内容已不存在。",
+      "server_conflict": "服务器已订阅此订阅源，或已达到订阅上限。",
+      "destination_refused": "服务器无权访问此地址。"
     },
     "episodePage": {
       "kicker": "单集"
@@ -4848,13 +4848,13 @@
       "removeConfirm": "移除",
       "deleteEpisode": "从服务器移除 {{title}}",
       "deleteEpisodeTitle": "要从服务器移除这一集吗？",
-      "deleteEpisodeBody": "“{{title}}”及其文件会从服务器上消失，所有账户都受影响。下次检查时也不会回来。",
-      "requestDownload": "请服务器下载 {{title}}",
+      "deleteEpisodeBody": "“{{title}}”及其文件将从服务器中移除，影响所有账户。下次检查时也不会重新添加。",
+      "requestDownload": "请求服务器下载 {{title}}",
       "notStored": "不在服务器上",
-      "notStoredHint": "服务器只播放已下载的内容。管理员可以请它下载。",
+      "notStoredHint": "服务器只能播放已下载的内容。管理员可以发起下载。",
       "needsServer": "离线或播客已关闭：不会联系服务器。",
       "downloading": "正在服务器上下载…",
-      "downloadFailed": "在服务器上失败",
+      "downloadFailed": "服务器下载失败",
       "forgetPosition": "从头播放 {{title}}"
     }
   }

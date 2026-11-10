@@ -251,6 +251,18 @@ export const i18nReady = i18n
     pushDlnaLabels();
   });
 
+// Portuguese ships as `pt` (European) and `pt-BR`. A bare `pt` makes
+// Intl.PluralRules apply Brazil's rules, where 0 is "one" ("0 canal");
+// European Portuguese puts 0 in "other" ("0 canais"). Plural forms of
+// `pt` are resolved with pt-PT's rules, so the code stored in profiles
+// and localStorage stays `pt`. `init()` has created the resolver by now.
+const pluralResolver = i18n.services.pluralResolver as {
+  getRule: (code: string, options?: object) => Intl.PluralRules | undefined;
+};
+const resolvePluralRule = pluralResolver.getRule.bind(pluralResolver);
+pluralResolver.getRule = (code, options) =>
+  resolvePluralRule(code === "pt" ? "pt-PT" : code, options);
+
 i18n.on("languageChanged", (code) => {
   applyDocumentLanguage(code);
   pushTrayLabels();

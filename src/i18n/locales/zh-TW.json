@@ -108,7 +108,7 @@
       "failed": "掃描已中斷"
     },
     "look": {
-      "title": "你的外觀",
+      "title": "介面外觀",
       "lede": "介面風格會改變整個介面，主題則改變它的配色。所有變更立即生效，之後也可以在「設定 → 外觀」中找到。",
       "skin": "介面風格",
       "theme": "主題",
@@ -119,7 +119,7 @@
       "lede": "決定曲目之間如何銜接、聽起來如何。每張卡片點一下即可開啟，並可在「設定 → 音訊」中進一步微調。",
       "crossfade": {
         "title": "交叉淡入淡出",
-        "benefit": "每首曲目在 {{seconds}} 秒內淡入下一首，中間沒有靜音。"
+        "benefit": "在 {{seconds}} 秒內讓前一首淡出、下一首淡入，曲目之間不中斷。"
       },
       "automix": {
         "title": "AutoMix",
@@ -196,7 +196,7 @@
       "server": {
         "title": "WaveFlow 伺服器",
         "benefit": "播放 WaveFlow 伺服器上的音樂庫，並與本機音樂庫保持同步。",
-        "open": "前往設定進行設定"
+        "open": "前往設定"
       },
       "enrichmentOffline": "連上網路後，可在「設定 → 音樂庫」中開啟。"
     },
@@ -450,17 +450,17 @@
       "label": "On Repeat"
     },
     "artistMix": {
-      "label": "演出者混音",
-      "name": "{{name}} 混音",
-      "description": "{{name}}與相似演出者"
+      "label": "藝人精選",
+      "name": "{{name}} 精選",
+      "description": "{{name}} 與風格相近的藝人"
     },
     "genreMix": {
-      "label": "曲風混音",
-      "name": "{{name}} 混音",
-      "description": "資料庫中最棒的{{name}}"
+      "label": "曲風精選",
+      "name": "{{name}} 精選",
+      "description": "音樂庫中的 {{name}} 精選"
     },
     "decadeMix": {
-      "label": "年代混音",
+      "label": "年代精選",
       "name": "{{decade}} 年代",
       "description": "你的 {{decade}} 年代音樂"
     },
@@ -487,11 +487,11 @@
       "tempo": "節奏",
       "featuredKicker": "你總是回到這張專輯",
       "featuredCta": "再聽一次",
-      "yourMixes": "你的混音",
+      "yourMixes": "你的精選歌單",
       "leadKicker": "最新加入",
-      "liked_zero": "0 首喜歡",
-      "liked_one": "{{count}} 首喜歡",
-      "liked_other": "{{count}} 首喜歡",
+      "liked_zero": "0 首收藏曲目",
+      "liked_one": "{{count}} 首收藏曲目",
+      "liked_other": "{{count}} 首收藏曲目",
       "plays_zero": "播放 0 次",
       "plays_one": "播放 {{count}} 次",
       "plays_other": "播放 {{count}} 次"
@@ -663,7 +663,7 @@
       "actions": "資料夾操作",
       "play": "播放資料夾",
       "queue": "加入佇列",
-      "playNext": "播放下一首",
+      "playNext": "接著播放",
       "newPlaylist": "新播放清單",
       "batchTag": "批次編輯標籤",
       "densityList": "清單"
@@ -787,10 +787,10 @@
       "moveUp": "上移「{{column}}」欄",
       "moveDown": "下移「{{column}}」欄"
     },
-    "trackOnUnreachableShare": "無法連線到網路共用,且此曲目不在快取中",
+    "trackOnUnreachableShare": "無法連線到網路共用，且此曲目不在快取中",
     "quality": {
       "progress": "已分析 {{measured}} / {{lossless}} 個無損檔案",
-      "noLossless": "資料庫中沒有無損檔案：沒有可測量的內容。",
+      "noLossless": "音樂庫中沒有無損檔案：沒有可測量的內容。",
       "status": {
         "running": "正在分析：{{current}} / {{total}} 個檔案",
         "starting": "分析正在啟動…",
@@ -845,14 +845,14 @@
   },
   "history": {
     "badge": "歷史",
-    "title": "收聽歷史",
+    "title": "聆聽紀錄",
     "today": "今天",
     "yesterday": "昨天",
     "timeline": "時間軸",
     "loadingMore": "載入中…",
-    "endReached": "歷史的開始",
+    "endReached": "已顯示最早的聆聽紀錄",
     "emptyTitle": "暫無收聽紀錄",
-    "emptyDescription": "播放一首曲目——計入後將立即出現在此。",
+    "emptyDescription": "播放一首曲目，計入聆聽紀錄後就會顯示在這裡。",
     "shownCount_one": "顯示 {{count}} 次收聽",
     "shownCount_other": "顯示 {{count}} 次收聽",
     "plays_one": "{{count}} 次收聽",
@@ -910,7 +910,7 @@
     },
     "topArtists": {
       "title": "熱門藝人",
-      "empty": "沒有聆聽任何藝人。"
+      "empty": "此期間沒有藝人聆聽紀錄。"
     },
     "topAlbums": {
       "title": "熱門專輯",
@@ -933,7 +933,7 @@
     },
     "topGenres": {
       "title": "熱門曲風",
-      "empty": "尚未播放任何曲風。"
+      "empty": "此期間沒有曲風統計資料。"
     }
   },
   "wrapped": {
@@ -1150,7 +1150,7 @@
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 首",
     "count_other": "{{count}} 首",
-    "emptyTitle": "沒什麼可聽的",
+    "emptyTitle": "沒有待播放的曲目",
     "emptyDescription": "從你的音樂庫中選取一首歌，加入播放佇列。",
     "nowPlaying": "正在播放",
     "upNext_zero": "接下來",
@@ -1179,7 +1179,7 @@
       "minPeriod": "最小週期：{{value}} 個取樣框",
       "formats": "格式",
       "rates": "取樣率",
-      "caveat": "驅動聲稱支援什麼，和它在獨佔模式下實際接受什麼，是兩個不同的問題。",
+      "caveat": "驅動程式回報的支援規格，不一定等於裝置在獨佔模式下實際接受的格式。",
       "source": {
         "wasapiExclusive": "已在獨佔模式下對驅動程式進行實測。",
         "alsaHardware": "ALSA 硬體參數，不經任何轉換層。",
@@ -1326,7 +1326,7 @@
     "notFoundTitle": "找不到播放清單",
     "notFoundDescription": "此播放清單在目前的個人檔案中已不存在。",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "智慧播放清單",
+    "smartLabelCustom": "智慧型播放清單",
     "placeholder": {
       "missing": "不在你的音樂庫中",
       "remove": "從播放清單中移除",
@@ -1338,7 +1338,7 @@
     "addToPlaylist": "加入播放清單",
     "noPlaylists": "目前沒有播放清單。請在下方建立一個。",
     "createPlaylist": "新播放清單",
-    "playNext": "播放下一首",
+    "playNext": "接著播放",
     "addToQueue": "加入佇列",
     "like": "加入收藏",
     "unlike": "取消收藏",
@@ -1481,7 +1481,7 @@
     "count_other": "已選取 {{count}} 項",
     "play": "播放",
     "addToQueue": "加入佇列",
-    "playNext": "播放下一首",
+    "playNext": "接著播放",
     "addToPlaylist": "加入播放清單",
     "removeFromPlaylist": "從播放清單中移除",
     "clear": "取消選取",
@@ -1590,7 +1590,7 @@
   "yearDetail": {
     "badge": "年份",
     "emptyTitle": "找不到年份",
-    "emptyDescription": "目前的設定檔中已沒有該年份的歌曲。",
+    "emptyDescription": "目前的個人檔案中已沒有該年份的歌曲。",
     "emptyTracksTitle": "沒有歌曲",
     "emptyTracksDescription": "沒有可用的歌曲標註為該年份。"
   },
@@ -1741,15 +1741,15 @@
         "changes": "改變聲音"
       },
       "verdict": {
-        "bitPerfect": "聲音與檔案中的完全一致地到達你的輸出裝置。",
+        "bitPerfect": "聲音會原封不動地從檔案傳送到你的輸出裝置。",
         "shared": "WaveFlow 沒有做任何修改，但系統仍會將聲音與其他應用程式的聲音混合。"
       },
       "output": {
         "title": "輸出",
-        "shared": "共享模式：系統將 WaveFlow 與電腦上的其他聲音混合。適合日常使用。",
+        "shared": "共用模式：系統將 WaveFlow 與電腦上的其他聲音混合。適合日常使用。",
         "exclusive": "獨佔模式：WaveFlow 獨佔輸出，不混入其他任何聲音。",
         "dop": "獨佔模式：WaveFlow 獨佔輸出，並將 DSD 原樣送出。",
-        "exclusiveRefused": "輸出裝置拒絕了獨佔模式：WaveFlow 以共享模式播放。"
+        "exclusiveRefused": "輸出裝置拒絕了獨佔模式：WaveFlow 以共用模式播放。"
       }
     },
     "outputMode": {
@@ -2040,15 +2040,15 @@
       "lrc": "LRC",
       "plain": "純文字"
     },
-    "lrcTranslations": "翻譯作為重複行",
+    "lrcTranslations": "譯文另起一行（沿用原行時間標記）",
     "discard": {
       "question": "不儲存變更就關閉嗎？",
       "keep": "繼續編輯",
       "confirm": "不儲存並關閉"
     },
     "unsynced": {
-      "line": "{{format}}：第 {{line}} 行沒有時間",
-      "word": "{{format}}：第 {{line}} 行的第 {{word}} 個詞沒有時間",
+      "line": "{{format}}：第 {{line}} 行尚未設定時間標記",
+      "word": "{{format}}：第 {{line}} 行的第 {{word}} 個詞尚未設定時間標記",
       "show": "前往"
     },
     "transport": {
@@ -2065,7 +2065,7 @@
       },
       "meta": {
         "title": "標題",
-        "artist": "演出者",
+        "artist": "藝人",
         "album": "專輯",
         "language": "語言",
         "languagePlaceholder": "zh-TW, en, ja…"
@@ -2081,7 +2081,7 @@
       "removeSinger": "移除此演唱者",
       "addSinger": "新增演唱者",
       "textPlaceholder": "在此貼上歌詞，每行一句。\n空行會被忽略。",
-      "useText": "使用這些行",
+      "useText": "套用這些歌詞",
       "useTextKeepsTiming": "未更動的行會保留同步。",
       "addLine": "新增一行",
       "details": "行詳細資料",
@@ -2108,10 +2108,10 @@
       "modeLabel": "同步",
       "mode": {
         "line": "逐行",
-        "word": "逐詞"
+        "word": "逐字"
       },
       "reaction": "反應補償",
-      "reactionHint": "每次按鍵都提前這麼多，以抵銷從聽到到按下之間的延遲。",
+      "reactionHint": "將每次按鍵記錄的時間提前此數值，以補償從聽到歌詞到按下按鍵之間的延遲。",
       "shift": "全部平移",
       "shiftHint": "平移文件中的所有時間，適用於整體偏早或偏晚的檔案。",
       "shiftEarlier": "全部提前 {{ms}} 毫秒",
@@ -2320,12 +2320,12 @@
       "subtitle": "曲目間的無縫銜接"
     },
     "dynamicCrossfade": {
-      "title": "動態交叉淡化",
-      "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時改用固定交叉淡化）"
+      "title": "動態交叉淡入淡出",
+      "subtitle": "依曲目間的速度差調整淡入淡出時長（BPM 未知時改用固定交叉淡入淡出）"
     },
     "autoMix": {
       "title": "AutoMix",
-      "subtitle": "將交叉淡化對齊兩首曲目的節拍，並在設定的交叉淡化時長內以節拍數計算其長度；同一專輯連續播放不淡化（缺少節拍格線或速度相差過大時改用智慧交叉淡化）"
+      "subtitle": "將交叉淡入淡出對齊兩首曲目的節拍，並在設定的時長內以節拍數計算其長度；同一專輯連續播放時不淡入淡出（缺少節拍格線或速度相差過大時改用智慧交叉淡入淡出）"
     },
     "normalize": {
       "title": "音量正規化",
@@ -2404,7 +2404,7 @@
     },
     "sortIgnoreArticles": {
       "title": "排序時忽略冠詞",
-      "subtitle": "在演出者和專輯中，將「The Beatles」歸入 B，將「Les Rita Mitsouko」歸入 R。"
+      "subtitle": "在藝人和專輯中，將「The Beatles」歸入 B，將「Les Rita Mitsouko」歸入 R。"
     },
     "singleClickPlay": {
       "title": "按一下播放",
@@ -2488,7 +2488,7 @@
         "title": "重設整個應用程式？",
         "warning": "此操作將刪除每個個人檔案、音樂庫、播放清單、評分、聆聽紀錄和快取封面。應用程式將重新啟動並進入初始設定畫面。此操作無法復原。",
         "typeToConfirm": "輸入 RESET 以確認",
-        "error": "重設失敗。請關閉任何持有 WaveFlow 檔案的外部程式（已開啟的音樂播放器、資料夾中的檔案總管），然後重試。",
+        "error": "重設失敗。請關閉正在使用 WaveFlow 檔案的其他程式（例如音樂播放器，或開啟資料儲存資料夾的檔案總管），然後重試。",
         "cancel": "取消",
         "confirmButton": "重設並重新啟動"
       }
@@ -2754,26 +2754,26 @@
       },
       "preview": {
         "title": "匯入「{{name}}」？",
-        "titleUnknown": "匯入設定檔",
+        "titleUnknown": "匯入個人檔案",
         "origin": "於 {{date}} 使用 WaveFlow {{version}} 匯出。",
         "loading": "正在讀取封存檔…",
-        "unreadable": "無法讀取此檔案：檔案已損毀，或不是 WaveFlow 設定檔封存檔。",
+        "unreadable": "無法讀取此檔案：檔案已損毀，或不是 WaveFlow 個人檔案封存檔。",
         "failed": "無法讀取封存檔。詳情請查看記錄。",
         "newer": "此封存檔來自較新版本的 WaveFlow。請更新 WaveFlow 後再匯入。",
         "differentBuild": "此封存檔來自另一個版本的 WaveFlow，其資料庫與目前版本不同，無法匯入。",
         "unsupported": "已不再支援此封存檔的格式。",
         "schema": "資料庫版本：{{archive}}（本應用程式：{{local}}）。",
         "schemaUnknown": "資料庫版本不明（本應用程式：{{local}}）。",
-        "asNewProfile": "將以新的設定檔匯入：現有設定檔維持不變。",
+        "asNewProfile": "將以新的個人檔案匯入：現有個人檔案維持不變。",
         "cancel": "取消",
         "import": "匯入",
         "rows": {
           "tracks": "曲目",
           "playlists": "播放清單",
-          "smartPlaylists": "智慧播放清單",
-          "likedTracks": "喜愛的曲目",
+          "smartPlaylists": "智慧型播放清單",
+          "likedTracks": "收藏的曲目",
           "plays": "播放次數",
-          "libraryFolders": "資料庫資料夾",
+          "libraryFolders": "音樂庫資料夾",
           "settings": "設定",
           "covers": "自訂封面",
           "coverCache": "快取的封面",
@@ -2801,8 +2801,8 @@
       }
     },
     "smartCrossfade": {
-      "title": "智慧交叉淡化",
-      "subtitle": "自動跳過同一張專輯內兩首曲目間的淡化（適合概念專輯和現場錄音）"
+      "title": "智慧交叉淡入淡出",
+      "subtitle": "同一張專輯連續播放時，自動略過曲目間的交叉淡入淡出（適合概念專輯和現場錄音）"
     },
     "playerBarLayout": {
       "title": "播放列配置",
@@ -3034,7 +3034,7 @@
     },
     "motionCovers": {
       "title": "顯示動態封面",
-      "subtitle": "在正在播放畫面背後顯示動態專輯封面，無論來自外掛或是您手動設定的。關閉後不會向任何外掛請求。"
+      "subtitle": "在正在播放畫面背後顯示動態專輯封面，無論來自外掛或是你手動設定的。關閉後不會向任何外掛請求。"
     },
     "artistHero": {
       "title": "藝人橫幅",
@@ -3337,9 +3337,9 @@
       "mono": "單聲道",
       "stereo": "立體聲",
       "channels": "{{count}} 聲道",
-      "exclusive": "獨占",
-      "shared": "共享",
-      "sharedNote": "在共享模式下，系統混音器隨後會將此格式轉換為裝置本身的格式。",
+      "exclusive": "獨佔",
+      "shared": "共用",
+      "sharedNote": "在共用模式下，系統混音器隨後會將此格式轉換為裝置本身的格式。",
       "monoNote": "單聲道輸出已開啟：每個提示音都會從兩側同時發出。",
       "surroundNote": "環繞聲輸出：每個揚聲器依序發出提示音，重低音使用低頻音。",
       "swapped": "左側提示音從右邊發出？表示聲道接反了：請檢查插頭或系統的喇叭設定。",
@@ -3380,7 +3380,7 @@
     },
     "autoplay": {
       "title": "自動播放",
-      "subtitle": "佇列在未開啟重複時播完後，從你的資料庫加入相關曲目並繼續播放"
+      "subtitle": "佇列在關閉循環播放的情況下播完後，從你的音樂庫加入相關曲目並繼續播放"
     },
     "stereoImage": {
       "balance": {
@@ -3421,12 +3421,12 @@
       "emptyLabel": "清空：{{item}}",
       "items": {
         "artwork": {
-          "label": "媒體庫封面",
-          "description": "此設定檔的專輯封面及其縮圖。未使用的封面可在「{{section}}」中移除。"
+          "label": "音樂庫封面",
+          "description": "此個人檔案的專輯封面及其縮圖。未使用的封面可在「{{section}}」中移除。"
         },
         "metadataArtwork": {
           "label": "已下載的圖片",
-          "description": "從網路取得的藝人照片和封面，所有設定檔共用。"
+          "description": "從網路取得的藝人照片和封面，所有個人檔案共用。"
         },
         "motionCache": {
           "label": "動態封面",
@@ -3454,7 +3454,7 @@
         },
         "databases": {
           "label": "資料庫",
-          "description": "所有設定檔的媒體庫、播放清單、紀錄和設定。"
+          "description": "所有個人檔案的音樂庫、播放清單、聆聽紀錄和設定。"
         },
         "databaseSnapshots": {
           "label": "升級前的副本",
@@ -3552,8 +3552,8 @@
       }
     },
     "networkLibrary": {
-      "title": "網路共用 (WebDAV、SMB)",
-      "subtitle": "直接讀取共用,無需系統掛載。WaveFlow 只讀取:共用上的檔案絕不會被修改。",
+      "title": "網路共用（WebDAV、SMB）",
+      "subtitle": "直接讀取共用，無需系統掛載。WaveFlow 只讀取：共用上的檔案絕不會被修改。",
       "add": "新增共用",
       "addConfirm": "新增並掃描",
       "cancel": "取消",
@@ -3564,22 +3564,22 @@
         "webdav": "WebDAV",
         "smb": "SMB"
       },
-      "name": "名稱(選填)",
+      "name": "名稱（選填）",
       "address": "位址",
       "addressHint": {
         "webdav": "https://nas.local/dav",
         "smb": "nas.local 或 192.168.1.10"
       },
-      "folder": "共用上的資料夾(選填)",
+      "folder": "共用上的資料夾（選填）",
       "username": "使用者名稱",
       "password": "密碼",
-      "passwordNotice": "密碼與 WaveFlow 的其他憑證一樣以明文儲存在設定檔的資料庫中,絕不會進入設定檔匯出或備份。建議使用唯讀帳號。",
-      "plainHttpWarning": "我同意不加密傳送此密碼和我的音樂:使用 http:// 時,此網路上的任何人都能讀取。",
-      "plainHttpBadge": "未加密的連線 (http://)",
-      "passwordMissing": "需要重新輸入密碼:它不會隨匯入的設定檔或還原的備份一起帶來。",
+      "passwordNotice": "密碼與 WaveFlow 的其他憑證一樣以明文儲存在個人檔案的資料庫中，絕不會進入個人檔案匯出或備份。建議使用唯讀帳號。",
+      "plainHttpWarning": "我同意不加密傳送此密碼和我的音樂：使用 http:// 時，此網路上的任何人都能讀取。",
+      "plainHttpBadge": "未加密的連線（http://）",
+      "passwordMissing": "需要重新輸入密碼：它不會隨匯入的個人檔案或還原的備份一起帶來。",
       "changePassword": "變更密碼",
       "remove": "移除",
-      "removeConfirm": "移除此共用及其曲目?",
+      "removeConfirm": "移除此共用及其曲目？",
       "state": {
         "online": "已連線",
         "unknown": "尚未檢查",
@@ -3590,20 +3590,20 @@
         "offline": "離線模式已開啟。",
         "unreachable": "此位址沒有回應。",
         "handshake": "此伺服器在協商期間關閉了連線。WaveFlow 使用 SMB 2 及更新版本：僅支援 SMB 1 的伺服器正是如此表現。",
-        "tls": "此伺服器的憑證遭拒。WaveFlow 一律驗證憑證:需要有效的憑證,或在可信任的網路上使用 http://。",
+        "tls": "此伺服器的憑證遭拒。WaveFlow 一律驗證憑證：需要有效的憑證，或在可信任的網路上使用 http://。",
         "auth": "使用者名稱或密碼遭拒。",
         "session-refused": "此伺服器未判定密碼就拒絕了工作階段。此帳戶可能沒有存取權限，或伺服器要求此連線無法使用的加密。",
         "not-found": "此共用或資料夾不存在。",
         "protocol": "此伺服器的回應不像共用。",
-        "plain-http": "http:// 位址需要您在下方同意。"
+        "plain-http": "http:// 位址需要你在下方同意。"
       },
-      "testOk_one": "已連線:此資料夾有 {{count}} 個項目。",
-      "testOk_other": "已連線:此資料夾有 {{count}} 個項目。",
-      "cacheLimit": "上限 (GB)",
+      "testOk_one": "已連線：此資料夾有 {{count}} 個項目。",
+      "testOk_other": "已連線：此資料夾有 {{count}} 個項目。",
+      "cacheLimit": "上限（GB）",
       "cacheClear": "清除快取",
       "share": "共用名稱",
-      "cacheUsed_one": "本機快取:{{size}},{{count}} 首曲目",
-      "cacheUsed_other": "本機快取:{{size}},{{count}} 首曲目"
+      "cacheUsed_one": "本機快取：{{size}}，{{count}} 首曲目",
+      "cacheUsed_other": "本機快取：{{size}}，{{count}} 首曲目"
     },
     "podcasts": {
       "title": "Podcast",
@@ -4139,7 +4139,7 @@
     "current": "目前的檔案",
     "replacement": "新檔案",
     "target": "將儲存為",
-    "keeps": "此曲目會保留播放紀錄、喜歡和播放清單。目前的檔案將移到系統的資源回收筒。",
+    "keeps": "此曲目會保留播放紀錄、收藏狀態和播放清單。目前的檔案將移到系統的資源回收筒。",
     "confirm": "取代",
     "replacing": "正在取代…",
     "done": "已取代。舊檔案在資源回收筒中。",
@@ -4180,8 +4180,8 @@
       "contains": "此資料夾包含已在音樂庫中的 {{folder}}。請改為加入它的其他子資料夾。"
     },
     "unreachable": {
-      "title": "無法存取媒體庫資料夾",
-      "body": "該資料夾不存在或無法讀取，可能是磁碟未連接。其中的曲目仍保留在媒體庫中，沒有任何變更。"
+      "title": "無法存取音樂庫資料夾",
+      "body": "該資料夾不存在或無法讀取，可能是磁碟未連接。其中的曲目仍保留在音樂庫中，沒有任何變更。"
     }
   },
   "playlistImport": {
@@ -4284,7 +4284,7 @@
       "rateLimited": "MusicBrainz 要求放慢請求速度。下次尋找會從這次停下的地方繼續。",
       "failed": "網路沒有回應。下次尋找會從這次停下的地方繼續。",
       "cancelled": "已停止尋找。下次會從這次停下的地方繼續。",
-      "profileChanged": "尋找期間切換了設定檔，因此已停止尋找。",
+      "profileChanged": "尋找期間切換了個人檔案，因此已停止尋找。",
       "error": "尋找失敗：{{detail}}"
     },
     "emptyTitle": "歡迎使用 Release Radar",
@@ -4354,7 +4354,7 @@
       "track_total": "曲目數",
       "disc_number": "光碟",
       "disc_total": "光碟數",
-      "genre": "類型",
+      "genre": "曲風",
       "composer": "作曲",
       "mb_release_id": "發行 ID",
       "mb_release_group_id": "發行群組 ID",
@@ -4375,7 +4375,7 @@
     "badRegex": "運算式無效：{{error}}",
     "caseMode": "大小寫",
     "cases": {
-      "title": "每個單字首字大寫",
+      "title": "每個單字的首字母大寫",
       "sentence": "句首大寫",
       "upper": "全部大寫",
       "lower": "全部小寫"
@@ -4448,7 +4448,7 @@
     "coverFill": "為沒有封面的專輯加入 Cover Art Archive 封面",
     "write_one": "寫入 {{count}} 個檔案",
     "write_other": "寫入 {{count}} 個檔案",
-    "otherProfile": "此工坊是在另一個設定檔中開啟的。請從目前的設定檔重新開啟。",
+    "otherProfile": "此工坊是在另一個個人檔案中開啟的。請從目前的個人檔案重新開啟。",
     "truncated": "只開啟了 {{total}} 個檔案中的前 {{shown}} 個：請縮小選取範圍以編輯其餘檔案。"
   },
   "firstSteps": {
@@ -4471,7 +4471,7 @@
         "hint": "歌詞浮在你的視窗之上。"
       },
       "smartPlaylist": {
-        "title": "智慧播放清單",
+        "title": "智慧型播放清單",
         "hint": "設定幾條規則，它就會自動填滿。"
       },
       "enrichment": {
@@ -4611,8 +4611,8 @@
       },
       "enrichment": {
         "title": "用 MusicBrainz 補全音樂庫",
-        "body": "類型、日期、製作人員、封面、藝人資料：WaveFlow 只在自己的資料庫中補全缺少的資訊，絕不更動你的檔案，且全部可以復原。預設關閉，因為它需要連線，並會把專輯名稱和藝人名稱傳送給 MusicBrainz。",
-        "keywords": "類型|發行日期|製作人員|封面|藝人|MusicBrainz"
+        "body": "曲風、日期、製作人員、封面、藝人資料：WaveFlow 只在自己的資料庫中補全缺少的資訊，絕不更動你的檔案，且全部可以復原。預設關閉，因為它需要連線，並會把專輯名稱和藝人名稱傳送給 MusicBrainz。",
+        "keywords": "曲風|發行日期|製作人員|封面|藝人|MusicBrainz"
       },
       "releaseRadar": {
         "title": "Release Radar，無需擴充功能",
@@ -4626,7 +4626,7 @@
       },
       "podcasts": {
         "title": "Podcast 來了",
-        "body": "訂閱一個訂閱來源，從上次聽到的地方繼續，下載後稍後再聽。在你同意之前它們一直關閉：Podcast 直接來自它的代管方，代管方能看到你播放的內容。",
+        "body": "訂閱 Podcast，從上次聽到的地方繼續，或下載後稍後再聽。在你同意之前，此功能會保持關閉：Podcast 直接來自其代管方，代管方能看到你播放的內容。",
         "keywords": "RSS|OPML|待聽|離線"
       }
     }
@@ -4685,12 +4685,12 @@
         },
         "server": {
           "title": "如果連結了伺服器",
-          "body": "如果這個設定檔連結了開啟 Podcast 的 WaveFlow 伺服器，它的節目也會顯示。這些內容經過你的伺服器：代管方看到的是你的伺服器，而不是你。"
+          "body": "如果這個個人檔案連結了開啟 Podcast 的 WaveFlow 伺服器，它的節目也會顯示。這些內容經過你的伺服器：代管方看到的是你的伺服器，而不是你。"
         }
       }
     },
     "subscribe": {
-      "label": "訂閱一個訂閱來源",
+      "label": "新增 Podcast 訂閱",
       "action": "訂閱",
       "hint": "RSS 訂閱來源的網址，以 http 或 https 開頭。加入之前會先讀取訂閱來源，所以輸入錯誤也不會留下任何東西。"
     },
@@ -4714,7 +4714,7 @@
           "cancelled": "匯入在完成之前被停止了。",
           "offline": "離線模式停止了匯入。",
           "disabled": "匯入期間 Podcast 被關閉了。",
-          "profile_changed": "匯入期間設定檔發生了變化，匯入已停止。",
+          "profile_changed": "匯入期間切換了個人檔案，匯入已停止。",
           "already_running": "已經在檢查了。請等它結束後再試。"
         }
       }
@@ -4724,7 +4724,7 @@
       "cancelled": "檢查已停止。",
       "offline": "離線模式停止了檢查。",
       "disabled": "Podcast 已關閉。",
-      "profile_changed": "檢查期間設定檔發生了變化，檢查已停止。",
+      "profile_changed": "檢查期間切換了個人檔案，檢查已停止。",
       "already_running": "已經在檢查了。"
     },
     "toListen": {
@@ -4741,7 +4741,7 @@
     "channel": {
       "kicker": "Podcast",
       "back": "所有節目",
-      "checked": "{{when}}檢查",
+      "checked": "上次檢查：{{when}}",
       "refresh": "檢查",
       "markAllPlayed": "全部標為已聽",
       "markAllUnplayed": "全部標為未聽",
@@ -4765,7 +4765,7 @@
       "deleteDownload": "刪除 {{title}} 的檔案（{{size}}）",
       "downloaded": "已下載",
       "needsNetwork": "離線或 Podcast 關閉時無法使用，只能播放已下載的單集。",
-      "noAddress": "不知道這一集的網址，請重新訂閱這個節目。",
+      "noAddress": "無法取得此單集的網址，請重新訂閱這個節目。",
       "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
       "number": "第 {{episode}} 集",
       "remaining": "剩餘 {{time}}",
@@ -4776,8 +4776,8 @@
       "playAgainShort": "再聽一次"
     },
     "restored": {
-      "title": "已不知道這個訂閱來源的網址",
-      "body": "這個節目來自備份或匯入的設定檔，它們不會保存訂閱來源的網址，所以它不再更新。請用同一個網址重新訂閱，或重新匯入你的 OPML，你的播放進度和已聽記錄都會保留。",
+      "title": "訂閱來源的網址未保留",
+      "body": "這個節目來自備份或匯入的個人檔案，它們不會保存訂閱來源的網址，所以它不再更新。請用同一個網址重新訂閱，或重新匯入你的 OPML，你的播放進度和已聽記錄都會保留。",
       "hint": "和之前相同的網址。OPML 清單只接受公開網址，區域網路中的訂閱來源請在這裡輸入。",
       "summary": "需要重新訂閱的節目：{{n}} 個。備份不會保存訂閱來源的網址。請重新輸入網址或重新匯入 OPML，你的播放進度會保留。",
       "downloads": "已下載的單集不會隨備份一起保存，需要重新下載。"
@@ -4790,7 +4790,7 @@
     "errors": {
       "disabled": "Podcast 已關閉。",
       "offline": "離線模式已開啟，沒有連線到任何地方。",
-      "profile_changed": "期間設定檔發生了變化，沒有再寫入更多內容。",
+      "profile_changed": "期間切換了個人檔案，未再寫入任何內容。",
       "channel_gone": "已不再訂閱這個節目。",
       "open_failed": "無法開啟瀏覽器。",
       "address_refused": "這個網址不能用。它必須以 http 或 https 開頭、包含主機名稱，且不能帶有帳號和密碼。公開的訂閱來源不能指向區域網路。",
@@ -4804,12 +4804,12 @@
       "unknown": "發生了一些問題。",
       "episode_gone": "這一集已不存在。",
       "no_source": "這一集既沒有檔案也沒有位址：請重新訂閱這個節目。",
-      "not_seekable": "這個託管方不支援在這一集中跳轉。",
+      "not_seekable": "這個代管方不支援調整此單集的播放位置。",
       "write_failed": "無法將檔案寫入磁碟。",
       "invalid_document": "此檔案與其宣稱的內容不符。",
-      "not_stored": "伺服器沒有保存這一集：需要它先下載。",
+      "not_stored": "伺服器尚未下載此單集，請先在伺服器上下載。",
       "server_unreachable": "伺服器沒有回應。",
-      "server_signed_out": "你已不再登入這台伺服器。",
+      "server_signed_out": "你目前未登入這台伺服器。",
       "server_refused": "伺服器拒絕了，或已不再有這一項。",
       "server_conflict": "伺服器已在追蹤這個訂閱來源，或無法再追蹤更多。",
       "destination_refused": "伺服器不允許連線到這個位址。"
@@ -4840,7 +4840,7 @@
       "refresh": "在伺服器上檢查",
       "refreshAsked": "伺服器正在檢查訂閱來源。新內容很快就會顯示。",
       "subscribeOpen": "在伺服器上訂閱",
-      "subscribeLabel": "在伺服器上訂閱一個訂閱來源",
+      "subscribeLabel": "在伺服器上新增 Podcast 訂閱",
       "subscribeHint": "伺服器會先讀取訂閱來源再加入。訂閱對這台伺服器上的所有帳號生效。",
       "unsubscribe": "從伺服器移除",
       "unsubscribeTitle": "要從伺服器移除 {{title}} 嗎？",

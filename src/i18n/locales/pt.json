@@ -17,7 +17,7 @@
   },
   "skinRecovery": {
     "title": "Studio restaurado",
-    "message": "O WaveFlow iniciou em modo de segurança após um possível problema com o visual. O Studio está ativo para que possa voltar a usar a aplicação.",
+    "message": "O WaveFlow iniciou em modo de segurança após um possível problema com o visual. O Studio está ativo para que possas voltar a usar a aplicação.",
     "saveFailed": "Não foi possível guardar. Tenta novamente."
   },
   "rendering": {
@@ -255,7 +255,7 @@
         "albums_other": "{{count}} álbuns",
         "albums_many": "{{count}} álbuns",
         "see": "Ver",
-        "new": "Novo"
+        "new": "Nova"
       },
       "nav": {
         "tracks": "Faixas",
@@ -359,7 +359,7 @@
     "greeting": {
       "morning": "Bom dia",
       "afternoon": "Boa tarde",
-      "evening": "Boa tarde",
+      "evening": "Boa noite",
       "night": "Boa noite"
     },
     "banner": {
@@ -501,7 +501,7 @@
       "tempo": "Tempo",
       "featuredKicker": "Voltas sempre a este",
       "featuredCta": "Ouvir de novo",
-      "yourMixes": "As tuas mixes",
+      "yourMixes": "Os teus mixes",
       "leadKicker": "Última adição",
       "liked_zero": "0 favoritos",
       "liked_one": "{{count}} favorito",
@@ -862,8 +862,8 @@
       "empty": "Nenhum ficheiro aqui.",
       "loadFailed": "Não foi possível ler a lista.",
       "analyseAgain": "Analisar de novo",
-      "confirmAnalyse": "Clique outra vez: cada ficheiro sem perdas é descodificado de novo",
-      "requested": "Análise iniciada. Acompanhe-a na barra de estado.",
+      "confirmAnalyse": "Clica outra vez: cada ficheiro sem perdas é descodificado de novo",
+      "requested": "Análise iniciada. Acompanha-a na barra de estado.",
       "alreadyRunning": "Já está a decorrer uma análise.",
       "requestFailed": "Não foi possível iniciar a análise."
     }
@@ -1208,7 +1208,7 @@
       "label": "Rádio",
       "basedOn": "Baseada em «{{title}}»"
     },
-    "saveAsPlaylist": "Guardar como playlist",
+    "saveAsPlaylist": "Guardar como lista de reprodução",
     "defaultPlaylistName": "Fila de {{date}}"
   },
   "deviceMenu": {
@@ -1346,8 +1346,8 @@
     "coverRemove": "Remover foto",
     "coverAutoHint": "Capa automática — atualiza com o conteúdo",
     "coverManualHint": "Imagem personalizada",
-    "alsoOnServer": "Criar também em {{server}}",
-    "alsoOnServerFallback": "o servidor remoto"
+    "alsoOnServer": "Criar também no servidor {{server}}",
+    "alsoOnServerFallback": "remoto"
   },
   "playlistView": {
     "badge": "Lista de reprodução",
@@ -1365,7 +1365,7 @@
       "share": "Partilhar",
       "reorder": "Reordenar",
       "removeFromPlaylist": "Remover da lista",
-      "keepAsPlaylist": "Manter como playlist"
+      "keepAsPlaylist": "Manter como lista de reprodução"
     },
     "export": {
       "dialogTitle": "Exportar a lista de reprodução em M3U"
@@ -1377,9 +1377,9 @@
     "notFoundTitle": "Lista de reprodução não encontrada",
     "notFoundDescription": "Esta lista de reprodução já não existe no perfil ativo.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Playlist inteligente",
+    "smartLabelCustom": "Lista de reprodução inteligente",
     "placeholder": {
-      "missing": "Não está na sua biblioteca",
+      "missing": "Não está na tua biblioteca",
       "remove": "Remover da lista de reprodução",
       "count_one": "{{count}} em falta",
       "count_many": "{{count}} em falta",
@@ -1476,7 +1476,7 @@
     "save": "Guardar",
     "saving": "A guardar…",
     "saveFailed": "Não foi possível guardar: {{reason}}",
-    "fileChanged": "O ficheiro foi alterado por outro programa desde que esta janela foi aberta. Recarregue os valores antes de guardar, para não substituir essas alterações.",
+    "fileChanged": "O ficheiro foi alterado por outro programa desde que esta janela foi aberta. Recarrega os valores antes de guardar, para não substituir essas alterações.",
     "reloadFromFile": "Recarregar do ficheiro",
     "stampUnavailable": "Não é possível ler o ficheiro no disco: pode ter sido movido, eliminado ou tornado inacessível. Guardar fica desativado até que possa ser lido.",
     "fields": {
@@ -1500,7 +1500,7 @@
     "bandwidthCutoff": "Param nos {{khz}} kHz",
     "bandwidthFake": "Param nos {{khz}} kHz — provavelmente feito a partir de um ficheiro com perdas",
     "spectrogram": {
-      "hint": "Veja onde os agudos param ao longo da faixa. O ficheiro é descodificado por inteiro.",
+      "hint": "Vê onde os agudos param ao longo da faixa. O ficheiro é descodificado por inteiro.",
       "show": "Mostrar o espectro",
       "stop": "Parar",
       "decoding": "A descodificar o ficheiro",
@@ -1528,7 +1528,7 @@
   },
   "selection": {
     "toolbarLabel": "Ações de seleção",
-    "count_zero": "0 selecionado",
+    "count_zero": "0 selecionados",
     "count_one": "{{count}} selecionado",
     "count_other": "{{count}} selecionados",
     "count_many": "{{count}} selecionados",
@@ -1694,7 +1694,7 @@
   },
   "playerBar": {
     "lyrics": "Letra",
-    "nowPlaying": "Mostrar agora a reproduzir",
+    "nowPlaying": "Mostrar o painel A reproduzir",
     "queue": "Fila",
     "miniPlayer": "Mini-leitor (sempre no topo)",
     "previous": "Faixa anterior",
@@ -1837,7 +1837,7 @@
       "empty": "Sem letra para esta faixa"
     },
     "dragHandle": "Arrastar para mover · Duplo clique para repor o tamanho e a posição",
-    "pinWayland": "Sempre visível: ignorado no Wayland. Ative «Usar XWayland» em Definições → Aparência → Janelas."
+    "pinWayland": "Sempre visível: ignorado no Wayland. Ativa «Usar XWayland» em Definições → Aparência → Janelas."
   },
   "window": {
     "minimize": "Minimizar",
@@ -1904,9 +1904,9 @@
     "share": {
       "open": "Partilhar um excerto",
       "title": "Partilhar um excerto da letra",
-      "hint": "Escolha até {{max}} linhas.",
+      "hint": "Escolhe até {{max}} linhas.",
       "counter": "{{selected}} / {{max}}",
-      "empty": "Escolha uma linha para ver o cartão.",
+      "empty": "Escolhe uma linha para ver o cartão.",
       "previewAlt": "Pré-visualização do cartão",
       "linesLabel": "Linhas da letra",
       "eyebrow": "Letra"
@@ -1925,7 +1925,7 @@
     "trashOthers_many": "Mover {{count}} duplicados para o lixo",
     "keepAria": "Manter {{title}}",
     "confirmTitle": "Mover estes ficheiros para o lixo?",
-    "confirmBody": "Estas cópias irão para o lixo do sistema, de onde ainda as pode restaurar. A cópia mantida em cada grupo fica onde está.",
+    "confirmBody": "Estas cópias irão para o lixo do sistema, de onde ainda as podes restaurar. A cópia mantida em cada grupo fica onde está.",
     "confirmAction": "Mover para o lixo",
     "trashed": "Movidos para o lixo: {{count}}",
     "notTrashed": "Não movidos: {{count}}",
@@ -2036,12 +2036,12 @@
       "ratingMin": "Classificação ≥",
       "pathContains": "Caminho contém",
       "discNumberIs": "Disco =",
-      "addedInLastDays": "Adicionada nos últimos",
+      "addedInLastDays": "Adicionada há menos de",
       "sampleRateMin": "Taxa de amostragem ≥",
       "bitDepthMin": "Profundidade de bits ≥",
       "playCountMin": "Reproduções ≥",
       "playCountMax": "Reproduções ≤",
-      "playedInLastDays": "Reproduzida nos últimos",
+      "playedInLastDays": "Reproduzida há menos de",
       "tagPresent": "Tem a etiqueta",
       "tagContains": "A etiqueta contém",
       "fakeLossless": "Provável falso lossless"
@@ -2072,7 +2072,7 @@
   "lyricsEditor": {
     "title": "Editor de letras",
     "exportToFile": "Guardar em ficheiro…",
-    "exportToFileHint": "Exporta a letra no formato escolhido (.ttml, .lrc ou .txt) para onde quiser, sem tocar no ficheiro de áudio",
+    "exportToFileHint": "Exporta a letra no formato escolhido (.ttml, .lrc ou .txt) para onde quiseres, sem tocar no ficheiro de áudio",
     "exportedToFile": "Exportado para {{path}}",
     "destinationLabel": "Destino predefinido das letras",
     "destination": {
@@ -2097,7 +2097,7 @@
     },
     "undo": "Anular (Ctrl+Z)",
     "redo": "Refazer (Ctrl+Shift+Z)",
-    "otherTrackPlaying": "A faixa em reprodução não é aquela cuja letra está a editar: a sincronização e a pré-visualização seguem o leitor.",
+    "otherTrackPlaying": "A faixa em reprodução não é aquela cuja letra estás a editar: a sincronização e a pré-visualização seguem o leitor.",
     "formatLabel": "Formato",
     "format": {
       "ttml": "TTML",
@@ -2136,7 +2136,7 @@
         "languagePlaceholder": "pt, en, ja…"
       },
       "singers": "Cantores",
-      "singersHint": "Uma só voz. Adicione cantores para um dueto.",
+      "singersHint": "Uma só voz. Adiciona cantores para um dueto.",
       "singerName": "Nome do cantor",
       "singerKind": "Sozinho ou juntos",
       "kind": {
@@ -2145,7 +2145,7 @@
       },
       "removeSinger": "Remover este cantor",
       "addSinger": "Adicionar cantor",
-      "textPlaceholder": "Cole a letra aqui, uma linha por linha.\nAs linhas vazias são ignoradas.",
+      "textPlaceholder": "Cola a letra aqui, uma linha por linha.\nAs linhas vazias são ignoradas.",
       "useText": "Usar estas linhas",
       "useTextKeepsTiming": "As linhas não alteradas mantêm a sincronia.",
       "addLine": "Adicionar uma linha",
@@ -2201,7 +2201,7 @@
         "seek": "2 s atrás / à frente",
         "line": "escolher uma linha"
       },
-      "empty": "Ainda sem letra. Escreva-a ou cole-a no passo Edição.",
+      "empty": "Ainda sem letra. Escreve-a ou cola-a no passo Edição.",
       "emptyLine": "linha vazia",
       "notTimed": "Ainda não sincronizada",
       "nudgeEarlier": "{{ms}} ms mais cedo",
@@ -2211,7 +2211,7 @@
     "preview": {
       "hiddenLines": "Linhas ainda não sincronizadas, ocultas aqui: {{n}}",
       "writing": "A preparar a pré-visualização…",
-      "nothingSynced": "Sincronize algumas linhas no passo Sincronia para as ver passar aqui."
+      "nothingSynced": "Sincroniza algumas linhas no passo Sincronia para as ver passar aqui."
     }
   },
   "sort": {
@@ -2231,7 +2231,7 @@
     "ascending": "Crescente",
     "descending": "Decrescente",
     "filename": "Nome do ficheiro",
-    "updatedAt": "Atualizada recentemente"
+    "updatedAt": "Atualizadas recentemente"
   },
   "editorial": {
     "masthead": {
@@ -2393,7 +2393,7 @@
         "suggestGenerate": "Gerar uma palavra-passe",
         "suggestChoose": "Escolher a minha",
         "suggestDismiss": "Agora não",
-        "generatedHint": "Palavra-passe guardada: introduza-a no seu cliente MPD.",
+        "generatedHint": "Palavra-passe guardada: introduz a palavra-passe no teu cliente MPD.",
         "showPassword": "Mostrar palavra-passe",
         "hidePassword": "Ocultar palavra-passe",
         "saveFailed": "Não foi possível guardar as definições do servidor MPD: nada foi alterado."
@@ -2466,7 +2466,7 @@
       "fallbackBusy": "Outra aplicação já está a usar este dispositivo em modo exclusivo. Fecha-a e volta a reproduzir.",
       "fallbackNotAllowed": "O Windows proíbe o modo exclusivo neste dispositivo. Ativa «Permitir que as aplicações assumam o controlo exclusivo deste dispositivo» nas propriedades avançadas (Definições de som).",
       "fallbackFormat": "O dispositivo não oferece nenhum formato utilizável em modo exclusivo. Regresso ao modo partilhado.",
-      "hardwareVolume": "O volume do sistema deixa de se aplicar: o dispositivo toca ao seu próprio nível de hardware. Se estiver demasiado baixo, suba esse nível no misturador do sistema."
+      "hardwareVolume": "O volume do sistema deixa de se aplicar: o dispositivo toca ao seu próprio nível de hardware. Se estiver demasiado baixo, sobe esse nível no misturador do sistema."
     },
     "matchSourceRate": {
       "title": "Seguir a taxa de amostragem de cada faixa",
@@ -2591,19 +2591,19 @@
         "origin": "Exportado a {{date}} com o WaveFlow {{version}}.",
         "loading": "A ler o arquivo…",
         "unreadable": "Não é possível ler este ficheiro: está danificado ou não é um arquivo de perfil do WaveFlow.",
-        "failed": "Não foi possível ler o arquivo. Consulte o registo para mais detalhes.",
-        "newer": "Este arquivo vem de uma versão mais recente do WaveFlow. Atualize o WaveFlow para o importar.",
+        "failed": "Não foi possível ler o arquivo. Consulta o registo para mais detalhes.",
+        "newer": "Este arquivo vem de uma versão mais recente do WaveFlow. Atualiza o WaveFlow para o importar.",
         "differentBuild": "Este arquivo vem de outra versão do WaveFlow cuja base de dados é diferente desta: não pode ser importado.",
         "unsupported": "O formato deste arquivo já não é suportado.",
         "schema": "Versão da base de dados: {{archive}} (esta app: {{local}}).",
         "schemaUnknown": "Versão da base de dados desconhecida (esta app: {{local}}).",
-        "asNewProfile": "Será importado como um novo perfil: os seus perfis atuais não são alterados.",
+        "asNewProfile": "Será importado como um novo perfil: os teus perfis atuais não são alterados.",
         "cancel": "Cancelar",
         "import": "Importar",
         "rows": {
           "tracks": "Faixas",
-          "playlists": "Playlists",
-          "smartPlaylists": "Playlists inteligentes",
+          "playlists": "Listas de reprodução",
+          "smartPlaylists": "Listas de reprodução inteligentes",
           "likedTracks": "Faixas favoritas",
           "plays": "Reproduções",
           "libraryFolders": "Pastas da biblioteca",
@@ -3226,7 +3226,7 @@
         },
         "full": {
           "label": "Completos",
-          "description": "Todos os efeitos do tema, mesmo sem GPU."
+          "description": "Todos os efeitos do estilo, mesmo sem GPU."
         },
         "reduced": {
           "label": "Reduzidos",
@@ -3376,7 +3376,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Uma janela flutuante por cima das outras aplicações que mostra a linha a ser cantada.",
-      "waylandNote": "No Wayland, a janela não fica por cima das outras aplicações nem onde a coloca. Para isso, ative «Usar XWayland» em Definições → Aparência → Janelas.",
+      "waylandNote": "No Wayland, a janela não fica por cima das outras aplicações nem onde a colocas. Para isso, ativa «Usar XWayland» em Definições → Aparência → Janelas.",
       "previewSung": "Letra que segue",
       "previewUnsung": "a música",
       "fontSize": "Tamanho do texto",
@@ -3414,7 +3414,7 @@
       "sharedNote": "No modo partilhado, o misturador do sistema converte depois este formato para o do dispositivo.",
       "monoNote": "A saída mono está ativada: cada bip sai dos dois lados.",
       "surroundNote": "Saída surround: cada coluna emite o seu sinal à vez, o subwoofer com um tom grave.",
-      "swapped": "O bip da esquerda saiu à direita? Os canais estão trocados: verifique a ligação ou a configuração dos altifalantes do sistema.",
+      "swapped": "O bip da esquerda saiu à direita? Os canais estão trocados: verifica a ligação ou a configuração dos altifalantes do sistema.",
       "interrupted": "Teste interrompido.",
       "failed": "Não foi possível tocar o tom de teste: {{message}}",
       "format": {
@@ -3432,7 +3432,7 @@
       "subtitle": "No Wayland, o compositor ignora «sempre visível» e decide sozinho onde ficam as janelas. Com XWayland, o mini-leitor e a letra no ambiente de trabalho ficam por cima e no seu lugar; o texto pode ficar um pouco menos nítido com escala fracionária.",
       "nextStart": "Tem efeito no próximo arranque do WaveFlow.",
       "active": "Ativo: o WaveFlow passa pelo XWayland.",
-      "setByUser": "Imposto pela variável GDK_BACKEND do seu ambiente."
+      "setByUser": "Imposto pela variável GDK_BACKEND do teu ambiente."
     },
     "modified": {
       "count_one": "{{count}} alterada",
@@ -3455,7 +3455,7 @@
     },
     "autoplay": {
       "title": "Reprodução automática",
-      "subtitle": "Quando a fila termina sem repetição, adiciona faixas relacionadas da sua biblioteca e continua"
+      "subtitle": "Quando a fila termina sem repetição, adiciona faixas relacionadas da tua biblioteca e continua"
     },
     "stereoImage": {
       "balance": {
@@ -3489,7 +3489,7 @@
       "failed": "Não foi possível medir o espaço em disco.",
       "rebuildableTitle": "Reconstrói-se sozinho",
       "rebuildableHint": "Esvaziar não perde nada: estes ficheiros voltam a ser obtidos quando é preciso.",
-      "keptTitle": "Os seus dados",
+      "keptTitle": "Os teus dados",
       "keptHint": "Nada aqui se reconstrói sozinho: cada item gere-se na sua própria secção.",
       "empty": "Esvaziar",
       "confirmEmpty": "Confirmar",
@@ -3513,7 +3513,7 @@
         },
         "remoteArtwork": {
           "label": "Capas do servidor",
-          "description": "Miniaturas do seu servidor, transferidas de novo quando é preciso."
+          "description": "Miniaturas do teu servidor, transferidas de novo quando é preciso."
         },
         "remoteStream": {
           "label": "Faixas do servidor em cache",
@@ -3521,15 +3521,15 @@
         },
         "remoteDownloads": {
           "label": "Faixas do servidor offline",
-          "description": "As que escolheu guardar offline. Removem-se a partir da faixa ou do álbum."
+          "description": "As que escolheste guardar offline. Removem-se a partir da faixa ou do álbum."
         },
         "manualMedia": {
           "label": "Multimédia escolhida à mão",
-          "description": "Capas animadas e clips Canvas que definiu."
+          "description": "Capas animadas e clips Canvas que definiste."
         },
         "databases": {
           "label": "Bases de dados",
-          "description": "Biblioteca, playlists, histórico e definições de todos os perfis."
+          "description": "Biblioteca, listas de reprodução, histórico e definições de todos os perfis."
         },
         "databaseSnapshots": {
           "label": "Cópias antes de atualizações",
@@ -3549,17 +3549,17 @@
         },
         "podcastDownloads": {
           "label": "Episódios de podcast transferidos",
-          "description": "Os que escolheu manter neste computador. Removem-se a partir do episódio."
+          "description": "Os que escolheste manter neste computador. Removem-se a partir do episódio."
         }
       },
       "confirmEmptyLabel": "Confirmar esvaziamento: {{item}}",
-      "emptyFailed": "Não foi possível esvaziar: um ficheiro pode ainda estar em uso. Tente mais tarde.",
+      "emptyFailed": "Não foi possível esvaziar: um ficheiro pode ainda estar em uso. Tenta mais tarde.",
       "atLeast": "pelo menos {{size}}",
       "incomplete": "Não foi possível ler uma pasta por inteiro: o tamanho real é maior."
     },
     "globalShortcuts": {
-      "subtitle": "Controle a reprodução a partir de qualquer aplicação, mesmo com o WaveFlow em segundo plano. Nenhum está ativo até definir um.",
-      "captureHelp": "Combine Ctrl, Alt ou a tecla Windows / Cmd com uma tecla, ou use F13 a F24 sozinhas. Se nada acontecer ao premir uma combinação, outra aplicação já a está a usar.",
+      "subtitle": "Controla a reprodução a partir de qualquer aplicação, mesmo com o WaveFlow em segundo plano. Nenhum está ativo até definires um.",
+      "captureHelp": "Combina Ctrl, Alt ou a tecla Windows / Cmd com uma tecla, ou usa F13 a F24 sozinhas. Se nada acontecer ao premir uma combinação, outra aplicação já a está a usar.",
       "clearAll": "Limpar tudo",
       "backend": {
         "portal": "No Wayland, o ambiente de trabalho confirma cada alteração numa janela própria e pode atribuir outra combinação: a escolhida aparece sob a ação.",
@@ -3571,20 +3571,20 @@
         "dismissed": "Não confirmada na janela do ambiente de trabalho.",
         "unavailable": "Indisponível nesta sessão.",
         "invalid": {
-          "empty": "Prima uma tecla além dos modificadores.",
+          "empty": "Prime uma tecla além dos modificadores.",
           "unsupportedKey": "Esta tecla não pode ser usada num atalho global.",
-          "needsModifier": "Adicione Ctrl, Alt ou a tecla Windows / Cmd: só F13 a F24 funcionam sozinhas."
+          "needsModifier": "Adiciona Ctrl, Alt ou a tecla Windows / Cmd: só F13 a F24 funcionam sozinhas."
         }
       },
       "rejected": "{{combo}} não foi guardada: {{reason}}",
       "assigned": "Atribuído pelo ambiente de trabalho: {{trigger}}",
-      "waitingForDesktop": "Confirme no ambiente de trabalho…",
+      "waitingForDesktop": "Confirma no ambiente de trabalho…",
       "registering": "A registar…"
     },
     "enrichment": {
       "title": "Enriquecimento da biblioteca",
-      "subtitle": "Completa géneros, datas de lançamento, créditos e capas em falta a partir do MusicBrainz. Só muda a base de dados do WaveFlow, nunca os seus ficheiros.",
-      "policy": "Uma correspondência segura é aplicada sozinha, e só onde falta alguma coisa. Os álbuns duvidosos e todos os artistas aguardam a sua revisão.",
+      "subtitle": "Completa géneros, datas de lançamento, créditos e capas em falta a partir do MusicBrainz. Só muda a base de dados do WaveFlow, nunca os teus ficheiros.",
+      "policy": "Uma correspondência segura é aplicada sozinha, e só onde falta alguma coisa. Os álbuns duvidosos e todos os artistas aguardam a tua revisão.",
       "fieldsTitle": "O que é completado",
       "run": "Executar agora",
       "stop": "Parar",
@@ -3616,7 +3616,7 @@
     },
     "whatsNew": {
       "title": "Novidades",
-      "subtitle": "Reveja o que mudou nesta versão.",
+      "subtitle": "Revê o que mudou nesta versão.",
       "action": "Abrir",
       "autoOpen": {
         "title": "Mostrar as novidades após uma atualização",
@@ -3624,7 +3624,7 @@
       },
       "button": {
         "title": "Botão Novidades na barra superior",
-        "subtitle": "Quando oculto, o painel continua disponível aqui e em Acerca de."
+        "subtitle": "Quando oculto, o painel continua disponível aqui e em Sobre."
       }
     },
     "networkLibrary": {
@@ -3671,7 +3671,7 @@
         "session-refused": "Este servidor recusou a sessão sem avaliar a palavra-passe. Esta conta pode não ter acesso, ou o servidor exige uma encriptação que esta ligação não consegue usar.",
         "not-found": "Esta partilha ou pasta não existe.",
         "protocol": "Este servidor não responde como uma partilha.",
-        "plain-http": "Um endereço http:// precisa do seu acordo abaixo."
+        "plain-http": "Um endereço http:// precisa do teu acordo abaixo."
       },
       "testOk_one": "Ligado: {{count}} item nesta pasta.",
       "testOk_other": "Ligado: {{count}} itens nesta pasta.",
@@ -3785,7 +3785,7 @@
       "title": "Adicionar uma estação",
       "renameTitle": "Mudar o nome da estação",
       "rename": "Mudar o nome de {{name}}",
-      "help": "Cole o endereço do fluxo, ou de uma lista .m3u / .pls, ou abra um ficheiro desses. A estação junta-se aos seus favoritos.",
+      "help": "Cola o endereço do fluxo, ou de uma lista .m3u / .pls, ou abre um ficheiro desses. A estação junta-se aos teus favoritos.",
       "urlLabel": "Endereço do fluxo",
       "openFile": "Abrir um ficheiro .m3u / .pls",
       "nameLabel": "Nome",
@@ -3800,7 +3800,7 @@
         "notAudio": "Este endereço não leva a um fluxo de áudio.",
         "hls": "Este fluxo HLS usa um formato que o WaveFlow não consegue reproduzir (cifra, MP4 fragmentado ou intervalos de bytes).",
         "noStream": "A lista não contém nenhum fluxo http:// ou https://.",
-        "notSaved": "Os favoritos ainda não foram carregados; tente de novo dentro de momentos."
+        "notSaved": "Os favoritos ainda não foram carregados; tenta de novo dentro de momentos."
       }
     }
   },
@@ -4261,7 +4261,7 @@
     "keptAside": "Substituído, mas o ficheiro antigo não pôde ir para o lixo. Está guardado em {{path}}.",
     "bits": "{{value}} bits",
     "refusals": {
-      "playing": "Esta faixa está a tocar. Pare-a primeiro.",
+      "playing": "Esta faixa está a tocar. Para-a primeiro.",
       "sameFile": "É o próprio ficheiro da faixa.",
       "notAudio": "Este ficheiro não é áudio que o leitor consiga ler.",
       "durationMismatch": "As durações diferem ({{current}} contra {{replacement}}): provavelmente outra gravação ou versão.",
@@ -4301,7 +4301,7 @@
   },
   "playlistImport": {
     "title": "Importar uma lista de reprodução",
-    "help": "As faixas que já tem são adicionadas. As outras mantêm o seu lugar, a cinzento, e são completadas quando chegam à sua biblioteca.",
+    "help": "As faixas que já tens são adicionadas. As outras mantêm o seu lugar, a cinzento, e são completadas quando chegam à tua biblioteca.",
     "fromFile": "A partir de um ficheiro",
     "fromFileHint": "M3U, CSV ou JSON",
     "fileDialogTitle": "Importar um ficheiro de lista de reprodução",
@@ -4347,15 +4347,15 @@
       "rejected": "Recusados"
     },
     "hints": {
-      "albums": "Correspondências incertas: verifique o lançamento antes de aceitar.",
-      "artists": "Cada artista aguarda a sua aprovação; a nota sob o nome distingue os homónimos.",
+      "albums": "Correspondências incertas: verifica o lançamento antes de aceitar.",
+      "artists": "Cada artista aguarda a tua aprovação; a nota sob o nome distingue os homónimos.",
       "applied": "Aplicados automaticamente. Anular retira exatamente o que foi preenchido.",
       "accepted": "Estes dados aparecem na página do artista.",
-      "rejected": "Nunca mais propostos, a não ser que tente de novo."
+      "rejected": "Nunca mais propostos, a não ser que tentes de novo."
     },
     "empty": "Ainda não há nada aqui.",
-    "yourAlbum": "O seu álbum",
-    "yourArtist": "O seu artista",
+    "yourAlbum": "O teu álbum",
+    "yourArtist": "O teu artista",
     "release": "Lançamento do MusicBrainz · {{score}}",
     "noRelease": "Nenhum lançamento",
     "fromName": "Encontrado pelo nome · {{score}}",
@@ -4387,7 +4387,7 @@
     "scanningIndeterminate": "A procurar…",
     "stop": "Parar",
     "playAll": "Reproduzir",
-    "openPlaylist": "Abrir a playlist",
+    "openPlaylist": "Abrir a lista de reprodução",
     "offline": "Modo offline: nenhuma pesquisa é enviada. Os lançamentos já encontrados continuam visíveis.",
     "filter": {
       "all": "Tudo",
@@ -4434,7 +4434,7 @@
   "tagWorkshop": {
     "title": "Oficina de etiquetas",
     "eyebrow": "Etiquetas",
-    "emptyHint": "Abra uma seleção de faixas, um álbum ou uma pasta na oficina a partir do respetivo menu.",
+    "emptyHint": "Abre uma seleção de faixas, um álbum ou uma pasta na oficina a partir do respetivo menu.",
     "openFromMenu": "Editar na oficina de etiquetas",
     "summary_one": "{{count}} ficheiro · {{changed}} com alterações",
     "summary_many": "{{count}} ficheiros · {{changed}} com alterações",
@@ -4462,9 +4462,9 @@
     "appliesToSelection_one": "Aplica-se ao ficheiro selecionado.",
     "appliesToSelection_many": "Aplica-se aos {{count}} ficheiros selecionados.",
     "appliesToSelection_other": "Aplica-se aos {{count}} ficheiros selecionados.",
-    "appliesToAll_one": "Aplica-se ao único ficheiro. Marque linhas para restringir.",
-    "appliesToAll_many": "Aplica-se aos {{count}} ficheiros. Marque linhas para restringir.",
-    "appliesToAll_other": "Aplica-se aos {{count}} ficheiros. Marque linhas para restringir.",
+    "appliesToAll_one": "Aplica-se ao único ficheiro. Marca linhas para restringir.",
+    "appliesToAll_many": "Aplica-se aos {{count}} ficheiros. Marca linhas para restringir.",
+    "appliesToAll_other": "Aplica-se aos {{count}} ficheiros. Marca linhas para restringir.",
     "noFiles": "Nenhum ficheiro para editar aqui.",
     "selectAll": "Selecionar tudo",
     "file": "Ficheiro",
@@ -4514,14 +4514,14 @@
     "numberApply": "Numerar pela ordem da tabela",
     "releasePlaceholder": "Ligação ou ID de edição do MusicBrainz (opcional)",
     "matchSearch": "Encontrar a edição",
-    "matchHint": "Sem ligação, usa-se a edição indicada nas etiquetas dos ficheiros, ou então a melhor que uma pesquisa encontrar. A tabela só muda se usar a proposta, e nada é escrito antes da pré-visualização.",
+    "matchHint": "Sem ligação, usa-se a edição indicada nas etiquetas dos ficheiros, ou então a melhor que uma pesquisa encontrar. A tabela só muda se usares a proposta, e nada é escrito antes da pré-visualização.",
     "matchNone": "Nenhuma edição do MusicBrainz corresponde a estes ficheiros.",
     "releaseTracks_one": "{{count}} faixa",
     "releaseTracks_many": "{{count}} faixas",
     "releaseTracks_other": "{{count}} faixas",
     "verdicts": {
       "confident": "Correspondência segura · {{score}} %",
-      "doubtful": "A verificar · {{score}} %",
+      "doubtful": "Por verificar · {{score}} %",
       "no_match": "Sem correspondência"
     },
     "matchPaired_one": "{{paired}} de {{count}} ficheiro associado a uma faixa",
@@ -4565,16 +4565,16 @@
     "batchFailed_many": "{{count}} recusados",
     "batchFailed_other": "{{count}} recusados",
     "batchIsUndone": "Anulado",
-    "undoConfirm": "Clique de novo para anular",
+    "undoConfirm": "Clica de novo para anular",
     "undo": "Anular este lote",
     "previewTitle": "Alterações antes de escrever",
     "previewNothing": "Estas edições não mudam nada nos ficheiros.",
     "previewSummary_one": "{{count}} ficheiro, {{fields}} campos a escrever",
     "previewSummary_many": "{{count}} ficheiros, {{fields}} campos a escrever",
     "previewSummary_other": "{{count}} ficheiros, {{fields}} campos a escrever",
-    "previewBlocked_one": "{{count}} ficheiro tem um valor impossível de escrever: corrija-o primeiro na tabela.",
-    "previewBlocked_many": "{{count}} ficheiros têm um valor impossível de escrever: corrija-os primeiro na tabela.",
-    "previewBlocked_other": "{{count}} ficheiros têm um valor impossível de escrever: corrija-os primeiro na tabela.",
+    "previewBlocked_one": "{{count}} ficheiro tem um valor impossível de escrever: corrige-o primeiro na tabela.",
+    "previewBlocked_many": "{{count}} ficheiros têm um valor impossível de escrever: corrige-os primeiro na tabela.",
+    "previewBlocked_other": "{{count}} ficheiros têm um valor impossível de escrever: corrige-os primeiro na tabela.",
     "invalid": {
       "not_a_number": "{{field}}: não é um número",
       "out_of_range": "{{field}}: fora dos limites",
@@ -4588,8 +4588,8 @@
     "write_one": "Escrever {{count}} ficheiro",
     "write_many": "Escrever {{count}} ficheiros",
     "write_other": "Escrever {{count}} ficheiros",
-    "otherProfile": "Esta oficina foi aberta noutro perfil. Abra-a de novo a partir deste.",
-    "truncated": "Só estão abertos os primeiros {{shown}} de {{total}} ficheiros: restrinja a seleção para editar os restantes."
+    "otherProfile": "Esta oficina foi aberta noutro perfil. Abre-a de novo a partir deste.",
+    "truncated": "Só estão abertos os primeiros {{shown}} de {{total}} ficheiros: restringe a seleção para editar os restantes."
   },
   "firstSteps": {
     "kicker": "Primeiros passos",
@@ -4718,20 +4718,20 @@
     "open": "Novidades",
     "openUnseen": "Novidades por ver",
     "needs": {
-      "library": "Primeiro é preciso ter música na sua biblioteca.",
-      "track": "Reproduza uma faixa da sua biblioteca para abrir o editor com a respetiva letra.",
-      "startsPlayback": "Nada está a tocar: experimentar inicia a sua biblioteca em ordem aleatória.",
+      "library": "Primeiro é preciso ter música na tua biblioteca.",
+      "track": "Reproduz uma faixa da tua biblioteca para abrir o editor com a respetiva letra.",
+      "startsPlayback": "Nada está a tocar: experimentar inicia a tua biblioteca em ordem aleatória.",
       "podcastsWarning": "O botão abre primeiro um aviso: nada se ativa sem a tua autorização."
     },
     "pages": {
       "fluidInterface": {
         "title": "Uma nova interface em cinco materiais",
-        "body": "Navegação numa barra lateral, um Início repensado e a luz da capa por trás da música. Fluid, Liquid, Pulse, Editorial e Lounge são os seus cinco materiais, e o Studio mantém a disposição que já conhece.",
+        "body": "Navegação numa barra lateral, um Início repensado e a luz da capa por trás da música. Fluid, Liquid, Pulse, Editorial e Lounge são os seus cinco materiais, e o Studio mantém a disposição que já conheces.",
         "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
       },
       "automix": {
         "title": "AutoMix, transições no tempo certo",
-        "body": "O AutoMix coloca cada transição nas batidas das duas faixas, a partir da análise da sua música. Precisa de uma duração de transição, e uma faixa ainda não analisada mantém a transição habitual.",
+        "body": "O AutoMix coloca cada transição nas batidas das duas faixas, a partir da análise da tua música. Precisa de uma duração de transição, e uma faixa ainda não analisada mantém a transição habitual.",
         "keywords": "Batidas|Tempo|Transição gradual|Transições|Análise|BPM"
       },
       "lyricsEditor": {
@@ -4751,17 +4751,17 @@
       },
       "enrichment": {
         "title": "Uma biblioteca completada pelo MusicBrainz",
-        "body": "Géneros, datas, créditos, capas, fichas de artistas: o WaveFlow completa o que falta, apenas na sua base de dados, nunca nos seus ficheiros, e tudo pode ser anulado. Desativado por predefinição, porque precisa de ligação e envia ao MusicBrainz títulos de álbuns e nomes de artistas.",
+        "body": "Géneros, datas, créditos, capas, fichas de artistas: o WaveFlow completa o que falta, apenas na sua base de dados, nunca nos teus ficheiros, e tudo pode ser anulado. Desativado por predefinição, porque precisa de ligação e envia ao MusicBrainz títulos de álbuns e nomes de artistas.",
         "keywords": "Géneros|Datas de lançamento|Créditos|Capas|Artistas|MusicBrainz"
       },
       "releaseRadar": {
         "title": "Release Radar, sem extensão",
-        "body": "Os lançamentos recentes dos artistas da sua biblioteca, diretamente no WaveFlow. Uma pesquisa precisa de ligação e demora algum tempo; o que já tem entra numa playlist Release Radar, à distância de um clique.",
+        "body": "Os lançamentos recentes dos artistas da tua biblioteca, diretamente no WaveFlow. Uma pesquisa precisa de ligação e demora algum tempo; o que já tens entra numa lista de reprodução Release Radar, à distância de um clique.",
         "keywords": "Release Radar|Novos lançamentos|Artistas|Álbuns|Singles|MusicBrainz"
       },
       "playlistImport": {
-        "title": "Importe as suas playlists",
-        "body": "Um ficheiro M3U, CSV ou JSON, ou a ligação de uma playlist pública do Deezer. As faixas que não tem mantêm o seu lugar e ocupam-no sozinhas quando chegam à sua biblioteca.",
+        "title": "Importa as tuas listas de reprodução",
+        "body": "Um ficheiro M3U, CSV ou JSON, ou a ligação de uma lista de reprodução pública do Deezer. As faixas que não tens mantêm o seu lugar e ocupam-no sozinhas quando chegam à tua biblioteca.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Faixas em falta"
       },
       "podcasts": {
@@ -4778,7 +4778,7 @@
     "channelsCount_many": "{{count}} de canais",
     "channelsCount_other": "{{count}} canais",
     "unplayedCount_one": "{{count}} por ouvir",
-    "unplayedCount_many": "{{count}} de por ouvir",
+    "unplayedCount_many": "{{count}} por ouvir",
     "unplayedCount_other": "{{count}} por ouvir",
     "episodesCount_one": "{{count}} episódio",
     "episodesCount_many": "{{count}} de episódios",
@@ -4827,11 +4827,11 @@
         },
         "stop": {
           "title": "Como parar tudo",
-          "body": "O modo offline pára tudo. Desativar os podcasts pára tudo para sempre."
+          "body": "O modo offline para tudo. Desativar os podcasts para tudo até os voltares a ativar."
         },
         "server": {
           "title": "Se houver um servidor associado",
-          "body": "Se este perfil estiver associado a um servidor WaveFlow com os podcasts ativos, os respetivos canais também aparecem. Passam pelo seu servidor WaveFlow: o servidor do podcast vê-o a ele, não a si."
+          "body": "Se este perfil estiver associado a um servidor WaveFlow com os podcasts ativos, os respetivos canais também aparecem. Passam pelo teu servidor WaveFlow: o servidor do podcast vê-o a ele, não a ti."
         }
       }
     },
@@ -4946,7 +4946,7 @@
       "http": "O servidor respondeu com um erro ({{status}}).",
       "invalid_feed": "Isto não é um feed de podcast que se consiga ler.",
       "not_audio": "Este ficheiro não é áudio.",
-      "quota_exceeded": "Atingiste o limite de transferências.",
+      "quota_exceeded": "Atingiste o limite de espaço para os episódios transferidos.",
       "unknown": "Algo correu mal.",
       "episode_gone": "Este episódio já não existe.",
       "no_source": "Este episódio não tem ficheiro nem endereço: subscreve de novo o canal.",
@@ -4955,7 +4955,7 @@
       "invalid_document": "Este ficheiro não é o que diz ser.",
       "not_stored": "O servidor não guarda este episódio: tem de o descarregar primeiro.",
       "server_unreachable": "O servidor não responde.",
-      "server_signed_out": "Já não tem sessão iniciada neste servidor.",
+      "server_signed_out": "Já não tens sessão iniciada neste servidor.",
       "server_refused": "O servidor recusou, ou já não conhece este item.",
       "server_conflict": "O servidor já segue este feed, ou não pode seguir mais.",
       "destination_refused": "O servidor não tem autorização para aceder a este endereço."
@@ -4973,7 +4973,7 @@
     "transcript": {
       "title": "Transcrição",
       "none": "Este episódio não tem transcrição.",
-      "noEpisode": "Reproduza um episódio para ver a transcrição.",
+      "noEpisode": "Reproduz um episódio para ver a transcrição.",
       "loading": "A obter a transcrição…",
       "failed": "Não foi possível ler a transcrição: {{reason}}",
       "untimed": "Esta transcrição não tem tempos, por isso não acompanha a reprodução.",
@@ -4981,7 +4981,7 @@
       "jump": "Ir para {{time}}: {{text}}"
     },
     "server": {
-      "title": "No seu servidor",
+      "title": "No teu servidor",
       "chip": "Servidor",
       "refresh": "Verificar no servidor",
       "refreshAsked": "O servidor está a verificar os seus feeds. As novidades chegam em breve.",

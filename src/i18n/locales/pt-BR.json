@@ -23,7 +23,7 @@
   "rendering": {
     "banner": {
       "title": "Renderização por software ativada",
-      "message": "A inicialização anterior nunca exibiu a interface. O WaveFlow desativou a aceleração de hardware para voltar a abrir; o desenho pode ficar mais lento.",
+      "message": "A inicialização anterior não exibiu a interface. O WaveFlow desativou a aceleração de hardware para voltar a abrir; a exibição da interface pode ficar mais lenta.",
       "action": "Ver os detalhes"
     },
     "card": {
@@ -104,7 +104,7 @@
       "preparing": "Preparando sua biblioteca…",
       "running": "Lendo sua música · {{current}} / {{total}}",
       "done": "Biblioteca pronta · +{{formatted}}",
-      "stopped": "Varredura interrompida · +{{formatted}}",
+      "stopped": "Escaneamento interrompido · +{{formatted}}",
       "failed": "O escaneamento foi interrompido"
     },
     "look": {
@@ -204,7 +204,7 @@
       "title": "Seu WaveFlow está pronto",
       "lede": "Sua biblioteca está no lugar. Aproveite a música!",
       "ledeEmpty": "Adicione sua música quando quiser: pelo Início, pela biblioteca ou arrastando uma pasta para a janela.",
-      "ledeFailed": "A varredura foi interrompida. Inicie-a de novo pela biblioteca: suas configurações estão salvas.",
+      "ledeFailed": "O escaneamento foi interrompido. Inicie-o de novo pela biblioteca: suas configurações estão salvas.",
       "ledeScanning": "O escaneamento continua em segundo plano: você já pode ouvir o que ele encontrou.",
       "firstSteps": "No Início, “Primeiros passos” mostra o que mais o WaveFlow sabe fazer.",
       "nothingYet": "Nenhuma faixa por enquanto: o escaneamento ainda não encontrou nada.",
@@ -387,7 +387,7 @@
       "loading": "Iniciando…",
       "focus": {
         "title": "Foco",
-        "subtitle": "Andamentos calmos para trabalho profundo"
+        "subtitle": "Andamentos tranquilos para manter o foco"
       },
       "chill": {
         "title": "Relax",
@@ -498,15 +498,15 @@
       "radio": "Rádio",
       "hours": "{{count}} h ouvidas",
       "moodStart": "Iniciar a rádio",
-      "tempo": "Tempo",
+      "tempo": "Andamento",
       "featuredKicker": "Você sempre volta a este",
       "featuredCta": "Ouvir de novo",
       "yourMixes": "Seus mixes",
       "leadKicker": "Última adição",
-      "liked_zero": "0 favoritos",
-      "liked_one": "{{count}} favorito",
-      "liked_other": "{{count}} favoritos",
-      "liked_many": "{{count}} favoritos",
+      "liked_zero": "0 músicas curtidas",
+      "liked_one": "{{count}} música curtida",
+      "liked_other": "{{count}} músicas curtidas",
+      "liked_many": "{{count}} músicas curtidas",
       "plays_zero": "0 reproduções",
       "plays_one": "{{count}} reprodução",
       "plays_other": "{{count}} reproduções",
@@ -623,6 +623,7 @@
     "fetchMissingCovers": "Recuperar todas as capas que faltam",
     "fetchMissingCoversSubtitle": "Procura no Deezer uma capa para cada álbum que não tem",
     "fetchingCovers": "Baixando capas… ({{current}} / {{total}})",
+    "fetchCoversResult_zero": "{{count}} capas obtidas",
     "fetchCoversResult_one": "{{count}} capa obtida",
     "fetchCoversResult_other": "{{count}} capas obtidas",
     "fetchCoversResult_many": "{{count}} capas obtidas",
@@ -1161,8 +1162,8 @@
         "decoder-stopped": "O motor de áudio parou após vários erros",
         "offline": "O modo offline está ativado",
         "unknown": "A reprodução falhou",
-        "files-failed": "Não é possível tocar estes arquivos",
-        "picker-failed": "Não é possível abrir o seletor de arquivos",
+        "files-failed": "Não foi possível reproduzir estes arquivos",
+        "picker-failed": "Não foi possível abrir o seletor de arquivos",
         "network-source-lost": "A conexão com o compartilhamento de rede foi perdida"
       },
       "notice": {
@@ -1178,9 +1179,9 @@
     },
     "live": {
       "live": "Ao vivo",
-      "behind": "{{time}} atrás do ao vivo",
-      "goLive": "Voltar para o ao vivo",
-      "behindState": "Atrás do ao vivo"
+      "behind": "{{time}} de atraso em relação à transmissão ao vivo",
+      "goLive": "Voltar à transmissão ao vivo",
+      "behindState": "Reprodução com atraso"
     },
     "podcast": {
       "back15": "Voltar 15 s",
@@ -1516,7 +1517,7 @@
       "writer": "Autoria",
       "arranger": "Arranjo",
       "orchestrator": "Orquestração",
-      "conductor": "Direção",
+      "conductor": "Regência",
       "producer": "Produção",
       "mix": "Mixagem",
       "engineer": "Engenharia de som",
@@ -1590,7 +1591,7 @@
       "inLibrary": "Na sua biblioteca",
       "notInLibrary": "Fora da sua biblioteca"
     },
-    "editMetadata": "Editar info",
+    "editMetadata": "Editar informações",
     "facts": {
       "title": "Ficha",
       "activeRange": "{{begin}}–{{end}}",
@@ -1629,7 +1630,7 @@
   },
   "canvasPicker": {
     "title": "Canvas da faixa",
-    "subtitle": "Escolha um vídeo MP4 local e curto. Ele é reproduzido em loop atrás da reprodução, no lugar da capa.",
+    "subtitle": "Escolha um vídeo MP4 local e curto. Ele fica em loop no lugar da capa durante a reprodução.",
     "pickFile": "Escolher um arquivo MP4",
     "removeAction": "Remover Canvas"
   },
@@ -1930,9 +1931,9 @@
     "trashed": "Movidos para a lixeira: {{count}}",
     "notTrashed": "Não movidos: {{count}}",
     "reasonPlaying": "está tocando",
-    "reasonRowKept": "movido para a lixeira, mas ainda listado até a próxima varredura ({{message}})",
+    "reasonRowKept": "movido para a lixeira, mas ainda listado até o próximo escaneamento ({{message}})",
     "reasonKeptCopyGone": "a cópia mantida não existe ou não é mais idêntica, então esta fica",
-    "reasonMissing": "o arquivo não existe (excluído ou em uma unidade não conectada); a próxima varredura atualiza a biblioteca"
+    "reasonMissing": "o arquivo não existe (excluído ou em uma unidade não conectada); o próximo escaneamento atualiza a biblioteca"
   },
   "dragDrop": {
     "play": {
@@ -1941,7 +1942,7 @@
     },
     "import": {
       "title": "Adicionar à biblioteca",
-      "hint": "Copiados para a pasta WaveFlow da sua música"
+      "hint": "Copiados para a pasta WaveFlow dentro da sua pasta Música"
     }
   },
   "abLoop": {
@@ -2065,6 +2066,7 @@
       "history": "Reproduções",
       "tags": "Tags"
     },
+    "matchCount_zero": "Nenhuma faixa corresponde",
     "matchCount_one": "{{count}} faixa corresponde",
     "matchCount_other": "{{count}} faixas correspondem",
     "matchCount_many": "{{count}} faixas correspondem"
@@ -2112,8 +2114,8 @@
       "confirm": "Fechar sem salvar"
     },
     "unsynced": {
-      "line": "{{format}}: a linha {{line}} não tem tempo",
-      "word": "{{format}}: a palavra {{word}} da linha {{line}} não tem tempo",
+      "line": "{{format}}: a linha {{line}} não tem marcação de tempo",
+      "word": "{{format}}: a palavra {{word}} da linha {{line}} não tem marcação de tempo",
       "show": "Ir até lá"
     },
     "transport": {
@@ -2162,7 +2164,7 @@
       "singer": "Cantor",
       "lead": "Voz principal",
       "part": "Seção",
-      "partPlaceholder": "Verso, Refrão…",
+      "partPlaceholder": "Estrofe, Refrão…",
       "background": "Backing vocals",
       "backgroundPlaceholder": "(cantados por cima desta linha)",
       "translation": "Tradução",
@@ -2240,9 +2242,9 @@
       "subtitle": "“Toda a música que merece ser impressa.” — Sua seleção diária, sob medida."
     },
     "lead": {
-      "caption": "Fig 1. — De “{{album}}” por {{artist}}.",
-      "captionArtistOnly": "Fig 1. — Uma criação de {{artist}}.",
-      "captionFallback": "Fig 1. — A seleção do dia."
+      "caption": "Fig. 1 — De “{{album}}” por {{artist}}.",
+      "captionArtistOnly": "Fig. 1 — Uma criação de {{artist}}.",
+      "captionFallback": "Fig. 1 — A seleção do dia."
     }
   },
   "settings": {
@@ -2341,7 +2343,7 @@
     },
     "offlineMode": {
       "title": "Modo offline",
-      "subtitle": "Interrompe os serviços online, inclusive a procura de atualizações, e usa só o cache; o Discord Rich Presence e os servidores DLNA/MPD têm seus próprios interruptores."
+      "subtitle": "Interrompe os serviços online, inclusive a procura de atualizações, e usa só o cache; o Discord Rich Presence e os servidores DLNA/MPD têm seus próprios controles."
     },
     "integrations": {
       "lastfm": {
@@ -2591,7 +2593,7 @@
         "origin": "Exportado em {{date}} com o WaveFlow {{version}}.",
         "loading": "Lendo o arquivo…",
         "unreadable": "Não é possível ler este arquivo: ele está danificado ou não é um arquivo de perfil do WaveFlow.",
-        "failed": "Não foi possível ler o arquivo. Consulte o log para mais detalhes.",
+        "failed": "Não foi possível ler o arquivo. Consulte os registros para mais detalhes.",
         "newer": "Este arquivo vem de uma versão mais recente do WaveFlow. Atualize o WaveFlow para importá-lo.",
         "differentBuild": "Este arquivo vem de outra versão do WaveFlow cujo banco de dados é diferente deste: não pode ser importado.",
         "unsupported": "O formato deste arquivo não é mais suportado.",
@@ -2636,12 +2638,14 @@
     "regenerateThumbnails": "Regenerar as miniaturas",
     "regenerateThumbnailsSubtitle": "Recria as variantes 1x/2x que faltam para todas as capas",
     "regenerateThumbnailsAction": "Regenerar",
+    "regenerateThumbnailsDone_zero": "{{count}} miniaturas regeneradas",
     "regenerateThumbnailsDone_one": "{{count}} miniatura regenerada",
     "regenerateThumbnailsDone_other": "{{count}} miniaturas regeneradas",
     "regenerateThumbnailsDone_many": "{{count}} miniaturas regeneradas",
     "pruneAlbumCovers": "Remover capas de álbum do Deezer não usadas",
     "pruneAlbumCoversSubtitle": "Exclui as capas do Deezer em cache de álbuns que já têm a própria capa (nunca exibidas)",
     "pruneAlbumCoversAction": "Remover",
+    "pruneAlbumCoversDone_zero": "{{count}} arquivos excluídos · {{mb}} MB liberados",
     "pruneAlbumCoversDone_one": "{{count}} arquivo excluído · {{mb}} MB liberados",
     "pruneAlbumCoversDone_other": "{{count}} arquivos excluídos · {{mb}} MB liberados",
     "pruneAlbumCoversDone_many": "{{count}} arquivos excluídos · {{mb}} MB liberados",
@@ -2840,7 +2844,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon Deck — preto OLED, cromado em linhas finas, o acento do tema em neon sobre o que está ativo, rótulos mono, animações com efeito de mola."
+          "description": "Neon Deck — preto OLED, cromado em linhas finas, a cor de destaque do tema em neon nos elementos ativos, rótulos em fonte monoespaçada e animações com efeito de mola."
         },
         "liquid": {
           "label": "Liquid",
@@ -2877,7 +2881,7 @@
     },
     "playerBarLayout": {
       "title": "Layout da barra do player",
-      "subtitle": "Escolha quais botões aparecem na barra e o que acontece ao clicar na capa. A pré-visualização atualiza ao vivo.",
+      "subtitle": "Escolha quais botões aparecem na barra e o que acontece ao clicar na capa. A prévia é atualizada em tempo real.",
       "preview": "Prévia",
       "previewEmpty": "Sem botões — a barra mostrará só a capa e os controles de reprodução.",
       "buttons": {
@@ -3226,7 +3230,7 @@
         },
         "full": {
           "label": "Completos",
-          "description": "Todos os efeitos do tema, mesmo sem GPU."
+          "description": "Todos os efeitos do estilo, mesmo sem GPU."
         },
         "reduced": {
           "label": "Reduzidos",
@@ -3268,7 +3272,7 @@
         "library": "Escaneamento, análise musical, capas, biografias e rádio.",
         "playback": "Saída de áudio, transições entre faixas, volume e equalizador.",
         "appearance": "Estilo, tema, legibilidade e janelas.",
-        "media": "De onde vêm as letras, como são exibidas e na área de trabalho.",
+        "media": "Como as letras são obtidas e exibidas, inclusive na área de trabalho.",
         "integrations": "Conecte seus serviços, servidor e dispositivos de rede.",
         "plugins": "Descubra extensões e gerencie suas configurações.",
         "shortcuts": "Escolha atalhos de teclado para as ações do dia a dia.",
@@ -3429,7 +3433,7 @@
     },
     "xwayland": {
       "title": "Usar XWayland",
-      "subtitle": "No Wayland, o compositor ignora \"sempre no topo\" e decide sozinho onde ficam as janelas. Com XWayland, o mini player e a letra na área de trabalho ficam no topo e no lugar; o texto pode ficar um pouco menos nítido com escala fracionária.",
+      "subtitle": "No Wayland, o compositor ignora \"sempre no topo\" e decide sozinho onde ficam as janelas. Com XWayland, o mini-player e a letra na área de trabalho ficam no topo e no lugar; o texto pode ficar um pouco menos nítido com escala fracionária.",
       "nextStart": "Vale a partir da próxima vez que o WaveFlow abrir.",
       "active": "Ativo: o WaveFlow está rodando pelo XWayland.",
       "setByUser": "Definido pela variável GDK_BACKEND do seu ambiente."
@@ -3488,7 +3492,7 @@
       "refresh": "Medir de novo",
       "failed": "Não foi possível medir o espaço em disco.",
       "rebuildableTitle": "Se reconstrói sozinho",
-      "rebuildableHint": "Esvaziar não perde nada: esses arquivos são obtidos de novo quando necessário.",
+      "rebuildableHint": "Você não perde nada ao esvaziar: esses arquivos são obtidos novamente quando necessário.",
       "keptTitle": "Seus dados",
       "keptHint": "Nada aqui se reconstrói sozinho: cada item é gerenciado na própria seção.",
       "empty": "Esvaziar",
@@ -3501,7 +3505,7 @@
         },
         "metadataArtwork": {
           "label": "Imagens baixadas",
-          "description": "Fotos de artistas e capas obtidas on-line, compartilhadas por todos os perfis."
+          "description": "Fotos de artistas e capas obtidas online, compartilhadas por todos os perfis."
         },
         "motionCache": {
           "label": "Capas animadas",
@@ -3520,8 +3524,8 @@
           "description": "Guardadas depois de ouvidas, baixadas de novo na próxima reprodução."
         },
         "remoteDownloads": {
-          "label": "Faixas do servidor off-line",
-          "description": "As que você escolheu manter off-line. Removidas pela faixa ou pelo álbum."
+          "label": "Faixas do servidor offline",
+          "description": "As que você escolheu manter offline. Removidas pela faixa ou pelo álbum."
         },
         "manualMedia": {
           "label": "Mídia escolhida à mão",
@@ -3540,8 +3544,8 @@
           "description": "Arquivos dos backups automáticos e manuais."
         },
         "logs": {
-          "label": "Logs",
-          "description": "Logs de diagnóstico dos últimos dias."
+          "label": "Registros",
+          "description": "Registros de diagnóstico dos últimos dias."
         },
         "plugins": {
           "label": "Plugins",
@@ -3558,8 +3562,8 @@
       "incomplete": "Não foi possível ler uma pasta inteira: o tamanho real é maior."
     },
     "globalShortcuts": {
-      "subtitle": "Controle a reprodução de qualquer aplicativo, mesmo com o WaveFlow em segundo plano. Nenhum fica ativo até você definir um.",
-      "captureHelp": "Combine Ctrl, Alt ou a tecla Windows / Cmd com uma tecla, ou use F13 a F24 sozinhas. Se nada acontecer ao pressionar uma combinação, outro aplicativo já está usando ela.",
+      "subtitle": "Controle a reprodução do WaveFlow mesmo ao usar outro aplicativo. Nenhum atalho fica ativo até você definir um.",
+      "captureHelp": "Combine Ctrl, Alt ou a tecla Windows / Cmd com uma tecla, ou use F13 a F24 sozinhas. Se nada acontecer ao pressionar uma combinação, outro aplicativo já usa essa combinação.",
       "clearAll": "Limpar tudo",
       "backend": {
         "portal": "No Wayland, seu ambiente de trabalho confirma cada mudança em uma janela própria e pode atribuir outra combinação: a escolhida aparece embaixo da ação.",
@@ -3631,7 +3635,7 @@
       "title": "Compartilhamentos de rede (WebDAV, SMB)",
       "subtitle": "Leia um compartilhamento diretamente, sem que o sistema o monte. O WaveFlow só lê: os arquivos nunca são alterados.",
       "add": "Adicionar compartilhamento",
-      "addConfirm": "Adicionar e analisar",
+      "addConfirm": "Adicionar e escanear",
       "cancel": "Cancelar",
       "test": "Testar a conexão",
       "save": "Salvar",
@@ -3673,12 +3677,14 @@
         "protocol": "Este servidor não responde como um compartilhamento.",
         "plain-http": "Um endereço http:// precisa da sua concordância abaixo."
       },
+      "testOk_zero": "Conectado: {{count}} itens nesta pasta.",
       "testOk_one": "Conectado: {{count}} item nesta pasta.",
       "testOk_other": "Conectado: {{count}} itens nesta pasta.",
       "cacheLimit": "Limite (GB)",
       "cacheClear": "Limpar o cache",
       "testOk_many": "Conectado: {{count}} itens nesta pasta.",
       "share": "Nome do compartilhamento",
+      "cacheUsed_zero": "Cache local: {{size}}, {{count}} faixas",
       "cacheUsed_one": "Cache local: {{size}}, {{count}} faixa",
       "cacheUsed_other": "Cache local: {{size}}, {{count}} faixas",
       "cacheUsed_many": "Cache local: {{size}}, {{count}} faixas"
@@ -4117,7 +4123,7 @@
       "spectrogram": "Espectro de uma faixa",
       "enrichment": "Enriquecimento da biblioteca",
       "release_radar": "Release Radar",
-      "tag_workshop": "Oficina de etiquetas",
+      "tag_workshop": "Oficina de tags",
       "podcast_refresh": "Atualização de podcasts",
       "podcast_download": "Download de podcast"
     }
@@ -4160,6 +4166,7 @@
       "neverPlayed": "nunca reproduzida",
       "tagPresent": "tem a tag {{key}}",
       "tagContains": "a tag {{key}} contém “{{value}}”",
+      "playCountMin_zero": "reproduzida pelo menos {{count}} vezes",
       "playCountMin_one": "reproduzida pelo menos {{count}} vez",
       "playCountMin_other": "reproduzida pelo menos {{count}} vezes",
       "playCountMax_one": "reproduzida no máximo {{count}} vez",
@@ -4208,6 +4215,7 @@
     "applyCount_one": "Aplicar {{count}} alteração",
     "applyCount_many": "Aplicar {{count}} alterações",
     "applyCount_other": "Aplicar {{count}} alterações",
+    "appliedCount_zero": "{{count}} faixas atualizadas.",
     "appliedCount_one": "{{count}} faixa atualizada.",
     "appliedCount_many": "{{count}} faixas atualizadas.",
     "appliedCount_other": "{{count}} faixas atualizadas.",
@@ -4285,7 +4293,7 @@
       "inLibrary": "Já na biblioteca, ignorados: {{n}}",
       "refused": "Pastas recusadas por conterem uma pasta da biblioteca: {{n}}",
       "errors": "Cópias com falha: {{n}}",
-      "truncated": "Limite atingido: solte o restante em várias vezes.",
+      "truncated": "Limite atingido: arraste o restante em grupos menores.",
       "cancelled": "Cópia interrompida; o que já tinha sido copiado foi adicionado."
     },
     "overlap": {
@@ -4373,7 +4381,7 @@
     "acceptEvidenced_one": "Aceitar o artista creditado",
     "acceptEvidenced_many": "Aceitar os {{count}} artistas creditados",
     "acceptEvidenced_other": "Aceitar os {{count}} artistas creditados",
-    "openWorkshop": "Abrir na oficina de etiquetas"
+    "openWorkshop": "Abrir na oficina de tags"
   },
   "releaseRadar": {
     "badge": "Novidades",
@@ -4432,10 +4440,10 @@
     }
   },
   "tagWorkshop": {
-    "title": "Oficina de etiquetas",
-    "eyebrow": "Etiquetas",
+    "title": "Oficina de tags",
+    "eyebrow": "Tags",
     "emptyHint": "Abra uma seleção de faixas, um álbum ou uma pasta na oficina pelo menu correspondente.",
-    "openFromMenu": "Editar na oficina de etiquetas",
+    "openFromMenu": "Editar na oficina de tags",
     "summary_one": "{{count}} arquivo · {{changed}} com alterações",
     "summary_many": "{{count}} arquivos · {{changed}} com alterações",
     "summary_other": "{{count}} arquivos · {{changed}} com alterações",
@@ -4450,12 +4458,12 @@
     "tools": {
       "fill": "Preencher uma coluna",
       "replace": "Procurar e substituir",
-      "case": "Maiúsculas",
+      "case": "Maiúsculas e minúsculas",
       "number": "Numerar faixas",
       "match": "MusicBrainz"
     },
     "groups": {
-      "tags": "Etiquetas",
+      "tags": "Tags",
       "numbers": "Números",
       "ids": "IDs do MusicBrainz"
     },
@@ -4498,9 +4506,9 @@
     "replaceWith": "Substituir por",
     "replaceApply": "Substituir",
     "regex": "Expressão regular",
-    "caseSensitive": "Diferenciar maiúsculas",
+    "caseSensitive": "Diferenciar maiúsculas e minúsculas",
     "badRegex": "Expressão inválida: {{error}}",
-    "caseMode": "Maiúsculas",
+    "caseMode": "Maiúsculas e minúsculas",
     "cases": {
       "title": "Cada Palavra Com Maiúscula",
       "sentence": "Tipo frase",
@@ -4514,7 +4522,7 @@
     "numberApply": "Numerar pela ordem da tabela",
     "releasePlaceholder": "Link ou ID de edição do MusicBrainz (opcional)",
     "matchSearch": "Encontrar a edição",
-    "matchHint": "Sem link, é usada a edição indicada nas etiquetas dos arquivos, ou então a melhor que uma busca encontrar. A tabela só muda se você usar a proposta, e nada é gravado antes da visualização.",
+    "matchHint": "Sem link, é usada a edição indicada nas tags dos arquivos, ou então a melhor que uma busca encontrar. A tabela só muda se você usar a proposta, e nada é gravado antes da visualização.",
     "matchNone": "Nenhuma edição do MusicBrainz corresponde a estes arquivos.",
     "releaseTracks_one": "{{count}} faixa",
     "releaseTracks_many": "{{count}} faixas",
@@ -4528,7 +4536,8 @@
     "matchPaired_many": "{{paired}} de {{count}} arquivos associados a uma faixa",
     "matchPaired_other": "{{paired}} de {{count}} arquivos associados a uma faixa",
     "matchFromTags": "edição indicada pelos arquivos",
-    "matchUse": "Usar estas etiquetas na tabela",
+    "matchUse": "Usar estas tags na tabela",
+    "reportWritten_zero": "{{count}} arquivos gravados",
     "reportWritten_one": "{{count}} arquivo gravado",
     "reportWritten_many": "{{count}} arquivos gravados",
     "reportWritten_other": "{{count}} arquivos gravados",
@@ -4544,7 +4553,7 @@
       "missing": "arquivo não encontrado",
       "interrupted": "gravação nunca confirmada; fica como está",
       "invalid": "um valor não pode ser gravado",
-      "database_stale": "arquivo atualizado, mas a biblioteca ainda não: ela o lerá de novo na próxima varredura da pasta"
+      "database_stale": "arquivo atualizado, mas a biblioteca ainda não: ela o lerá de novo no próximo escaneamento da pasta"
     },
     "moreProblems_one": "e mais {{count}}",
     "moreProblems_many": "e mais {{count}}",
@@ -4619,8 +4628,8 @@
         "hint": "Completa gêneros, datas e capas que faltam."
       },
       "tagWorkshop": {
-        "title": "Oficina de etiquetas",
-        "hint": "Corrige as etiquetas de um álbum inteiro de uma vez."
+        "title": "Oficina de tags",
+        "hint": "Corrige as tags de um álbum inteiro de uma vez."
       },
       "wrapped": {
         "title": "Wrapped",
@@ -4640,7 +4649,7 @@
       "action": "Ver as fontes em Extensões"
     },
     "tagWorkshop": {
-      "title": "Para ir além: a oficina de etiquetas",
+      "title": "Para ir além: a oficina de tags",
       "body": "Localizar e substituir, numeração, correspondência com o MusicBrainz e desfazer, em toda uma seleção.",
       "action": "Abrir esta seleção na oficina"
     }
@@ -4745,8 +4754,8 @@
         "keywords": "Tela cheia|TV|Grande formato|Sem controles|Tela ligada"
       },
       "tagWorkshop": {
-        "title": "A oficina de etiquetas",
-        "body": "As etiquetas de um álbum, de uma pasta ou de uma seleção em uma só tabela: preencher, localizar e substituir, numerar ou partir de um lançamento do MusicBrainz. Nada é gravado antes de uma prévia de cada alteração, e cada lote pode ser desfeito. Experimentar abre o álbum que está tocando, ou o último adicionado.",
+        "title": "A oficina de tags",
+        "body": "As tags de um álbum, de uma pasta ou de uma seleção em uma só tabela: preencher, localizar e substituir, numerar ou partir de um lançamento do MusicBrainz. Nada é gravado antes de uma prévia de cada alteração, e cada lote pode ser desfeito. Experimentar abre o álbum que está tocando, ou o último adicionado.",
         "keywords": "Em lote|Regex|Numeração|MusicBrainz|Prévia|Desfazer"
       },
       "enrichment": {
@@ -4774,14 +4783,17 @@
   "podcasts": {
     "kicker": "Ouvir",
     "channels": "Canais",
+    "channelsCount_zero": "{{count}} canais",
     "channelsCount_one": "{{count}} canal",
-    "channelsCount_many": "{{count}} de canais",
+    "channelsCount_many": "{{count}} canais",
     "channelsCount_other": "{{count}} canais",
+    "unplayedCount_zero": "{{count}} não ouvidos",
     "unplayedCount_one": "{{count}} não ouvido",
-    "unplayedCount_many": "{{count}} de não ouvidos",
+    "unplayedCount_many": "{{count}} não ouvidos",
     "unplayedCount_other": "{{count}} não ouvidos",
+    "episodesCount_zero": "{{count}} episódios",
     "episodesCount_one": "{{count}} episódio",
-    "episodesCount_many": "{{count}} de episódios",
+    "episodesCount_many": "{{count}} episódios",
     "episodesCount_other": "{{count}} episódios",
     "usage": "{{used}} baixados de {{quota}}",
     "refreshAll": "Verificar tudo",
@@ -4831,7 +4843,7 @@
         },
         "server": {
           "title": "Se houver um servidor vinculado",
-          "body": "Se este perfil estiver vinculado a um servidor WaveFlow com os podcasts ativados, os canais dele também aparecem. Eles passam pelo seu servidor WaveFlow: o servidor do podcast vê ele, não você."
+          "body": "Se este perfil estiver vinculado a um servidor WaveFlow com os podcasts ativados, os canais dele também aparecem. A conexão passa pelo seu servidor WaveFlow: é esse servidor que o provedor do podcast vê, não você."
         }
       }
     },
@@ -4946,7 +4958,7 @@
       "http": "O servidor respondeu com um erro ({{status}}).",
       "invalid_feed": "Isto não é um feed de podcast que dê para ler.",
       "not_audio": "Este arquivo não é de áudio.",
-      "quota_exceeded": "O limite de downloads foi atingido.",
+      "quota_exceeded": "O limite de espaço para downloads foi atingido.",
       "unknown": "Algo deu errado.",
       "episode_gone": "Este episódio não existe mais.",
       "no_source": "Este episódio não tem arquivo nem endereço: assine o canal de novo.",
@@ -4976,7 +4988,7 @@
       "noEpisode": "Reproduza um episódio para ver a transcrição.",
       "loading": "Obtendo a transcrição…",
       "failed": "Não foi possível ler a transcrição: {{reason}}",
-      "untimed": "Esta transcrição não tem tempos, então não acompanha a reprodução.",
+      "untimed": "Esta transcrição não tem marcações de tempo, então não acompanha a reprodução.",
       "notPlaying": "Este episódio não está tocando. Clicar em uma linha inicia nesse momento.",
       "jump": "Ir para {{time}}: {{text}}"
     },
