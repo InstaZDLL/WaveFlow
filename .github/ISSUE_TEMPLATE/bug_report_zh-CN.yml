@@ -1,0 +1,98 @@
+name: Bug 报告（简体中文）
+description: WaveFlow 出现异常：崩溃、行为错误、数据缺失。
+title: "bug: <一句话概括问题>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你花时间报告问题！请尽量把信息填写完整：清楚的重现步骤和准确的版本号，往往决定了问题是“一天内修复”还是“拖上好几个月”。
+
+        用中文填写即可，我们会阅读并回复。
+
+        安全问题请**不要**公开提交 issue，请参阅 [`.github/SECURITY.md`](https://github.com/InstaZDLL/WaveFlow/blob/main/.github/SECURITY.md) 中的私下报告方式。
+
+  - type: input
+    id: version
+    attributes:
+      label: WaveFlow 版本
+      description: 点击右上角的头像菜单 → “关于”即可看到。
+      placeholder: "2.0.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS（Intel）
+        - macOS（Apple 芯片）
+        - Linux（Ubuntu / Debian 系）
+        - Linux（Fedora / RHEL 系）
+        - Linux（Arch 系）
+        - Linux（其他发行版）
+        - 其他（请在重现步骤中注明）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: WaveFlow 的安装方式
+      options:
+        - winget
+        - GitHub Releases（NSIS .exe）
+        - GitHub Releases（.msi）
+        - macOS 安装脚本（waveflow.app/install.sh）
+        - GitHub Releases（.dmg）
+        - AUR（waveflow-bin）
+        - COPR（dnf）
+        - APT 软件源（wave-flow）
+        - GitHub Releases（.deb）
+        - GitHub Releases（.rpm）
+        - GitHub Releases（.AppImage）
+        - 从源码构建
+        - 其他（请在重现步骤中注明）
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么？
+      description: 清楚地描述问题：你期望发生什么，实际又发生了什么。
+      placeholder: |
+        期望：双击曲目后开始播放。
+        实际：没有任何反应，界面上也没有报错。
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 重现步骤
+      description: 按顺序编号，让一个刚安装 WaveFlow 的人也能照着重现。
+      placeholder: |
+        1. 打开 WaveFlow，曲库中包含 FLAC 文件。
+        2. 进入“我的音乐” → “曲目”。
+        3. 双击任意一首 FLAC 曲目。
+        4. 观察：没有任何反应。
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志 / 错误信息
+      description: |
+        在“设置” → “维护” → “诊断”中点击 **复制日志**，即可把最近的日志复制到剪贴板，直接粘贴到这里（点击 **打开文件夹** 可以查看日志文件）。只需贴出问题发生前后的几行，不必粘贴整个文件。
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他补充
+      description: 截图（可直接拖放到这里）；界面问题请注明所用的界面风格和主题；音频文件信息（编码、采样率、时长）、曲库规模、多显示器 / 高 DPI 等。

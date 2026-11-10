@@ -1,12 +1,14 @@
 name: Bug report
 description: Something works incorrectly in WaveFlow — crash, wrong behaviour, missing data.
 title: "bug: <one-line summary>"
-labels: ["type:bug"]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to file a bug. Please fill in as much as you can — repro steps and the exact app version make the difference between "fixed in a day" and "lingers for months".
+
+        You can write in your own language: a [Simplified Chinese form](https://github.com/InstaZDLL/WaveFlow/issues/new?template=bug_report_zh-CN.yml) is available, and a report in any other language is read too.
 
         Security issues: please **do not** open a public issue. See [`.github/SECURITY.md`](https://github.com/InstaZDLL/WaveFlow/blob/main/.github/SECURITY.md) for the disclosure channel.
 
@@ -14,8 +16,8 @@ body:
     id: version
     attributes:
       label: WaveFlow version
-      description: From the title bar, Help → About, or `WaveFlow.exe --version`.
-      placeholder: "1.0.0"
+      description: Shown in the avatar menu (top right) → About.
+      placeholder: "2.0.1"
     validations:
       required: true
 
@@ -28,10 +30,10 @@ body:
         - Windows 11
         - macOS (Intel)
         - macOS (Apple Silicon)
-        - Linux (Ubuntu/Debian-based — .deb)
-        - Linux (Fedora/RHEL-based — .rpm)
-        - Linux (Arch / AUR — waveflow-bin)
-        - Linux (AppImage on other distro)
+        - Linux (Ubuntu / Debian-based)
+        - Linux (Fedora / RHEL-based)
+        - Linux (Arch-based)
+        - Linux (other distro)
         - Other (specify in the repro section)
     validations:
       required: true
@@ -41,15 +43,19 @@ body:
     attributes:
       label: How did you install WaveFlow?
       options:
+        - winget
+        - GitHub Releases (NSIS .exe)
+        - GitHub Releases (.msi)
+        - macOS install script (waveflow.app/install.sh)
+        - GitHub Releases (.dmg)
+        - AUR (waveflow-bin)
+        - COPR (dnf)
+        - APT repository (wave-flow)
         - GitHub Releases (.deb)
         - GitHub Releases (.rpm)
         - GitHub Releases (.AppImage)
-        - GitHub Releases (NSIS .exe)
-        - GitHub Releases (.msi)
-        - GitHub Releases (.dmg)
-        - AUR (waveflow-bin)
-        - Built from source (`bun run tauri build`)
-        - Built from source (`bun run tauri dev`)
+        - Built from source
+        - Other (specify in the repro section)
     validations:
       required: true
 
@@ -59,7 +65,7 @@ body:
       label: What happened?
       description: A clear description of the bug — what you expected vs what actually happened.
       placeholder: |
-        Expected: clicking "Play" on a track starts playback.
+        Expected: double-clicking a track starts playback.
         Actual: nothing happens, no error in the UI.
     validations:
       required: true
@@ -71,7 +77,7 @@ body:
       description: Numbered steps a stranger could follow on a fresh install.
       placeholder: |
         1. Open WaveFlow with a library containing FLAC files.
-        2. Navigate to Library → Songs.
+        2. Go to My music → Tracks.
         3. Double-click any FLAC track.
         4. Observe nothing happens.
     validations:
@@ -82,11 +88,11 @@ body:
     attributes:
       label: Relevant logs / errors
       description: |
-        From Settings → Diagnostics → "Open logs folder" (or the platform's log path). Paste the most recent app session — focus on lines near the bug, no need to paste megabytes.
+        Settings → Maintenance → Diagnostics → **Copy logs** puts the recent log on your clipboard, ready to paste here (**Open folder** shows the files). Focus on the lines near the bug, no need to paste megabytes.
       render: shell
 
   - type: textarea
     id: extra
     attributes:
       label: Anything else?
-      description: Screenshots (drag-and-drop here), audio file characteristics (codec, sample rate, length), library size, multi-monitor / HiDPI, etc.
+      description: Screenshots (drag-and-drop here), the skin and theme for anything visual, audio file characteristics (codec, sample rate, length), library size, multi-monitor / HiDPI, etc.
