@@ -2040,7 +2040,7 @@
       "lrc": "LRC",
       "plain": "纯文本"
     },
-    "lrcTranslations": "将译文写为同一时间戳的附加行",
+    "lrcTranslations": "译文另起一行（沿用原行时间戳）",
     "discard": {
       "question": "不保存更改就关闭吗？",
       "keep": "继续编辑",
@@ -2090,7 +2090,7 @@
       "badge": {
         "background": "和声",
         "translation": "译",
-        "romanization": "拼"
+        "romanization": "罗马字"
       },
       "mergeNext": "与下一行合并",
       "removeLine": "删除此行",

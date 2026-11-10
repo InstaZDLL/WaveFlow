@@ -2040,7 +2040,7 @@
       "lrc": "LRC",
       "plain": "純文字"
     },
-    "lrcTranslations": "將翻譯寫為同一時間標記的附加行",
+    "lrcTranslations": "譯文另起一行（沿用原行時間標記）",
     "discard": {
       "question": "不儲存變更就關閉嗎？",
       "keep": "繼續編輯",
