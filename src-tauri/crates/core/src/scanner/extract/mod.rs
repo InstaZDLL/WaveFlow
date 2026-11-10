@@ -297,9 +297,10 @@ pub struct ExtractedFile {
     /// upstream tagger chose stays as-is — could be `Am`, `F#`, or
     /// the Camelot wheel `8A`.
     pub musical_key: Option<String>,
-    /// Embedded cover art extracted and hash-addressed during the scan. Only
-    /// the first picture is kept (lofty exposes them in order and the first
-    /// is usually the `CoverFront`). `None` when the tag has no pictures.
+    /// Embedded cover art extracted and hash-addressed during the scan. One
+    /// picture is kept: the front cover wherever it sits, or else the first
+    /// one with any bytes ([`artwork::extract_cover`]). `None` when the tag
+    /// has no non-empty picture.
     pub cover_art: Option<ExtractedCover>,
     /// Raw POPM byte (0-255) for ID3v2 files, or a normalised value
     /// derived from the `RATING` text field for Vorbis/FLAC/MP4. `None`

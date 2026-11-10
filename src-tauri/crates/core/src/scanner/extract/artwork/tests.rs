@@ -81,6 +81,31 @@ fn the_front_cover_is_the_one_extracted_wherever_it_sits() {
         blake3::hash(&[0x33; 32]).to_hex().to_string()
     );
 
+    // An empty front cover in first place does not hide the picture behind
+    // it either: the fallback skips it too (#1071).
+    let mut hollow_first = Tag::new(TagType::VorbisComments);
+    hollow_first.push_picture(
+        Picture::unchecked(Vec::new())
+            .pic_type(PictureType::CoverFront)
+            .mime_type(MimeType::Png)
+            .build(),
+    );
+    hollow_first.push_picture(picture(PictureType::CoverBack, 0x22));
+    assert_eq!(
+        extracted(&hollow_first),
+        blake3::hash(&[0x22; 32]).to_hex().to_string()
+    );
+
+    // Nothing but empty pictures: no cover at all.
+    let mut all_empty = Tag::new(TagType::VorbisComments);
+    all_empty.push_picture(
+        Picture::unchecked(Vec::new())
+            .pic_type(PictureType::CoverFront)
+            .mime_type(MimeType::Png)
+            .build(),
+    );
+    assert!(super::extract_cover(&all_empty, dir.path()).is_none());
+
     // No front cover among them: the first, as ever.
     let mut unmarked = Tag::new(TagType::VorbisComments);
     unmarked.push_picture(picture(PictureType::Other, 0x33));

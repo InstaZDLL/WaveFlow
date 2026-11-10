@@ -75,23 +75,25 @@ pub fn extension_for_mime(mime: Option<&MimeType>) -> &'static str {
     }
 }
 
-/// Extract the front cover from the given tag, or its first picture when none
-/// says it is one, hash-address it, and write
+/// Extract the front cover from the given tag, or its first non-empty picture
+/// when none says it is one, hash-address it, and write
 /// it to `<artwork_dir>/<hash>.<ext>` if missing. Returns the identifying
-/// `ExtractedCover` or `None` when the tag has no pictures.
+/// `ExtractedCover` or `None` when the tag has no picture with any bytes.
 ///
 /// The write is idempotent: a file whose path already exists is assumed to
 /// match (because blake3 hashes are content-addressed), so we never
 /// overwrite on re-scan.
 pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
     // Not simply the first: a replaced cover lands behind the images a file
-    // already holds, its back cover and booklet among them. An empty front
-    // cover is passed over rather than taken, or it would hide the rest.
+    // already holds, its back cover and booklet among them. An empty picture
+    // is passed over rather than taken, in the search for the front cover and
+    // in the fallback alike, or an empty front cover in first place would
+    // hide the rest (#1071).
     let pictures = tag.pictures();
     let picture = pictures
         .iter()
         .find(|p| p.pic_type() == lofty::picture::PictureType::CoverFront && !p.data().is_empty())
-        .or_else(|| pictures.first())?;
+        .or_else(|| pictures.iter().find(|p| !p.data().is_empty()))?;
     let bytes = picture.data();
     if bytes.is_empty() {
         return None;
