@@ -1,12 +1,14 @@
 name: Feature request
 description: Suggest a new capability, an existing-feature improvement, or a UX polish for WaveFlow.
 title: "feat: <one-line summary>"
-labels: ["type:feat"]
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the suggestion. WaveFlow is opinionated — features that fit the local-first / Spotify-style desk-player vision land much faster than those that don't. The more you can justify *why* this matters, the easier it is to scope.
+        Thanks for the suggestion. WaveFlow is opinionated — features that fit its vision, a local-first desktop player for the files you own, land much faster than those that don't. The more you can justify *why* this matters, the easier it is to scope.
+
+        You can write in your own language: a [Simplified Chinese form](https://github.com/InstaZDLL/WaveFlow/issues/new?template=feature_request_zh-CN.yml) is available, and a request in any other language is read too.
 
   - type: textarea
     id: problem
@@ -51,4 +53,4 @@ body:
     id: extra
     attributes:
       label: Anything else?
-      description: Links to similar features in other players (Apple Music, Spotify, Foobar2000, etc.), screenshots, related issues.
+      description: Links to how other apps handle it, screenshots, mock-ups, related issues or discussions.
