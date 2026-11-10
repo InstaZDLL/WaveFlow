@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   Home,
   Folder,
@@ -61,7 +60,7 @@ import { getProfileColor } from "../../lib/profileColors";
 import { ProfileAvatar } from "../common/ProfileAvatar";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ImportPlaylistResult } from "../../lib/tauri/playlist";
-import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
+import { useProfileStats } from "../../hooks/useProfileStats";
 import {
   colorForPlaylistId,
   resolvePlaylistColor,
@@ -152,10 +151,7 @@ export function Sidebar({
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [stats, setStats] = useState<ProfileStats>({
-    liked_count: 0,
-    recent_plays_count: 0,
-  });
+  const stats = useProfileStats();
   // Hide the Web Radio entry when the user has disabled or
   // uninstalled the plugin in Settings. Keeping the entry visible on
   // a click that fails with "plugin disabled" was a stale-UI bug
@@ -211,34 +207,6 @@ export function Sidebar({
     pin: SidebarPin;
     point: ContextMenuPoint;
   } | null>(null);
-  // Seq-guarded stats fetch
-  const statsSeqRef = useRef(0);
-  const refreshStats = useCallback(() => {
-    const seq = ++statsSeqRef.current;
-    getProfileStats()
-      .then((s) => {
-        if (seq === statsSeqRef.current) setStats(s);
-      })
-      .catch((err) => console.error("[Sidebar] profile stats failed", err));
-  }, []);
-
-  useEffect(() => {
-    refreshStats();
-    let unlisten: UnlistenFn | null = null;
-    (async () => {
-      try {
-        unlisten = await listen("player:track-changed", () => refreshStats());
-      } catch (err) {
-        console.error("[Sidebar] listen failed", err);
-      }
-    })();
-    return () => {
-      if (unlisten) unlisten();
-    };
-    // Re-fetch when the active profile changes so counters reflect
-    // the new profile's data immediately (not just after a track swap).
-  }, [refreshStats, activeProfile]);
-
   // "Play without importing": a small menu under its button, files or a
   // folder. The same two actions are bound to Ctrl+O / Ctrl+Shift+O.
   const [openMenuPoint, setOpenMenuPoint] = useState<ContextMenuPoint | null>(

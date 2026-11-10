@@ -263,16 +263,20 @@ async fn confirmed_link_on(
     ))
 }
 
+/// Copy a linked track's favourite one way. Returns the local track's new
+/// liked state when the copy changed it, so the caller can tell every
+/// heart and counter showing it; `None` when nothing local moved.
 pub async fn copy_favorite(
     pool: &SqlitePool,
     local_track_id: i64,
     direction: &str,
-) -> AppResult<()> {
+) -> AppResult<Option<bool>> {
     let mut tx = pool.begin().await?;
     let (remote_id, local, remote, _, _) = confirmed_link_on(&mut tx, local_track_id).await?;
-    match direction {
+    let local_changed = match direction {
         "local_to_server" => {
-            crate::remote::write::set_favorite_in_tx(&mut tx, "track", &remote_id, local).await?
+            crate::remote::write::set_favorite_in_tx(&mut tx, "track", &remote_id, local).await?;
+            None
         }
         "server_to_local" => {
             if remote {
@@ -289,11 +293,12 @@ pub async fn copy_favorite(
                     .execute(&mut *tx)
                     .await?;
             }
+            (local != remote).then_some(remote)
         }
         _ => return Err(AppError::Other("invalid user-data copy direction".into())),
-    }
+    };
     tx.commit().await?;
-    Ok(())
+    Ok(local_changed)
 }
 
 pub async fn copy_rating(pool: &SqlitePool, local_track_id: i64, direction: &str) -> AppResult<()> {

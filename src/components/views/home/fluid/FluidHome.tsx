@@ -15,11 +15,11 @@ import { usePlayer } from "../../../../hooks/usePlayer";
 import { usePlaylist } from "../../../../hooks/usePlaylist";
 import { useWrappedBannerVisibility } from "../../../../hooks/useWrappedBannerVisibility";
 import { useSkin } from "../../../../hooks/useSkin";
+import { useProfileStats } from "../../../../hooks/useProfileStats";
 import { regenerateAllSmartPlaylists } from "../../../../lib/tauri/smart_playlists";
 import { smartPlaylistKind } from "../../../../lib/tauri/playlist";
 import { availableWrappedYears } from "../../../../lib/tauri/wrapped";
 import {
-  getProfileStats,
   listAlbums,
   listRecentPlays,
   type AlbumRow,
@@ -96,7 +96,7 @@ export function FluidHome({
   const [recentAlbums, setRecentAlbums] = useState<AlbumRow[]>([]);
   const [recentAlbumsLoading, setRecentAlbumsLoading] = useState(true);
   const [featured, setFeatured] = useState<TopAlbumRow | null>(null);
-  const [likedCount, setLikedCount] = useState(0);
+  const { liked_count: likedCount } = useProfileStats();
   const [listenedMs, setListenedMs] = useState(0);
   const [queue, setQueue] = useState<QueueTrackPayload[]>([]);
   // Absolute index of `queue[0]` in the player's queue, for the jump.
@@ -120,11 +120,6 @@ export function FluidHome({
       .finally(() => {
         if (!cancelled) setRecentPlaysLoading(false);
       });
-    getProfileStats()
-      .then((s) => {
-        if (!cancelled) setLikedCount(s.liked_count);
-      })
-      .catch((err) => console.error("[FluidHome] profile stats", err));
     statsOverview("all")
       .then((o) => {
         if (!cancelled) setListenedMs(o.total_ms);

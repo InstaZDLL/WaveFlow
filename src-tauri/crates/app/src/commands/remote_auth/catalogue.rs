@@ -119,7 +119,13 @@ pub async fn remote_copy_reconciliation_favorite(
     direction: String,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    crate::remote::reconciliation::copy_favorite(&pool, local_track_id, &direction).await?;
+    let local_changed =
+        crate::remote::reconciliation::copy_favorite(&pool, local_track_id, &direction).await?;
+    // The server's heart copied here is a like like any other: the
+    // sidebar's count and every heart on this track follow it (#1066).
+    if let Some(liked) = local_changed {
+        crate::commands::track::emit_liked_changed(&app, local_track_id, liked);
+    }
     if direction == "local_to_server" {
         crate::remote::drain::spawn(app);
     }

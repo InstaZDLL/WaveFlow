@@ -1,4 +1,11 @@
-import { Suspense, useState, useCallback, useEffect, useRef } from "react";
+import {
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import type { ViewId, LibraryTab, SidebarMode } from "../../types";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
@@ -205,6 +212,39 @@ type HistoryEntry =
       icon?: string | null;
     };
 
+/**
+ * Where the page lands when another profile becomes active. Every id an
+ * entry carries — an album, a playlist, a channel, a server's album — is
+ * a row of the profile that was active: the same number in the next
+ * profile's database is another row, or none. Such an entry falls back
+ * to the page that lists rows of its kind; an entry that names nothing
+ * of a profile's stays where it is.
+ */
+function entryAfterProfileSwitch(entry: HistoryEntry): HistoryEntry {
+  switch (entry.id) {
+    case "album-detail":
+    case "remote-album":
+      return { id: "library", tab: "albums" };
+    case "artist-detail":
+    case "remote-artist":
+      return { id: "library", tab: "artists" };
+    case "genre-detail":
+      return { id: "library", tab: "genres" };
+    case "playlist":
+    case "remote-playlist":
+      return { id: "library", tab: "playlists" };
+    case "podcasts":
+      return { id: "podcasts" };
+    // Its files are the previous profile's, which it refuses to act on.
+    case "tag-workshop":
+      return { id: "home" };
+    // A copy, not the entry itself: the error boundary below resets on a
+    // new entry, and a view that failed in one profile may not in the next.
+    default:
+      return { ...entry };
+  }
+}
+
 export function AppLayout() {
   const { activeRightPanel } = usePlayer();
   // The Fluid skin shows the three right-edge panels as the tabs of
@@ -316,6 +356,26 @@ export function AppLayout() {
     loadedProfileId: librariesLoadedFor,
   } = useLibrary();
   const { activeProfile, isLoading: isProfileLoading } = useProfile();
+  // Another profile is another database: the history behind the page,
+  // and every id it holds, belong to the one that was active (#1067).
+  // Reset while rendering, not in an effect, so no view ever mounts
+  // with the next profile active and the previous profile's id in hand.
+  // The first profile to load is not a switch: there is nothing to undo.
+  // `profileSwitches` counts the switches; the views and the top bar are
+  // keyed on it, so a switch mounts them afresh and the boot does not.
+  const profileId = activeProfile?.id ?? null;
+  const [navProfileId, setNavProfileId] = useState(profileId);
+  const [profileSwitches, setProfileSwitches] = useState(0);
+  if (navProfileId !== profileId) {
+    setNavProfileId(profileId);
+    if (navProfileId !== null) {
+      setProfileSwitches((n) => n + 1);
+      setNavState(({ history, index }) => ({
+        history: [entryAfterProfileSwitch(history[index])],
+        index: 0,
+      }));
+    }
+  }
   const [showOnboarding, setShowOnboarding] = useState(false);
   // Opened from Settings rather than by the first-run gate.
   const [onboardingReplay, setOnboardingReplay] = useState(false);
@@ -342,6 +402,11 @@ export function AppLayout() {
   // Ref handed down to virtualized tables so they share the page-level
   // scroller instead of nesting their own.
   const pageScrollRef = useRef<HTMLDivElement>(null);
+  // The next profile's page opens at its top: the scroller is the
+  // layout's, and would keep how far down the previous one was left.
+  useLayoutEffect(() => {
+    if (profileSwitches > 0) pageScrollRef.current?.scrollTo({ top: 0 });
+  }, [profileSwitches]);
 
   // Idle-time chunk warm-up for every lazily-loaded view. Once these
   // imports resolve they're cached in the module registry, so a later
@@ -774,7 +839,6 @@ export function AppLayout() {
       case "podcasts":
         return (
           <PodcastsView
-            key={activeProfile?.id ?? 0}
             channelId={
               currentEntry.id === "podcasts"
                 ? (currentEntry.channelId ?? null)
@@ -816,7 +880,7 @@ export function AppLayout() {
       case "tag-workshop":
         return (
           <TagWorkshopView
-            key={`${activeWorkshop?.opened ?? 0}-${activeProfile?.id ?? 0}`}
+            key={activeWorkshop?.opened ?? 0}
             request={activeWorkshop?.request ?? null}
           />
         );
@@ -1033,7 +1097,10 @@ export function AppLayout() {
               presets (Sunset Light / Lavender Light…) looked stark
               white in the main area. */}
             <div className="flex flex-col flex-1 min-w-0 relative bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
+              {/* Keyed on the profile too: the search, its results and the
+                genres its filters offer are the previous profile's rows. */}
               <TopBar
+                key={profileSwitches}
                 activeView={activeView}
                 setActiveView={setActiveView}
                 onOpenProfileSelector={() => setIsProfileModalOpen(true)}
@@ -1065,10 +1132,13 @@ export function AppLayout() {
                       the structural view id (album/artist/genre/playlist
                       keep a single key so the inner view handles its own
                       internal navigation — re-keying on every payload
-                      change would jank the transition). */}
+                      change would jank the transition), and on the
+                      profile: a view holds what it read from the one that
+                      was active, so a switch mounts every view afresh
+                      rather than each one watching for it (#1067). */}
                       <AnimatePresence mode="wait" initial={false}>
                         <motion.div
-                          key={activeView}
+                          key={`${profileSwitches}:${activeView}`}
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -4 }}

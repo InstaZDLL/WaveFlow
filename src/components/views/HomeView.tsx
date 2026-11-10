@@ -32,8 +32,8 @@ import { smartFamilyStyle, smartPlaylistKind } from "../../lib/tauri/playlist";
 import { availableWrappedYears } from "../../lib/tauri/wrapped";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { useSkin } from "../../hooks/useSkin";
+import { useProfileStats } from "../../hooks/useProfileStats";
 import {
-  getProfileStats,
   listAlbums,
   listRecentPlays,
   type AlbumRow,
@@ -170,8 +170,8 @@ function ClassicHomeView({
     }
   }, [isRegenerating, refreshPlaylists, t]);
 
-  const [likedCount, setLikedCount] = useState(0);
-  const [recentCount, setRecentCount] = useState(0);
+  const { liked_count: likedCount, recent_plays_count: recentCount } =
+    useProfileStats();
   const [recentPlays, setRecentPlays] = useState<RecentPlay[]>([]);
   const [recentAlbums, setRecentAlbums] = useState<AlbumRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -200,22 +200,6 @@ function ClassicHomeView({
         if (!cancelled) setWrappedYears(years);
       })
       .catch((err) => console.error("[HomeView] wrapped years failed", err));
-    return () => {
-      cancelled = true;
-    };
-  }, [activeProfile?.id, playbackState]);
-
-  // Profile-wide counters refresh on profile change AND on every track-end
-  // so the "Joués récemment" card reflects the freshly-inserted play_event.
-  useEffect(() => {
-    let cancelled = false;
-    getProfileStats()
-      .then((stats) => {
-        if (cancelled) return;
-        setLikedCount(stats.liked_count);
-        setRecentCount(stats.recent_plays_count);
-      })
-      .catch((err) => console.error("[HomeView] profile stats failed", err));
     return () => {
       cancelled = true;
     };

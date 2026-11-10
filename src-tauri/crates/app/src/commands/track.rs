@@ -735,6 +735,19 @@ struct LikedChangedPayload {
     liked: bool,
 }
 
+/// Broadcast a track's new liked state as `track:liked-changed`. Every
+/// write that moves a heart goes through here — the toggle, a favourite
+/// copied from the server — so a listener (the hearts, the sidebar's
+/// count) cannot miss one way of liking. Call it after the commit, so a
+/// listener that refetches reads the state just written.
+pub(crate) fn emit_liked_changed(app: &tauri::AppHandle, track_id: i64, liked: bool) {
+    use tauri::Emitter;
+    let _ = app.emit(
+        "track:liked-changed",
+        LikedChangedPayload { track_id, liked },
+    );
+}
+
 /// Toggle the liked state of a track. If already liked → unlike (DELETE),
 /// if not → like (INSERT). Returns `true` if the track is now liked.
 #[tauri::command]
@@ -747,7 +760,7 @@ pub async fn toggle_like_track(app: tauri::AppHandle, track_id: i64) -> AppResul
 /// outside the window enqueues the same sync op and emits the same
 /// `track:liked-changed`.
 pub(crate) async fn toggle_like(app: &tauri::AppHandle, track_id: i64) -> AppResult<bool> {
-    use tauri::{Emitter, Manager};
+    use tauri::Manager;
 
     let state = app.state::<AppState>();
     let pool = state.require_profile_pool().await?;
@@ -829,13 +842,7 @@ pub(crate) async fn toggle_like(app: &tauri::AppHandle, track_id: i64) -> AppRes
     // every window repaint for free. After the commit, so a listener
     // that refetches reads the state we just wrote.
     if did_change {
-        let _ = app.emit(
-            "track:liked-changed",
-            LikedChangedPayload {
-                track_id,
-                liked: now_liked,
-            },
-        );
+        emit_liked_changed(app, track_id, now_liked);
     }
     state.drain.notify();
     Ok(now_liked)
