@@ -60,13 +60,13 @@ export function TopRow({
         onContextMenu={onContextMenu}
         onKeyDown={onKeyDown}
         disabled={!interactive}
-        className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors ${
+        className={`w-full flex items-center gap-3 p-2 rounded-lg text-start transition-colors ${
           interactive
             ? "hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer"
             : "cursor-default"
         }`}
       >
-        <span className="w-5 text-xs font-semibold text-zinc-400 dark:text-zinc-500 tabular-nums text-right">
+        <span className="w-5 text-xs font-semibold text-zinc-400 dark:text-zinc-500 tabular-nums text-end">
           {rank}
         </span>
         {artwork}

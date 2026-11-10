@@ -8,6 +8,7 @@ import { LyricsPanel } from "../LyricsPanel";
 import { QueuePanel } from "../QueuePanel";
 import { PodcastTranscriptPanel } from "../../podcasts/PodcastTranscriptPanel";
 import { isLocalPodcastTrack } from "../../../lib/playerSources";
+import { forwardArrowKey } from "../../../lib/direction";
 
 interface FluidSidePanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -59,8 +60,9 @@ export function FluidSidePanel({
   // Roving tabs: arrows move, Home / End jump, the focused tab opens.
   const onTabKey = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next: number | null = null;
-    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
-    else if (e.key === "ArrowLeft")
+    if (e.key === forwardArrowKey(e.currentTarget))
+      next = (index + 1) % TABS.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowRight")
       next = (index - 1 + TABS.length) % TABS.length;
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = TABS.length - 1;

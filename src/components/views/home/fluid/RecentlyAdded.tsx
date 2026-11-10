@@ -106,7 +106,7 @@ function AlbumTile({
       type="button"
       onClick={() => onOpen(album.id)}
       {...bindMenu({ kind: "album", id: album.id })}
-      className={`fe-tile-hover text-left ${lead ? "col-span-2 row-span-2" : ""}`}
+      className={`fe-tile-hover text-start ${lead ? "col-span-2 row-span-2" : ""}`}
     >
       <Artwork
         path={album.artwork_path}

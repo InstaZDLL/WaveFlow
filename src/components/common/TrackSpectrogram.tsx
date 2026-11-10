@@ -273,7 +273,9 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
         </p>
       )}
       {picture && (
-        <figure className="m-0">
+        // A chart: time runs left to right and the frequency axis sits on
+        // the left in every language, so it does not flip with the page.
+        <figure dir="ltr" className="m-0">
           <div className="flex gap-2">
             {/* Frequency axis: label positions follow the linear scale. */}
             <div

@@ -191,7 +191,7 @@ export const SortablePlaylistRow = memo(function SortablePlaylistRow({
           {...attributes}
           {...listeners}
           aria-label={reorderLabel}
-          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 reveal:opacity-100 transition-opacity"
+          className="shrink-0 p-1 -ms-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 reveal:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >
@@ -204,7 +204,7 @@ export const SortablePlaylistRow = memo(function SortablePlaylistRow({
         <span aria-hidden="true" />
       )}
       <span
-        className={`text-right text-sm tabular-nums flex items-center justify-end ${
+        className={`text-end text-sm tabular-nums flex items-center justify-end ${
           isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
         }`}
       >
@@ -287,7 +287,7 @@ export const SortablePlaylistRow = memo(function SortablePlaylistRow({
           className="text-sm text-zinc-500 truncate"
         />
       )}
-      <span className="text-sm tabular-nums text-zinc-400 text-right">
+      <span className="text-sm tabular-nums text-zinc-400 text-end">
         {formatDuration(track.duration_ms)}
       </span>
       <div className="flex justify-center">
@@ -356,7 +356,7 @@ function RemoteEntityLink({
             e.stopPropagation();
             onNavigate(id);
           }}
-          className="truncate max-w-full text-left hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline"
+          className="truncate max-w-full text-start hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline"
           title={name}
         >
           {name}

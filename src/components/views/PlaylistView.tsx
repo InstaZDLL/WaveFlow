@@ -1256,7 +1256,7 @@ export function PlaylistView({
                       {isSmart && (
                         <>
                           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/70 to-transparent" />
-                          <div className="absolute bottom-1.5 left-2 right-2 text-[9px] font-bold tracking-widest text-white uppercase truncate">
+                          <div className="absolute bottom-1.5 start-2 end-2 text-[9px] font-bold tracking-widest text-white uppercase truncate">
                             {t(
                               smartFamilyStyle(
                                 playlist ? smartPlaylistKind(playlist) : null,
@@ -1569,7 +1569,7 @@ export function PlaylistView({
           <div className="relative">
             <Search
               size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              className="absolute start-3 top-1/2 -translate-y-1/2 text-zinc-400"
             />
             <input
               autoFocus
@@ -1578,12 +1578,12 @@ export function PlaylistView({
               onChange={(e) => setQuery(e.target.value)}
               aria-label={t("remote.playlist.searchPlaceholder")}
               placeholder={t("remote.playlist.searchPlaceholder")}
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+              className="w-full ps-9 pe-3 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
             />
             {showSpinner && (
               <Loader2
                 size={15}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
               />
             )}
           </div>

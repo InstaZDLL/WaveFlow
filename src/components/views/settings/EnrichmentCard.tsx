@@ -160,7 +160,7 @@ export function EnrichmentCard() {
         />
       </div>
 
-      <div className="mt-3 ml-9 space-y-3">
+      <div className="mt-3 ms-9 space-y-3">
         <p className="text-xs settings-description">
           {t("settings.enrichment.policy")}
         </p>
@@ -208,7 +208,8 @@ export function EnrichmentCard() {
           <div>
             <div className="flex justify-between gap-2 text-[11px] text-zinc-500 mb-1">
               <span className="truncate">{task.detail ?? ""}</span>
-              <span className="tabular-nums shrink-0">
+              {/* "a / b" left to right in every language. */}
+              <span dir="ltr" className="tabular-nums shrink-0">
                 {task.total > 0 ? `${task.current} / ${task.total}` : ""}
               </span>
             </div>

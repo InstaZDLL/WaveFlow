@@ -154,7 +154,7 @@ function Singers({ doc, edit }: { doc: LyricsDocument; edit: EditDocument }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className={`${LABEL} mr-1`}>{t("lyricsEditor.edit.singers")}</span>
+      <span className={`${LABEL} me-1`}>{t("lyricsEditor.edit.singers")}</span>
       {doc.agents.length === 0 && (
         <span className="text-sm text-zinc-500 dark:text-zinc-400">
           {t("lyricsEditor.edit.singersHint")}
@@ -163,7 +163,7 @@ function Singers({ doc, edit }: { doc: LyricsDocument; edit: EditDocument }) {
       {doc.agents.map((agent, k) => (
         <span
           key={agent.id}
-          className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-700 py-0.5 pr-1 pl-2.5"
+          className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-700 py-0.5 pe-1 ps-2.5"
         >
           <span
             aria-hidden
@@ -398,9 +398,13 @@ function LineRow({
           aria-label={t("lyricsEditor.edit.details")}
           onClick={() => setOpen((o) => !o)}
         >
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          {open ? (
+            <ChevronDown size={14} />
+          ) : (
+            <ChevronRight size={14} className="rtl:rotate-180" />
+          )}
         </button>
-        <span className="w-7 text-right font-mono text-xs text-zinc-400 tabular-nums">
+        <span className="w-7 text-end font-mono text-xs text-zinc-400 tabular-nums">
           {i + 1}
         </span>
         <span
@@ -470,7 +474,7 @@ function LineRow({
         </div>
       </div>
       {open && (
-        <div className="mt-2 mb-1 grid grid-cols-[8rem_1fr] items-center gap-x-3 gap-y-2 pl-16 pr-2 text-sm">
+        <div className="mt-2 mb-1 grid grid-cols-[8rem_1fr] items-center gap-x-3 gap-y-2 ps-16 pe-2 text-sm">
           <span className={LABEL}>{t("lyricsEditor.edit.singer")}</span>
           <select
             className={FIELD}

@@ -727,7 +727,7 @@ export function TagWorkshopView({
                 <div
                   key={row.track_id}
                   role="row"
-                  className={`absolute left-0 top-0 w-full grid gap-2 items-center px-2 border-b border-zinc-100 dark:border-zinc-800/60 ${
+                  className={`absolute start-0 top-0 w-full grid gap-2 items-center px-2 border-b border-zinc-100 dark:border-zinc-800/60 ${
                     row.error ? "opacity-60" : ""
                   }`}
                   style={{

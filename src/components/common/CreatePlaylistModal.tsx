@@ -381,7 +381,7 @@ export function CreatePlaylistModal({
                     cover-area picker underneath. */}
                   <div
                     ref={coverMenuRef}
-                    className="absolute top-1.5 right-1.5 z-30"
+                    className="absolute top-1.5 end-1.5 z-30"
                   >
                     <button
                       type="button"
@@ -396,12 +396,12 @@ export function CreatePlaylistModal({
                     </button>
                     {coverMenuOpen && (
                       <div
-                        // Anchor to the trigger's right edge (`left-full`)
-                        // with a small gap (`ml-1`) so the dropdown opens
+                        // Anchor to the trigger's inline end (`start-full`)
+                        // with a small gap (`ms-1`) so the dropdown opens
                         // INTO the modal toward the form fields, not back
-                        // out the left side past the cover (which would
-                        // clip on the modal's edge).
-                        className="absolute left-full top-0 ml-1 w-44 rounded-lg shadow-2xl border bg-white text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 py-1 text-sm"
+                        // out past the cover (which would clip on the
+                        // modal's edge), in either reading direction.
+                        className="absolute start-full top-0 ms-1 w-44 rounded-lg shadow-2xl border bg-white text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 py-1 text-sm"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button

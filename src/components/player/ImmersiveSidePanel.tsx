@@ -87,16 +87,26 @@ export function ImmersiveSidePanel({
       const scale =
         header.offsetWidth > 0 ? headerBox.width / header.offsetWidth : 1;
       const style = getComputedStyle(header);
-      const start = headerBox.left + parseFloat(style.paddingLeft) * scale;
-      // The room ends at the bar's leftmost button, not at the bar's own
-      // edge: the bar's padding is click-through (see `ImmersiveView`), so
-      // a tab under it still takes its clicks. Measuring to the bar's edge
-      // would cost 32px, enough to lose the pill on a 1080p panel.
-      const firstButton = bar?.firstElementChild;
-      const end = firstButton
-        ? firstButton.getBoundingClientRect().left
-        : headerBox.right - parseFloat(style.paddingRight) * scale;
-      const room = (end - start) / scale - LINE_GAP;
+      // The tabs start where reading does and the buttons sit at the
+      // other end: left to right, or mirrored in a right-to-left language.
+      const rtl = style.direction === "rtl";
+      const padLeft = parseFloat(style.paddingLeft) * scale;
+      const padRight = parseFloat(style.paddingRight) * scale;
+      // The room ends at the bar's button nearest the tabs (its first, in
+      // reading order), not at the bar's own edge: the bar's padding is
+      // click-through (see `ImmersiveView`), so a tab under it still takes
+      // its clicks. Measuring to the bar's edge would cost 32px, enough to
+      // lose the pill on a 1080p panel.
+      const firstButton = bar?.firstElementChild?.getBoundingClientRect();
+      const room =
+        (rtl
+          ? headerBox.right -
+            padRight -
+            (firstButton ? firstButton.right : headerBox.left + padLeft)
+          : (firstButton ? firstButton.left : headerBox.right - padRight) -
+            (headerBox.left + padLeft)) /
+          scale -
+        LINE_GAP;
       const pillWidth = pill.getBoundingClientRect().width / scale;
       setLayout(
         pillWidth <= room
@@ -157,7 +167,7 @@ export function ImmersiveSidePanel({
         <div
           ref={pillMeasureRef}
           aria-hidden="true"
-          className="invisible pointer-events-none absolute left-0 top-0 inline-flex items-center gap-1 p-1 rounded-full whitespace-nowrap"
+          className="invisible pointer-events-none absolute start-0 top-0 inline-flex items-center gap-1 p-1 rounded-full whitespace-nowrap"
         >
           {pillTabs(false)}
         </div>

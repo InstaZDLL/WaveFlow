@@ -97,7 +97,7 @@ export function FeatureCard({
   );
 
   const frame =
-    "feature-card relative flex flex-col rounded-2xl border border-zinc-200 bg-white p-3 text-left dark:border-zinc-800 dark:bg-zinc-900";
+    "feature-card relative flex flex-col rounded-2xl border border-zinc-200 bg-white p-3 text-start dark:border-zinc-800 dark:bg-zinc-900";
 
   if (isSwitch) {
     return (

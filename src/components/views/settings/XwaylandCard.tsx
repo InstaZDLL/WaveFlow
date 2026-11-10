@@ -45,19 +45,19 @@ export function XwaylandCard() {
         />
       </div>
       {status.set_by_user ? (
-        <p className="text-xs settings-description mt-2 ml-9">
+        <p className="text-xs settings-description mt-2 ms-9">
           {t("settings.xwayland.setByUser")}
         </p>
       ) : error ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ms-9">
           {error}
         </p>
       ) : pending ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ms-9">
           {t("settings.xwayland.nextStart")}
         </p>
       ) : status.active ? (
-        <p className="text-xs settings-description mt-2 ml-9">
+        <p className="text-xs settings-description mt-2 ms-9">
           {t("settings.xwayland.active")}
         </p>
       ) : null}

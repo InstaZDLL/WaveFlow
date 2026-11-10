@@ -70,7 +70,9 @@ export function BarChart({
   const barOffsetPct = barWidthPct * 0.15;
 
   return (
-    <div className="relative">
+    // A time axis: the bars are drawn at physical x, so the label row
+    // under them must not flip with the page in a right-to-left language.
+    <div dir="ltr" className="relative">
       <ul className="sr-only" aria-label={ariaLabel}>
         {data.map((d) => (
           <li key={d.key}>{d.tooltip ?? `${d.label}: ${d.value}`}</li>

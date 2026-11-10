@@ -69,7 +69,9 @@ export function MarqueeText({
       ref={containerRef}
       // `text-left` while scrolling so the run starts flush-left and the
       // translate reveals the tail; otherwise inherit the parent's
-      // alignment (the immersive title is centred).
+      // alignment (the immersive title is centred). Physical on purpose,
+      // in Arabic too: the translate is physical, and the ping-pong
+      // shows both ends of a title whichever way it reads.
       className={`block overflow-hidden ${animate ? "text-left" : ""} ${className ?? ""}`}
     >
       <span

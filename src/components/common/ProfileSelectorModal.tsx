@@ -175,7 +175,7 @@ export function ProfileSelectorModal({
                   type="button"
                   onClick={onClose}
                   aria-label={t("common.close")}
-                  className="absolute top-6 right-6 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="absolute top-6 end-6 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                 >
                   <X size={24} />
                 </button>
@@ -189,7 +189,7 @@ export function ProfileSelectorModal({
                       e.stopPropagation();
                       setIsManaging((v) => !v);
                     }}
-                    className="absolute top-6 left-6 inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                    className="absolute top-6 start-6 inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                   >
                     {showManageControls ? (
                       <Check size={16} />
@@ -252,7 +252,7 @@ export function ProfileSelectorModal({
                               <ProfileTileFace profile={profile} />
                               {isActive && !showManageControls && (
                                 <div
-                                  className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full ${color.avatarBg} text-white flex items-center justify-center shadow-lg ring-4 ring-zinc-900`}
+                                  className={`absolute -bottom-2 -end-2 w-8 h-8 rounded-full ${color.avatarBg} text-white flex items-center justify-center shadow-lg ring-4 ring-zinc-900`}
                                 >
                                   <Check size={16} strokeWidth={3} />
                                 </div>
@@ -281,7 +281,7 @@ export function ProfileSelectorModal({
                               aria-label={t("profiles.manage.deleteAria", {
                                 name: profile.name,
                               })}
-                              className="absolute top-0 right-0 -translate-y-1/3 translate-x-1/3 w-9 h-9 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-lg ring-4 ring-zinc-900 hover:bg-red-500 transition-colors"
+                              className="absolute top-0 end-0 -translate-y-1/3 translate-x-1/3 rtl:-translate-x-1/3 w-9 h-9 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-lg ring-4 ring-zinc-900 hover:bg-red-500 transition-colors"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -330,7 +330,7 @@ export function ProfileSelectorModal({
                   disabled={isSubmitting}
                   className="flex items-center space-x-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors mb-6 disabled:opacity-50"
                 >
-                  <ArrowLeft size={16} />
+                  <ArrowLeft className="rtl:rotate-180" size={16} />
                   <span>{t("common.back")}</span>
                 </button>
 
@@ -410,7 +410,7 @@ export function ProfileSelectorModal({
                   onClick={() => setView("select")}
                   className="flex items-center space-x-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors mb-6"
                 >
-                  <ArrowLeft size={16} />
+                  <ArrowLeft className="rtl:rotate-180" size={16} />
                   <span>{t("common.back")}</span>
                 </button>
 

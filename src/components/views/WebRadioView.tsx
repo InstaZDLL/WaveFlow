@@ -663,7 +663,11 @@ export function WebRadioView() {
             className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
             aria-label={t("webRadio.backToCategories")}
           >
-            <ChevronLeft size={16} aria-hidden="true" />
+            <ChevronLeft
+              className="rtl:rotate-180"
+              size={16}
+              aria-hidden="true"
+            />
             <span>{t("webRadio.backToCategories")}</span>
           </button>
         )}
@@ -686,7 +690,7 @@ export function WebRadioView() {
         <div className="relative">
           <Globe
             size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+            className="absolute start-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
             aria-hidden="true"
           />
           <select
@@ -709,7 +713,7 @@ export function WebRadioView() {
                 });
             }}
             aria-label={t("webRadio.browseByCountry")}
-            className="pl-8 pr-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-40"
+            className="ps-8 pe-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-40"
           >
             <option value="">{t("webRadio.browseByCountry")}</option>
             {countries.map((c) => (
@@ -722,7 +726,7 @@ export function WebRadioView() {
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
+            className="absolute start-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
             aria-hidden="true"
           />
           <input
@@ -735,7 +739,7 @@ export function WebRadioView() {
               }
             }}
             placeholder={t("webRadio.searchPlaceholder")}
-            className="pl-8 pr-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64"
+            className="ps-8 pe-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64"
             aria-label={t("webRadio.searchPlaceholder")}
           />
         </div>
@@ -782,7 +786,7 @@ export function WebRadioView() {
             <button
               type="button"
               onClick={openFavorites}
-              className="text-left px-4 py-6 rounded-xl bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              className="text-start px-4 py-6 rounded-xl bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               <div className="flex items-center gap-2 text-base font-medium text-zinc-900 dark:text-white">
                 <Star
@@ -793,7 +797,7 @@ export function WebRadioView() {
                 />
                 <span>{t("webRadio.favorites")}</span>
                 {favorites.length > 0 && (
-                  <span className="ml-auto text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="ms-auto text-xs font-semibold text-amber-600 dark:text-amber-400">
                     {favorites.length}
                   </span>
                 )}
@@ -812,7 +816,7 @@ export function WebRadioView() {
                     countryLabel(i18n.language, localRegion),
                   )
                 }
-                className="text-left px-4 py-6 rounded-xl bg-sky-50 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="text-start px-4 py-6 rounded-xl bg-sky-50 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <div className="flex items-center gap-2 text-base font-medium text-zinc-900 dark:text-white">
                   <MapPin
@@ -836,7 +840,7 @@ export function WebRadioView() {
                 onClick={() => {
                   void openEntry(entry);
                 }}
-                className="text-left px-4 py-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                className="text-start px-4 py-6 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 <div className="text-base font-medium text-zinc-900 dark:text-white">
                   {entry.label}
@@ -878,7 +882,7 @@ export function WebRadioView() {
                     onClick={() => {
                       void playTrack(track);
                     }}
-                    className="flex-1 min-w-0 text-left px-2 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    className="flex-1 min-w-0 text-start px-2 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     <span
                       className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${

@@ -401,7 +401,7 @@ export function HistoryView({
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-3">
             {t("history.timeline")}
           </div>
-          <ul className="space-y-1 max-h-[70vh] overflow-y-auto pr-2">
+          <ul className="space-y-1 max-h-[70vh] overflow-y-auto pe-2">
             {[...months].reverse().map((m) => (
               <MonthEntry
                 key={`${m.year}-${m.month}`}
@@ -644,10 +644,10 @@ function DayGroup({
               <span className="text-sm text-zinc-500 truncate">
                 {row.album_title ?? "—"}
               </span>
-              <span className="text-xs tabular-nums text-zinc-400 text-right">
+              <span className="text-xs tabular-nums text-zinc-400 text-end">
                 {timeLabel(row.played_at, locale)}
               </span>
-              <span className="text-xs tabular-nums text-zinc-400 text-right">
+              <span className="text-xs tabular-nums text-zinc-400 text-end">
                 {formatDuration(row.duration_ms)}
               </span>
             </li>
@@ -680,7 +680,7 @@ function MonthEntry({ month, maxPlays, locale, onClick }: MonthEntryProps) {
       <button
         type="button"
         onClick={onClick}
-        className="w-full text-left px-2 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors group"
+        className="w-full text-start px-2 py-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors group"
         title={`${month.plays}`}
       >
         <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-100">

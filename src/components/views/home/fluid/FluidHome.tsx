@@ -343,7 +343,7 @@ export function FluidHome({
             <button
               type="button"
               onClick={() => onNavigateToWrapped(wrappedYears[0])}
-              className="min-w-0 flex-1 text-left"
+              className="min-w-0 flex-1 text-start"
             >
               <span className="fe-label block">
                 {t("home.wrapped.eyebrow")}

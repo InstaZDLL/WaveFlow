@@ -30,6 +30,7 @@ import { openTagWorkshop } from "../../lib/tagWorkshop";
 import type { WhatsNewPage, WhatsNewRelease } from "../../lib/whatsNew";
 import { FeatureHero } from "./FeatureHero";
 import { shuffledLibrary } from "./shuffledLibrary";
+import { interfaceIsRtl } from "../../lib/direction";
 
 interface WhatsNewPanelProps {
   isOpen: boolean;
@@ -106,8 +107,8 @@ export function WhatsNewPanel({
     event.stopPropagation();
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
-    const rtl = document.documentElement.dir === "rtl";
-    const forward = event.key === (rtl ? "ArrowLeft" : "ArrowRight");
+    const forward =
+      event.key === (interfaceIsRtl() ? "ArrowLeft" : "ArrowRight");
     goTo(index + (forward ? 1 : -1));
   };
 

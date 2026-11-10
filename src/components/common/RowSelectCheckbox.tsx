@@ -67,7 +67,7 @@ export function RowSelectCheckbox({
         onKeyDown={(event) => {
           if (event.key === " " || event.key === "Enter") toggle(event);
         }}
-        className={`absolute right-0 flex h-4 w-4 items-center justify-center rounded border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+        className={`absolute end-0 flex h-4 w-4 items-center justify-center rounded border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
           // Opacity, not visibility: a hidden element takes no focus,
           // and the keyboard must be able to start a selection too.
           // Not clickable while unseen, so a click on the number reaches

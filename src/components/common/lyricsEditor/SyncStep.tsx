@@ -262,7 +262,7 @@ export function SyncStep({
           {t("lyricsEditor.sync.reaction")}
           <input
             type="number"
-            className="w-20 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-20 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 py-1 text-end tabular-nums focus:outline-none focus:ring-2 focus:ring-pink-500"
             value={reactionMs}
             min={0}
             max={MAX_REACTION_MS}
@@ -301,7 +301,7 @@ export function SyncStep({
             <Plus size={12} />
           </button>
         </div>
-        <span className="ml-auto text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
+        <span className="ms-auto text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
           {mode === "line"
             ? t("lyricsEditor.sync.progressLines", {
                 done: progress.lines,
@@ -352,7 +352,7 @@ function Keys({ mode }: { mode: SyncMode }) {
     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
       {keys.map(([key, what]) => (
         <span key={key}>
-          <kbd className="px-1.5 py-0.5 mr-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 font-mono text-[10px] text-zinc-700 dark:text-zinc-200">
+          <kbd className="px-1.5 py-0.5 me-1 rounded border border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800 font-mono text-[10px] text-zinc-700 dark:text-zinc-200">
             {key}
           </kbd>
           {what}
@@ -425,7 +425,7 @@ function SyncList({
               onClick={() => setCursor({ line: i, word: 0 })}
             >
               <span
-                className={`w-7 text-right font-mono text-xs tabular-nums ${
+                className={`w-7 text-end font-mono text-xs tabular-nums ${
                   i === playing
                     ? "text-pink-500 font-semibold"
                     : "text-zinc-400"

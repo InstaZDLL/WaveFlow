@@ -265,7 +265,7 @@ export function PlaylistTrackTable({
         className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-600 dark:text-zinc-300 uppercase border-b border-zinc-200 dark:border-zinc-800`}
       >
         <span aria-hidden="true" />
-        <span className="text-right">{headerLabels.number}</span>
+        <span className="text-end">{headerLabels.number}</span>
         <span aria-hidden="true" />
         <span>{headerLabels.title}</span>
         <span>{headerLabels.artist}</span>
@@ -425,7 +425,7 @@ function PlaceholderRow({
       data-playlist-placeholder
     >
       <span aria-hidden="true" />
-      <span className="text-right text-sm" aria-hidden="true">
+      <span className="text-end text-sm" aria-hidden="true">
         –
       </span>
       <span
@@ -442,7 +442,7 @@ function PlaceholderRow({
       </div>
       <span className="truncate text-sm">{artist}</span>
       <span className="truncate text-sm">{placeholder.album ?? ""}</span>
-      <span className="text-right text-sm tabular-nums">
+      <span className="text-end text-sm tabular-nums">
         {placeholder.duration_ms != null && placeholder.duration_ms > 0
           ? formatDuration(placeholder.duration_ms)
           : ""}
@@ -472,7 +472,7 @@ function PlaylistRowPreview({
 }) {
   return (
     <div className="flex items-center space-x-3 p-2 rounded-lg bg-white dark:bg-zinc-800 shadow-lg border border-zinc-200 dark:border-zinc-700 select-none">
-      <div className="shrink-0 p-1 -ml-1 text-zinc-400">
+      <div className="shrink-0 p-1 -ms-1 text-zinc-400">
         <GripVertical size={14} />
       </div>
       {remote ? (

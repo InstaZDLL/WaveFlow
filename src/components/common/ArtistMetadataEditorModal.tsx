@@ -277,7 +277,7 @@ export function ArtistMetadataEditorModal({
 
         {error && <div className="mb-3 text-xs text-red-500 px-1">{error}</div>}
 
-        <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-6 pe-1">
           {/* Split phantom artist (issue #396) — only when the name looks
               comma-joined. User confirms via the fragment preview. */}
           {isSplittable && (
@@ -364,7 +364,7 @@ export function ArtistMetadataEditorModal({
                   const img = resolveRemoteImage(s.picture_path, s.picture_url);
                   return (
                     <li key={s.artist_id}>
-                      <span className="inline-flex items-center gap-2 pl-1 pr-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-800 dark:text-zinc-200">
+                      <span className="inline-flex items-center gap-2 ps-1 pe-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-800 dark:text-zinc-200">
                         {img ? (
                           <img
                             src={img}
@@ -399,7 +399,7 @@ export function ArtistMetadataEditorModal({
             <div className="relative">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                className="absolute start-3 top-1/2 -translate-y-1/2 text-zinc-400"
               />
               <input
                 id="artist-similar-search"
@@ -408,12 +408,12 @@ export function ArtistMetadataEditorModal({
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={isBusy || atLimit}
                 placeholder={t("artistMetadataEditor.similar.placeholder")}
-                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
+                className="w-full ps-9 pe-9 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
               />
               {isSearching && (
                 <Loader2
                   size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-zinc-400 animate-spin"
                 />
               )}
             </div>
@@ -437,7 +437,7 @@ export function ArtistMetadataEditorModal({
                       <button
                         type="button"
                         onClick={() => addArtist(r)}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
+                        className="flex w-full items-center gap-3 px-3 py-2 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
                       >
                         {img ? (
                           <img

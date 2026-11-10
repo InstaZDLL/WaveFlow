@@ -172,7 +172,7 @@ export function TrackContextMenu({
                   type="button"
                   role="menuitem"
                   onClick={closeAfter(() => onAddToPlaylist(pl.id, track.id))}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-start text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <span
                     className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
@@ -224,7 +224,7 @@ export function TrackContextMenu({
             type="button"
             role="menuitem"
             onClick={closeAfter(() => onSetRating(track.id, null))}
-            className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+            className={`w-full px-3 py-2 text-start text-sm transition-colors ${
               currentStars === 0
                 ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100"
                 : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -241,7 +241,7 @@ export function TrackContextMenu({
                 type="button"
                 role="menuitem"
                 onClick={closeAfter(() => onSetRating(track.id, popm))}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                className={`w-full flex items-center gap-2 px-3 py-2 text-start text-sm transition-colors ${
                   active
                     ? "bg-zinc-100 dark:bg-zinc-800"
                     : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -313,7 +313,7 @@ export function TrackContextMenu({
               type="button"
               role="menuitem"
               onClick={handleArtistClick(artist.id)}
-              className="w-full px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 truncate"
+              className="w-full px-3 py-2 text-start text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 truncate"
             >
               {artist.name}
             </button>

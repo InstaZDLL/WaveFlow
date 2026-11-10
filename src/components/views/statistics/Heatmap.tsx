@@ -177,7 +177,8 @@ export function Heatmap({ data, weeks = 53, emptyText }: HeatmapProps) {
   }
 
   return (
-    <div className="w-full">
+    // Hours run left to right in every language, like the other charts.
+    <div dir="ltr" className="w-full">
       {/*
         The readout line holds one line of text whatever it shows. It
         used to be baseline-aligned, and an empty readout (the cursor

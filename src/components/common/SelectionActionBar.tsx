@@ -193,7 +193,7 @@ export function SelectionActionBar({
           <div
             ref={addRef}
             role="menu"
-            className="absolute bottom-full right-0 mb-2 z-50 w-60 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in"
+            className="absolute bottom-full end-0 mb-2 z-50 w-60 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in"
           >
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-3 pt-3 pb-2">
               {t("selection.addToPlaylist")}
@@ -212,7 +212,7 @@ export function SelectionActionBar({
                       type="button"
                       role="menuitem"
                       onClick={() => handlePickPlaylist(pl.id)}
-                      className="w-full flex items-center space-x-2 p-2 rounded-lg text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+                      className="w-full flex items-center space-x-2 p-2 rounded-lg text-start hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
                     >
                       <div
                         className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
@@ -233,7 +233,7 @@ export function SelectionActionBar({
                   type="button"
                   role="menuitem"
                   onClick={handleCreatePlaylist}
-                  className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm font-medium text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                  className="w-full flex items-center space-x-2 px-3 py-2 text-start text-sm font-medium text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                 >
                   <Plus size={14} />
                   <span>{t("trackActions.createPlaylist")}</span>

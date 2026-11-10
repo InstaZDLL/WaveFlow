@@ -7,6 +7,7 @@ import {
   type ColumnId,
   type ColumnLayout,
 } from "../../../lib/trackColumns";
+import { interfaceIsRtl } from "../../../lib/direction";
 
 /** How much one arrow key moves a column edge. `Shift` multiplies it,
  *  which is the convention every slider in the app already uses. */
@@ -100,12 +101,6 @@ export function TrackTableHeader({
     rtl: boolean;
   } | null>(null);
 
-  /** Is the interface running right-to-left? Arabic, of the seventeen
-   *  locales — `i18n/index.ts` stamps `dir` on the document root. */
-  const isRtl = () =>
-    typeof document !== "undefined" &&
-    document.documentElement.getAttribute("dir") === "rtl";
-
   /** The column's width on screen right now.
    *
    *  A drag has to start from what the user sees, not from the spec's
@@ -139,7 +134,7 @@ export function TrackTableHeader({
         pointerId: event.pointerId,
         startX: event.clientX,
         startWidth: startWidthFor(event.currentTarget, width),
-        rtl: isRtl(),
+        rtl: interfaceIsRtl(),
       };
       // Captured on the handle, so the pointer can leave the element —
       // which it does immediately, since the column is growing out from
@@ -198,8 +193,8 @@ export function TrackTableHeader({
       let next: number;
       // Mirrored with the layout, like the drag: the arrow pointing
       // away from the column's start edge is the one that widens it.
-      const grow = isRtl() ? "ArrowLeft" : "ArrowRight";
-      const shrink = isRtl() ? "ArrowRight" : "ArrowLeft";
+      const grow = interfaceIsRtl() ? "ArrowLeft" : "ArrowRight";
+      const shrink = interfaceIsRtl() ? "ArrowRight" : "ArrowLeft";
       switch (event.key) {
         case shrink:
           next = from - step;
@@ -247,7 +242,7 @@ export function TrackTableHeader({
     >
       {/* Index, and the artwork thumbnail when the list view shows one.
           Neither carries a value, so neither is a column. */}
-      <span className="text-right">{t("library.table.number")}</span>
+      <span className="text-end">{t("library.table.number")}</span>
       {Array.from({ length: leadingSpacers - 1 }, (_, i) => (
         <span key={`lead-${i}`} aria-hidden="true" />
       ))}

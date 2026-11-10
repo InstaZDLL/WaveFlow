@@ -23,6 +23,7 @@ import { getPlayerPosition } from "../../hooks/usePlayerPosition";
 import { isPodcastTrack } from "../../lib/playerSources";
 import { MAX_PITCH_SEMITONES } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
+import { endCornerOrigin } from "../../lib/direction";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
 import { PodcastPlayerMenu } from "../podcasts/PodcastPlayerMenu";
@@ -185,7 +186,7 @@ export function MoreActionsMenu({
         <MoreHorizontal size={20} />
         {triggerBadge && (
           <span
-            className={`absolute -top-1 -right-1 px-1 min-w-[18px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold leading-none ${triggerBadgeTone}`}
+            className={`absolute -top-1 -end-1 px-1 min-w-[18px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold leading-none ${triggerBadgeTone}`}
           >
             {triggerBadge}
           </span>
@@ -206,8 +207,8 @@ export function MoreActionsMenu({
               damping: 30,
               mass: 0.5,
             }}
-            style={{ transformOrigin: "bottom right" }}
-            className="absolute bottom-full right-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
+            style={{ transformOrigin: endCornerOrigin("bottom") }}
+            className="absolute bottom-full end-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
           >
             {/* Back to a paused station's live edge: only while behind
                 it, so the menu does not offer what would change nothing. */}
@@ -226,7 +227,7 @@ export function MoreActionsMenu({
                         ),
                       );
                   }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-start hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <span className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
                     <Radio
@@ -295,6 +296,9 @@ export function MoreActionsMenu({
 
               <input
                 type="range"
+                // An audio slider, like the volume: left to right in every
+                // language; its label and value still follow the page.
+                dir="ltr"
                 min={SPEED_MIN}
                 max={SPEED_MAX}
                 step={0.05}

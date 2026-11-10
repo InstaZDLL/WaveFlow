@@ -36,6 +36,7 @@ import { HiResBadge } from "../common/HiResBadge";
 import { useHiResBadgeVisibility } from "../../hooks/useHiResBadgeVisibility";
 import { qualityBadge } from "../../lib/hiRes";
 import { AudioPipelineCard, type StageImpact } from "./AudioPipelineCard";
+import { interfaceIsRtl } from "../../lib/direction";
 
 interface AudioPipelinePopoverProps {
   track: QueueTrackPayload;
@@ -533,10 +534,13 @@ export function AudioPipelinePopover({
     : null;
 
   // ── Placement ──────────────────────────────────────────────────
-  // Above the strip, flush with its end edge, measured once it is laid
-  // out and again whenever the window is resized under it.
+  // Above the strip, flush with its end edge (its right, or its left in
+  // a right-to-left language), measured once it is laid out and again
+  // whenever the window is resized under it.
   const [place, setPlace] = useState<{
-    right: number;
+    /** One of the two: the side the strip's end edge is on. */
+    left?: number;
+    right?: number;
     bottom: number;
     maxHeight: number;
   } | null>(null);
@@ -545,10 +549,14 @@ export function AudioPipelinePopover({
     const measure = () => {
       const rect = anchor.getBoundingClientRect();
       setPlace({
-        right: Math.max(
-          POPOVER_EDGE_PX,
-          window.innerWidth - rect.right + POPOVER_EDGE_PX,
-        ),
+        ...(interfaceIsRtl()
+          ? { left: Math.max(POPOVER_EDGE_PX, rect.left + POPOVER_EDGE_PX) }
+          : {
+              right: Math.max(
+                POPOVER_EDGE_PX,
+                window.innerWidth - rect.right + POPOVER_EDGE_PX,
+              ),
+            }),
         bottom: window.innerHeight - rect.top + POPOVER_GAP_PX,
         maxHeight: Math.max(160, rect.top - POPOVER_GAP_PX - POPOVER_EDGE_PX),
       });
@@ -575,11 +583,12 @@ export function AudioPipelinePopover({
       onMouseEnter={onPointerEnter}
       onMouseLeave={onPointerLeave}
       style={{
+        left: place.left,
         right: place.right,
         bottom: place.bottom,
         maxHeight: place.maxHeight,
       }}
-      className="fixed z-[100] w-[22rem] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-xl animate-fade-in dark:border-zinc-800 dark:bg-zinc-900"
+      className="fixed z-[100] w-[22rem] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200 bg-white p-4 text-start shadow-xl animate-fade-in dark:border-zinc-800 dark:bg-zinc-900"
     >
       <div className="mb-3 text-xs font-bold uppercase tracking-widest text-zinc-400">
         {t("playerBar.pipeline.title")}

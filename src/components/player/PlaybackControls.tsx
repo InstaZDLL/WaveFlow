@@ -65,7 +65,9 @@ export function PlaybackControls() {
   const toggleOff = "text-zinc-400 hover:text-zinc-800 dark:hover:text-white";
 
   return (
-    <div className="flex items-center space-x-5 mb-1.5">
+    // Transport keeps a player's order in every language: previous on the
+    // left, next on the right, the way the icons point.
+    <div dir="ltr" className="flex items-center space-x-5 mb-1.5">
       <button
         type="button"
         onClick={cycleShuffleMode}
@@ -84,7 +86,7 @@ export function PlaybackControls() {
         {shuffleMode === "albums" && (
           <Disc3
             size={11}
-            className="absolute -top-1 -right-1.5"
+            className="absolute -top-1 -end-1.5"
             aria-hidden="true"
           />
         )}

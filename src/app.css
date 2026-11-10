@@ -366,7 +366,9 @@
 :root[data-contrast="high"] [role="switch"][aria-checked="true"]::after {
   content: "";
   position: absolute;
-  left: 0.6rem;
+  /* On the empty side of the switch, which mirrors with the language;
+     the tick itself is a glyph and keeps its physical borders. */
+  inset-inline-start: 0.6rem;
   top: 50%;
   width: 0.3rem;
   height: 0.6rem;
@@ -394,6 +396,15 @@
      this way until the tokens went theme-aware). */
   --color-surface-light: #ffffff;
   --color-surface-light-elevated: #fafafa;
+}
+
+/* A number is typed and read left to right in every language, Arabic
+   included: its field keeps that direction (and so its alignment) when
+   the page reads right to left. */
+input[type="number"],
+input[inputmode="numeric"],
+input[inputmode="decimal"] {
+  direction: ltr;
 }
 
 /* Skin tokens — fall-back defaults match the Studio (current

@@ -468,7 +468,7 @@ export function QualityTab({
             <span data-track-header="file">
               {t("library.quality.column.file")}
             </span>
-            <span data-track-header="highs" className="text-right">
+            <span data-track-header="highs" className="text-end">
               {t("library.quality.column.highs")}
             </span>
             <span data-track-header="verdict">
@@ -538,7 +538,7 @@ export function QualityTab({
                   <span className="truncate text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                     {facts(row) || "—"}
                   </span>
-                  <span className="text-right text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
+                  <span className="text-end text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
                     {highs(row)}
                   </span>
                   <span className="min-w-0">
@@ -567,7 +567,7 @@ export function QualityTab({
 
 /** A verdict chip, styled as the inventory's categories are. */
 function chipClass(active: boolean, empty: boolean): string {
-  return `flex items-start gap-3 p-3 rounded-xl border text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+  return `flex items-start gap-3 p-3 rounded-xl border text-start transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
     active
       ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40"
       : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"

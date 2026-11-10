@@ -236,7 +236,7 @@ export function DesktopLyrics() {
           stay in the tab order; locked, the window takes no input at all. */}
         {!status.locked && (
           <div
-            className={`absolute right-2 top-2 flex items-center gap-1 transition-opacity ${
+            className={`absolute end-2 top-2 flex items-center gap-1 transition-opacity ${
               showChrome ? "opacity-100" : "opacity-0"
             }`}
           >

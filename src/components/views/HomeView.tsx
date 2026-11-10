@@ -493,7 +493,7 @@ function ClassicHomeView({
           <button
             type="button"
             onClick={() => onNavigateToWrapped(wrappedYears[0])}
-            className="flex w-full items-center gap-4 rounded-xl p-4 pe-14 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="flex w-full items-center gap-4 rounded-xl p-4 pe-14 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <Sparkles size={20} aria-hidden="true" />
@@ -725,7 +725,7 @@ function ClassicHomeView({
 const STUDIO_GRID =
   "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-x-5 gap-y-6";
 const STUDIO_TILE =
-  "group -m-2 flex min-w-0 flex-col items-stretch rounded-xl p-2 text-left transition-colors hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:hover:bg-white/5";
+  "group -m-2 flex min-w-0 flex-col items-stretch rounded-xl p-2 text-start transition-colors hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:hover:bg-white/5";
 const STUDIO_BUTTON_PRIMARY =
   "inline-flex h-8 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-60 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 dark:focus-visible:ring-offset-zinc-900";
 const STUDIO_BUTTON_SECONDARY =
@@ -769,7 +769,7 @@ function StatItem({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-w-0 items-center gap-3 bg-white px-4 py-3 text-left transition-colors hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 dark:bg-zinc-900 dark:hover:bg-zinc-800/70"
+      className="flex min-w-0 items-center gap-3 bg-white px-4 py-3 text-start transition-colors hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 dark:bg-zinc-900 dark:hover:bg-zinc-800/70"
     >
       <span
         aria-hidden="true"

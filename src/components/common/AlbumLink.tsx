@@ -57,7 +57,7 @@ export function AlbumLink({
       <button
         type="button"
         onClick={handleClick}
-        className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer text-left truncate max-w-full"
+        className="hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer text-start truncate max-w-full"
       >
         {title}
       </button>

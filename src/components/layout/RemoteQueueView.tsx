@@ -188,7 +188,7 @@ function RemoteQueueRow({
       onClick={onJump}
       disabled={isCurrent}
       style={style}
-      className={`w-full flex items-center space-x-3 p-2 rounded-lg text-left transition-colors select-none ${
+      className={`w-full flex items-center space-x-3 p-2 rounded-lg text-start transition-colors select-none ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20 cursor-default"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"

@@ -80,7 +80,8 @@ export function CoverWithControls({
           showControls ? "opacity-100 bg-black/40" : "opacity-0"
         }`}
       >
-        <div className="flex items-center gap-2">
+        {/* A player's order in every language, the way the icons point. */}
+        <div dir="ltr" className="flex items-center gap-2">
           <IconButton
             onClick={onToggleShuffle}
             label={t(
@@ -107,7 +108,7 @@ export function CoverWithControls({
             {isPlaying ? (
               <Pause size={18} className="fill-current" />
             ) : (
-              <Play size={18} className="fill-current ml-0.5" />
+              <Play size={18} className="fill-current ms-0.5" />
             )}
           </button>
           <IconButton onClick={onNext} label={t("player.controls.next")}>
@@ -262,6 +263,9 @@ function MiniVolume({
         onPointerCancel={handlePointerUp}
         onDragStart={(e) => e.preventDefault()}
         onKeyDown={handleKeyDown}
+        // Physical, like the player bar's: the level fills from the left
+        // in every language, where the pointer maths measures it.
+        dir="ltr"
         className="group flex-1 flex items-center h-5 cursor-pointer touch-none select-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <div className="relative w-full h-1 rounded-full bg-white/25">

@@ -191,7 +191,7 @@ export function ImportToLibraryModal({
                         type="button"
                         disabled={!folder.exists || running}
                         onClick={() => setPicked(folder.folder_id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-start text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                           isSelected
                             ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/25 dark:text-emerald-300"
                             : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"

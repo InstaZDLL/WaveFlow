@@ -161,7 +161,7 @@ export function GenreDetailView({
             placeholderIcon={Tags}
             alt={genre.name}
           />
-          <div className="absolute right-2 bottom-2 pointer-events-none">
+          <div className="absolute end-2 bottom-2 pointer-events-none">
             <button
               type="button"
               onClick={() => setIsImagePickerOpen(true)}
@@ -318,7 +318,7 @@ export function DetailTrackTable({
       <div
         className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
       >
-        <span className="text-right">{t("library.table.number")}</span>
+        <span className="text-end">{t("library.table.number")}</span>
         <span aria-hidden="true" />
         <span>{t("library.table.title")}</span>
         <span>{t("library.table.artist")}</span>
@@ -392,7 +392,7 @@ export function DetailTrackTable({
               }`}
             >
               <span
-                className={`text-right text-sm tabular-nums flex items-center justify-end ${
+                className={`text-end text-sm tabular-nums flex items-center justify-end ${
                   isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
                 }`}
               >
@@ -443,7 +443,7 @@ export function DetailTrackTable({
                       e.stopPropagation();
                       onNavigateToAlbum(track.album_id!);
                     }}
-                    className="hover:underline truncate text-left"
+                    className="hover:underline truncate text-start"
                   >
                     {track.album_title}
                   </button>
@@ -451,7 +451,7 @@ export function DetailTrackTable({
                   (track.album_title ?? t("library.table.unknown"))
                 )}
               </span>
-              <span className="text-sm tabular-nums text-zinc-400 text-right">
+              <span className="text-sm tabular-nums text-zinc-400 text-end">
                 {formatDuration(track.duration_ms)}
               </span>
               <div className="flex justify-center">

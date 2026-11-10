@@ -285,12 +285,12 @@ export function TagCombobox({
           setActive(-1);
         }}
         onKeyDown={onKeyDown}
-        className={`${inputClassName} pr-7`}
+        className={`${inputClassName} pe-7`}
       />
       <ChevronDown
         size={14}
         aria-hidden="true"
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400"
+        className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 text-zinc-400"
       />
       {list && createPortal(list, document.body)}
     </div>

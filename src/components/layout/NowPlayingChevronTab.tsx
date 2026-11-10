@@ -30,9 +30,9 @@ export function NowPlayingChevronTab() {
       onClick={toggleNowPlaying}
       aria-label={t("playerBar.nowPlaying")}
       title={t("playerBar.nowPlaying")}
-      className="absolute right-0 top-1/2 -translate-y-1/2 z-30 h-12 w-6 flex items-center justify-center rounded-l-md border border-r-0 border-zinc-200 bg-white/90 text-zinc-500 backdrop-blur shadow-lg transition-colors hover:bg-white hover:text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/90 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+      className="absolute end-0 top-1/2 -translate-y-1/2 z-30 h-12 w-6 flex items-center justify-center rounded-s-md border border-e-0 border-zinc-200 bg-white/90 text-zinc-500 backdrop-blur shadow-lg transition-colors hover:bg-white hover:text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/90 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
     >
-      <ChevronLeft size={16} />
+      <ChevronLeft className="rtl:rotate-180" size={16} />
     </button>
   );
 }

@@ -36,7 +36,9 @@ export function MoodTuner({ counts, loadingMood, onStart }: MoodTunerProps) {
 
   return (
     <div className="fe-tuner">
-      <div className="fe-tuner__dial">
+      {/* The dial is a tempo axis, slowest on the left in every language;
+          the readout beside it follows the page. */}
+      <div dir="ltr" className="fe-tuner__dial">
         <div className="fe-tuner__scale" aria-hidden="true" />
         <div
           className="fe-tuner__needle"
@@ -127,7 +129,9 @@ export function MoodTuner({ counts, loadingMood, onStart }: MoodTunerProps) {
           </>
         )}
       </div>
+      {/* The dial's scale: left to right, like the dial above it. */}
       <div
+        dir="ltr"
         className="fe-tuner__ruler fe-ink-3 fe-mono text-[0.6875rem] tracking-[0.08em] uppercase"
         aria-hidden="true"
       >

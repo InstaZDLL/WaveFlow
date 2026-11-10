@@ -116,7 +116,7 @@ export function AccentCard() {
         </div>
       </div>
 
-      <div className="mt-4 ml-9 space-y-4">
+      <div className="mt-4 ms-9 space-y-4">
         {/* Native radios, visually hidden behind their labels: arrow
             keys move between the modes, as in the other Settings
             choices, without a hand-rolled roving focus. */}

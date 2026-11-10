@@ -283,7 +283,7 @@ export function MoodRadioGrid() {
               disabled={disabled || isLoading}
               aria-busy={isLoading || undefined}
               style={{ "--mood": color } as CSSProperties}
-              className="group flex min-w-0 flex-col rounded-xl border border-zinc-200 bg-[color-mix(in_srgb,var(--mood)_5%,white)] p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--mood)_45%,transparent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-200 dark:border-zinc-800 dark:bg-[color-mix(in_srgb,var(--mood)_7%,var(--color-zinc-900))] dark:disabled:hover:border-zinc-800"
+              className="group flex min-w-0 flex-col rounded-xl border border-zinc-200 bg-[color-mix(in_srgb,var(--mood)_5%,white)] p-4 text-start transition-colors hover:border-[color-mix(in_srgb,var(--mood)_45%,transparent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-200 dark:border-zinc-800 dark:bg-[color-mix(in_srgb,var(--mood)_7%,var(--color-zinc-900))] dark:disabled:hover:border-zinc-800"
               aria-label={t(`home.moodRadio.${mood}.title`)}
             >
               <span className="mb-3 flex items-center justify-between gap-2">

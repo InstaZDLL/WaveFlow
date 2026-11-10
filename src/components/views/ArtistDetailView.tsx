@@ -482,7 +482,7 @@ export function ArtistDetailView({
             onClick={() => setIsBackdropPickerOpen(true)}
             aria-label={t("artistBackdropPicker.title")}
             title={t("artistBackdropPicker.title")}
-            className={`absolute top-3 right-3 z-10 p-2 rounded-full opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover/hero:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+            className={`absolute top-3 end-3 z-10 p-2 rounded-full opacity-0 hover:opacity-100 focus-visible:opacity-100 group-hover/hero:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
               heroSrc
                 ? "bg-black/45 text-white"
                 : // No hero behind it: a white-on-black pill would be a
@@ -535,7 +535,7 @@ export function ArtistDetailView({
                 image and the curated metadata alike. A server artist has no
                 such row. */}
             {!remote && (
-              <div className="absolute right-2 bottom-2 pointer-events-none">
+              <div className="absolute end-2 bottom-2 pointer-events-none">
                 <button
                   type="button"
                   onClick={() => setIsImagePickerOpen(true)}
@@ -814,7 +814,7 @@ export function ArtistDetailView({
                 {...(album.remote_id
                   ? {}
                   : tileMenu.bind({ kind: "album", id: album.id }))}
-                className="group flex flex-col space-y-2 text-left"
+                className="group flex flex-col space-y-2 text-start"
               >
                 {album.source === "remote" ? (
                   <RemoteArtwork
@@ -996,7 +996,7 @@ function ArtistTrackTable({
       <div
         className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
       >
-        <span className="text-right">{t("library.table.number")}</span>
+        <span className="text-end">{t("library.table.number")}</span>
         <span aria-hidden="true" />
         <span>{t("library.table.title")}</span>
         <span>{t("library.table.album")}</span>
@@ -1069,7 +1069,7 @@ function ArtistTrackTable({
               }`}
             >
               <span
-                className={`text-right text-sm tabular-nums flex items-center justify-end ${
+                className={`text-end text-sm tabular-nums flex items-center justify-end ${
                   isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
                 }`}
               >
@@ -1107,7 +1107,7 @@ function ArtistTrackTable({
               <span className="text-sm text-zinc-500 truncate">
                 {track.album_title ?? t("library.table.unknown")}
               </span>
-              <span className="text-sm tabular-nums text-zinc-400 text-right">
+              <span className="text-sm tabular-nums text-zinc-400 text-end">
                 {formatDuration(track.duration_ms)}
               </span>
               <div className="flex justify-center">

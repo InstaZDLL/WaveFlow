@@ -176,7 +176,7 @@ export function BackupCard({ language }: BackupCardProps) {
       </div>
 
       {config.enabled && (
-        <div className="mt-4 ml-9 space-y-3">
+        <div className="mt-4 ms-9 space-y-3">
           {/* Interval picker */}
           <div className="flex items-center justify-between gap-4">
             <label
@@ -300,7 +300,7 @@ export function BackupCard({ language }: BackupCardProps) {
 
       {status && (
         <div
-          className={`mt-3 ml-9 text-xs ${
+          className={`mt-3 ms-9 text-xs ${
             status.kind === "ok"
               ? "text-emerald-600 dark:text-emerald-400"
               : "text-red-500"

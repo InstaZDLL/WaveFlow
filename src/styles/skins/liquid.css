@@ -359,7 +359,8 @@
    floating sheet cannot, so it is the shell minus the inset, on both
    axes, and the gutters are the profile panel's. */
 :root[data-skin="liquid"] .skin-sidebar-shell {
-  padding: 0.75rem 0 0.75rem 0.75rem;
+  padding-block: 0.75rem;
+  padding-inline: 0.75rem 0;
 }
 :root[data-skin="liquid"] .skin-sidebar-shell > aside {
   width: calc(16rem - 0.75rem) !important;
@@ -691,7 +692,8 @@
 /* ── The side panel: structural glass beside the page ────────── */
 :root[data-skin="liquid"] .fe-panel {
   height: calc(100% - 1.5rem);
-  margin: 0.75rem 0.75rem 0.75rem 0;
+  margin-block: 0.75rem;
+  margin-inline: 0 0.75rem;
   border-radius: 1.5rem;
   background-color: var(--glass-structural-bg);
   background-image:
@@ -1156,7 +1158,7 @@
   width: 100%;
   min-height: 9.5rem;
   padding: 1rem 1.125rem 1.125rem;
-  text-align: left;
+  text-align: start;
   color: var(--fe-ink);
   cursor: pointer;
 }
@@ -1254,13 +1256,14 @@
 }
 :root[data-skin="liquid"] .aq-capsule__cta {
   position: absolute;
-  left: 1.125rem;
+  inset-inline-start: 1.125rem;
   bottom: 1rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   height: 2rem;
-  padding: 0 0.875rem 0 0.625rem;
+  padding-block: 0;
+  padding-inline: 0.625rem 0.875rem;
   border-radius: 9999px;
   font-size: 0.8125rem;
   font-weight: 540;

@@ -92,7 +92,7 @@ export function LyricsStep({
                 aria-checked={active}
                 disabled={busy || destination == null}
                 onClick={() => void pick(id)}
-                className={`onboarding-tile rounded-2xl border p-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60 ${
+                className={`onboarding-tile rounded-2xl border p-3 text-start transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60 ${
                   active
                     ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/30 dark:bg-emerald-500/10"
                     : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"

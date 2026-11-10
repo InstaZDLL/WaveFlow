@@ -22,7 +22,7 @@ export function GenreList({ genres, isLoading, t, onSelect }: GenreListProps) {
           type="button"
           key={genre.id}
           onClick={() => onSelect(genre.id)}
-          className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-start focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
         >
           <Artwork
             path={genre.artwork_path}

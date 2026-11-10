@@ -237,7 +237,7 @@ export function ArtistList({
           {/* Same chip as the album grid: one list, every tile says where it
               comes from. */}
           {remote && (
-            <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-black/60 text-white backdrop-blur-sm">
+            <span className="absolute top-1 end-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-black/60 text-white backdrop-blur-sm">
               {t("library.source.remote")}
             </span>
           )}
@@ -263,7 +263,7 @@ export function ArtistList({
                 setOpenMenuArtistId(isMenuOpen ? null : localId);
               }}
               aria-label={t("trackActions.addToPlaylist")}
-              className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
+              className={`absolute bottom-1 end-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
                 isMenuOpen
                   ? "opacity-100 bg-emerald-500 text-white"
                   : "opacity-0 reveal:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"

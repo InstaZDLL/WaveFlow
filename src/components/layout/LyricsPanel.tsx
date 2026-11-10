@@ -624,7 +624,7 @@ export function LyricsPanel({
                       setPickerOpen(false);
                     }
                   }}
-                  className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
+                  className="absolute start-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
                 >
                   {[
                     ...LYRICS_PROVIDERS.map((p) => ({
@@ -741,7 +741,7 @@ export function LyricsPanel({
       animate={{ width: 320, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full shrink-0 overflow-hidden border-s bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       {body}
     </motion.aside>

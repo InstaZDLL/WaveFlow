@@ -180,7 +180,9 @@ function OptionControl({
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              effective === "true" ? "translate-x-6" : "translate-x-1"
+              effective === "true"
+                ? "translate-x-6 rtl:-translate-x-6"
+                : "translate-x-1 rtl:-translate-x-1"
             }`}
           />
         </button>

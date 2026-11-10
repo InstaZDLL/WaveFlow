@@ -36,49 +36,54 @@ export function EditorTransport({
   const positionMs = usePlayerPosition();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onMouseDown={keepFocus}
-        onClick={() => seek(Math.max(0, estimate() - SKIP_MS))}
-        title={t("lyricsEditor.transport.back")}
-        aria-label={t("lyricsEditor.transport.back")}
-        className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-      >
-        <RotateCcw size={16} />
-      </button>
-      <button
-        type="button"
-        onMouseDown={keepFocus}
-        onClick={togglePlayback}
-        title={
-          isPlaying ? t("player.controls.pause") : t("player.controls.play")
-        }
-        aria-label={
-          isPlaying ? t("player.controls.pause") : t("player.controls.play")
-        }
-        className="p-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
-      >
-        {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-      </button>
-      <button
-        type="button"
-        onMouseDown={keepFocus}
-        onClick={() => seek(estimate() + SKIP_MS)}
-        title={t("lyricsEditor.transport.forward")}
-        aria-label={t("lyricsEditor.transport.forward")}
-        className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-      >
-        <RotateCw size={16} />
-      </button>
-      <span className="ml-1 font-mono text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
-        {formatEditorTime(positionMs)}
-        {durationMs ? ` / ${formatEditorTime(durationMs)}` : ""}
-      </span>
+      {/* The transport keeps a player's order in every language, like the
+          player bar's, and the time reads "elapsed / length" left to right;
+          the speed picker after it follows the page. */}
+      <div dir="ltr" className="flex items-center gap-2">
+        <button
+          type="button"
+          onMouseDown={keepFocus}
+          onClick={() => seek(Math.max(0, estimate() - SKIP_MS))}
+          title={t("lyricsEditor.transport.back")}
+          aria-label={t("lyricsEditor.transport.back")}
+          className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <RotateCcw size={16} />
+        </button>
+        <button
+          type="button"
+          onMouseDown={keepFocus}
+          onClick={togglePlayback}
+          title={
+            isPlaying ? t("player.controls.pause") : t("player.controls.play")
+          }
+          aria-label={
+            isPlaying ? t("player.controls.pause") : t("player.controls.play")
+          }
+          className="p-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
+        >
+          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+        </button>
+        <button
+          type="button"
+          onMouseDown={keepFocus}
+          onClick={() => seek(estimate() + SKIP_MS)}
+          title={t("lyricsEditor.transport.forward")}
+          aria-label={t("lyricsEditor.transport.forward")}
+          className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <RotateCw size={16} />
+        </button>
+        <span className="ms-1 font-mono text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
+          {formatEditorTime(positionMs)}
+          {durationMs ? ` / ${formatEditorTime(durationMs)}` : ""}
+        </span>
+      </div>
       <div
         role="radiogroup"
         aria-label={t("lyricsEditor.transport.speed")}
         title={t("lyricsEditor.transport.speed")}
-        className="ml-auto flex rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
+        className="ms-auto flex rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
       >
         {SPEEDS.map((value) => {
           const checked = Math.abs(speed - value) < 0.001;

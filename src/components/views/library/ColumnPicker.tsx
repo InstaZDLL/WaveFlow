@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { leftAligned } from "../../../lib/direction";
 import {
   ChevronDown,
   ChevronUp,
@@ -49,6 +50,8 @@ const MIN_PANEL_HEIGHT = 220;
 const MAX_PANEL_HEIGHT = 520;
 /** Gap between the panel and both the trigger and the viewport edge. */
 const PANEL_MARGIN = 8;
+/** The panel's width: its `w-72`. */
+const PANEL_WIDTH = 288;
 
 export function ColumnPicker({
   layout,
@@ -61,7 +64,7 @@ export function ColumnPicker({
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<{
     top: number;
-    right: number;
+    left: number;
     maxHeight: number;
     maxWidth: number;
   } | null>(null);
@@ -198,15 +201,19 @@ export function ColumnPicker({
             rect.top - PANEL_MARGIN - Math.min(above, MAX_PANEL_HEIGHT),
           )
         : rect.bottom + PANEL_MARGIN;
+      const width = Math.min(PANEL_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
       setAnchor({
         top,
-        right: Math.max(PANEL_MARGIN, window.innerWidth - rect.right),
-        // The panel has a fixed width and is anchored by its right
-        // edge, so on a viewport narrower than that width its LEFT edge
-        // goes off screen -- and nothing brings it back, because a
-        // `fixed` element does not move with the page. Reachable at the
-        // zoom levels this whole block exists for.
-        maxWidth: window.innerWidth - PANEL_MARGIN * 2,
+        // Lined up with the trigger's end edge: its right edge, or its
+        // left one in a right-to-left language, so the panel opens
+        // toward the table -- and pushed back inside the window when
+        // the trigger sits too close to an edge for that.
+        left: leftAligned(rect, width, PANEL_MARGIN, "end"),
+        // On a viewport narrower than the panel, the panel narrows: a
+        // `fixed` element does not move with the page, so a part past
+        // the edge could never be reached. Reachable at the zoom levels
+        // this whole block exists for.
+        maxWidth: width,
         // The horizontal axis was already held inside the viewport; the
         // vertical one was not. A `fixed` panel that runs past the
         // bottom edge cannot be scrolled to -- the page scrolls, the
@@ -270,7 +277,7 @@ export function ColumnPicker({
             aria-label={t("library.columns.choose")}
             style={{
               top: anchor.top,
-              right: anchor.right,
+              left: anchor.left,
               maxHeight: anchor.maxHeight,
               maxWidth: anchor.maxWidth,
             }}
@@ -366,7 +373,7 @@ export function ColumnPicker({
                         and it is the only way to change the order --
                         so without these the feature is closed to
                         keyboard and switch users entirely. */}
-                    <span className="ml-auto flex shrink-0 items-center">
+                    <span className="ms-auto flex shrink-0 items-center">
                       <button
                         type="button"
                         onClick={() => moveAndKeepFocus(index, index - 1)}
@@ -441,7 +448,7 @@ export function ColumnPicker({
                           {/* The count is what makes this list usable:
                               it separates the tag on every track from
                               the one on three. */}
-                          <span className="ml-auto shrink-0 text-[11px] text-zinc-400 tabular-nums">
+                          <span className="ms-auto shrink-0 text-[11px] text-zinc-400 tabular-nums">
                             {count}
                           </span>
                         </label>

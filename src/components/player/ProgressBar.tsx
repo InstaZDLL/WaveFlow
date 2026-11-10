@@ -36,6 +36,9 @@ interface ProgressBarProps {
    * keyboard contract, three times the travel for a seek. `horizon`:
    * the same place and the same slider, drawn as Lounge's line of
    * light — a straight line whose played part lights the bar below it.
+   *
+   * Every variant is `dir="ltr"`: a timeline runs left to right in every
+   * language, and the seek maths measures from the rail's left edge.
    */
   variant?: "bar" | "edge" | "horizon";
 }
@@ -188,7 +191,7 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
     // them out again.
     const factor = percent / 100;
     return (
-      <div className="fe-horizon relative h-5 w-full px-16">
+      <div dir="ltr" className="fe-horizon relative h-5 w-full px-16">
         <span className="fe-ink-3 fe-mono absolute left-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
           {formatDuration(clampedDisplay)}
         </span>
@@ -259,7 +262,7 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
 
   if (variant === "edge") {
     return (
-      <div className="relative h-5 w-full px-16">
+      <div dir="ltr" className="relative h-5 w-full px-16">
         <span className="fe-ink-3 fe-mono absolute left-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
           {formatDuration(clampedDisplay)}
         </span>
@@ -357,7 +360,10 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
   }
 
   return (
-    <div className="w-full flex items-center space-x-3 text-xs text-zinc-400">
+    <div
+      dir="ltr"
+      className="w-full flex items-center space-x-3 text-xs text-zinc-400"
+    >
       <span className="tabular-nums w-10 text-right">
         {formatDuration(clampedDisplay)}
       </span>

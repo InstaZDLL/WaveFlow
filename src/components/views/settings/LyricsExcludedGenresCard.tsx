@@ -46,7 +46,7 @@ export function LyricsExcludedGenresCard() {
             {genres.map((genre) => (
               <li
                 key={genre}
-                className="flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-800 dark:text-zinc-200"
+                className="flex items-center gap-1 ps-3 pe-1 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-800 dark:text-zinc-200"
               >
                 <span>{genre}</span>
                 <button

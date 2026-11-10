@@ -54,6 +54,7 @@ import {
   type AlbumRow,
   type ArtistRow,
 } from "../../lib/tauri/browse";
+import { endCornerOrigin } from "../../lib/direction";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface TopBarProps {
@@ -452,9 +453,9 @@ export function TopBar({
           className="p-2 rounded-full border transition-colors border-zinc-200 bg-white text-zinc-600 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white"
         >
           {sidebarMode === "hidden" ? (
-            <PanelLeftOpen size={20} />
+            <PanelLeftOpen className="rtl:-scale-x-100" size={20} />
           ) : (
-            <PanelLeftClose size={20} />
+            <PanelLeftClose className="rtl:-scale-x-100" size={20} />
           )}
         </button>
         <button
@@ -466,7 +467,7 @@ export function TopBar({
               : "text-zinc-300 cursor-not-allowed dark:text-zinc-600"
           }`}
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft className="rtl:rotate-180" size={20} />
         </button>
         <button
           onClick={onGoForward}
@@ -477,7 +478,7 @@ export function TopBar({
               : "text-zinc-300 cursor-not-allowed dark:text-zinc-600"
           }`}
         >
-          <ChevronRight size={20} />
+          <ChevronRight className="rtl:rotate-180" size={20} />
         </button>
       </div>
 
@@ -491,7 +492,7 @@ export function TopBar({
           data-topbar-search-field
           className="flex items-center px-4 py-2.5 rounded-full border transition-all focus-within:ring-2 ring-emerald-500/20 bg-white border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-700 dark:text-zinc-200"
         >
-          <Search size={18} className="text-zinc-400 mr-3" />
+          <Search size={18} className="text-zinc-400 me-3" />
           <input
             ref={searchInputRef}
             type="text"
@@ -518,7 +519,7 @@ export function TopBar({
             }}
             aria-label={t("topbar.search.filters.toggle")}
             title={t("topbar.search.filters.toggle")}
-            className={`relative ml-2 p-1.5 rounded-full transition-colors ${
+            className={`relative ms-2 p-1.5 rounded-full transition-colors ${
               filtersOpen || hasActiveFilters
                 ? "text-emerald-500 bg-emerald-500/10"
                 : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
@@ -526,7 +527,7 @@ export function TopBar({
           >
             <SlidersHorizontal size={16} />
             {hasActiveFilters && !filtersOpen && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full bg-emerald-500" />
             )}
           </button>
         </div>
@@ -546,7 +547,7 @@ export function TopBar({
               }}
               style={{ transformOrigin: "top center" }}
               data-topbar-popover
-              className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto"
+              className="absolute top-full start-0 end-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
@@ -711,7 +712,7 @@ export function TopBar({
               }}
               style={{ transformOrigin: "top center" }}
               data-topbar-popover
-              className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden"
+              className="absolute top-full start-0 end-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden"
             >
               {showingRecent ? (
                 recent.length > 0 && (
@@ -737,7 +738,7 @@ export function TopBar({
                           <button
                             type="button"
                             onClick={() => runRecentSearch(query)}
-                            className="flex flex-1 min-w-0 items-center space-x-3 px-4 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
+                            className="flex flex-1 min-w-0 items-center space-x-3 px-4 py-2 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
                           >
                             <History
                               size={16}
@@ -761,7 +762,7 @@ export function TopBar({
                               query,
                             })}
                             title={t("topbar.search.recent.remove", { query })}
-                            className="mr-2 rounded-full p-1.5 text-zinc-400 opacity-0 reveal:opacity-100 hover:text-zinc-700 dark:hover:text-zinc-200 transition-opacity"
+                            className="me-2 rounded-full p-1.5 text-zinc-400 opacity-0 reveal:opacity-100 hover:text-zinc-700 dark:hover:text-zinc-200 transition-opacity"
                           >
                             <X size={14} />
                           </button>
@@ -790,7 +791,7 @@ export function TopBar({
                               kind: "artist",
                               id: artist.id,
                             })}
-                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
                               path={artist.artwork_path ?? artist.picture_path}
@@ -820,7 +821,7 @@ export function TopBar({
                               kind: "album",
                               id: album.id,
                             })}
-                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
                               path={album.artwork_path}
@@ -853,7 +854,7 @@ export function TopBar({
                             onClick={() =>
                               handleSearchResultClick(searchResults, index)
                             }
-                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
                               path={track.artwork_path}
@@ -928,9 +929,9 @@ export function TopBar({
           }`}
         >
           <div
-            className={`absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ease-in-out ${
+            className={`absolute top-1 start-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ease-in-out ${
               isDark
-                ? "translate-x-6 bg-zinc-700 text-yellow-400"
+                ? "translate-x-6 rtl:-translate-x-6 bg-zinc-700 text-yellow-400"
                 : "translate-x-0 bg-zinc-100 text-amber-500 dark:bg-zinc-700 dark:text-amber-400"
             }`}
           >
@@ -990,9 +991,9 @@ export function TopBar({
                   damping: 32,
                   mass: 0.45,
                 }}
-                style={{ transformOrigin: "top right" }}
+                style={{ transformOrigin: endCornerOrigin("top") }}
                 data-topbar-popover
-                className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
+                className="absolute top-full end-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
               >
                 {/* Profile Header */}
                 <div className="p-4 flex items-center space-x-3">
@@ -1000,7 +1001,7 @@ export function TopBar({
                     profile={activeProfile}
                     className="w-10 h-10 rounded-full font-bold text-lg shadow-sm"
                   />
-                  <div className="flex flex-col text-left min-w-0">
+                  <div className="flex flex-col text-start min-w-0">
                     <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
                       {profileName}
                     </div>

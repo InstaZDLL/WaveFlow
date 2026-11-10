@@ -100,7 +100,7 @@ export function ScanProgressToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-28 right-6 z-50 w-80 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl p-4 animate-fade-in"
+      className="fixed bottom-28 end-6 z-50 w-80 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl p-4 animate-fade-in"
     >
       <div className="flex items-start gap-3">
         <div

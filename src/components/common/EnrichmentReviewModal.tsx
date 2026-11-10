@@ -308,7 +308,7 @@ export function EnrichmentReviewModal({
                     key={item.key}
                     data-index={item.index}
                     ref={virtualizer.measureElement}
-                    className="absolute left-0 top-0 w-full pb-2"
+                    className="absolute start-0 top-0 w-full pb-2"
                     style={{ transform: `translateY(${item.start}px)` }}
                   >
                     {row.kind === "album" ? (

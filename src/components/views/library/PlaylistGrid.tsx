@@ -278,7 +278,7 @@ function PlaylistCard({
       data-playlist-card
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
-      className="group flex flex-col space-y-2 text-left cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      className="group flex flex-col space-y-2 text-start cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
     >
       {coverUrl ? (
         <img

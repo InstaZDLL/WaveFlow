@@ -277,9 +277,12 @@ export function CatalogueMirrorCard() {
                   {t("remote.catalogue.statAlbums")}
                 </dt>
                 <dd className="tabular-nums text-zinc-900 dark:text-zinc-100">
-                  {stats.albums_mirrored === stats.albums
-                    ? stats.albums
-                    : `${stats.albums_mirrored} / ${stats.albums}`}
+                  {stats.albums_mirrored === stats.albums ? (
+                    stats.albums
+                  ) : (
+                    // "a / b" left to right in every language.
+                    <span dir="ltr">{`${stats.albums_mirrored} / ${stats.albums}`}</span>
+                  )}
                 </dd>
               </div>
               <div>

@@ -843,7 +843,7 @@ function AlbumTrackTable({
         }`}
       >
         <span
-          className={`text-right text-sm tabular-nums flex items-center justify-end ${
+          className={`text-end text-sm tabular-nums flex items-center justify-end ${
             isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
           }`}
         >
@@ -898,7 +898,7 @@ function AlbumTrackTable({
           fallback={t("library.table.unknown")}
           className="text-sm text-zinc-500 truncate"
         />
-        <span className="text-sm tabular-nums text-zinc-400 text-right">
+        <span className="text-sm tabular-nums text-zinc-400 text-end">
           {formatDuration(track.duration_ms)}
         </span>
         <div className="flex justify-center">
@@ -938,7 +938,7 @@ function AlbumTrackTable({
       <div
         className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
       >
-        <span className="text-right">{t("library.table.number")}</span>
+        <span className="text-end">{t("library.table.number")}</span>
         <span>{t("library.table.title")}</span>
         <span>{t("library.table.artist")}</span>
         <span

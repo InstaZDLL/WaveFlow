@@ -144,7 +144,7 @@ export function ImportPlaylistModal({
           type="button"
           onClick={() => void handleFile()}
           disabled={busy}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-left hover:border-emerald-500 hover:bg-emerald-500/5 transition-colors disabled:opacity-50"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-start hover:border-emerald-500 hover:bg-emerald-500/5 transition-colors disabled:opacity-50"
         >
           <FileUp
             size={18}

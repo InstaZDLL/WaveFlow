@@ -197,7 +197,7 @@ export function IntegrationsSection({
                     placeholder={t("settings.integrations.lastfm.placeholder")}
                     spellCheck={false}
                     autoComplete="off"
-                    className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                    className="w-full pe-10 ps-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
                   />
                   <button
                     type="button"
@@ -207,7 +207,7 @@ export function IntegrationsSection({
                         ? t("settings.integrations.lastfm.hide")
                         : t("settings.integrations.lastfm.show")
                     }
-                    className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    className="absolute inset-y-0 end-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                   >
                     {lastfmKeyVisible ? (
                       <EyeOff size={16} />
@@ -233,7 +233,7 @@ export function IntegrationsSection({
                     )}
                     spellCheck={false}
                     autoComplete="off"
-                    className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                    className="w-full pe-10 ps-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
                   />
                   <button
                     type="button"
@@ -243,7 +243,7 @@ export function IntegrationsSection({
                         ? t("settings.integrations.lastfm.hide")
                         : t("settings.integrations.lastfm.show")
                     }
-                    className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    className="absolute inset-y-0 end-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                   >
                     {lastfmSecretVisible ? (
                       <EyeOff size={16} />
@@ -698,7 +698,7 @@ export function IntegrationsSection({
                           });
                         }}
                         onBlur={() => persistMpd(mpdConfig)}
-                        className="w-full pl-2 pr-8 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                        className="w-full ps-2 pe-8 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
                       />
                       <button
                         type="button"
@@ -708,7 +708,7 @@ export function IntegrationsSection({
                             ? t("settings.integrations.mpd.hidePassword")
                             : t("settings.integrations.mpd.showPassword")
                         }
-                        className="absolute inset-y-0 right-0 px-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        className="absolute inset-y-0 end-0 px-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                       >
                         {mpdPasswordVisible ? (
                           <EyeOff size={14} />

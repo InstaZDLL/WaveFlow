@@ -51,7 +51,7 @@ export function LyricsPreviewCard({ onOpen }: { onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="fe-panel__lyrics block w-full text-left"
+      className="fe-panel__lyrics block w-full text-start"
     >
       <p className="fe-label mb-2">{t("lyrics.title")}</p>
       {lines.map((line, i) => (

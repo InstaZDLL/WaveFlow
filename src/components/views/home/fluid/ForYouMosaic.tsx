@@ -78,7 +78,7 @@ export function ForYouMosaic({
             type="button"
             onClick={() => onNavigateToAlbum(featured.album_id)}
             {...albumMenu.bind({ kind: "album", id: featured.album_id })}
-            className="fe-tile-hover group col-span-12 row-span-2 text-left lg:col-span-6"
+            className="fe-tile-hover group col-span-12 row-span-2 text-start lg:col-span-6"
           >
             <div className="fe-tile relative h-full min-h-[18rem] w-full rounded-[1.125rem]!">
               <Artwork
@@ -114,7 +114,7 @@ export function ForYouMosaic({
                     </span>
                   </p>
                 </div>
-                <span className="fe-press inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-white pl-4 pr-3 text-[0.8125rem] font-medium text-[#0b0b0e] transition-transform group-hover:scale-[1.03]">
+                <span className="fe-press inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-white ps-4 pe-3 text-[0.8125rem] font-medium text-[#0b0b0e] transition-transform group-hover:scale-[1.03]">
                   {t("home.fluid.openAlbum")}
                   <ArrowUpRight size={14} strokeWidth={2} />
                 </span>
@@ -140,7 +140,7 @@ export function ForYouMosaic({
                   <button
                     type="button"
                     onClick={() => onNavigateToPlaylist(p.id)}
-                    className="fe-press flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3.5 ring-1 ring-[var(--fe-hairline-strong)] hover:bg-[var(--fe-tone-1)] hover:ring-[var(--fe-hairline-strong)]"
+                    className="fe-press flex items-center gap-2.5 rounded-full py-1 ps-1 pe-3.5 ring-1 ring-[var(--fe-hairline-strong)] hover:bg-[var(--fe-tone-1)] hover:ring-[var(--fe-hairline-strong)]"
                   >
                     {cover ? (
                       <img
@@ -186,7 +186,7 @@ function MixCard({
     <button
       type="button"
       onClick={() => onOpen(playlist.id)}
-      className="fe-tile-hover col-span-6 row-span-2 text-left lg:col-span-3"
+      className="fe-tile-hover col-span-6 row-span-2 text-start lg:col-span-3"
     >
       <div className="flex h-full flex-col rounded-[1.125rem] bg-[var(--fe-surface)] p-3">
         <div className="fe-tile aspect-square w-full rounded-[0.75rem]!">
