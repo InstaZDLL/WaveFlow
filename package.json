@@ -4,6 +4,7 @@
   "version": "1.9.1",
   "type": "module",
   "license": "GPL-3.0-only",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -26,22 +27,22 @@
     "@fontsource/playfair-display": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
     "@fontsource/space-mono": "^5.3.0",
-    "@tailwindcss/vite": "^4.3.4",
+    "@tailwindcss/vite": "^4.3.5",
     "@tanstack/react-virtual": "^3.14.26",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-notification": "^2.8.0",
     "@tauri-apps/plugin-opener": "^2.7.2",
     "@tauri-apps/plugin-updater": "^2.14.1",
-    "framer-motion": "^14.9.1",
+    "framer-motion": "^14.11.1",
     "i18next": "^26.7.2",
     "i18next-browser-languagedetector": "^8.3.0",
-    "lucide-react": "^1.69.0",
+    "lucide-react": "^1.70.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^17.1.13",
-    "tailwindcss": "^4.3.4"
+    "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
@@ -51,7 +52,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.2.1",
+    "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
@@ -60,8 +61,8 @@
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.1",
-    "vite": "^8.3.6"
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.7"
   },
   "overrides": {
     "fast-uri": "^3.1.5"
