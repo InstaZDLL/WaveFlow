@@ -309,6 +309,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Generation counter for `playTracks`: a failure of an older pick must
   // not put back the bar a newer pick has since taken over.
   const playRequestRef = useRef(0);
+  // Counts `player:state` events, so a snapshot read while one arrived does
+  // not put back the state it replaced.
+  const stateEventsRef = useRef(0);
 
   // Keep that ref in step with the state it mirrors.
   useEffect(() => {
@@ -577,6 +580,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<PlayerStatePayload>("player:state", (e) => {
+            stateEventsRef.current += 1;
             setPlaybackState(e.payload.state);
             if (e.payload.state === "ended") {
               // Keep currentTrack in view so the PlayerBar still
@@ -935,14 +939,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           kind: "unknown",
           detail: String(err),
         });
+        // The engine's own word, unless it has spoken since this read began.
+        const stateEvents = stateEventsRef.current;
+        const current = () =>
+          request === playRequestRef.current &&
+          stateEvents === stateEventsRef.current;
         try {
           const snap = await playerGetState();
-          if (request !== playRequestRef.current) return;
+          if (!current()) return;
           setPlaybackState(snap.state);
           setPlayerPosition(snap.position_ms);
         } catch (snapErr) {
           console.error("[PlayerContext] resync after play failed", snapErr);
-          if (request === playRequestRef.current) setPlaybackState("idle");
+          if (current()) setPlaybackState("idle");
         }
       }
     },
