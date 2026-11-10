@@ -319,11 +319,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Counts the position writes that are newer than a snapshot can be: a
   // `player:position` tick and a seek made here.
   const positionWritesRef = useRef(0);
+  // The playback state as last rendered, for `playTracks` to put back when a
+  // refused play cannot read the engine's own.
+  const playbackStateRef = useRef<PlaybackState>("idle");
 
-  // Keep that ref in step with the state it mirrors.
+  // Keep those refs in step with the state they mirror.
   useEffect(() => {
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
+  useEffect(() => {
+    playbackStateRef.current = playbackState;
+  }, [playbackState]);
 
   // Re-read the playing track when the library changes underneath it.
   //
@@ -911,6 +917,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const request = ++playRequestRef.current;
       const trackEvents = trackEventsRef.current;
       const shown = currentTrackRef.current;
+      const shownState = playbackStateRef.current;
       // Optimistic UI: show the clicked track + duration immediately
       // so the PlayerBar doesn't lag the invoke round-trip. The ref is
       // moved with it rather than after the render, so a refusal that
@@ -972,7 +979,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }
         } catch (snapErr) {
           console.error("[PlayerContext] resync after play failed", snapErr);
-          if (current()) setPlaybackState("idle");
+          // Refused before the decoder, so what played still plays: the
+          // state from before the click, not `idle`, and not the `loading`
+          // put up in advance, which no event would ever clear.
+          if (current()) setPlaybackState(shownState);
         }
       }
     },
