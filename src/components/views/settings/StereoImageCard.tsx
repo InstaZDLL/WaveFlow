@@ -281,6 +281,10 @@ function StereoSlider({
           <input
             id={id}
             type="range"
+            // An audio slider, like the volume: left to right in every
+            // language. The balance's ends are the left and right speakers;
+            // the width shares the slider. Label and value follow the page.
+            dir="ltr"
             min={min}
             max={max}
             step={1}

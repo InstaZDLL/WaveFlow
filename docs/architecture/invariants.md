@@ -381,7 +381,7 @@ What cannot be logical:
 **What stays physical, and why.** These keep left to right in every language, inside a container marked `dir="ltr"`, where sides are written physically:
 
 - **timelines**: the progress bar (every variant), the mini-player's seek bar, the desktop lyrics bar — a timeline runs left to right, and the seek maths measures from the rail's left edge;
-- **the volume sliders**, which sit with the progress bar in the player;
+- **the audio sliders**: the volume (player bar, mini-player), the playback speed, the crossfade, the ReplayGain adjustments, the balance (whose ends are the left and right speakers) and the stereo width — `dir="ltr"` on the `<input>` or the slider itself, so its label and value still follow the page. Any other slider (the desktop lyrics' size, opacity, outline) is a quantity with no physical axis and follows the reading direction, as native right-to-left interfaces do;
 - **the transport**: previous, play, next stay in a player's order, the way their icons point;
 - **charts**: the statistics bars and heatmap, the spectrogram, the equalizer curve (whose SVG `textAnchor` would follow the page), the spectrum visualizer;
 - **the mood radio's tempo axis**: Fluid's band and Lounge's dial put the slowest mood on the left on purpose; each segment's own text still reads in the interface's direction;

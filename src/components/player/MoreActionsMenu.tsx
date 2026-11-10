@@ -296,6 +296,9 @@ export function MoreActionsMenu({
 
               <input
                 type="range"
+                // An audio slider, like the volume: left to right in every
+                // language; its label and value still follow the page.
+                dir="ltr"
                 min={SPEED_MIN}
                 max={SPEED_MAX}
                 step={0.05}
