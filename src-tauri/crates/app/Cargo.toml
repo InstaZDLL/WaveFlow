@@ -295,7 +295,14 @@ discord-rich-presence = "1"
 # Its `windows` and `objc2` are the versions Tauri already pulls in.
 # `chrono` only serves the crate's listing API, which nothing here uses;
 # apartment-threaded COM is the default it ships with (see `trash.rs`).
-trash = { version = "5.2", default-features = false, features = ["coinit_apartmentthreaded"] }
+# Since 5.3 the freedesktop trash is a feature of its own: without it,
+# `default-features = false` leaves Linux with no backend and the crate
+# does not build there. The `portal` feature stays off: inside Flatpak
+# `trash.rs` talks to the trash portal itself.
+trash = { version = "5.3", default-features = false, features = [
+  "coinit_apartmentthreaded",
+  "freedesktop",
+] }
 # Whether a copy and the copy kept for it are one file reached by two
 # paths (a mapped drive and its UNC path, a bind mount), which
 # `canonicalize` cannot tell: by volume and file index / device and inode.
