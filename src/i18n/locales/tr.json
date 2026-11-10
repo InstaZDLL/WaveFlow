@@ -3456,7 +3456,7 @@
         },
         "databases": {
           "label": "Veritabanları",
-          "description": "Tüm profillerin kütüphanesi, çalma listeleri, geçmişi ve ayarları."
+          "description": "Her profilin kütüphanesi, çalma listeleri, geçmişi ve ayarları."
         },
         "databaseSnapshots": {
           "label": "Yükseltme öncesi kopyalar",
