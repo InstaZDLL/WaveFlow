@@ -60,6 +60,23 @@ The tab bar inside the library **replaces** the current entry instead of pushing
 one. A tab is a filter on the page you are already on, so pushing would turn
 every tab click into a step Back has to undo.
 
+**A profile switch starts a new history** (#1067). Every id an entry carries is
+a row of the profile that was active, and the same number in the next
+profile's database is another row or none, so the history is reset to one
+entry, in the render that sees the new profile — no view ever mounts with the
+next profile active and the previous one's id in hand. That entry is the page
+the user was on when it names nothing of a profile's (Liked tracks, History,
+Statistics, a library tab, Settings, Wrapped…); an album, artist, genre or
+playlist — local or the server's — falls back to its library tab, a podcast
+channel or episode to the podcasts overview, and the tag workshop to Home
+(`entryAfterProfileSwitch` in
+[`AppLayout`](../../src/components/layout/AppLayout.tsx)). The view tree's key
+counts the switches, so every view mounts afresh rather than each one
+watching for the switch: before, a view whose fetch was keyed on its own
+props — Liked tracks — kept the previous profile's rows until the user left
+it. The top bar is keyed the same way (its search, results and genre filter
+are rows too), and the page scroller goes back to the top.
+
 ## Settings navigation
 
 Settings uses a persistent category list on wide containers and a compact
@@ -433,7 +450,7 @@ On Linux, every file picker — add a folder, import a playlist, choose a cover,
 - **Cover-derived background** — [`lib/dominantColor.ts`](../../src/lib/dominantColor.ts) draws the artwork onto a 64×64 canvas, samples every 4th pixel, skips near-monochrome runs (white margins, black bars) so the average reflects the real hue, and produces a 3-stop gradient applied to the window background.
 - **Canvas and motion cover (#717)** — the same chain as the panel and the immersive view, Canvas > motion cover > slideshow > still cover, with the same gates (the Show Canvas toggle, `prefers-reduced-motion`), and the same toggle in its top bar. The clip is cropped into the square slot rather than given a tall frame, which would push the controls out of a 280-pixel window. It is a second video decode while the main window may be showing the same clip. The toggle itself lives in `localStorage`, which the two webviews share but whose in-memory copy they do not, so [`useCanvasEnabled`](../../src/hooks/useCanvasEnabled.ts) listens for `storage` events: a toggle in the main window reaches an open mini-player without reopening it.
 - **Hover overlay controls** — shuffle / prev / play (white round Spotify-style) / next / repeat fade in over the cover, with a compact **volume slider + mute** on a second row (#511); idle state shows just the artwork. The overlay also reveals on `focus-within` — its controls stay in the tab order, and a keyboard user shouldn't be driving a slider they can't see.
-- **Shared state is broadcast, not per-window** — one engine behind two `PlayerContext`s, so anything reachable from both windows travels as an event: `player:volume-changed` from [`player_actions::set_volume`](../../src-tauri/crates/app/src/player_actions.rs) (behind `player_set_volume`, MPD's `setvol` and the global shortcuts), `player:options-changed` from the shuffle / repeat commands, and `track:liked-changed` from [`toggle_like_track`](../../src-tauri/crates/app/src/commands/track.rs) (#523). The heart is shared through [`useLikedTracks`](../../src/hooks/useLikedTracks.ts), which the player bar and the mini-player both use rather than each keeping their own set. Only volume needs an echo guard — see [`invariants.md`](../architecture/invariants.md#events).
+- **Shared state is broadcast, not per-window** — one engine behind two `PlayerContext`s, so anything reachable from both windows travels as an event: `player:volume-changed` from [`player_actions::set_volume`](../../src-tauri/crates/app/src/player_actions.rs) (behind `player_set_volume`, MPD's `setvol` and the global shortcuts), `player:options-changed` from the shuffle / repeat commands, and `track:liked-changed` from every write that moves a heart — [`toggle_like_track`](../../src-tauri/crates/app/src/commands/track.rs) and a favourite copied from the server in the reconciliation card — through `emit_liked_changed` (#523, #1066). The heart is shared through [`useLikedTracks`](../../src/hooks/useLikedTracks.ts), which the player bar and the mini-player both use rather than each keeping their own set. The Liked tracks and Recently played counts — the sidebar's and both Homes' — come from one hook, [`useProfileStats`](../../src/hooks/useProfileStats.ts), which re-reads `get_profile_stats` on that event, on `player:track-changed` and `player:state`, on a profile switch and whenever the library context reloads (a scan, a removed folder, a duplicate sent to the trash: a track leaving takes its like with it). Each of them used to read the counts once with its own triggers, none of them a like, so the sidebar's count only moved at the next launch (#1066). Only volume needs an echo guard — see [`invariants.md`](../architecture/invariants.md#events).
 - **Drag region** — `data-tauri-drag-region` on the central dot strip, plus an explicit `getCurrentWindow().startDragging()` `onMouseDown` as a belt-and-suspenders fallback for the Windows hit-test races. Requires `core:window:allow-start-dragging` in the capability (not in `core:default`).
 - **Pin toggle** — runtime `setAlwaysOnTop(bool)`; emerald when active.
 - **Up-next overlay** — a `ListMusic` toggle in the top bar slides a translucent up-next list over the content area (the top bar stays reachable so the toggle still closes it). Backed by the same `player_get_queue` + `player:queue-changed` subscription as the main [`QueuePanel`](../../src/components/layout/QueuePanel.tsx) (seq-guarded refetch), it lists every track after `current_index`; clicking a row calls `player_jump_to_index`, and finished tracks drop off as the index advances. Compact (no artwork, just position · title · artist). During a **remote session** it reads `remote_get_play_queue` and jumps with `remote_queue_jump` instead — the remote queue lives in memory on the backend, not in `queue_item`, the same split [`QueuePanel`](../../src/components/layout/QueuePanel.tsx) makes with [`RemoteQueueView`](../../src/components/layout/RemoteQueueView.tsx). It has no `queue-changed` event, so it refetches on the playing track id instead (#685).

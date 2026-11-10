@@ -333,7 +333,16 @@ async fn user_data_copies_only_on_explicit_directional_actions() {
         .execute(&pool)
         .await
         .unwrap();
-    copy_favorite(&pool, 1, "server_to_local").await.unwrap();
+    // The local heart moved, and the caller is told so it can broadcast it.
+    assert_eq!(
+        copy_favorite(&pool, 1, "server_to_local").await.unwrap(),
+        Some(true)
+    );
+    // Copied again, nothing local moves: nothing to broadcast.
+    assert_eq!(
+        copy_favorite(&pool, 1, "server_to_local").await.unwrap(),
+        None
+    );
     copy_rating(&pool, 1, "server_to_local").await.unwrap();
     let local: (i64, i64) = sqlx::query_as(
         "SELECT EXISTS(SELECT 1 FROM liked_track WHERE track_id = 1), rating FROM track WHERE id = 1",
