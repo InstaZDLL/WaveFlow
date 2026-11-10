@@ -2080,7 +2080,7 @@
       },
       "removeSinger": "이 가수 제거",
       "addSinger": "가수 추가",
-      "textPlaceholder": "여기에 가사를 붙여 넣으세요. 가사 한 줄을 한 행에 입력하세요.<br>빈 줄은 무시됩니다.",
+      "textPlaceholder": "여기에 가사를 붙여 넣으세요. 가사 한 줄을 한 행에 입력하세요.\n빈 줄은 무시됩니다.",
       "useText": "이 줄 사용",
       "useTextKeepsTiming": "바꾸지 않은 줄은 동기화를 유지합니다.",
       "addLine": "줄 추가",
