@@ -306,6 +306,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // reads of the same row in flight, and the older one must not be the
   // one that lands.
   const trackRefreshTokenRef = useRef(0);
+  // Generation counter for `playTracks`: a failure of an older pick must
+  // not put back the bar a newer pick has since taken over.
+  const playRequestRef = useRef(0);
+  // Counts `player:state` events, so a snapshot read while one arrived does
+  // not put back the state it replaced.
+  const stateEventsRef = useRef(0);
+  // Counts the events that name what plays (`player:track-changed`,
+  // `player:radio-metadata`): one received during a play request is newer
+  // than the label that request would put back.
+  const trackEventsRef = useRef(0);
+  // Counts the position writes that are newer than a snapshot can be: a
+  // `player:position` tick and a seek made here.
+  const positionWritesRef = useRef(0);
+  // The last playback state the engine itself reported — a `player:state`
+  // event or a snapshot, never a state put up in advance here. What
+  // `playTracks` falls back on when a refused play cannot read the engine's
+  // own: an optimistic `loading` would stay up with no event to clear it.
+  const confirmedStateRef = useRef<PlaybackState>("idle");
 
   // Keep that ref in step with the state it mirrors.
   useEffect(() => {
@@ -466,6 +484,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       try {
         const snap = await playerGetState();
         if (cancelled) return;
+        confirmedStateRef.current = snap.state;
         setPlaybackState(snap.state);
         setPlayerPosition(snap.position_ms);
         // Volume arrives as 0..1 from the snapshot; UI uses 0..100.
@@ -567,6 +586,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       try {
         unlisten.push(
           await listen<PlayerPositionPayload>("player:position", (e) => {
+            positionWritesRef.current += 1;
             if (!isSeekingRef.current) {
               setPlayerPosition(e.payload.ms);
             }
@@ -574,6 +594,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<PlayerStatePayload>("player:state", (e) => {
+            stateEventsRef.current += 1;
+            confirmedStateRef.current = e.payload.state;
             setPlaybackState(e.payload.state);
             if (e.payload.state === "ended") {
               // Keep currentTrack in view so the PlayerBar still
@@ -621,6 +643,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<QueueTrackPayload>("player:track-changed", (e) => {
+            trackEventsRef.current += 1;
             // Backend just selected a new track (via play_tracks,
             // next, previous, resume_last, or the analytics task's
             // auto-advance). Reflect it in the PlayerBar
@@ -659,6 +682,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<RadioMetadata>("player:radio-metadata", (e) => {
+            trackEventsRef.current += 1;
             // Web Radio (LoadUrlAndPlay) emits this in lieu of
             // `player:track-changed` — no library row to look up,
             // metadata rides on the event payload directly. The
@@ -891,9 +915,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       const chosen = tracks[startIndex];
+      const request = ++playRequestRef.current;
+      const trackEvents = trackEventsRef.current;
+      const shown = currentTrackRef.current;
       // Optimistic UI: show the clicked track + duration immediately
-      // so the PlayerBar doesn't lag the invoke round-trip.
+      // so the PlayerBar doesn't lag the invoke round-trip. The ref is
+      // moved with it rather than after the render, so a refusal that
+      // comes back first still finds its own label there.
       setCurrentTrack(chosen);
+      currentTrackRef.current = chosen;
       setDurationMs(chosen.duration_ms);
       setPlayerPosition(0);
       setPlaybackState("loading");
@@ -907,7 +937,55 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
       } catch (err) {
         console.error("[PlayerContext] play tracks failed", err);
-        setPlaybackState("idle");
+        // A track that will not open is no longer a refusal: the decoder
+        // reports it through `player:error` (#1065). What still lands here
+        // was refused before anything reached the decoder, so whatever
+        // played before the click plays on — and the bar has to say so
+        // rather than keep the label it put up in advance. Unless a newer
+        // pick, or an event, has already replaced that label.
+        if (
+          request !== playRequestRef.current ||
+          trackEvents !== trackEventsRef.current ||
+          currentTrackRef.current !== chosen
+        ) {
+          return;
+        }
+        setCurrentTrack(shown);
+        setDurationMs(shown?.duration_ms ?? 0);
+        setPlaybackAlert({
+          id: ++alertSeqRef.current,
+          severity: "error",
+          kind: "unknown",
+          detail: String(err),
+        });
+        // The engine's own word, unless it has spoken since this read began.
+        // The position likewise, on its own: the track that plays on still
+        // ticks, and a tick, a seek or a new track is newer than the read.
+        const stateEvents = stateEventsRef.current;
+        const positionWrites = positionWritesRef.current;
+        const trackEventsNow = trackEventsRef.current;
+        const current = () =>
+          request === playRequestRef.current &&
+          stateEvents === stateEventsRef.current;
+        try {
+          const snap = await playerGetState();
+          if (!current()) return;
+          confirmedStateRef.current = snap.state;
+          setPlaybackState(snap.state);
+          if (
+            positionWrites === positionWritesRef.current &&
+            trackEventsNow === trackEventsRef.current
+          ) {
+            setPlayerPosition(snap.position_ms);
+          }
+        } catch (snapErr) {
+          console.error("[PlayerContext] resync after play failed", snapErr);
+          // Refused before the decoder, so what played still plays: the
+          // state the engine last reported — a pause received during the
+          // request included — not `idle`, and not a `loading` put up in
+          // advance, which no event would ever clear.
+          if (current()) setPlaybackState(confirmedStateRef.current);
+        }
       }
     },
     [],
@@ -950,6 +1028,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seek = useCallback(async (ms: number) => {
     // Optimistic: update the UI position immediately; the backend
     // will also emit player:position after the seek lands.
+    positionWritesRef.current += 1;
     setPlayerPosition(ms);
     try {
       await playerSeek(ms);

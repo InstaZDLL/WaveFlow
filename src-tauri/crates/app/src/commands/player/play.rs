@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use crate::{
     audio::{engine::AudioCmd, next_track::edit_queue, AudioEngine},
@@ -198,28 +198,23 @@ pub(crate) async fn play_tracks_with_intent(
     drop(publish);
 
     let pb = std::path::PathBuf::from(&track.file_path);
-    // A track on a share is no file here. It answers from what is known in
-    // memory: nothing asks the network on the way to the decoder.
-    if waveflow_core::network_locator::is_locator(&track.file_path) {
-        if crate::netlib::is_blocked(&track.file_path) {
-            // The toast the decoder raises for a share lost during playback.
-            // Nothing reaches the decoder here, and a rejected command shows
-            // the user nothing.
-            let _ = app.emit(
-                "player:error",
-                serde_json::json!({
-                    "kind": "network-source-lost",
-                    "message": crate::netlib::UNREACHABLE_MESSAGE,
-                }),
-            );
-            return Err(AppError::Audio(crate::netlib::UNREACHABLE_MESSAGE.into()));
-        }
-    } else if !pb.is_file() {
-        // The file is gone, but the recording may not be: if this track was
-        // proved to be one the bound server holds, play it from there instead
-        // of refusing. Announced rather than silent — the row keeps saying the
-        // file is missing, because it is.
-        #[cfg(feature = "sync_v2")]
+    // Whether the first track can be opened is the decoder's to find out,
+    // here as on every other way a track is reached (#1065): a missing
+    // file, or a share that is down, fails at its open, which says so
+    // through `player:error` and leaves the player idle on that track.
+    // Refusing here instead sent nothing to the decoder, so the previous
+    // track played on under the new one's label, with no message — the
+    // queue had already been replaced. A share needs no check of its own
+    // on the way: the decoder's open answers a source known to be down
+    // from memory, without asking the network.
+    //
+    // The one thing worth trying first: a local file that is gone may be a
+    // recording the bound server holds.
+    #[cfg(feature = "sync_v2")]
+    if !waveflow_core::network_locator::is_locator(&track.file_path) && !pb.is_file() {
+        // Played from there instead when this track was proved to be one
+        // the server holds. Announced rather than silent — the row keeps
+        // saying the file is missing, because it is.
         if let Some(url) = server_stand_in(&state, &pool, profile_id, track.id).await {
             tracing::info!(
                 track_id = track.id,
@@ -254,10 +249,6 @@ pub(crate) async fn play_tracks_with_intent(
                 replay_gain,
             });
         }
-        return Err(AppError::Audio(format!(
-            "file not found: {}",
-            track.file_path
-        )));
     }
 
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
