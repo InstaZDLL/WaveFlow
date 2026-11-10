@@ -802,6 +802,8 @@ The picker lives in Settings → Appearance → Skin via [`SkinPickerCard`](../.
 
 There is **no per-key fallback**, so every locale must include every key. [`index.ts`](../../src/i18n/index.ts) sets `document.documentElement.dir` per language so Arabic renders RTL automatically.
 
+**`pt` is European Portuguese, and its plurals follow pt-PT's rules.** A bare `pt` makes `Intl.PluralRules` apply Brazil's rules, where 0 takes the singular ("0 canal"); `index.ts` wraps i18next's plural resolver so `pt` resolves with `pt-PT` instead ("0 canais"), while the stored language code stays `pt`. `pt-BR` keeps its own rules, and adds `_zero` forms where a count of 0 must read plural.
+
 Non-French locales were bulk-translated from `fr.json` through DeepL with explicit music-player context, then post-processed to keep brand tokens (`WaveFlow`, `Last.fm`, `Deezer`, `ReplayGain`, `LRCLIB`, `BPM`) verbatim and preserve i18next `{{placeholder}}` interpolation.
 
 To add a language:
