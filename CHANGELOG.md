@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.1](https://github.com/InstaZDLL/WaveFlow/compare/v2.0.0...v2.0.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **player:** fall back on the engine's last reported state after a refused play ([e929458](https://github.com/InstaZDLL/WaveFlow/commit/e929458423c9562e5a007e72d7097aa53ac7755b))
+* **player:** keep a newer player state over the resync after a refused play ([090b98b](https://github.com/InstaZDLL/WaveFlow/commit/090b98b2575a8a9443f1c835f11d2bb6b5353a5a))
+* **player:** keep a newer position over the resync after a refused play ([4a20b28](https://github.com/InstaZDLL/WaveFlow/commit/4a20b28136150bc5a3efb844954dea45fd74eeb7))
+* **player:** keep a newer track event over the rollback of a refused play ([10592bb](https://github.com/InstaZDLL/WaveFlow/commit/10592bbf79a9b5acb0a15507b26cc1541c2ad027))
+* **player:** report a missing file when a queue starts on it ([03a194b](https://github.com/InstaZDLL/WaveFlow/commit/03a194b165af0d83b0e8a8ca21ebe3197476ff14))
+* **player:** report a missing file when a queue starts on it ([5e03aca](https://github.com/InstaZDLL/WaveFlow/commit/5e03acaae4f4bd6fef00f15c7e93c277af60bcbe)), refs [#1065](https://github.com/InstaZDLL/WaveFlow/issues/1065)
+* **player:** restore the prior playback state when the resync after a refused play fails ([24a5984](https://github.com/InstaZDLL/WaveFlow/commit/24a5984bfa088b635185ae849e86b3a4d7d17583))
+* **scan:** skip an empty picture in the cover fallback too ([6d5975b](https://github.com/InstaZDLL/WaveFlow/commit/6d5975b86f970113cb6ff3039b45e0026591c57a))
+* **scan:** skip an empty picture in the cover fallback too ([bb0805b](https://github.com/InstaZDLL/WaveFlow/commit/bb0805bec2557536b71b3ccb5b1baef387279fe9)), refs [#1071](https://github.com/InstaZDLL/WaveFlow/issues/1071)
+* **ui:** follow likes in the liked count and remount the views on a profile switch ([83f0b86](https://github.com/InstaZDLL/WaveFlow/commit/83f0b86fe415eafb58cc3c735be6e580b3b06f67))
+* **ui:** follow likes in the liked-tracks count ([d51e000](https://github.com/InstaZDLL/WaveFlow/commit/d51e000d33a4290813595a097f868e811894b2c9)), refs [#1066](https://github.com/InstaZDLL/WaveFlow/issues/1066)
+* **ui:** keep the profile counters with the profile they were read for ([141029d](https://github.com/InstaZDLL/WaveFlow/commit/141029d519b90f7f51c4688ee49075762e291ec8))
+* **ui:** start a new history and remount the views on a profile switch ([43f6987](https://github.com/InstaZDLL/WaveFlow/commit/43f6987e47fbf40473af403fee1058aaedceeaf2)), refs [#1067](https://github.com/InstaZDLL/WaveFlow/issues/1067)
+
 ## [2.0.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.1...v2.0.0) (2026-11-10)
 
 
