@@ -2468,6 +2468,10 @@
 /* Past lines keep their fade; the word being sung takes the accent. */
 :root[data-layout="fluid"] .fe-panel ul > li > button [class*="text-pink-500"] {
   color: var(--fe-accent) !important;
+  /* The line's fill is transparent while it blurs and animates back to
+     opaque as it becomes the sung one; the word keeps its own, opaque
+     from the first frame of that transition. */
+  -webkit-text-fill-color: currentColor;
 }
 
 /* ============================================================
