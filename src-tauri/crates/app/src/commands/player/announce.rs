@@ -131,7 +131,6 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
     let app = app.clone();
     let track_id = track.id;
     let title = track.title.clone();
-    let artist = track.artist_name.clone();
     let album = track.album_title.clone();
     let duration_ms = track.duration_ms;
 
@@ -153,8 +152,14 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
 
         // Need a real artist for either service — both APIs reject calls
         // without one, and our scanner falls back to the file name
-        // when tags are empty.
-        let Some(artist) = artist.filter(|s| !s.trim().is_empty()) else {
+        // when tags are empty. The services get the primary artist, not
+        // the joined credit the UI shows ("A, B" would become an artist
+        // of its own on Last.fm).
+        let artists = match app.state::<AppState>().require_profile_pool().await {
+            Ok(pool) => crate::scrobbler::artists_of_track(&pool, track_id).await,
+            Err(_) => return,
+        };
+        let Some(artist) = artists.first().cloned() else {
             return;
         };
         // Honour offline mode — skip the now-playing ping; the
@@ -166,7 +171,15 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
         // Each service on its own: one not being connected must not keep
         // the other from hearing about the track.
         announce_lastfm(&app, &artist, &title, album.as_deref(), duration_ms).await;
-        announce_listenbrainz(&app, &artist, &title, album.as_deref(), duration_ms).await;
+        announce_listenbrainz(
+            &app,
+            &artist,
+            &artists,
+            &title,
+            album.as_deref(),
+            duration_ms,
+        )
+        .await;
     });
 }
 
@@ -225,6 +238,7 @@ async fn announce_lastfm(
 async fn announce_listenbrainz(
     app: &AppHandle,
     artist: &str,
+    artist_names: &[String],
     title: &str,
     album: Option<&str>,
     duration_ms: i64,
@@ -245,6 +259,7 @@ async fn announce_listenbrainz(
     };
     let listen = Listen {
         artist,
+        artist_names,
         track: title,
         release: album,
         duration_ms: Some(duration_ms),
