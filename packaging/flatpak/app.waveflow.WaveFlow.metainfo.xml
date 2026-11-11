@@ -140,6 +140,18 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2.0.1" date="2026-11-10">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.0.1</url>
+      <description>
+        <p>The first fixes after 2.0.</p>
+        <ul>
+          <li>A track whose file is gone now says so when you start it, instead of showing it as playing while the previous track carries on</li>
+          <li>The Liked tracks count follows a like or an unlike right away</li>
+          <li>Switching profiles reloads the open page with the new profile's music</li>
+          <li>An empty front cover picture no longer hides a valid picture behind it</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.0" date="2026-11-10">
       <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.0.0</url>
       <description>
