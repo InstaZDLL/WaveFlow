@@ -2406,11 +2406,13 @@
   font-weight: 500;
   color: var(--fe-ink-2) !important;
   opacity: 0.5;
-  filter: blur(1.2px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 2.4px currentColor;
   transform: none !important;
   transition:
     opacity 320ms var(--fe-ease),
-    filter 320ms var(--fe-ease),
+    text-shadow 320ms var(--fe-ease),
+    -webkit-text-fill-color 320ms var(--fe-ease),
     color 180ms var(--fe-ease);
 }
 :root[data-layout="fluid"]
@@ -2423,7 +2425,8 @@
   letter-spacing: -0.02em;
   color: var(--fe-ink) !important;
   opacity: 1;
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 :root[data-layout="fluid"]
   .fe-panel
@@ -2437,7 +2440,8 @@
   > li:has(+ li > button[class*="scale-[1.02]"])
   > button {
   opacity: 0.8;
-  filter: blur(0.3px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 0.6px currentColor;
 }
 :root[data-layout="fluid"]
   .fe-panel
@@ -2452,12 +2456,14 @@
   > li:has(+ li + li > button[class*="scale-[1.02]"])
   > button {
   opacity: 0.65;
-  filter: blur(0.7px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 1.4px currentColor;
 }
 :root[data-layout="fluid"] .fe-panel ul > li > button:hover,
 :root[data-layout="fluid"] .fe-panel ul > li > button:focus-visible {
   opacity: 1;
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 /* Past lines keep their fade; the word being sung takes the accent. */
 :root[data-layout="fluid"] .fe-panel ul > li > button [class*="text-pink-500"] {
@@ -2561,10 +2567,12 @@
   font-weight: 560 !important;
   letter-spacing: -0.02em;
   line-height: 1.2 !important;
-  filter: blur(1.4px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 2.8px currentColor;
   transform: none !important;
   transition:
-    filter 320ms var(--fe-ease),
+    text-shadow 320ms var(--fe-ease),
+    -webkit-text-fill-color 320ms var(--fe-ease),
     color 180ms var(--fe-ease);
 }
 :root[data-layout="fluid"]
@@ -2572,7 +2580,8 @@
   ul
   > li:has(> button[class*="scale-[1.04]"])
   > button {
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 :root[data-layout="fluid"]
   [data-immersive]
@@ -2585,7 +2594,8 @@
   ul
   > li:has(+ li > button[class*="scale-[1.04]"])
   > button {
-  filter: blur(0.4px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 0.8px currentColor;
 }
 :root[data-layout="fluid"]
   [data-immersive]
@@ -2599,11 +2609,13 @@
   ul
   > li:has(+ li + li > button[class*="scale-[1.04]"])
   > button {
-  filter: blur(0.8px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 1.6px currentColor;
 }
 :root[data-layout="fluid"] [data-immersive] ul > li > button:hover,
 :root[data-layout="fluid"] [data-immersive] ul > li > button:focus-visible {
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 
 /* ── Track tables: a hairline under the header, rows parted by a
@@ -2782,7 +2794,8 @@
   > li
   > button {
   opacity: 1;
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 
 /* ── Reduced effects (`data-effects="reduced"`) ─────────────── */
@@ -2796,7 +2809,7 @@
   ul
   > li
   > button {
-  filter: none !important;
+  -webkit-text-fill-color: currentColor !important;
   text-shadow: none !important;
 }
 /* The atmosphere — the pools, the aurora, the wine light, the grain —

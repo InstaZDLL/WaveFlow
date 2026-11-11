@@ -1057,7 +1057,8 @@
 /* The lyrics: Lora, no blur — ink does not blur; the sung line in the
    display face. */
 :root[data-skin="editorial"] .fe-panel ul > li > button {
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
   opacity: 0.55;
 }
 :root[data-skin="editorial"]
@@ -1071,7 +1072,8 @@
   ul
   > li:has(+ li > button[class*="scale-[1.02]"])
   > button {
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
   opacity: 0.8;
 }
 :root[data-skin="editorial"]

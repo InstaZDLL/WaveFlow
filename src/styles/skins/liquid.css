@@ -792,6 +792,8 @@
   color: var(--fe-ink-2) !important;
   opacity: 0.72;
   filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 :root[data-skin="liquid"]
   .fe-panel
@@ -806,6 +808,8 @@
   > button {
   opacity: 0.9;
   filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 :root[data-skin="liquid"]
   .fe-panel
@@ -815,6 +819,7 @@
   color: var(--fe-ink) !important;
   opacity: 1;
   filter: none;
+  -webkit-text-fill-color: currentColor;
   text-shadow: 0 0 24px color-mix(in srgb, var(--fe-glow) 70%, transparent);
 }
 /* The queue's playing row: the accent's edge and its light. */
@@ -1315,7 +1320,8 @@
 
 /* ── The immersive lyrics: depth by opacity, the blur a whisper ── */
 :root[data-skin="liquid"] [data-immersive] ul > li > button[class*="text-3xl"] {
-  filter: blur(0.5px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 1px currentColor;
 }
 :root[data-skin="liquid"]
   [data-immersive]
@@ -1340,7 +1346,8 @@
   ul
   > li:has(+ li + li > button[class*="scale-[1.04]"])
   > button {
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 
 /* ── A pale ground under an artist's photo ─────────────────── */
@@ -1525,6 +1532,8 @@
     > li
     > button[class*="text-3xl"] {
     filter: none !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
   }
 }
 :root[data-skin="liquid"]:is(
@@ -1556,6 +1565,8 @@
   > li
   > button[class*="text-3xl"] {
   filter: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
 }
 
 /* The "What's new" panel: its scrim has no blur, since the page behind it may
