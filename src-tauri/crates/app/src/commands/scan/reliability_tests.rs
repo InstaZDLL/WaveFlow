@@ -2049,6 +2049,9 @@ async fn a_file_without_an_id_joins_the_artist_its_name_finds() {
             ("MUSICBRAINZ_ARTISTID", LISA_JP),
         ],
     );
+    library.scan().await;
+    // Added after, so the order is not left to the scan's threads: a bare
+    // file read first would hold the plain key under its own spelling.
     let bare = library.flac("b.flac", &[("TITLE", "b"), ("ARTIST", "LISA")]);
     library.scan().await;
     assert_eq!(library.names(&tagged).await, ["LiSA"]);
@@ -2128,7 +2131,7 @@ async fn a_deep_rescan_separates_namesakes_an_older_scan_merged() {
          UPDATE track SET primary_artist = (SELECT MIN(id) FROM artist WHERE canonical_name LIKE 'lisa%')
           WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
          DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
-         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+         UPDATE artist SET mbid = NULL, name = 'LiSA' WHERE canonical_name = 'lisa';",
     )
     .execute(&library.pool)
     .await
