@@ -467,3 +467,72 @@ async fn an_edited_year_reaches_the_album() {
         .unwrap();
     assert_eq!(album_year, Some(1980));
 }
+
+/// Two artists of one spelling, told apart by their MusicBrainz ids (#1076):
+/// "LiSA" holds the plain key, "LISA" the suffixed one. Track 2 is LISA's,
+/// on an album of hers.
+async fn with_two_namesakes(pool: &SqlitePool) {
+    for statement in [
+        "INSERT INTO artist (id, name, canonical_name, mbid) VALUES
+             (2, 'LiSA', 'lisa', '7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001'),
+             (3, 'LISA', 'lisa #8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002',
+              '8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002')",
+        "INSERT INTO album (id, title, canonical_title, artist_id, album_artist, is_compilation)
+             VALUES (2, 'Lalisa', 'lalisa', 3, 'LISA', 0)",
+        "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (2, 1, '/m/2.flac', 'h2', 1, 0, 'Lalisa', 2, 1000, 0, 1, 0, 0, 0, 0)",
+        "UPDATE track SET primary_artist = 3 WHERE id = 2",
+        "INSERT INTO track_artist (track_id, artist_id, position) VALUES (2, 3, 0)",
+    ] {
+        sqlx::raw_sql(statement).execute(pool).await.unwrap();
+    }
+}
+
+/// Saving the artist field of "LISA"'s track, even unchanged, keeps her
+/// row: the name alone would have found "LiSA"'s and renamed it.
+#[tokio::test]
+async fn an_edit_keeps_the_identity_of_a_namesake() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let save = TrackEdit {
+        artist: Some("LISA".into()),
+        ..edit()
+    };
+    sync_db(&pool, 2, &save).await.unwrap();
+
+    let credit: (i64, String) = sqlx::query_as(
+        "SELECT ar.id, ar.name FROM track t JOIN artist ar ON ar.id = t.primary_artist WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(credit, (3, "LISA".to_string()));
+    let other: String = sqlx::query_scalar("SELECT name FROM artist WHERE id = 2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(other, "LiSA");
+}
+
+/// Renaming her album carries the Album Artist text, which must find her
+/// again and not "LiSA".
+#[tokio::test]
+async fn an_album_rename_keeps_the_album_artist_identity() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let rename = TrackEdit {
+        album: Some("Lalisa Deluxe".into()),
+        ..edit()
+    };
+    sync_db(&pool, 2, &rename).await.unwrap();
+
+    let album: (String, i64) = sqlx::query_as(
+        "SELECT al.title, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(album, ("Lalisa Deluxe".to_string(), 3));
+}

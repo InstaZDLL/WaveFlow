@@ -5,7 +5,8 @@ use sqlx::SqlitePool;
 
 use waveflow_core::scanner::extra_tags::{stored_value, COMPOSER_KEY};
 use waveflow_core::scanner::{
-    canonical_name, split_artist_name, split_genres, upsert_album, upsert_artist, upsert_genre,
+    canonical_name, split_artist_name, split_genres, upsert_album_with_artist_mbid,
+    upsert_artist_with_mbid, upsert_genre,
 };
 
 use crate::error::AppResult;
@@ -31,23 +32,30 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // user didn't touch the artist field, leave the existing rows
     // alone — re-upserting the same names would no-op but the DELETE
     // + INSERT churn isn't free on a hot library.
-    let (artist_ids, primary_artist_id): (Option<Vec<i64>>, Option<i64>) =
-        if let Some(raw) = edit.artist.as_ref() {
-            let mut ids: Vec<i64> = Vec::new();
-            for name in split_artist_name(raw) {
-                if let Some(id) = upsert_artist(&mut tx, &name).await? {
-                    // First spelling wins when one credit lists an artist twice.
-                    if !ids.contains(&id) {
-                        respell(&mut tx, Respell::Artist, id, &name).await?;
-                        ids.push(id);
-                    }
+    let (artist_ids, primary_artist_id): (Option<Vec<i64>>, Option<i64>) = if let Some(raw) =
+        edit.artist.as_ref()
+    {
+        let mut ids: Vec<i64> = Vec::new();
+        let current: Vec<i64> =
+            sqlx::query_scalar("SELECT artist_id FROM track_artist WHERE track_id = ?")
+                .bind(track_id)
+                .fetch_all(&mut *tx)
+                .await?;
+        for name in split_artist_name(raw) {
+            let identity = kept_identity(&mut tx, &current, &name).await?;
+            if let Some(id) = upsert_artist_with_mbid(&mut tx, &name, identity.as_deref()).await? {
+                // First spelling wins when one credit lists an artist twice.
+                if !ids.contains(&id) {
+                    respell(&mut tx, Respell::Artist, id, &name).await?;
+                    ids.push(id);
                 }
             }
-            let primary = ids.first().copied();
-            (Some(ids), primary)
-        } else {
-            (None, None)
-        };
+        }
+        let primary = ids.first().copied();
+        (Some(ids), primary)
+    } else {
+        (None, None)
+    };
 
     // Resolve album similarly. Needs the (possibly new) primary
     // artist; falls back to the existing one when the user didn't
@@ -140,10 +148,26 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.
-            let aid = upsert_album(
+            // The album artist the track is in now keeps its identity
+            // when the text still names it: "LISA" is found by its key
+            // alone, and that key is "LiSA"'s when both are in the library.
+            let album_artist_identity = match (album_artist, old_album_id) {
+                (Some(name), Some(old)) => {
+                    let current: Vec<i64> = sqlx::query_scalar(
+                        "SELECT artist_id FROM album WHERE id = ? AND artist_id IS NOT NULL",
+                    )
+                    .bind(old)
+                    .fetch_all(&mut *tx)
+                    .await?;
+                    kept_identity(&mut tx, &current, name).await?
+                }
+                _ => None,
+            };
+            let aid = upsert_album_with_artist_mbid(
                 &mut tx,
                 &title,
                 album_artist,
+                album_artist_identity.as_deref(),
                 is_compilation,
                 aid,
                 edit.year,
@@ -372,6 +396,36 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // via a code path in this function (it's exported for callers).
     let _ = canonical_name;
     Ok(())
+}
+
+/// The MusicBrainz id of one of `current` (artist ids) when `name` is a
+/// spelling of it: its key, without the `#<id>` suffix a second identity
+/// of a spelling carries, equals the name's.
+///
+/// An edit names an artist by text, and text finds the row on the plain
+/// key. For an artist the track already has under an id (#1076), that is
+/// a namesake's row: saving "LISA" over "LISA" would move the track to
+/// "LiSA" and `respell` would rename it. With the id, the artist is found
+/// as it was.
+async fn kept_identity(
+    conn: &mut sqlx::SqliteConnection,
+    current: &[i64],
+    name: &str,
+) -> AppResult<Option<String>> {
+    let wanted = canonical_name(name);
+    for id in current {
+        let row: Option<(String, Option<String>)> =
+            sqlx::query_as("SELECT canonical_name, mbid FROM artist WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&mut *conn)
+                .await?;
+        if let Some((key, Some(mbid))) = row {
+            if key.split(" #").next() == Some(wanted.as_str()) {
+                return Ok(Some(mbid));
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// Which entity an edit names, for [`respell`].
