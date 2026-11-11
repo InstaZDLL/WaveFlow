@@ -1924,3 +1924,223 @@ fn an_edit_is_refused_on_a_tag_that_nests_chapters() {
     assert!(patch_file(&path, &TagPatch::Rating(Some(204))).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), bytes, "not one byte moved");
 }
+
+// ---------------------------------------------------------------------------
+// #1076 — an artist is its MusicBrainz id when the file has one, its name
+// otherwise
+// ---------------------------------------------------------------------------
+
+const LISA_JP: &str = "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001";
+const LISA_KR: &str = "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002";
+
+impl Library {
+    /// `(name, mbid)` of every artist whose key starts with `prefix`.
+    async fn artists_like(&self, prefix: &str) -> Vec<(String, Option<String>)> {
+        sqlx::query_as("SELECT name, mbid FROM artist WHERE canonical_name LIKE ? ORDER BY id")
+            .bind(format!("{prefix}%"))
+            .fetch_all(&self.pool)
+            .await
+            .unwrap()
+    }
+}
+
+/// The reported case: two artists whose names differ by case alone, each
+/// with its own id, stay two, each under its own spelling.
+#[tokio::test]
+async fn two_musicbrainz_ids_are_two_artists_whatever_the_case() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "Gurenge"),
+            ("ARTIST", "LiSA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "Lalisa"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+
+    // Neither scanning again nor a changed file renames or merges them.
+    move_mtime_forward(&jp);
+    move_mtime_forward(&kr);
+    library.scan().await;
+    library.try_scan(1, true).await.unwrap();
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+}
+
+/// The Album Artist is told apart the same way: "LISA"'s record is not
+/// keyed on "LiSA"'s artist.
+#[tokio::test]
+async fn an_album_artist_is_told_apart_by_its_id_too() {
+    let library = Library::new().await;
+    library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("ALBUMARTIST", "LiSA"),
+            ("ALBUM", "Leo-Nine"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_JP),
+        ],
+    );
+    library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Leo-Nine"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(
+        library.albums("Leo-Nine").await,
+        [
+            ("LISA".to_string(), false, 1),
+            ("LiSA".to_string(), false, 1)
+        ]
+    );
+}
+
+/// Without an id the name decides, as ever: the spellings are one artist,
+/// and it keeps the first one it was given, a later file never renaming it.
+#[tokio::test]
+async fn without_an_id_the_spellings_merge_and_the_first_one_stays() {
+    let library = Library::new().await;
+    let first = library.flac("a.flac", &[("TITLE", "a"), ("ARTIST", "Taylor Swift")]);
+    library.scan().await;
+    let second = library.flac("b.flac", &[("TITLE", "b"), ("ARTIST", "taylor swift")]);
+    let third = library.flac("c.flac", &[("TITLE", "c"), ("ARTIST", "TAYLOR SWIFT")]);
+    library.scan().await;
+
+    assert_eq!(library.artists_like("taylor").await.len(), 1);
+    for path in [&first, &second, &third] {
+        assert_eq!(library.names(path).await, ["Taylor Swift"]);
+    }
+}
+
+/// One file with an id and one without, spelled differently: the one
+/// without cannot be told from the other, so the name merges them, and
+/// neither moves the display name.
+#[tokio::test]
+async fn a_file_without_an_id_joins_the_artist_its_name_finds() {
+    let library = Library::new().await;
+    let tagged = library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let bare = library.flac("b.flac", &[("TITLE", "b"), ("ARTIST", "LISA")]);
+    library.scan().await;
+    assert_eq!(library.names(&tagged).await, ["LiSA"]);
+    assert_eq!(library.names(&bare).await, ["LiSA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 1);
+}
+
+/// A multi-artist credit pairs each name with its id, by position, and
+/// guesses nothing when the counts differ.
+#[tokio::test]
+async fn a_credit_pairs_each_name_with_its_id() {
+    let library = Library::new().await;
+    let pair = library.flac(
+        "b.flac",
+        &[
+            ("TITLE", "pair"),
+            ("ARTIST", "Alpha; Beta"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    let short = library.flac(
+        "c.flac",
+        &[
+            ("TITLE", "short"),
+            ("ARTIST", "Gamma; Delta"),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a003",
+            ),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(library.names(&pair).await, ["Alpha", "Beta"]);
+    assert_eq!(
+        library.artists_like("alpha").await,
+        [("Alpha".to_string(), Some(LISA_JP.to_string()))]
+    );
+    assert_eq!(
+        library.artists_like("beta").await,
+        [("Beta".to_string(), Some(LISA_KR.to_string()))]
+    );
+    assert_eq!(library.names(&short).await, ["Gamma", "Delta"]);
+    assert_eq!(
+        library.artists_like("gamma").await,
+        [("Gamma".to_string(), None)]
+    );
+}
+
+/// A library scanned before ids were read holds one artist for both. A
+/// deep rescan of the unchanged files gives each its own, and keeps the
+/// row's name for the one it recognises.
+#[tokio::test]
+async fn a_deep_rescan_separates_namesakes_an_older_scan_merged() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    // The state an older build left: one row, no id, both tracks on it.
+    sqlx::raw_sql(
+        "UPDATE track_artist SET artist_id = (SELECT MIN(id) FROM artist WHERE canonical_name LIKE 'lisa%')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT MIN(id) FROM artist WHERE canonical_name LIKE 'lisa%')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+    assert_eq!(library.names(&kr).await, ["LiSA"]);
+
+    // The ordinary scan leaves unchanged files alone; the deep one reads them.
+    assert_eq!(library.scan().await.skipped, 2);
+    assert_eq!(library.names(&kr).await, ["LiSA"]);
+    library.try_scan(1, true).await.unwrap();
+
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+}

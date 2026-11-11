@@ -254,6 +254,9 @@ pub struct ExtractedFile {
     /// correctly tagged `Song.mp3` as untitled.
     pub title_from_filename: bool,
     pub artist: Option<String>,
+    /// The MusicBrainz id the file gives each of `artist`'s names, in the
+    /// tag's order (see [`super::canonical::artist_credits`] for how they pair).
+    pub artist_mbids: Vec<String>,
     pub album: Option<String>,
     /// Raw Album Artist text from the source tag (`TPE2` / `aART` /
     /// `ALBUMARTIST` / `Album Artist`). Used as the album-grouping
@@ -261,6 +264,8 @@ pub struct ExtractedFile {
     /// their per-track Artist tags differ (featurings, lead-vocal
     /// rotations on K-pop EPs, etc.).
     pub album_artist: Option<String>,
+    /// The MusicBrainz id of `album_artist`, when the tag names exactly one.
+    pub album_artist_mbid: Option<String>,
     /// `TCMP` (ID3v2) / `cpil` (MP4) / `COMPILATION` (Vorbis / APE)
     /// flag. When `true` the scanner uses a synthetic "Various
     /// Artists" album artist so a true compilation merges its tracks
@@ -563,6 +568,21 @@ pub fn extract_artists(tag: &Tag) -> Option<String> {
         tag.get_strings(ItemKey::TrackArtists),
         tag.get_strings(ItemKey::TrackArtist),
     )
+}
+
+/// The MusicBrainz artist ids the tag carries for the track's artists
+/// (`MUSICBRAINZ_ARTISTID`, `TXXX:MusicBrainz Artist Id`, the MP4 atom of
+/// the same name): the identity that tells two artists of one spelling
+/// apart (#1076). See [`super::canonical::artist_mbids`].
+pub fn extract_artist_mbids(tag: &Tag) -> Vec<String> {
+    super::canonical::artist_mbids(tag.get_strings(ItemKey::MusicBrainzArtistId))
+}
+
+/// The MusicBrainz id of the Album Artist, when the tag names exactly one.
+pub fn extract_album_artist_mbid(tag: &Tag) -> Option<String> {
+    let mut ids =
+        super::canonical::artist_mbids(tag.get_strings(ItemKey::MusicBrainzReleaseArtistId));
+    (ids.len() == 1).then(|| ids.remove(0))
 }
 
 /// Read the compilation flag (`TCMP` / `cpil` / `COMPILATION` / `Compilation`).

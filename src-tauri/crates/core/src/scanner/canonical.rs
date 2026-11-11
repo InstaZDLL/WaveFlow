@@ -76,6 +76,56 @@ pub fn split_artist_name(raw: &str) -> Vec<String> {
         .collect()
 }
 
+/// The MusicBrainz artist ids a tag holds, lowercased, in the order the tag
+/// lists them.
+///
+/// The tag is one value per artist, but taggers join them differently
+/// (several values, `"; "`, `/`, a NUL), so the values are not split on a
+/// separator: every run of hex digits and dashes shaped like an id is one,
+/// whatever sits between them. Anything else in the tag is dropped.
+pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+    fn is_mbid(token: &str) -> bool {
+        let groups: Vec<&str> = token.split('-').collect();
+        groups.len() == 5
+            && groups
+                .iter()
+                .zip([8, 4, 4, 4, 12])
+                .all(|(g, len)| g.len() == len && g.bytes().all(|b| b.is_ascii_hexdigit()))
+    }
+    values
+        .into_iter()
+        .flat_map(|v| v.split(|c: char| !(c.is_ascii_hexdigit() || c == '-')))
+        .filter(|t| is_mbid(t))
+        .map(str::to_ascii_lowercase)
+        .collect()
+}
+
+/// The artists a credit names, each with the MusicBrainz id the file gives
+/// it (#1076).
+///
+/// `mbids` pair with the names by position, and only when there are as many
+/// of them as names: a tag with fewer ids than artists does not say whose
+/// they are, and a guess would hand an artist someone else's identity. A
+/// name the credit lists twice (same canonical form, same id) is one artist,
+/// as in [`split_artist_name`], which this is when no id pairs.
+pub fn artist_credits(raw: &str, mbids: &[String]) -> Vec<(String, Option<String>)> {
+    let parts: Vec<&str> = raw
+        .split("; ")
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .collect();
+    let paired = !mbids.is_empty() && mbids.len() == parts.len();
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    for (i, part) in parts.into_iter().enumerate() {
+        let mbid = paired.then(|| mbids[i].clone());
+        if seen.insert((canonical_name(part), mbid.clone())) {
+            out.push((part.to_string(), mbid));
+        }
+    }
+    out
+}
+
 /// The credit a file gives a track, as the `"; "`-joined string the rest of
 /// the scanner works from, or `None` when it names nobody.
 ///

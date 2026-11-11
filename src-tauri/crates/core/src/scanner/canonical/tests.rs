@@ -72,3 +72,42 @@ fn the_two_halves_cannot_be_matched_across() {
     let blob = pinyin_blob("中国人").unwrap();
     assert!(!blob.contains("renz"));
 }
+
+#[test]
+fn mbids_are_found_whatever_joins_them() {
+    use super::artist_mbids;
+    let a = "7B6F3A52-1C1E-4A5E-9F0E-0A3BD6F4A001";
+    let b = "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002";
+    // Several values, a "; " join, a "/" join, a NUL join, and junk.
+    assert_eq!(
+        artist_mbids([a, b]),
+        ["7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001", b]
+    );
+    assert_eq!(artist_mbids([format!("{a}; {b}").as_str()]).len(), 2);
+    assert_eq!(artist_mbids([format!("{a}/{b}").as_str()]).len(), 2);
+    assert_eq!(artist_mbids([format!("{a}\0{b}").as_str()]).len(), 2);
+    assert!(artist_mbids(["", "not an id", "1234-5678"]).is_empty());
+}
+
+#[test]
+fn a_credit_pairs_names_and_ids_only_when_the_counts_agree() {
+    use super::artist_credits;
+    let ids = vec!["id-a".to_string(), "id-b".to_string()];
+    assert_eq!(
+        artist_credits("Alpha; Beta", &ids),
+        [
+            ("Alpha".to_string(), Some("id-a".to_string())),
+            ("Beta".to_string(), Some("id-b".to_string()))
+        ]
+    );
+    // One id for two names says nothing about whose it is.
+    assert_eq!(
+        artist_credits("Alpha; Beta", &ids[..1]),
+        [("Alpha".to_string(), None), ("Beta".to_string(), None)]
+    );
+    // No id at all: the split the scanner always made.
+    assert_eq!(
+        artist_credits("Alpha; alpha; Beta", &[]),
+        [("Alpha".to_string(), None), ("Beta".to_string(), None)]
+    );
+}
