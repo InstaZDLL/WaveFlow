@@ -2437,7 +2437,16 @@ impl Library {
 
 /// The artist ids a file carries now, as a scan reads them.
 fn file_ids(path: &Path) -> Vec<String> {
-    crate::commands::edit::file_artist_credit(path).unwrap().1
+    crate::commands::edit::file_credits(path)
+        .unwrap()
+        .artist_ids
+}
+
+/// The Album Artist ids a file carries now.
+fn file_album_artist_ids(path: &Path) -> Vec<String> {
+    crate::commands::edit::file_credits(path)
+        .unwrap()
+        .album_artist_ids
 }
 
 /// One of two "LISA" tracks, both carrying her id, re-credited to "Aimer"
@@ -2618,4 +2627,102 @@ fn a_dsf_drops_an_artist_id_its_new_credit_no_longer_matches() {
     };
     crate::commands::edit::write_edit(&path, &recredited).unwrap();
     assert!(file_ids(&path).is_empty());
+}
+
+/// Two tracks of "LISA"'s album, her Album Artist id on both. One gets the
+/// Album Artist "Aimer" in the properties dialog: the stale id leaves that
+/// file, and through a deep rescan the track stays on "Aimer"'s album while
+/// the other stays on hers, with her id.
+#[tokio::test]
+async fn a_new_album_artist_does_not_go_back_to_the_old_album() {
+    let library = Library::new().await;
+    let tagged = |title: &'static str| {
+        [
+            ("TITLE", title),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Lalisa"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ]
+    };
+    let one = library.flac("one.flac", &tagged("one"));
+    let two = library.flac("two.flac", &tagged("two"));
+    library.scan().await;
+
+    library
+        .save(
+            &one,
+            TrackEdit {
+                album_artist: Some("Aimer".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert!(file_album_artist_ids(&one).is_empty(), "the stale id left");
+    assert_eq!(file_ids(&one), [LISA_KR], "the track artist's stays");
+    assert_eq!(file_album_artist_ids(&two), [LISA_KR]);
+
+    library.deep_scan().await;
+    let album = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_as::<_, (String, Option<String>)>(
+                "SELECT ar.name, ar.mbid FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(album(one.clone()).await, ("Aimer".into(), None));
+    assert_eq!(
+        album(two.clone()).await,
+        ("LISA".into(), Some(LISA_KR.into()))
+    );
+
+    // A spelling fix of the Album Artist keeps the id.
+    library
+        .save(
+            &two,
+            TrackEdit {
+                album_artist: Some("Lisa".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert_eq!(file_album_artist_ids(&two), [LISA_KR]);
+}
+
+/// Two Album Artist values in separate comments are two names: one id
+/// beside them is nobody's.
+#[tokio::test]
+async fn one_album_artist_id_beside_two_album_artist_values_is_nobodys() {
+    let library = Library::new().await;
+    library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "Alpha"),
+            ("ALBUMARTIST", "Alpha"),
+            ("ALBUMARTIST", "Beta"),
+            ("ALBUM", "Split"),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    let held: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist WHERE mbid = ?")
+        .bind(LISA_KR)
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    assert_eq!(held, 0, "the id went to no one");
+    assert_eq!(
+        library.artists_like("alpha").await,
+        [("Alpha".into(), None)]
+    );
 }

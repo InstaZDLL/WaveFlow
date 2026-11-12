@@ -581,9 +581,17 @@ pub fn extract_artist_mbids(tag: &Tag) -> Vec<String> {
 /// The MusicBrainz id of the Album Artist, when the tag names exactly one
 /// id *and* the Album Artist is one name: an id for "Alpha; Beta" would
 /// be Alpha's, not the pair's. See [`super::canonical::album_artist_mbid`].
+///
+/// Every value of the Album Artist tag is counted, not the first one
+/// [`extract_album_artist`] groups by: two Vorbis `ALBUMARTIST` comments,
+/// "Alpha" and "Beta", are two names, and one id says nothing of whose.
 pub fn extract_album_artist_mbid(tag: &Tag) -> Option<String> {
+    let names: Vec<&str> = tag
+        .get_strings(ItemKey::AlbumArtist)
+        .flat_map(|v| v.split('\0'))
+        .collect();
     super::canonical::album_artist_mbid(
-        &extract_album_artist(tag)?,
+        &names.join("; "),
         tag.get_strings(ItemKey::MusicBrainzReleaseArtistId),
     )
 }
