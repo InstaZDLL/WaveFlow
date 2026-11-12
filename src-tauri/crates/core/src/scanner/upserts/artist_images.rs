@@ -108,6 +108,15 @@ pub async fn maybe_link_artist_images(
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
     let parent = track_path.parent();
     for (name, id) in named_ids(&names, artist_ids) {
+        let canon = canonical_name(name);
+        // Two namesakes of one credit ("LiSA; LISA", told apart by their
+        // ids, #1081) would both match the one sidecar their spelling
+        // finds, and a linked image is never replaced: neither takes it
+        // from this track. Not marked as tried, so another track of the
+        // folder that credits one of them alone still looks.
+        if names.iter().filter(|n| canonical_name(n) == canon).count() > 1 {
+            continue;
+        }
         // Per-(artist, folder) skip. `insert` returns false when the
         // pair was already attempted this scan — the match + the
         // has-artwork probe below are deterministic for it, so there's
@@ -117,14 +126,7 @@ pub async fn maybe_link_artist_images(
                 continue;
             }
         }
-        let canon = canonical_name(name);
         if canon.is_empty() || canon == va_canon {
-            continue;
-        }
-        // Two namesakes of one credit ("LiSA; LISA", told apart by their
-        // ids, #1081) would both match the one sidecar their spelling
-        // finds, and a linked image is never replaced: neither takes it.
-        if names.iter().filter(|n| canonical_name(n) == canon).count() > 1 {
             continue;
         }
         // Cheap pre-check so we don't walk the FS when the artist already
