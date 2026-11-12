@@ -918,13 +918,14 @@ pub(crate) fn file_credits(path: &std::path::Path) -> Option<FileCredits> {
     let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) else {
         return Some(FileCredits::default());
     };
+    let (artist, artist_ids) = waveflow_core::scanner::extract_artist_credit(tag);
     let album_artist_list: Vec<String> = tag
         .get_strings(ItemKey::AlbumArtist)
         .map(str::to_owned)
         .collect();
     Some(FileCredits {
-        artist: waveflow_core::scanner::extract_artists(tag).unwrap_or_default(),
-        artist_ids: waveflow_core::scanner::extract_artist_mbids(tag),
+        artist: artist.unwrap_or_default(),
+        artist_ids,
         album_artist: album_artist_list.join("; "),
         album_artist_list,
         album_artist_ids: waveflow_core::scanner::artist_mbids(

@@ -5,7 +5,7 @@ use sqlx::SqlitePool;
 
 use waveflow_core::scanner::extra_tags::{stored_value, COMPOSER_KEY};
 use waveflow_core::scanner::{
-    album_artist_mbid, artist_credits, artist_mbids, canonical_name, split_artist_name,
+    album_artist_mbid, artist_credit_parts, artist_credits, artist_mbids, canonical_name,
     split_genres, upsert_album_with_artist_mbid, upsert_artist_with_mbid, upsert_genre,
 };
 
@@ -136,7 +136,11 @@ pub(crate) async fn sync_db_spelled(
         // them, each artist keeps the identity it has.
         let names: Vec<(String, Option<String>)> = match edited_ids.as_ref() {
             Some(mbids) => artist_credits(raw, mbids),
-            None => split_artist_name(raw)
+            // Every name as written: two that differ by case only may be two
+            // artists the track already has under their ids (#1081), told
+            // apart by `kept_identity`; one that is the same artist twice
+            // is dropped below, once its row is found.
+            None => artist_credit_parts(raw)
                 .into_iter()
                 .map(|name| (name, None))
                 .collect(),
@@ -553,26 +557,37 @@ pub(crate) async fn sync_db_spelled(
 /// key. For an artist the track already has under an id (#1076), that is
 /// a namesake's row: saving "LISA" over "LISA" would move the track to
 /// "LiSA" and `respell` would rename it. With the id, the artist is found
-/// as it was.
+/// as it was. Of two namesakes the track holds ("LiSA", "LISA", #1081),
+/// the one spelled as `name` is, with its id or without one: a row with no
+/// id spelled as `name` is found again by its plain key, and never under a
+/// namesake's id.
 async fn kept_identity(
     conn: &mut sqlx::SqliteConnection,
     current: &[i64],
     name: &str,
 ) -> AppResult<Option<String>> {
     let wanted = canonical_name(name);
+    let mut first = None;
     for id in current {
-        let row: Option<(String, Option<String>)> =
-            sqlx::query_as("SELECT canonical_name, mbid FROM artist WHERE id = ?")
+        let row: Option<(String, String, Option<String>)> =
+            sqlx::query_as("SELECT canonical_name, name, mbid FROM artist WHERE id = ?")
                 .bind(id)
                 .fetch_optional(&mut *conn)
                 .await?;
-        if let Some((key, Some(mbid))) = row {
-            if key.split(" #").next() == Some(wanted.as_str()) {
-                return Ok(Some(mbid));
-            }
+        let Some((key, spelling, mbid)) = row else {
+            continue;
+        };
+        if key.split(" #").next() != Some(wanted.as_str()) {
+            continue;
+        }
+        if spelling == name {
+            return Ok(mbid);
+        }
+        if let Some(mbid) = mbid {
+            first.get_or_insert(mbid);
         }
     }
-    Ok(None)
+    Ok(first)
 }
 
 /// Which entity an edit names, for [`respell`].

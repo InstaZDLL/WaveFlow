@@ -1988,6 +1988,54 @@ async fn two_musicbrainz_ids_are_two_artists_whatever_the_case() {
     assert_eq!(library.artists_like("lisa").await.len(), 2);
 }
 
+/// Two namesakes credited on one track, each with its own id, stay two
+/// artists of that track (#1081): the credit is not deduplicated by name
+/// before the ids are paired, and no later scan sees a re-split in it.
+#[tokio::test]
+async fn two_namesakes_on_one_track_keep_both_credits() {
+    let library = Library::new().await;
+    let duet = library.flac(
+        "duet.flac",
+        &[
+            ("TITLE", "Duet"),
+            ("ARTIST", "LiSA"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(library.names(&duet).await, ["LiSA", "LISA"]);
+    assert_eq!(
+        library.artists_like("lisa").await,
+        [
+            ("LiSA".to_string(), Some(LISA_JP.to_string())),
+            ("LISA".to_string(), Some(LISA_KR.to_string()))
+        ]
+    );
+
+    // A rescan, changed file or not, deep or not, leaves the credit alone.
+    move_mtime_forward(&duet);
+    library.scan().await;
+    library.deep_scan().await;
+    assert_eq!(library.names(&duet).await, ["LiSA", "LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+}
+
+/// Without ids, the same credit is one artist: the name decides, as it
+/// always did.
+#[tokio::test]
+async fn two_spellings_on_one_track_without_ids_are_one_credit() {
+    let library = Library::new().await;
+    let duet = library.flac(
+        "duet.flac",
+        &[("TITLE", "Duet"), ("ARTIST", "LiSA"), ("ARTIST", "LISA")],
+    );
+    library.scan().await;
+    assert_eq!(library.names(&duet).await, ["LiSA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 1);
+}
+
 /// The Album Artist is told apart the same way: "LISA"'s record is not
 /// keyed on "LiSA"'s artist.
 #[tokio::test]

@@ -26,7 +26,8 @@ pub mod reserved;
 pub mod upserts;
 
 pub use canonical::{
-    album_artist_mbid, artist_credit, artist_credits, artist_mbids, canonical_name, pinyin_blob,
+    album_artist_mbid, artist_credit, artist_credit_names, artist_credit_parts,
+    artist_credit_with_ids, artist_credits, artist_mbids, canonical_name, pinyin_blob,
     reconcile_artist_mbids, split_artist_name, split_genres,
 };
 pub use extract::{
@@ -53,5 +54,6 @@ pub use upserts::{
 /// module root so the `extract_album_artist` wrapper that pairs it
 /// with `extract_compilation_flag` lives next to its consumers.
 pub use extract::{
-    extract_album_artist, extract_album_artist_mbid, extract_artist_mbids, extract_artists,
+    extract_album_artist, extract_album_artist_mbid, extract_artist_credit, extract_artist_mbids,
+    extract_artists,
 };
