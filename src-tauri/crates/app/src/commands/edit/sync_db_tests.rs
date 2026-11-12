@@ -53,6 +53,7 @@ fn edit() -> TrackEdit {
         disc_number: None,
         genre: None,
         album_artist: None,
+        album_artist_values: None,
         composer: None,
         track_total: None,
         disc_total: None,
