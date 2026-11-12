@@ -276,12 +276,13 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
         tag.remove_key(ItemKey::AlbumArtist);
         match edit.album_artist_values.as_deref() {
             // An undo putting back several values (#1082): one item each,
-            // the first first, which is the one the scanner groups by.
+            // the first first, which is the one the scanner groups by, and
+            // each as the file held it, untrimmed: what was there goes back.
             Some(values) if values.len() > 1 => {
-                for value in values.iter().map(|v| v.trim()).filter(|v| !v.is_empty()) {
+                for value in values {
                     tag.push(lofty::tag::TagItem::new(
                         ItemKey::AlbumArtist,
-                        lofty::tag::ItemValue::Text(value.to_owned()),
+                        lofty::tag::ItemValue::Text(value.clone()),
                     ));
                 }
             }

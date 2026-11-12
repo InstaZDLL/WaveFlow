@@ -53,7 +53,7 @@ use waveflow_core::tag_workshop::{
 
 use crate::audio::AudioEngine;
 use crate::commands::edit::{
-    patch_file, rehash_track_file, sync_db_spelled, FileSpelling, TagPatch,
+    patch_file, rehash_track_file, sync_db_spelled, FileSpelling, TagPatch, TrackEdit,
 };
 use crate::commands::enrichment::{self, ProfileDb};
 use crate::error::{AppError, AppResult};
@@ -933,6 +933,28 @@ pub struct UndoReport {
     pub done: bool,
 }
 
+/// The values that put a journaled file back: each field's old value, an
+/// absent one as an empty value, which removes it.
+fn undo_values(file: &journal::JournaledFile) -> Values {
+    file.fields
+        .iter()
+        .map(|f| (f.field, f.old.clone().unwrap_or_default()))
+        .collect()
+}
+
+/// The file edit of an undo: [`undo_values`], and an Album Artist that
+/// held several values gets them all back, the first being the one the
+/// old value names (#1082).
+pub(crate) fn undo_edit(file: &journal::JournaledFile) -> TrackEdit {
+    let mut edit = to_edit(&undo_values(file));
+    edit.album_artist_values = file
+        .fields
+        .iter()
+        .find(|f| f.field == Field::AlbumArtist && f.old_values.len() > 1)
+        .map(|f| f.old_values.clone());
+    edit
+}
+
 /// Put back the values a batch replaced, in every file it wrote that has
 /// not changed since. The others are reported and left as they are.
 #[tauri::command]
@@ -1010,12 +1032,6 @@ pub async fn tag_workshop_undo(
             }
         }
 
-        // The old values, an absent one as an empty value: removed.
-        let restore: Values = file
-            .fields
-            .iter()
-            .map(|f| (f.field, f.old.clone().unwrap_or_default()))
-            .collect();
         // The track that is this file now, if it still is.
         let track_id = match file.track_id {
             Some(id) => match track_path(&pool, id).await {
@@ -1033,14 +1049,8 @@ pub async fn tag_workshop_undo(
             None => None,
         };
         pause_if_playing(&engine, track_id).await;
-        let mut file_edit = to_edit(&restore);
-        // An Album Artist that held several values gets them all back, the
-        // first being the one `restore` names (#1082).
-        file_edit.album_artist_values = file
-            .fields
-            .iter()
-            .find(|f| f.field == Field::AlbumArtist && f.old_values.len() > 1)
-            .map(|f| f.old_values.clone());
+        let restore = undo_values(&file);
+        let file_edit = undo_edit(&file);
         let outcome = {
             let path = path.clone();
             tokio::task::spawn_blocking(move || {
