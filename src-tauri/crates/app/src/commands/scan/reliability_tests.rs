@@ -107,6 +107,13 @@ impl Library {
         self.scan_folder(1).await
     }
 
+    /// A deep rescan of the library's folder, every file read without error.
+    async fn deep_scan(&self) -> ScanSummary {
+        let summary = self.try_scan(1, true).await.expect("deep scan");
+        assert_eq!(summary.errors, 0, "every file here is readable");
+        summary
+    }
+
     async fn scan_folder(&self, folder_id: i64) -> ScanSummary {
         let summary = self.try_scan(folder_id, false).await.expect("scan");
         assert_eq!(summary.errors, 0, "every file here is readable");
@@ -1975,7 +1982,7 @@ async fn two_musicbrainz_ids_are_two_artists_whatever_the_case() {
     move_mtime_forward(&jp);
     move_mtime_forward(&kr);
     library.scan().await;
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
     assert_eq!(library.names(&jp).await, ["LiSA"]);
     assert_eq!(library.names(&kr).await, ["LISA"]);
     assert_eq!(library.artists_like("lisa").await.len(), 2);
@@ -2141,7 +2148,7 @@ async fn a_deep_rescan_separates_namesakes_an_older_scan_merged() {
     // The ordinary scan leaves unchanged files alone; the deep one reads them.
     assert_eq!(library.scan().await.skipped, 2);
     assert_eq!(library.names(&kr).await, ["LiSA"]);
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
 
     assert_eq!(library.names(&jp).await, ["LiSA"]);
     assert_eq!(library.names(&kr).await, ["LISA"]);
@@ -2193,7 +2200,7 @@ async fn a_deep_rescan_moves_a_namesake_out_of_a_shared_album() {
     .await
     .unwrap();
 
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
 
     let album_artist = |path: PathBuf| {
         let pool = library.pool.clone();
@@ -2266,7 +2273,7 @@ async fn a_deep_rescan_separates_an_album_artist_an_older_scan_merged() {
     .await
     .unwrap();
 
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
 
     let album_artist = |path: PathBuf| {
         let pool = library.pool.clone();
@@ -2374,7 +2381,7 @@ async fn a_deep_rescan_gives_a_namesake_her_cover_and_her_spelling() {
         .await
         .unwrap();
 
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
 
     let album = |path: PathBuf| {
         let pool = library.pool.clone();
@@ -2430,10 +2437,7 @@ impl Library {
 
 /// The artist ids a file carries now, as a scan reads them.
 fn file_ids(path: &Path) -> Vec<String> {
-    use lofty::file::TaggedFileExt;
-    let tagged = waveflow_core::scanner::extract::read_tagged_file(path).unwrap();
-    let tag = tagged.primary_tag().unwrap();
-    waveflow_core::scanner::extract_artist_mbids(tag)
+    crate::commands::edit::file_artist_credit(path).unwrap().1
 }
 
 /// One of two "LISA" tracks, both carrying her id, re-credited to "Aimer"
@@ -2477,7 +2481,7 @@ async fn a_re_credited_track_does_not_go_back_to_its_old_artist() {
     assert_eq!(file_ids(&two), [LISA_KR], "the other file keeps it");
     assert_eq!(library.identities(&one).await, [("Aimer".into(), None)]);
 
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
     assert_eq!(library.identities(&one).await, [("Aimer".into(), None)]);
     assert_eq!(
         library.identities(&two).await,
@@ -2496,7 +2500,7 @@ async fn a_re_credited_track_does_not_go_back_to_its_old_artist() {
         )
         .await;
     assert_eq!(file_ids(&two), [LISA_KR]);
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
     assert_eq!(
         library.identities(&two).await,
         [("Lisa".into(), Some(LISA_KR.into()))]
@@ -2542,7 +2546,7 @@ async fn a_multi_artist_credit_keeps_each_id_on_its_name() {
             "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa"
         ]
     );
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
     assert_eq!(
         library.identities(&other).await,
         [
@@ -2567,7 +2571,7 @@ async fn a_multi_artist_credit_keeps_each_id_on_its_name() {
         )
         .await;
     assert!(file_ids(&other).is_empty());
-    library.try_scan(1, true).await.unwrap();
+    library.deep_scan().await;
     let names: Vec<String> = library
         .identities(&other)
         .await
@@ -2581,4 +2585,37 @@ async fn a_multi_artist_credit_keeps_each_id_on_its_name() {
             .await
             .unwrap();
     assert_eq!(gamma, None, "no id slid onto the new name");
+}
+
+/// A DSF carries artist ids too, in its ID3 tag (the tag workshop writes
+/// them there): re-credited, it loses the stale ones as any other file.
+#[test]
+fn a_dsf_drops_an_artist_id_its_new_credit_no_longer_matches() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.dsf");
+    std::fs::write(&path, dsf_bytes()).unwrap();
+    let tagged = TrackEdit {
+        artist: Some("LISA".into()),
+        musicbrainz: crate::commands::edit::MusicBrainzEdit {
+            artist_id: Some(LISA_KR.into()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    crate::commands::edit::write_edit(&path, &tagged).unwrap();
+    assert_eq!(file_ids(&path), [LISA_KR]);
+
+    let respelled = TrackEdit {
+        artist: Some("Lisa".into()),
+        ..Default::default()
+    };
+    crate::commands::edit::write_edit(&path, &respelled).unwrap();
+    assert_eq!(file_ids(&path), [LISA_KR], "a spelling fix keeps it");
+
+    let recredited = TrackEdit {
+        artist: Some("Aimer".into()),
+        ..Default::default()
+    };
+    crate::commands::edit::write_edit(&path, &recredited).unwrap();
+    assert!(file_ids(&path).is_empty());
 }

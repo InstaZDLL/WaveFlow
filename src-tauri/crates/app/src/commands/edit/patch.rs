@@ -853,13 +853,54 @@ pub(crate) fn write_edit(
 
 /// The artist ids to write into `path` for its credit to become
 /// `new_credit`, or `None` to leave them be. A file that cannot be read
-/// here carries no ids a scan could read either.
+/// here carries no ids anything could read either.
 fn file_artist_ids(path: &std::path::Path, new_credit: &str) -> Option<Vec<String>> {
+    let (old_credit, old_ids) = file_artist_credit(path)?;
+    waveflow_core::scanner::reconcile_artist_mbids(&old_credit, &old_ids, new_credit)
+}
+
+/// The artist credit a file carries and its MusicBrainz artist ids, read
+/// as the scanner reads them; a DSF's from its ID3 tag, which the tag
+/// workshop writes ids into as well. `None` when the file cannot be read.
+pub(crate) fn file_artist_credit(path: &std::path::Path) -> Option<(String, Vec<String>)> {
     use lofty::file::TaggedFileExt;
 
+    let is_dsf = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("dsf"));
+    if is_dsf {
+        return dsf_artist_credit(path);
+    }
     let tagged = waveflow_core::scanner::extract::read_tagged_file(path).ok()?;
-    let tag = tagged.primary_tag().or_else(|| tagged.first_tag())?;
-    let old_credit = waveflow_core::scanner::extract_artists(tag).unwrap_or_default();
-    let old_ids = waveflow_core::scanner::extract_artist_mbids(tag);
-    waveflow_core::scanner::reconcile_artist_mbids(&old_credit, &old_ids, new_credit)
+    let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) else {
+        return Some((String::new(), Vec::new()));
+    };
+    Some((
+        waveflow_core::scanner::extract_artists(tag).unwrap_or_default(),
+        waveflow_core::scanner::extract_artist_mbids(tag),
+    ))
+}
+
+fn dsf_artist_credit(path: &std::path::Path) -> Option<(String, Vec<String>)> {
+    use std::io::{Seek, SeekFrom};
+
+    let mut file = std::fs::File::open(path).ok()?;
+    let layout = waveflow_core::tagio::read_dsf_layout(&mut file).ok()??;
+    if layout.metadata_offset == 0 {
+        return Some((String::new(), Vec::new()));
+    }
+    file.seek(SeekFrom::Start(layout.metadata_offset)).ok()?;
+    let tag = match waveflow_core::tagio::chapter_nesting::read_id3_tag(&mut file) {
+        Ok(tag) => tag,
+        Err(err) if matches!(err.kind, id3::ErrorKind::NoTag) => {
+            return Some((String::new(), Vec::new()))
+        }
+        Err(_) => return None,
+    };
+    let credit = waveflow_core::audio_format::dsd::metadata::id3_artists(&tag).unwrap_or_default();
+    let ids = read_musicbrainz_id3(&tag, ARTIST)
+        .map(|v| waveflow_core::scanner::artist_mbids([v.as_str()]))
+        .unwrap_or_default();
+    Some((credit, ids))
 }
