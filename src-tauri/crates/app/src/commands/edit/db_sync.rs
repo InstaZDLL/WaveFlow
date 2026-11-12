@@ -558,7 +558,9 @@ pub(crate) async fn sync_db_spelled(
 /// a namesake's row: saving "LISA" over "LISA" would move the track to
 /// "LiSA" and `respell` would rename it. With the id, the artist is found
 /// as it was. Of two namesakes the track holds ("LiSA", "LISA", #1081),
-/// the one spelled as `name` is.
+/// the one spelled as `name` is, with its id or without one: a row with no
+/// id spelled as `name` is found again by its plain key, and never under a
+/// namesake's id.
 async fn kept_identity(
     conn: &mut sqlx::SqliteConnection,
     current: &[i64],
@@ -572,13 +574,17 @@ async fn kept_identity(
                 .bind(id)
                 .fetch_optional(&mut *conn)
                 .await?;
-        if let Some((key, spelling, Some(mbid))) = row {
-            if key.split(" #").next() == Some(wanted.as_str()) {
-                if spelling == name {
-                    return Ok(Some(mbid));
-                }
-                first.get_or_insert(mbid);
-            }
+        let Some((key, spelling, mbid)) = row else {
+            continue;
+        };
+        if key.split(" #").next() != Some(wanted.as_str()) {
+            continue;
+        }
+        if spelling == name {
+            return Ok(mbid);
+        }
+        if let Some(mbid) = mbid {
+            first.get_or_insert(mbid);
         }
     }
     Ok(first)
