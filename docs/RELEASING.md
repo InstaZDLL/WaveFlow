@@ -588,7 +588,8 @@ SignPath signs a PE file or an MSI but cannot sign what sits inside an NSIS inst
 4. The signed exe goes back to `target/release`, and `tauri bundle --no-binary-patching` builds the installers (nsis, and msi on a stable release). `--no-binary-patching` matters: the bundler would otherwise rewrite the exe it embeds and break its signature. The dispatcher puts the signed uninstaller in place, and only if its SHA-256 is the exported one.
 5. **Approval 2 of 2**, artifact configuration `installers`: the NSIS setup and the MSI (the beta has none, hence `min-matches="0"`).
 6. The updater `.sig` the bundler wrote covers unsigned bytes: it is deleted, and `tauri signer sign --app-version` recomputes it on the signed setup. The version is the one the bundler bound into the first signature, read back from it: `requireSignedVersion` refuses a payload that does not name it. Only then does `prepare-assets.py windows` run, so nothing derived from the setup (signature, manifest) exists before the last signature.
-7. `Get-AuthenticodeSignature` on the setup, the MSI and the exe: a file without a signature fails the job. Under `release-signing` the status must also be `Valid`.
+7. [`verify-updater-signature.mjs`](../scripts/release/verify-updater-signature.mjs) checks the new `.sig` the way the updater will, since `tauri signer` has no verify command: against the public key in `tauri.conf.json` (`plugins.updater.pubkey`), against the signed setup's bytes, and for the version it names (the tag's).
+8. `Get-AuthenticodeSignature` on the setup, the MSI and the exe: a file without a signature fails the job. Under `release-signing` the status must also be `Valid`.
 
 **The uninstaller** is signed because `makensis` writes it byte for byte the same whenever the installer script and its inputs do not change (measured: the same SHA-256 across two bundle runs, and with a different exe next to it). If it ever differs between the two passes, the release still goes out with an unsigned uninstaller and the job logs a warning; it is the one file where that is allowed. The NSIS plugin DLLs inside the setup are third-party code and are not signed, as the Foundation requires.
 
@@ -609,7 +610,7 @@ gh variable set SIGNPATH_PROJECT_SLUG --body "<project slug>"
 gh variable set SIGNPATH_SIGNING_POLICY_SLUG --body "test-signing"
 ```
 
-A tag built by this workflow needs `@tauri-apps/cli` 2.12.0 or newer, the first with `tauri bundle --no-binary-patching`: a patch release cut from a maintenance branch that pins an older CLI fails the Windows job at the first bundle pass (loudly, never unsigned), and the branch has to take the newer CLI first.
+A tag built by this workflow needs `@tauri-apps/cli` 2.12.0 or newer, the first with `tauri bundle --no-binary-patching`. The Windows job checks it before building anything, so a patch release cut from a maintenance branch that pins an older CLI stops at once with a message saying so, never half signed; the branch has to take the newer CLI first. (The 1.9 line already pins `^2.12.1`; no maintenance branch exists today.)
 
 With any of them missing the Windows job fails on its first step, naming what is missing: a release is never published unsigned by accident.
 
@@ -625,7 +626,7 @@ From then on every release waits for two manual approvals in SignPath, and the j
 
 ### Trying it without a release
 
-[`windows-signing-check.yml`](../.github/workflows/windows-signing-check.yml) runs the same action and stops: no tag, no release, no upload, no R2. It also installs the setup silently on the runner and looks at the signature of the installed exe and uninstaller. It runs on a push to its branch and, once it is on the default branch, from the Actions tab; use it to try a policy before a release depends on it.
+[`windows-signing-check.yml`](../.github/workflows/windows-signing-check.yml) runs the same action and stops: no tag, no release, no upload, no R2. It also installs the setup silently on the runner and looks at the signature of the installed exe and uninstaller. It is started by hand from the Actions tab (**Run workflow**); use it to try a policy before a release depends on it. It makes real signing requests: under `release-signing` every run creates two that wait for approval in SignPath.
 
 ### On GitLab
 

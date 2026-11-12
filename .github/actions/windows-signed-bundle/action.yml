@@ -78,6 +78,17 @@ runs:
         fi
         echo "SignPath policy: $POLICY"
 
+    - name: Require a Tauri CLI that can bundle without patching the executable
+      shell: bash
+      # `tauri bundle --no-binary-patching` (CLI 2.12.0) is what keeps the
+      # signed executable intact. A tag from a branch that pins an older CLI
+      # would otherwise fail halfway, after the build; say so first.
+      run: |
+        if ! bun run tauri bundle --help 2>&1 | grep -q -- '--no-binary-patching'; then
+          echo "::error::this tag's @tauri-apps/cli ($(bun run tauri --version 2>&1 | tail -1)) has no 'tauri bundle --no-binary-patching' (needs 2.12.0 or newer): update it on the branch before releasing Windows from it"
+          exit 1
+        fi
+
     - name: Build the executable (no bundle)
       shell: bash
       # `bun run tauri` goes through scripts/tauri.mjs, which adds the
@@ -266,6 +277,8 @@ runs:
         TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.tauri-signing-private-key }}
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.tauri-signing-private-key-password }}
         POLICY: ${{ inputs.signpath-signing-policy-slug }}
+        RELEASE_VERSION: ${{ inputs.version }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         $ErrorActionPreference = 'Stop'
         $bundle = 'src-tauri/target/release/bundle'
@@ -281,6 +294,11 @@ runs:
         bun run tauri signer sign --app-version $env:SIGNED_APP_VERSION $setup.FullName
         if ($LASTEXITCODE -ne 0) { throw "tauri signer sign failed with $LASTEXITCODE" }
         if (-not (Test-Path "$($setup.FullName).sig")) { throw 'the updater signature was not written' }
+        # What the updater will do with it: the app's public key, the signed
+        # setup, and the version the manifest will announce.
+        $root = [IO.Path]::GetFullPath((Join-Path $env:ACTION_PATH '../../..'))
+        node "$root/scripts/release/verify-updater-signature.mjs" $setup.FullName "$($setup.FullName).sig" src-tauri/crates/app/tauri.conf.json $env:RELEASE_VERSION
+        if ($LASTEXITCODE -ne 0) { throw 'the updater signature does not verify' }
 
         # Signed or not signed, loudly. With the test policy the chain is not
         # trusted, so a signature is all that can be asked; the release policy
