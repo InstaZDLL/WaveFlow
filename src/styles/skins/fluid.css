@@ -2409,6 +2409,9 @@
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 2.4px currentColor;
   transform: none !important;
+  /* Tailwind 4 writes `scale-[…]` as the `scale` property, which
+     `transform: none` leaves in place. */
+  scale: none !important;
   transition:
     opacity 320ms var(--fe-ease),
     text-shadow 320ms var(--fe-ease),
@@ -2574,6 +2577,9 @@
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 2.8px currentColor;
   transform: none !important;
+  /* Tailwind 4 writes `scale-[…]` as the `scale` property, which
+     `transform: none` leaves in place. */
+  scale: none !important;
   transition:
     text-shadow 320ms var(--fe-ease),
     -webkit-text-fill-color 320ms var(--fe-ease),
