@@ -20,7 +20,7 @@ mod folder_covers;
 mod play_events;
 
 pub use album_artist::{
-    merge_implicit_compilations, repoint_album_for_identity, repoint_fallback_album_artist,
+    merge_implicit_compilations, realign_album_by_identity, repoint_fallback_album_artist,
 };
 pub use artist_images::{
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images, ArtistImageScanCache,

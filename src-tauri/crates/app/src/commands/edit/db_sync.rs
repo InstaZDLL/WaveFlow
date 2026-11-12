@@ -27,6 +27,13 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         .fetch_optional(&mut *tx)
         .await?
         .flatten();
+    // Its lead artist, which keys that album when it has no Album Artist.
+    let old_primary: Option<i64> =
+        sqlx::query_scalar("SELECT primary_artist FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .flatten();
 
     // The artist ids the tag workshop writes into the file, when it does:
     // they decide the identity of the credit as a scan of the file would
@@ -335,6 +342,15 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         }
         q = q.bind(track_id);
         q.execute(&mut *tx).await?;
+    }
+
+    // A new lead artist on an album keyed on the old one, the album left
+    // alone: the track goes where a scan of the file would put it. An id
+    // alone can change the lead (#1076), so the album cannot wait for its
+    // title or Album Artist to be edited. An album with an Album Artist or
+    // a compilation flag does not follow its tracks' leads.
+    if new_album_id.is_none() && primary_artist_id.is_some() && primary_artist_id != old_primary {
+        waveflow_core::scanner::realign_album_by_identity(&mut tx, track_id, None, None).await?;
     }
 
     // A track moved by its Album Artist alone into an album this edit

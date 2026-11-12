@@ -14,7 +14,7 @@ use tauri::Emitter;
 use waveflow_core::repository::{album::AlbumRepository, sqlite::SqliteAlbumRepository};
 use waveflow_core::scanner::{
     link_va_artist_image, maybe_link_artist_images, merge_implicit_compilations, now_millis,
-    reattach_orphaned_play_events, refresh_folder_covers, repoint_album_for_identity,
+    realign_album_by_identity, reattach_orphaned_play_events, refresh_folder_covers,
     repoint_fallback_album_artist, split_artist_name, upsert_album_with_artist_mbid,
     upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache,
 };
@@ -952,6 +952,7 @@ pub(crate) async fn scan_folder_inner(
                 }
 
                 let mut multi_artist_renormalised = false;
+                let mut credit_identity_moved = false;
                 if let Some(raw) = &extracted.artist {
                     let splits = split_artist_name(raw);
                     let current_count: i64 =
@@ -1029,18 +1030,11 @@ pub(crate) async fn scan_folder_inner(
                             .bind(existing_track_id)
                             .execute(&mut *tx)
                             .await?;
-                        // A track that changed artist by identity alone may share
-                        // its album with tracks that stay: it moves on its own.
+                        // A track that changed artist by identity is realigned
+                        // below, with its Album Artist: its album may hold the
+                        // other artist's tracks, and must not move whole.
                         if let Some(first_id) = ids.first().copied() {
-                            if identity_moved {
-                                repoint_album_for_identity(
-                                    &mut tx,
-                                    existing_track_id,
-                                    previous_primary,
-                                    first_id,
-                                )
-                                .await?;
-                            } else {
+                            if !identity_moved {
                                 repoint_fallback_album_artist(
                                     &mut tx,
                                     existing_track_id,
@@ -1051,6 +1045,7 @@ pub(crate) async fn scan_folder_inner(
                             }
                         }
                     }
+                    credit_identity_moved = identity_moved;
                     // Backfill local artist images AFTER the optional
                     // track_artist rebuild — otherwise newly created
                     // artist IDs (when current_count != splits.len())
@@ -1078,6 +1073,20 @@ pub(crate) async fn scan_folder_inner(
                     timings
                         .link_us
                         .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
+                }
+
+                // The album a fresh scan would build, on a deep rescan of a
+                // file that names its artists by id (#1076): an older scan
+                // keyed one album on the merged artist, whether it came from
+                // the track's lead or from an explicit Album Artist.
+                if deep && (credit_identity_moved || extracted.album_artist_mbid.is_some()) {
+                    realign_album_by_identity(
+                        &mut tx,
+                        existing_track_id,
+                        extracted.album_artist.as_deref(),
+                        extracted.album_artist_mbid.as_deref(),
+                    )
+                    .await?;
                 }
 
                 // Phase 4.d.0.3: emit a sync op ONLY when the skip

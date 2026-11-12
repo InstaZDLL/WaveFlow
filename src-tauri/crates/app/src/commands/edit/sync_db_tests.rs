@@ -606,3 +606,32 @@ async fn an_unchanged_name_with_a_new_id_renames_nobody() {
             .unwrap();
     assert_eq!(names, ["LiSA", "LISA"]);
 }
+
+/// Only the artist id edited, on an album with no Album Artist: the album
+/// is keyed on the track's lead, so it follows the new one as a scan of the
+/// file would key it.
+#[tokio::test]
+async fn an_edited_artist_id_alone_moves_a_fallback_album() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    sqlx::raw_sql("UPDATE album SET album_artist = NULL WHERE id = 2")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db(&pool, 2, &retag).await.unwrap();
+
+    let keyed: (i64, i64) = sqlx::query_as(
+        "SELECT t.primary_artist, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(keyed, (2, 2));
+}
