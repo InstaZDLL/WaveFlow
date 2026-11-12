@@ -879,14 +879,20 @@ async fn an_album_artist_id_without_a_named_album_artist_changes_nothing() {
 async fn an_undo_of_two_album_artists_gives_their_one_id_to_neither() {
     const ID: &str = "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001";
     let pool = pool().await;
-    for statement in [
-        format!("INSERT INTO artist (id, name, canonical_name, mbid) VALUES (5, 'Other', 'other', '{ID}')"),
+    sqlx::query(
+        "INSERT INTO artist (id, name, canonical_name, mbid) VALUES (5, 'Other', 'other', ?)",
+    )
+    .bind(ID)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::raw_sql(
         "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
-             VALUES (5, 'the wall', 'the wall', 5, 1979, 0)"
-            .to_string(),
-    ] {
-        sqlx::raw_sql(&statement).execute(&pool).await.unwrap();
-    }
+             VALUES (5, 'the wall', 'the wall', 5, 1979, 0)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
     let undo = TrackEdit {
         album_artist: Some("Alpha".into()),
         album_artist_values: Some(vec!["Alpha".into(), "Beta".into()]),
