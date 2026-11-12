@@ -592,6 +592,13 @@ async fn an_unchanged_name_with_a_new_id_renames_nobody() {
         .await
         .unwrap();
     assert_eq!(primary, 2);
+    let album_artist: i64 = sqlx::query_scalar(
+        "SELECT al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(album_artist, 2, "the album artist follows its id too");
     let names: Vec<String> =
         sqlx::query_scalar("SELECT name FROM artist WHERE id IN (2, 3) ORDER BY id")
             .fetch_all(&pool)
