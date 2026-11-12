@@ -1080,11 +1080,23 @@ pub(crate) async fn scan_folder_inner(
                 // keyed one album on the merged artist, whether it came from
                 // the track's lead or from an explicit Album Artist.
                 if deep && (credit_identity_moved || extracted.album_artist_mbid.is_some()) {
+                    // The track's own picture, for an album it lands in
+                    // without one: the old album's may be the other
+                    // artist's record.
+                    let own_cover = match &extracted.cover_art {
+                        Some(cover) => Some((
+                            upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source)
+                                .await?,
+                            cover.source.as_str(),
+                        )),
+                        None => None,
+                    };
                     realign_album_by_identity(
                         &mut tx,
                         existing_track_id,
                         extracted.album_artist.as_deref(),
                         extracted.album_artist_mbid.as_deref(),
+                        own_cover,
                     )
                     .await?;
                 }

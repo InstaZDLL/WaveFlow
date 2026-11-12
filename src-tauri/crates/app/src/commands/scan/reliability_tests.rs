@@ -2287,3 +2287,118 @@ async fn a_deep_rescan_separates_an_album_artist_an_older_scan_merged() {
     assert_eq!(album_artist(jp.clone()).await, "LiSA");
     assert_eq!(album_artist(kr.clone()).await, "LISA");
 }
+
+/// A small PNG of one colour, for a cover a test can tell apart.
+fn png(rgb: [u8; 3]) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    image::RgbImage::from_pixel(4, 4, image::Rgb(rgb))
+        .write_to(
+            &mut std::io::Cursor::new(&mut bytes),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+    bytes
+}
+
+/// What a deep rescan gives the album a namesake's track lands in: her own
+/// cover, not the merged album's (which is the other singer's), and her
+/// Album Artist spelling on an album re-keyed in place.
+#[tokio::test]
+async fn a_deep_rescan_gives_a_namesake_her_cover_and_her_spelling() {
+    let library = Library::new().await;
+    let tagged = |title: &'static str, artist: &'static str, album: &'static str, id| {
+        [
+            ("TITLE", title),
+            ("ARTIST", artist),
+            ("ALBUMARTIST", artist),
+            ("ALBUM", album),
+            ("MUSICBRAINZ_ARTISTID", id),
+            ("MUSICBRAINZ_ALBUMARTISTID", id),
+        ]
+    };
+    let jp = library.flac("jp.flac", &tagged("a", "LiSA", "Same", LISA_JP));
+    let kr = library.flac("kr.flac", &tagged("b", "LISA", "Same", LISA_KR));
+    let solo = library.flac("solo/kr.flac", &tagged("c", "LISA", "Solo", LISA_KR));
+    for (path, rgb) in [(&jp, [255, 0, 0]), (&kr, [0, 0, 255])] {
+        let bytes = png(rgb);
+        patch_file(
+            path,
+            &TagPatch::Cover {
+                bytes: &bytes,
+                mime: &lofty::picture::MimeType::Png,
+            },
+        )
+        .unwrap();
+    }
+    library.scan().await;
+    let cover_of = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, Option<i64>>(
+                "SELECT al.artwork_id FROM track t JOIN album al ON al.id = t.album_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let (jp_cover, kr_cover) = (cover_of(jp.clone()).await, cover_of(kr.clone()).await);
+    assert!(jp_cover.is_some() && kr_cover.is_some() && jp_cover != kr_cover);
+
+    // The state an older build left: one artist, one "Same" album with her
+    // cover and her spelling, and "Solo" spelled hers too.
+    sqlx::raw_sql(
+        "UPDATE track SET album_id = (SELECT MIN(id) FROM album WHERE canonical_title = 'same')
+          WHERE album_id IN (SELECT id FROM album WHERE canonical_title = 'same');
+         DELETE FROM album WHERE canonical_title = 'same'
+            AND id <> (SELECT MIN(id) FROM album WHERE canonical_title = 'same');
+         UPDATE artist SET name = 'LiSA' WHERE canonical_name = 'lisa';
+         UPDATE album SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa'),
+                          album_artist = 'LiSA'
+          WHERE canonical_title IN ('same', 'solo');
+         UPDATE track_artist SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+    sqlx::query("UPDATE album SET artwork_id = ? WHERE canonical_title = 'same'")
+        .bind(jp_cover)
+        .execute(&library.pool)
+        .await
+        .unwrap();
+
+    library.try_scan(1, true).await.unwrap();
+
+    let album = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_as::<_, (String, Option<String>, Option<i64>)>(
+                "SELECT ar.name, al.album_artist, al.artwork_id FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(
+        album(jp).await,
+        ("LiSA".into(), Some("LiSA".into()), jp_cover)
+    );
+    assert_eq!(
+        album(kr).await,
+        ("LISA".into(), Some("LISA".into()), kr_cover)
+    );
+    let (artist, text, _) = album(solo).await;
+    assert_eq!((artist, text), ("LISA".into(), Some("LISA".into())));
+}

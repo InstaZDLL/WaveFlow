@@ -417,13 +417,19 @@ pub async fn repoint_fallback_album_artist(
 /// primary artist as stored now.
 ///
 /// - An album that already holds `(canonical_title, target)` takes the
-///   track.
+///   track, and the Album Artist text when it has none, as a scan would
+///   give it.
 /// - A track alone in its album re-keys it in place, keeping the row and
-///   its cover.
+///   its cover, and takes the Album Artist text the file spells: the
+///   stored one is the merged artist's.
 /// - Otherwise only this track moves, into an album created as a scan
-///   would create it, which takes the old album's cover when it has none:
-///   the album may hold tracks of the other artist, and moving it whole
-///   would carry them along.
+///   would create it: the album may hold tracks of the other artist, and
+///   moving it whole would carry them along.
+///
+/// An album the track lands in without a cover takes `own_cover` (the
+/// artwork id and source of the picture the track's file embeds, when the
+/// caller read one), as a scan would give it, else the cover of the album
+/// left: a merged album's cover may be the other artist's record.
 ///
 /// A compilation is left alone, as its flag is sticky, and so is an album
 /// whose Album Artist the caller does not name (or names where the album
@@ -435,6 +441,7 @@ pub async fn realign_album_by_identity(
     track_id: i64,
     album_artist: Option<&str>,
     album_artist_mbid: Option<&str>,
+    own_cover: Option<(i64, &str)>,
 ) -> CoreResult<bool> {
     type Current = (
         i64,
@@ -482,13 +489,28 @@ pub async fn realign_album_by_identity(
             .fetch_optional(&mut *conn)
             .await?;
     let destination = match existing {
-        Some(id) => id,
-        None if others == 0 => {
-            sqlx::query("UPDATE album SET artist_id = ? WHERE id = ?")
-                .bind(target)
-                .bind(album)
+        Some(id) => {
+            if album_artist.is_some() {
+                sqlx::query(
+                    "UPDATE album SET album_artist = COALESCE(album_artist, ?) WHERE id = ?",
+                )
+                .bind(album_artist)
+                .bind(id)
                 .execute(&mut *conn)
                 .await?;
+            }
+            id
+        }
+        None if others == 0 => {
+            sqlx::query(
+                "UPDATE album SET artist_id = ?, album_artist = COALESCE(?, album_artist)
+                  WHERE id = ?",
+            )
+            .bind(target)
+            .bind(album_artist)
+            .bind(album)
+            .execute(&mut *conn)
+            .await?;
             return Ok(true);
         }
         None => {
@@ -517,16 +539,31 @@ pub async fn realign_album_by_identity(
         .bind(track_id)
         .execute(&mut *conn)
         .await?;
-    sqlx::query(
-        "UPDATE album
-            SET artwork_id = (SELECT artwork_id FROM album WHERE id = ?1),
-                artwork_source = (SELECT artwork_source FROM album WHERE id = ?1)
-          WHERE id = ?2 AND artwork_id IS NULL",
-    )
-    .bind(album)
-    .bind(destination)
-    .execute(&mut *conn)
-    .await?;
+    match own_cover {
+        Some((artwork, source)) => {
+            sqlx::query(
+                "UPDATE album SET artwork_id = ?, artwork_source = ?
+                  WHERE id = ? AND artwork_id IS NULL",
+            )
+            .bind(artwork)
+            .bind(source)
+            .bind(destination)
+            .execute(&mut *conn)
+            .await?;
+        }
+        None => {
+            sqlx::query(
+                "UPDATE album
+                    SET artwork_id = (SELECT artwork_id FROM album WHERE id = ?1),
+                        artwork_source = (SELECT artwork_source FROM album WHERE id = ?1)
+                  WHERE id = ?2 AND artwork_id IS NULL",
+            )
+            .bind(album)
+            .bind(destination)
+            .execute(&mut *conn)
+            .await?;
+        }
+    }
     Ok(true)
 }
 

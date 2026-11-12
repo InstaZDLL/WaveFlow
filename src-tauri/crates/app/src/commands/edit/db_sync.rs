@@ -395,7 +395,8 @@ pub(crate) async fn sync_db_spelled(
     // title or Album Artist to be edited. An album with an Album Artist or
     // a compilation flag does not follow its tracks' leads.
     if new_album_id.is_none() && primary_artist_id.is_some() && primary_artist_id != old_primary {
-        waveflow_core::scanner::realign_album_by_identity(&mut tx, track_id, None, None).await?;
+        waveflow_core::scanner::realign_album_by_identity(&mut tx, track_id, None, None, None)
+            .await?;
     }
 
     // A track moved by its Album Artist alone into an album this edit
