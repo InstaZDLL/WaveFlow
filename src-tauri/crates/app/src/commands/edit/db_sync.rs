@@ -281,12 +281,11 @@ pub(crate) async fn sync_db_spelled(
                 (Some(name), _)
                     if edit.musicbrainz.album_artist_id.is_some() && names_album_artist =>
                 {
-                    // Named by the edit, the file holds that one value once
-                    // written; otherwise every value the file holds counts.
-                    let names = match named_album_artist {
-                        Some(_) => name,
-                        None => file_album_artist_values.unwrap_or(name),
-                    };
+                    // Every value the file holds counts, read back after the
+                    // write: an edit leaves the one it names, an undo every
+                    // value it put back (#1082), "Alpha" before "Beta",
+                    // which no scan gives one id to. Unread, the name.
+                    let names = file_album_artist_values.unwrap_or(name);
                     album_artist_mbid(names, edit.musicbrainz.album_artist_id.as_deref())
                 }
                 (Some(name), Some(old)) => {
