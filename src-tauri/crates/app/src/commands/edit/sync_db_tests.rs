@@ -750,3 +750,30 @@ async fn an_id_that_finds_an_artist_keeps_her_name() {
         .unwrap();
     assert_eq!(primary, 2);
 }
+
+/// An Album Artist id written into a file that names no Album Artist gives
+/// a scan no id to read: the album keeps the artist it has, rather than the
+/// id being applied to the text the database stores.
+#[tokio::test]
+async fn an_album_artist_id_without_a_named_album_artist_changes_nothing() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            album_artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db_spelled(&pool, 2, &retag, &FileSpelling::default())
+        .await
+        .unwrap();
+
+    let keyed: i64 = sqlx::query_scalar(
+        "SELECT al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(keyed, 3, "still LISA's");
+}

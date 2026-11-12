@@ -259,9 +259,14 @@ pub(crate) async fn sync_db_spelled(
             // alone, and that key is "LiSA"'s when both are in the library.
             //
             // An id the tag workshop writes for it decides instead, under
-            // the rule the scanner reads it by.
+            // the rule the scanner reads it by: only for an Album Artist the
+            // file names (or the edit does). A file with none gives a scan
+            // no id to read, so the stored text keeps the identity it has.
+            let names_album_artist = named_album_artist.is_some() || file_album_artist.is_some();
             let album_artist_identity = match (album_artist, old_album_id) {
-                (Some(name), _) if edit.musicbrainz.album_artist_id.is_some() => {
+                (Some(name), _)
+                    if edit.musicbrainz.album_artist_id.is_some() && names_album_artist =>
+                {
                     album_artist_mbid(name, edit.musicbrainz.album_artist_id.as_deref())
                 }
                 (Some(name), Some(old)) => {

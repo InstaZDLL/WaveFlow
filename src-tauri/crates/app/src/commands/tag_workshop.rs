@@ -51,7 +51,7 @@ use waveflow_core::tag_workshop::{diff, journal, Field, FieldDiff, Values};
 
 use crate::audio::AudioEngine;
 use crate::commands::edit::{
-    patch_file, rehash_track_file, sync_db, sync_db_spelled, FileSpelling, TagPatch,
+    patch_file, rehash_track_file, sync_db_spelled, FileSpelling, TagPatch,
 };
 use crate::commands::enrichment::{self, ProfileDb};
 use crate::error::{AppError, AppResult};
@@ -998,9 +998,16 @@ pub async fn tag_workshop_undo(
         }
         if let Some(track_id) = track_id {
             let db_edit = to_db_edit(&restore, &path);
+            // The names as the restored file spells them, for an artist the
+            // restored ids create (#1076). Unread, the database's stand in.
+            let after = read_blocking(path.clone()).await.unwrap_or_default();
+            let spelled = FileSpelling {
+                artist: after.get(&Field::Artist).cloned(),
+                album_artist: after.get(&Field::AlbumArtist).cloned(),
+            };
             let synced = async {
                 retry_busy(|| rehash_track_file(&pool, track_id, &path)).await?;
-                retry_busy(|| sync_db(&pool, track_id, &db_edit)).await
+                retry_busy(|| sync_db_spelled(&pool, track_id, &db_edit, &spelled)).await
             }
             .await;
             // The file is restored and recorded as such — its bytes no
