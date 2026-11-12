@@ -811,6 +811,24 @@
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
 }
+/* The lines two away: the base's fade, not fluid's blur, which these
+   selectors outweigh the base rule for. */
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  + li
+  > button,
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(+ li + li > button[class*="scale-[1.02]"])
+  > button {
+  opacity: 0.72;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
 :root[data-skin="liquid"]
   .fe-panel
   ul
