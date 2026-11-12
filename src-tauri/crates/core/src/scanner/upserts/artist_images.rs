@@ -10,7 +10,7 @@ use crate::scanner::extract::{
     extract_artist_image, extract_artist_image_cached, ArtistImageDirCache, ExtractedCover,
 };
 
-use super::{canonical_name, split_artist_name, upsert_artwork, VARIOUS_ARTISTS_LABEL};
+use super::{artist_credit_names, canonical_name, upsert_artwork, VARIOUS_ARTISTS_LABEL};
 
 /// Per-scan cache threaded through [`maybe_link_artist_images`]. Bundles
 /// the two independent memos that make the sidecar-artist-image walk —
@@ -91,6 +91,7 @@ pub async fn maybe_link_artist_images(
     conn: &mut sqlx::SqliteConnection,
     artist_raw: Option<&str>,
     artist_ids: &[i64],
+    artist_mbids: &[String],
     track_path: &Path,
     artwork_dir: &Path,
     cache: &mut ArtistImageScanCache,
@@ -103,10 +104,19 @@ pub async fn maybe_link_artist_images(
     if crate::network_locator::is_locator_path(track_path) {
         return Ok(());
     }
-    let names = split_artist_name(raw);
+    let names = artist_credit_names(raw, artist_mbids);
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
     let parent = track_path.parent();
     for (name, id) in named_ids(&names, artist_ids) {
+        let canon = canonical_name(name);
+        // Two namesakes of one credit ("LiSA; LISA", told apart by their
+        // ids, #1081) would both match the one sidecar their spelling
+        // finds, and a linked image is never replaced: neither takes it
+        // from this track. Not marked as tried, so another track of the
+        // folder that credits one of them alone still looks.
+        if names.iter().filter(|n| canonical_name(n) == canon).count() > 1 {
+            continue;
+        }
         // Per-(artist, folder) skip. `insert` returns false when the
         // pair was already attempted this scan — the match + the
         // has-artwork probe below are deterministic for it, so there's
@@ -116,7 +126,6 @@ pub async fn maybe_link_artist_images(
                 continue;
             }
         }
-        let canon = canonical_name(name);
         if canon.is_empty() || canon == va_canon {
             continue;
         }

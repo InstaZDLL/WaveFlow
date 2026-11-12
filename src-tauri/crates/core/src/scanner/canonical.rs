@@ -152,6 +152,13 @@ pub fn album_artist_mbid<'a>(
 ///   name is an old one in a new order; empty, to remove them, as soon as
 ///   one name is new, since an id list cannot leave one name without its
 ///   id and keep the others paired.
+///
+/// Two old names that differ by case only ("LiSA; LISA", two ids, #1081)
+/// are two artists: a new name is the one it matches letter for letter; the
+/// namesakes no name matches that way pair, in order, with the names of
+/// their spelling left, when there are as many (the properties dialog shows
+/// the library's spelling, which may not be the file's). A spelling that
+/// still fits several of them ("Lisa" alone) names no one, so the ids go.
 pub fn reconcile_artist_mbids(
     old_credit: &str,
     old_ids: &[String],
@@ -160,22 +167,88 @@ pub fn reconcile_artist_mbids(
     if old_ids.is_empty() {
         return None;
     }
-    let old_names = split_artist_name(old_credit);
-    let new_names = split_artist_name(new_credit);
-    if old_ids.len() != old_names.len() {
-        // Never paired. They would as soon as the counts met.
-        return (new_names.len() == old_ids.len()).then(Vec::new);
+    let mut old = artist_credits(old_credit, old_ids);
+    if old.iter().any(|(_, id)| id.is_none()) {
+        // Not paired as written; the names a scan files together may still
+        // be as many as the ids ("Beta; BETA" and one id).
+        let names = split_artist_name(old_credit);
+        if names.len() != old_ids.len() {
+            // Never paired. They would as soon as the counts met, as a scan
+            // counts them: the names as written or as filed together.
+            let pairs = credit_parts(new_credit).count() == old_ids.len()
+                || split_artist_name(new_credit).len() == old_ids.len();
+            return pairs.then(Vec::new);
+        }
+        old = names
+            .into_iter()
+            .zip(old_ids.iter().cloned().map(Some))
+            .collect();
     }
-    let old_keys: Vec<String> = old_names.iter().map(|n| canonical_name(n)).collect();
-    let mut ids = Vec::with_capacity(new_names.len());
-    for name in &new_names {
-        let key = canonical_name(name);
-        match old_keys.iter().position(|k| *k == key) {
-            Some(i) => ids.push(old_ids[i].clone()),
-            None => return Some(Vec::new()),
+    // Every name as typed, so "LiSA; LISA" keeps both of its artists.
+    let new: Vec<(&str, String)> = credit_parts(new_credit)
+        .map(|name| (name, canonical_name(name)))
+        .collect();
+    let old_keys: Vec<String> = old.iter().map(|(name, _)| canonical_name(name)).collect();
+    let group =
+        |key: &str| -> Vec<usize> { (0..old.len()).filter(|&i| old_keys[i] == key).collect() };
+    let mut found: Vec<Option<usize>> = vec![None; new.len()];
+    let mut taken = vec![false; old.len()];
+    // A name only one old artist answers to is that artist, whatever its
+    // spelling; among namesakes, the one spelled the same, when the new
+    // credit spells it as many times as the old one ("Lisa" alone over two
+    // artists both spelled "Lisa" is neither).
+    for (at, (name, key)) in new.iter().enumerate() {
+        match group(key).as_slice() {
+            [] => return Some(Vec::new()),
+            [only] => found[at] = Some(*only),
+            several => {
+                let exact_old = several.iter().filter(|&&i| old[i].0 == *name).count();
+                let exact_new = new.iter().filter(|(n, _)| n == name).count();
+                if exact_old != exact_new {
+                    continue;
+                }
+                if let Some(&exact) = several.iter().find(|&&i| !taken[i] && old[i].0 == *name) {
+                    taken[exact] = true;
+                    found[at] = Some(exact);
+                }
+            }
+        }
+    }
+    // The namesakes left, in credit order, when as many names are left for
+    // them: the dialog shows the library's spelling, which need not be the
+    // file's ("Lisa; LISA" over a file's "LiSA; LISA").
+    for (at, (_, key)) in new.iter().enumerate() {
+        if found[at].is_some() {
+            continue;
+        }
+        let names_left: Vec<usize> = (at..new.len())
+            .filter(|&j| found[j].is_none() && new[j].1 == *key)
+            .collect();
+        let old_left: Vec<usize> = group(key).into_iter().filter(|&i| !taken[i]).collect();
+        if names_left.len() != old_left.len() {
+            // A spelling that fits several of them names no one of them.
+            return Some(Vec::new());
+        }
+        for (j, i) in names_left.into_iter().zip(old_left) {
+            taken[i] = true;
+            found[j] = Some(i);
+        }
+    }
+    let mut ids: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for ((_, key), i) in new.iter().zip(found) {
+        let id = i.and_then(|i| old[i].1.clone()).unwrap_or_default();
+        if seen.insert((key.clone(), id.clone())) {
+            ids.push(id);
         }
     }
     (ids != old_ids).then_some(ids)
+}
+
+/// The names a credit lists, trimmed and non-empty, in order and as written:
+/// a name listed twice stays twice.
+fn credit_parts(raw: &str) -> impl Iterator<Item = &str> {
+    raw.split("; ").map(str::trim).filter(|s| !s.is_empty())
 }
 
 /// The artists a credit names, each with the MusicBrainz id the file gives
@@ -185,13 +258,10 @@ pub fn reconcile_artist_mbids(
 /// of them as names: a tag with fewer ids than artists does not say whose
 /// they are, and a guess would hand an artist someone else's identity. A
 /// name the credit lists twice (same canonical form, same id) is one artist,
-/// as in [`split_artist_name`], which this is when no id pairs.
+/// as in [`split_artist_name`], which this is when no id pairs. The same name
+/// under two ids is two (#1081).
 pub fn artist_credits(raw: &str, mbids: &[String]) -> Vec<(String, Option<String>)> {
-    let parts: Vec<&str> = raw
-        .split("; ")
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .collect();
+    let parts: Vec<&str> = credit_parts(raw).collect();
     let paired = !mbids.is_empty() && mbids.len() == parts.len();
     let mut seen = std::collections::HashSet::new();
     let mut out = Vec::new();
@@ -202,6 +272,21 @@ pub fn artist_credits(raw: &str, mbids: &[String]) -> Vec<(String, Option<String
         }
     }
     out
+}
+
+/// Every name a credit lists, trimmed and non-empty, as written: a name
+/// listed twice, or two that differ by case only, stay as they are.
+pub fn artist_credit_parts(raw: &str) -> Vec<String> {
+    credit_parts(raw).map(str::to_owned).collect()
+}
+
+/// The names [`artist_credits`] gives, without their ids: how many artists a
+/// credit names, and which, when its file's ids tell namesakes apart.
+pub fn artist_credit_names(raw: &str, mbids: &[String]) -> Vec<String> {
+    artist_credits(raw, mbids)
+        .into_iter()
+        .map(|(name, _)| name)
+        .collect()
 }
 
 /// The credit a file gives a track, as the `"; "`-joined string the rest of
@@ -220,18 +305,52 @@ pub fn artist_credit<'a>(
     artists: impl IntoIterator<Item = &'a str>,
     artist: impl IntoIterator<Item = &'a str>,
 ) -> Option<String> {
-    fn names<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+    artist_credit_with_ids(artists, artist, &[]).0
+}
+
+/// [`artist_credit`] for a file that also carries MusicBrainz artist ids
+/// (`mbids`, see [`artist_mbids`]), and the ids that go with the credit.
+///
+/// A name listed twice is one artist unless its ids differ: when the ids
+/// pair with the names as written ("LiSA; LISA" and two ids), the names are
+/// deduplicated on `(canonical name, id)` and the ids come back aligned with
+/// the names that remain, so [`artist_credits`] pairs them again. Otherwise
+/// the names are deduplicated by canonical name alone and the ids are
+/// returned as they came (#1081).
+pub fn artist_credit_with_ids<'a>(
+    artists: impl IntoIterator<Item = &'a str>,
+    artist: impl IntoIterator<Item = &'a str>,
+    mbids: &[String],
+) -> (Option<String>, Vec<String>) {
+    fn names<'a>(
+        values: impl IntoIterator<Item = &'a str>,
+        mbids: &[String],
+    ) -> (Vec<String>, Vec<String>) {
         let joined: Vec<&str> = values.into_iter().flat_map(|v| v.split('\0')).collect();
-        split_artist_name(&joined.join("; "))
+        let joined = joined.join("; ");
+        let parts = credit_parts(&joined).count();
+        if !mbids.is_empty() && mbids.len() == parts {
+            let (names, ids): (Vec<_>, Vec<_>) = artist_credits(&joined, mbids)
+                .into_iter()
+                .map(|(name, id)| (name, id.unwrap_or_default()))
+                .unzip();
+            (names, ids)
+        } else {
+            (split_artist_name(&joined), mbids.to_vec())
+        }
     }
-    let listed = names(artists);
-    let credited = names(artist);
-    let chosen = if listed.len() > credited.len() {
+    let listed = names(artists, mbids);
+    let credited = names(artist, mbids);
+    let chosen = if listed.0.len() > credited.0.len() {
         listed
     } else {
         credited
     };
-    (!chosen.is_empty()).then(|| chosen.join("; "))
+    if chosen.0.is_empty() {
+        (None, Vec::new())
+    } else {
+        (Some(chosen.0.join("; ")), chosen.1)
+    }
 }
 
 /// The romanised form of any Han characters in `s`, as one indexable

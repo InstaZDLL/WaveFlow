@@ -901,9 +901,10 @@ pub(crate) fn file_credits(path: &std::path::Path) -> Option<FileCredits> {
     let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) else {
         return Some(FileCredits::default());
     };
+    let (artist, artist_ids) = waveflow_core::scanner::extract_artist_credit(tag);
     Some(FileCredits {
-        artist: waveflow_core::scanner::extract_artists(tag).unwrap_or_default(),
-        artist_ids: waveflow_core::scanner::extract_artist_mbids(tag),
+        artist: artist.unwrap_or_default(),
+        artist_ids,
         album_artist: tag
             .get_strings(ItemKey::AlbumArtist)
             .collect::<Vec<_>>()
