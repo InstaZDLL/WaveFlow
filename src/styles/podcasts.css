@@ -305,7 +305,7 @@
   background-color: var(--pc-tone);
   color: var(--pc-ink);
 }
-[data-podcasts] .pc-chapter:focus-visible {
+[data-podcasts] .pc-chapter:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--pc-accent);
   outline-offset: -2px;
 }
@@ -336,7 +336,8 @@
 [data-podcasts] .pc-title--link:hover {
   text-decoration: underline;
 }
-[data-podcasts] .pc-title--link:focus-visible {
+[data-podcasts]
+  .pc-title--link:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--pc-accent);
   outline-offset: 2px;
   border-radius: 2px;
