@@ -407,6 +407,8 @@ The request was for the appearance choice Chrome offers on Linux, and it does no
 | macOS    | `TitleBarStyle::Overlay` + an emptied title | a 28 px drag strip, so the real traffic lights float over our own top bar                                      |
 | Windows  | —                                           | nothing: the option is not offered                                                                             |
 
+The Linux title bar's buttons call the window API from the page, so each needs its permission in [`capabilities/default.json`](../../src-tauri/crates/app/capabilities/default.json): `allow-minimize`, `allow-toggle-maximize`, `allow-close`, `allow-start-dragging`. A missing one fails in silence but for a line in the console — minimise and maximise did nothing from the feature's first release until #1086 found them.
+
 `adwaita` is Linux only and draws nothing either: it keeps the desktop's frame and changes how it looks — see [GNOME style](#gnome-style) below.
 
 - **Windows is excluded on purpose.** A frame we drew ourselves would lose Snap Layouts and the system menu — a worse Windows than the one the user has, and nobody asked. `supported: false` hides the card, and the resolver refuses `app` there even if the row says otherwise (a database carried over from a Linux install).
