@@ -25,7 +25,10 @@ pub mod reserved;
 #[cfg(feature = "sqlite")]
 pub mod upserts;
 
-pub use canonical::{artist_credit, canonical_name, pinyin_blob, split_artist_name, split_genres};
+pub use canonical::{
+    album_artist_mbid, artist_credit, artist_credits, artist_mbids, canonical_name, pinyin_blob,
+    reconcile_artist_mbids, split_artist_name, split_genres,
+};
 pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
@@ -39,14 +42,16 @@ pub use reserved::{is_in_reserved_dir, is_reserved_dir_name, RESERVED_DIR_NAME};
 #[cfg(feature = "sqlite")]
 pub use upserts::{
     apply_network_covers, link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, network_cover_candidates, now_millis,
+    merge_implicit_compilations, network_cover_candidates, now_millis, realign_album_by_identity,
     reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    resolve_album_artist, upsert_album, upsert_artist, upsert_artist_list, upsert_artwork,
-    upsert_genre, ArtistImageScanCache, NetworkCoverCandidate, SidecarStamp, UpsertCache,
-    VARIOUS_ARTISTS_LABEL,
+    resolve_album_artist, upsert_album, upsert_album_with_artist_mbid, upsert_artist,
+    upsert_artist_list, upsert_artist_with_mbid, upsert_artwork, upsert_genre,
+    ArtistImageScanCache, NetworkCoverCandidate, SidecarStamp, UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 /// Helper used inside the audio file extractors. Pulled out into the
 /// module root so the `extract_album_artist` wrapper that pairs it
 /// with `extract_compilation_flag` lives next to its consumers.
-pub use extract::{extract_album_artist, extract_artists};
+pub use extract::{
+    extract_album_artist, extract_album_artist_mbid, extract_artist_mbids, extract_artists,
+};

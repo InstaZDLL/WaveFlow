@@ -467,3 +467,321 @@ async fn an_edited_year_reaches_the_album() {
         .unwrap();
     assert_eq!(album_year, Some(1980));
 }
+
+/// Two artists of one spelling, told apart by their MusicBrainz ids (#1076):
+/// "LiSA" holds the plain key, "LISA" the suffixed one. Track 2 is LISA's,
+/// on an album of hers.
+async fn with_two_namesakes(pool: &SqlitePool) {
+    for statement in [
+        "INSERT INTO artist (id, name, canonical_name, mbid) VALUES
+             (2, 'LiSA', 'lisa', '7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001'),
+             (3, 'LISA', 'lisa #8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002',
+              '8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002')",
+        "INSERT INTO album (id, title, canonical_title, artist_id, album_artist, is_compilation)
+             VALUES (2, 'Lalisa', 'lalisa', 3, 'LISA', 0)",
+        "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (2, 1, '/m/2.flac', 'h2', 1, 0, 'Lalisa', 2, 1000, 0, 1, 0, 0, 0, 0)",
+        "UPDATE track SET primary_artist = 3 WHERE id = 2",
+        "INSERT INTO track_artist (track_id, artist_id, position) VALUES (2, 3, 0)",
+    ] {
+        sqlx::raw_sql(statement).execute(pool).await.unwrap();
+    }
+}
+
+/// Saving the artist field of "LISA"'s track, even unchanged, keeps her
+/// row: the name alone would have found "LiSA"'s and renamed it.
+#[tokio::test]
+async fn an_edit_keeps_the_identity_of_a_namesake() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let save = TrackEdit {
+        artist: Some("LISA".into()),
+        ..edit()
+    };
+    sync_db(&pool, 2, &save).await.unwrap();
+
+    let credit: (i64, String) = sqlx::query_as(
+        "SELECT ar.id, ar.name FROM track t JOIN artist ar ON ar.id = t.primary_artist WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(credit, (3, "LISA".to_string()));
+    let other: String = sqlx::query_scalar("SELECT name FROM artist WHERE id = 2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(other, "LiSA");
+}
+
+/// Renaming her album carries the Album Artist text, which must find her
+/// again and not "LiSA".
+#[tokio::test]
+async fn an_album_rename_keeps_the_album_artist_identity() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let rename = TrackEdit {
+        album: Some("Lalisa Deluxe".into()),
+        ..edit()
+    };
+    sync_db(&pool, 2, &rename).await.unwrap();
+
+    let album: (String, i64) = sqlx::query_as(
+        "SELECT al.title, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(album, ("Lalisa Deluxe".to_string(), 3));
+}
+
+/// An id the tag workshop writes decides the identity, even with the names
+/// left alone: the track and its album artist go to the artist that holds
+/// it, and no name changes.
+#[tokio::test]
+async fn an_edited_id_moves_the_credit_to_its_artist() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            album_artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    // As the workshop sends it: the file's names beside the ids.
+    let spelled = FileSpelling {
+        artist: Some("LISA".into()),
+        album_artist: Some("LISA".into()),
+        ..FileSpelling::default()
+    };
+    sync_db_spelled(&pool, 2, &retag, &spelled).await.unwrap();
+
+    let moved: (i64, i64) = sqlx::query_as(
+        "SELECT t.primary_artist, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(moved, (2, 2));
+    let names: Vec<String> =
+        sqlx::query_scalar("SELECT name FROM artist WHERE id IN (2, 3) ORDER BY id")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(names, ["LiSA", "LISA"]);
+}
+
+/// The names sent back unchanged with a namesake's id move the track to
+/// that namesake without renaming it.
+#[tokio::test]
+async fn an_unchanged_name_with_a_new_id_renames_nobody() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let retag = TrackEdit {
+        artist: Some("LISA".into()),
+        album_artist: Some("LISA".into()),
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            album_artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db(&pool, 2, &retag).await.unwrap();
+
+    let primary: i64 = sqlx::query_scalar("SELECT primary_artist FROM track WHERE id = 2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(primary, 2);
+    let album_artist: i64 = sqlx::query_scalar(
+        "SELECT al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(album_artist, 2, "the album artist follows its id too");
+    let names: Vec<String> =
+        sqlx::query_scalar("SELECT name FROM artist WHERE id IN (2, 3) ORDER BY id")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(names, ["LiSA", "LISA"]);
+}
+
+/// Only the artist id edited, on an album with no Album Artist: the album
+/// is keyed on the track's lead, so it follows the new one as a scan of the
+/// file would key it.
+#[tokio::test]
+async fn an_edited_artist_id_alone_moves_a_fallback_album() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    sqlx::raw_sql("UPDATE album SET album_artist = NULL WHERE id = 2")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db(&pool, 2, &retag).await.unwrap();
+
+    let keyed: (i64, i64) = sqlx::query_as(
+        "SELECT t.primary_artist, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(keyed, (2, 2));
+}
+
+/// Two singers an older scan merged under "LiSA", no id anywhere: track 10
+/// is hers and her file says "LiSA", track 11 is the other's and her file
+/// says "LISA". Each has an album of her own, keyed on the merged artist
+/// as its Album Artist.
+async fn with_two_merged(pool: &SqlitePool) {
+    for statement in [
+        "INSERT INTO artist (id, name, canonical_name) VALUES (10, 'LiSA', 'lisa')",
+        "INSERT INTO album (id, title, canonical_title, artist_id, album_artist, is_compilation)
+             VALUES (10, 'Leo-Nine', 'leo nine', 10, 'LiSA', 0),
+                    (11, 'Lalisa', 'lalisa', 10, 'LiSA', 0)",
+        "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (10, 1, '/m/10.flac', 'h10', 1, 0, 'Gurenge', 10, 1000, 0, 1, 0, 0, 0, 0),
+                    (11, 1, '/m/11.flac', 'h11', 1, 0, 'Lalisa', 11, 1000, 0, 1, 0, 0, 0, 0)",
+        "UPDATE track SET primary_artist = 10 WHERE id IN (10, 11)",
+        "INSERT INTO track_artist (track_id, artist_id, position) VALUES (10, 10, 0), (11, 10, 0)",
+    ] {
+        sqlx::raw_sql(statement).execute(pool).await.unwrap();
+    }
+}
+
+/// The tag workshop sets the two artist ids (track and Album Artist) and
+/// nothing else: each singer gets her own artist at once, under the name
+/// her own file gives her, with her track and her album, whichever track
+/// is written first.
+#[tokio::test]
+async fn ids_set_alone_name_a_new_artist_as_the_file_does() {
+    for order in [[10, 11], [11, 10]] {
+        let pool = pool().await;
+        with_two_merged(&pool).await;
+        for track in order {
+            let (id, spelling) = if track == 10 {
+                ("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001", "LiSA")
+            } else {
+                ("8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002", "LISA")
+            };
+            let retag = TrackEdit {
+                musicbrainz: MusicBrainzEdit {
+                    artist_id: Some(id.into()),
+                    album_artist_id: Some(id.into()),
+                    ..MusicBrainzEdit::default()
+                },
+                ..edit()
+            };
+            let spelled = FileSpelling {
+                artist: Some(spelling.into()),
+                album_artist: Some(spelling.into()),
+                ..FileSpelling::default()
+            };
+            sync_db_spelled(&pool, track, &retag, &spelled)
+                .await
+                .unwrap();
+        }
+
+        let rows: Vec<(i64, String, String, String)> = sqlx::query_as(
+            "SELECT t.id, ar.name, alar.name, al.title
+               FROM track t
+               JOIN artist ar ON ar.id = t.primary_artist
+               JOIN album al ON al.id = t.album_id
+               JOIN artist alar ON alar.id = al.artist_id
+              WHERE t.id IN (10, 11) ORDER BY t.id",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            rows,
+            [
+                (10, "LiSA".into(), "LiSA".into(), "Leo-Nine".into()),
+                (11, "LISA".into(), "LISA".into(), "Lalisa".into()),
+            ],
+            "written in the order {order:?}"
+        );
+        let artists: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM artist WHERE canonical_name LIKE 'lisa%'")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(artists, 2, "written in the order {order:?}");
+    }
+}
+
+/// An id that finds an artist the library holds: the track joins her, and
+/// her name is not the file's to change.
+#[tokio::test]
+async fn an_id_that_finds_an_artist_keeps_her_name() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    // Track 2's file spells her "LISA", but the id is LiSA's (artist 2).
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    let spelled = FileSpelling {
+        artist: Some("LISA".into()),
+        album_artist: None,
+        ..FileSpelling::default()
+    };
+    sync_db_spelled(&pool, 2, &retag, &spelled).await.unwrap();
+
+    let names: Vec<(i64, String)> =
+        sqlx::query_as("SELECT id, name FROM artist WHERE id IN (2, 3) ORDER BY id")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(names, [(2, "LiSA".into()), (3, "LISA".into())]);
+    let primary: i64 = sqlx::query_scalar("SELECT primary_artist FROM track WHERE id = 2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(primary, 2);
+}
+
+/// An Album Artist id written into a file that names no Album Artist gives
+/// a scan no id to read: the album keeps the artist it has, rather than the
+/// id being applied to the text the database stores.
+#[tokio::test]
+async fn an_album_artist_id_without_a_named_album_artist_changes_nothing() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            album_artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db_spelled(&pool, 2, &retag, &FileSpelling::default())
+        .await
+        .unwrap();
+
+    let keyed: i64 = sqlx::query_scalar(
+        "SELECT al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(keyed, 3, "still LISA's");
+}

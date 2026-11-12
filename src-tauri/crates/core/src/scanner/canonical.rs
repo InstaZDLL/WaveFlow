@@ -76,6 +76,134 @@ pub fn split_artist_name(raw: &str) -> Vec<String> {
         .collect()
 }
 
+/// The MusicBrainz artist ids a tag holds, lowercased, in the order the tag
+/// lists them.
+///
+/// The tag is one value per artist, but taggers join them differently
+/// (several values, `"; "`, `/`, a NUL), so the values are not split on a
+/// separator: every run of hex digits and dashes shaped like an id is one,
+/// whatever sits between them. Anything else in the tag is dropped.
+///
+/// A value shaped like an id (dashed groups of hex digits, or a run of 32
+/// hex digits or more) that is not one makes the whole list empty: dropping it would shift the ids after it
+/// onto the wrong names, and [`artist_credits`] pairs by position.
+pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+    fn is_mbid(token: &str) -> bool {
+        let groups: Vec<&str> = token.split('-').collect();
+        groups.len() == 5
+            && groups
+                .iter()
+                .zip([8, 4, 4, 4, 12])
+                .all(|(g, len)| g.len() == len && g.bytes().all(|b| b.is_ascii_hexdigit()))
+    }
+    let tokens: Vec<&str> = values
+        .into_iter()
+        .flat_map(|v| v.split(|c: char| !(c.is_ascii_hexdigit() || c == '-')))
+        .collect();
+    if tokens
+        .iter()
+        .any(|t| (t.len() >= 32 || (t.len() >= 8 && t.contains('-'))) && !is_mbid(t))
+    {
+        return Vec::new();
+    }
+    tokens
+        .into_iter()
+        .filter(|t| is_mbid(t))
+        .map(str::to_ascii_lowercase)
+        .collect()
+}
+
+/// The MusicBrainz id an Album Artist credit carries, when it names one
+/// artist and the tag one id.
+///
+/// The names are counted as written, before any deduplication: "LiSA;
+/// LISA" is two artists even though [`split_artist_name`] files them under
+/// one key, and a single id would belong to only one of them.
+pub fn album_artist_mbid<'a>(
+    album_artist: &str,
+    values: impl IntoIterator<Item = &'a str>,
+) -> Option<String> {
+    let names = album_artist
+        .split("; ")
+        .filter(|s| !s.trim().is_empty())
+        .count();
+    if names != 1 {
+        return None;
+    }
+    // The same id written twice is still one.
+    let mut ids = artist_mbids(values);
+    ids.dedup();
+    (ids.len() == 1).then(|| ids.remove(0))
+}
+
+/// The artist ids a file keeps when an edit rewrites its artist credit from
+/// `old_credit` to `new_credit` and names no ids of its own (#1076).
+///
+/// A scan pairs a file's ids with its names by position, and only when
+/// there are as many of each ([`artist_credits`]). An id left behind by an
+/// edit that changed the names would follow the new ones: the track
+/// renamed "Aimer" would go straight back to "LISA" on its next scan,
+/// found by her id. So:
+///
+/// - `None`: the ids stay as they are. The file has none, the new names are
+///   the old ones up to case, punctuation and spacing (a spelling fix keeps
+///   the identity), or ids that never paired still cannot pair.
+/// - `Some(ids)`: write these instead. The old ids reordered when every new
+///   name is an old one in a new order; empty, to remove them, as soon as
+///   one name is new, since an id list cannot leave one name without its
+///   id and keep the others paired.
+pub fn reconcile_artist_mbids(
+    old_credit: &str,
+    old_ids: &[String],
+    new_credit: &str,
+) -> Option<Vec<String>> {
+    if old_ids.is_empty() {
+        return None;
+    }
+    let old_names = split_artist_name(old_credit);
+    let new_names = split_artist_name(new_credit);
+    if old_ids.len() != old_names.len() {
+        // Never paired. They would as soon as the counts met.
+        return (new_names.len() == old_ids.len()).then(Vec::new);
+    }
+    let old_keys: Vec<String> = old_names.iter().map(|n| canonical_name(n)).collect();
+    let mut ids = Vec::with_capacity(new_names.len());
+    for name in &new_names {
+        let key = canonical_name(name);
+        match old_keys.iter().position(|k| *k == key) {
+            Some(i) => ids.push(old_ids[i].clone()),
+            None => return Some(Vec::new()),
+        }
+    }
+    (ids != old_ids).then_some(ids)
+}
+
+/// The artists a credit names, each with the MusicBrainz id the file gives
+/// it (#1076).
+///
+/// `mbids` pair with the names by position, and only when there are as many
+/// of them as names: a tag with fewer ids than artists does not say whose
+/// they are, and a guess would hand an artist someone else's identity. A
+/// name the credit lists twice (same canonical form, same id) is one artist,
+/// as in [`split_artist_name`], which this is when no id pairs.
+pub fn artist_credits(raw: &str, mbids: &[String]) -> Vec<(String, Option<String>)> {
+    let parts: Vec<&str> = raw
+        .split("; ")
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .collect();
+    let paired = !mbids.is_empty() && mbids.len() == parts.len();
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    for (i, part) in parts.into_iter().enumerate() {
+        let mbid = paired.then(|| mbids[i].clone());
+        if seen.insert((canonical_name(part), mbid.clone())) {
+            out.push((part.to_string(), mbid));
+        }
+    }
+    out
+}
+
 /// The credit a file gives a track, as the `"; "`-joined string the rest of
 /// the scanner works from, or `None` when it names nobody.
 ///

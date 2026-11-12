@@ -107,6 +107,13 @@ impl Library {
         self.scan_folder(1).await
     }
 
+    /// A deep rescan of the library's folder, every file read without error.
+    async fn deep_scan(&self) -> ScanSummary {
+        let summary = self.try_scan(1, true).await.expect("deep scan");
+        assert_eq!(summary.errors, 0, "every file here is readable");
+        summary
+    }
+
     async fn scan_folder(&self, folder_id: i64) -> ScanSummary {
         let summary = self.try_scan(folder_id, false).await.expect("scan");
         assert_eq!(summary.errors, 0, "every file here is readable");
@@ -1923,4 +1930,1000 @@ fn an_edit_is_refused_on_a_tag_that_nests_chapters() {
     assert!(refused.to_string().contains("chapter"), "{refused}");
     assert!(patch_file(&path, &TagPatch::Rating(Some(204))).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), bytes, "not one byte moved");
+}
+
+// ---------------------------------------------------------------------------
+// #1076 — an artist is its MusicBrainz id when the file has one, its name
+// otherwise
+// ---------------------------------------------------------------------------
+
+const LISA_JP: &str = "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001";
+const LISA_KR: &str = "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002";
+
+impl Library {
+    /// `(name, mbid)` of every artist whose key starts with `prefix`.
+    async fn artists_like(&self, prefix: &str) -> Vec<(String, Option<String>)> {
+        sqlx::query_as("SELECT name, mbid FROM artist WHERE canonical_name LIKE ? ORDER BY id")
+            .bind(format!("{prefix}%"))
+            .fetch_all(&self.pool)
+            .await
+            .unwrap()
+    }
+}
+
+/// The reported case: two artists whose names differ by case alone, each
+/// with its own id, stay two, each under its own spelling.
+#[tokio::test]
+async fn two_musicbrainz_ids_are_two_artists_whatever_the_case() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "Gurenge"),
+            ("ARTIST", "LiSA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "Lalisa"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+
+    // Neither scanning again nor a changed file renames or merges them.
+    move_mtime_forward(&jp);
+    move_mtime_forward(&kr);
+    library.scan().await;
+    library.deep_scan().await;
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+}
+
+/// The Album Artist is told apart the same way: "LISA"'s record is not
+/// keyed on "LiSA"'s artist.
+#[tokio::test]
+async fn an_album_artist_is_told_apart_by_its_id_too() {
+    let library = Library::new().await;
+    library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("ALBUMARTIST", "LiSA"),
+            ("ALBUM", "Leo-Nine"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_JP),
+        ],
+    );
+    library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Leo-Nine"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(
+        library.albums("Leo-Nine").await,
+        [
+            ("LISA".to_string(), false, 1),
+            ("LiSA".to_string(), false, 1)
+        ]
+    );
+}
+
+/// Without an id the name decides, as ever: the spellings are one artist,
+/// and it keeps the first one it was given, a later file never renaming it.
+#[tokio::test]
+async fn without_an_id_the_spellings_merge_and_the_first_one_stays() {
+    let library = Library::new().await;
+    let first = library.flac("a.flac", &[("TITLE", "a"), ("ARTIST", "Taylor Swift")]);
+    library.scan().await;
+    let second = library.flac("b.flac", &[("TITLE", "b"), ("ARTIST", "taylor swift")]);
+    let third = library.flac("c.flac", &[("TITLE", "c"), ("ARTIST", "TAYLOR SWIFT")]);
+    library.scan().await;
+
+    assert_eq!(library.artists_like("taylor").await.len(), 1);
+    for path in [&first, &second, &third] {
+        assert_eq!(library.names(path).await, ["Taylor Swift"]);
+    }
+}
+
+/// One file with an id and one without, spelled differently: the one
+/// without cannot be told from the other, so the name merges them, and
+/// neither moves the display name.
+#[tokio::test]
+async fn a_file_without_an_id_joins_the_artist_its_name_finds() {
+    let library = Library::new().await;
+    let tagged = library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    library.scan().await;
+    // Added after, so the order is not left to the scan's threads: a bare
+    // file read first would hold the plain key under its own spelling.
+    let bare = library.flac("b.flac", &[("TITLE", "b"), ("ARTIST", "LISA")]);
+    library.scan().await;
+    assert_eq!(library.names(&tagged).await, ["LiSA"]);
+    assert_eq!(library.names(&bare).await, ["LiSA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 1);
+}
+
+/// A multi-artist credit pairs each name with its id, by position, and
+/// guesses nothing when the counts differ.
+#[tokio::test]
+async fn a_credit_pairs_each_name_with_its_id() {
+    let library = Library::new().await;
+    let pair = library.flac(
+        "b.flac",
+        &[
+            ("TITLE", "pair"),
+            ("ARTIST", "Alpha; Beta"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    let short = library.flac(
+        "c.flac",
+        &[
+            ("TITLE", "short"),
+            ("ARTIST", "Gamma; Delta"),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a003",
+            ),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(library.names(&pair).await, ["Alpha", "Beta"]);
+    assert_eq!(
+        library.artists_like("alpha").await,
+        [("Alpha".to_string(), Some(LISA_JP.to_string()))]
+    );
+    assert_eq!(
+        library.artists_like("beta").await,
+        [("Beta".to_string(), Some(LISA_KR.to_string()))]
+    );
+    assert_eq!(library.names(&short).await, ["Gamma", "Delta"]);
+    assert_eq!(
+        library.artists_like("gamma").await,
+        [("Gamma".to_string(), None)]
+    );
+}
+
+/// A library scanned before ids were read holds one artist for both. A
+/// deep rescan of the unchanged files gives each its own, and keeps the
+/// row's name for the one it recognises.
+#[tokio::test]
+async fn a_deep_rescan_separates_namesakes_an_older_scan_merged() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    // The state an older build left: one row, no id, both tracks on it.
+    sqlx::raw_sql(
+        "UPDATE track_artist SET artist_id = (SELECT MIN(id) FROM artist WHERE canonical_name LIKE 'lisa%')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT MIN(id) FROM artist WHERE canonical_name LIKE 'lisa%')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL, name = 'LiSA' WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+    assert_eq!(library.names(&kr).await, ["LiSA"]);
+
+    // The ordinary scan leaves unchanged files alone; the deep one reads them.
+    assert_eq!(library.scan().await.skipped, 2);
+    assert_eq!(library.names(&kr).await, ["LiSA"]);
+    library.deep_scan().await;
+
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(library.artists_like("lisa").await.len(), 2);
+}
+
+/// One album an older scan keyed on the merged artist for both singers'
+/// tracks: the deep rescan moves the track that changes artist, not the
+/// album, so the one that stays keeps hers.
+#[tokio::test]
+async fn a_deep_rescan_moves_a_namesake_out_of_a_shared_album() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("ALBUM", "Same"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("ALBUM", "Same"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    // The state an older build left: one artist, one album, both tracks.
+    sqlx::raw_sql(
+        "UPDATE track SET album_id = (SELECT MIN(id) FROM album WHERE canonical_title = 'same')
+          WHERE album_id IN (SELECT id FROM album WHERE canonical_title = 'same');
+         DELETE FROM album WHERE canonical_title = 'same'
+            AND id <> (SELECT MIN(id) FROM album WHERE canonical_title = 'same');
+         UPDATE artist SET name = 'LiSA' WHERE canonical_name = 'lisa';
+         UPDATE album SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE canonical_title = 'same';
+         UPDATE track_artist SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+
+    library.deep_scan().await;
+
+    let album_artist = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT ar.name FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(album_artist(jp.clone()).await, "LiSA");
+    assert_eq!(album_artist(kr.clone()).await, "LISA");
+}
+
+/// The same with an explicit Album Artist: an older scan keyed one album on
+/// the merged artist's Album Artist row, and the deep rescan gives each
+/// singer's track the album her own Album Artist id keys.
+#[tokio::test]
+async fn a_deep_rescan_separates_an_album_artist_an_older_scan_merged() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("ALBUMARTIST", "LiSA"),
+            ("ALBUM", "Leo-Nine"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Leo-Nine"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    // The state an older build left: one artist, one album, both tracks.
+    sqlx::raw_sql(
+        "UPDATE track SET album_id = (SELECT MIN(id) FROM album WHERE canonical_title = 'leo nine')
+          WHERE album_id IN (SELECT id FROM album WHERE canonical_title = 'leo nine');
+         DELETE FROM album WHERE canonical_title = 'leo nine'
+            AND id <> (SELECT MIN(id) FROM album WHERE canonical_title = 'leo nine');
+         UPDATE artist SET name = 'LiSA' WHERE canonical_name = 'lisa';
+         UPDATE album SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa'),
+                          album_artist = 'LiSA'
+          WHERE canonical_title = 'leo nine';
+         UPDATE track_artist SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+
+    library.deep_scan().await;
+
+    let album_artist = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT ar.name FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(album_artist(jp.clone()).await, "LiSA");
+    assert_eq!(album_artist(kr.clone()).await, "LISA");
+}
+
+/// A small PNG of one colour, for a cover a test can tell apart.
+fn png(rgb: [u8; 3]) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    image::RgbImage::from_pixel(4, 4, image::Rgb(rgb))
+        .write_to(
+            &mut std::io::Cursor::new(&mut bytes),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+    bytes
+}
+
+/// What a deep rescan gives the album a namesake's track lands in: her own
+/// cover, not the merged album's (which is the other singer's), and her
+/// Album Artist spelling on an album re-keyed in place.
+#[tokio::test]
+async fn a_deep_rescan_gives_a_namesake_her_cover_and_her_spelling() {
+    let library = Library::new().await;
+    let tagged = |title: &'static str, artist: &'static str, album: &'static str, id| {
+        [
+            ("TITLE", title),
+            ("ARTIST", artist),
+            ("ALBUMARTIST", artist),
+            ("ALBUM", album),
+            ("MUSICBRAINZ_ARTISTID", id),
+            ("MUSICBRAINZ_ALBUMARTISTID", id),
+        ]
+    };
+    let jp = library.flac("jp.flac", &tagged("a", "LiSA", "Same", LISA_JP));
+    let kr = library.flac("kr.flac", &tagged("b", "LISA", "Same", LISA_KR));
+    let solo = library.flac("solo/kr.flac", &tagged("c", "LISA", "Solo", LISA_KR));
+    for (path, rgb) in [(&jp, [255, 0, 0]), (&kr, [0, 0, 255])] {
+        let bytes = png(rgb);
+        patch_file(
+            path,
+            &TagPatch::Cover {
+                bytes: &bytes,
+                mime: &lofty::picture::MimeType::Png,
+            },
+        )
+        .unwrap();
+    }
+    library.scan().await;
+    let cover_of = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, Option<i64>>(
+                "SELECT al.artwork_id FROM track t JOIN album al ON al.id = t.album_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let (jp_cover, kr_cover) = (cover_of(jp.clone()).await, cover_of(kr.clone()).await);
+    assert!(jp_cover.is_some() && kr_cover.is_some() && jp_cover != kr_cover);
+
+    // The state an older build left: one artist, one "Same" album with her
+    // cover and her spelling, and "Solo" spelled hers too.
+    sqlx::raw_sql(
+        "UPDATE track SET album_id = (SELECT MIN(id) FROM album WHERE canonical_title = 'same')
+          WHERE album_id IN (SELECT id FROM album WHERE canonical_title = 'same');
+         DELETE FROM album WHERE canonical_title = 'same'
+            AND id <> (SELECT MIN(id) FROM album WHERE canonical_title = 'same');
+         UPDATE artist SET name = 'LiSA' WHERE canonical_name = 'lisa';
+         UPDATE album SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa'),
+                          album_artist = 'LiSA'
+          WHERE canonical_title IN ('same', 'solo');
+         UPDATE track_artist SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+    sqlx::query("UPDATE album SET artwork_id = ? WHERE canonical_title = 'same'")
+        .bind(jp_cover)
+        .execute(&library.pool)
+        .await
+        .unwrap();
+
+    library.deep_scan().await;
+
+    let album = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_as::<_, (String, Option<String>, Option<i64>)>(
+                "SELECT ar.name, al.album_artist, al.artwork_id FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(
+        album(jp).await,
+        ("LiSA".into(), Some("LiSA".into()), jp_cover)
+    );
+    assert_eq!(
+        album(kr).await,
+        ("LISA".into(), Some("LISA".into()), kr_cover)
+    );
+    let (artist, text, _) = album(solo).await;
+    assert_eq!((artist, text), ("LISA".into(), Some("LISA".into())));
+}
+
+impl Library {
+    /// Save `edit` the way the properties dialog does: written into the
+    /// file (artist ids reconciled), re-hashed, mirrored into the database.
+    async fn save(&self, path: &Path, edit: TrackEdit) {
+        let id = self.id(path).await;
+        let written = crate::commands::edit::write_edit(path, &edit).unwrap();
+        rehash_track_file(&self.pool, id, path).await.unwrap();
+        crate::commands::edit::sync_db(&self.pool, id, &written)
+            .await
+            .unwrap();
+    }
+
+    /// `(name, mbid)` of each artist a track is credited to, in order.
+    async fn identities(&self, path: &Path) -> Vec<(String, Option<String>)> {
+        sqlx::query_as(
+            "SELECT a.name, a.mbid FROM track_artist ta JOIN artist a ON a.id = ta.artist_id
+              WHERE ta.track_id = ? ORDER BY ta.position",
+        )
+        .bind(self.id(path).await)
+        .fetch_all(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+/// The artist ids a file carries now, as a scan reads them.
+fn file_ids(path: &Path) -> Vec<String> {
+    crate::commands::edit::file_credits(path)
+        .unwrap()
+        .artist_ids
+}
+
+/// The Album Artist ids a file carries now.
+fn file_album_artist_ids(path: &Path) -> Vec<String> {
+    crate::commands::edit::file_credits(path)
+        .unwrap()
+        .album_artist_ids
+}
+
+/// One of two "LISA" tracks, both carrying her id, re-credited to "Aimer"
+/// in the properties dialog: it stays "Aimer"'s through a deep rescan, and
+/// the other track stays hers, with her id. A spelling fix keeps the id.
+#[tokio::test]
+async fn a_re_credited_track_does_not_go_back_to_its_old_artist() {
+    let library = Library::new().await;
+    let one = library.flac(
+        "one.flac",
+        &[
+            ("TITLE", "one"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    let two = library.flac(
+        "two.flac",
+        &[
+            ("TITLE", "two"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(
+        library.identities(&one).await,
+        [("LISA".into(), Some(LISA_KR.into()))]
+    );
+
+    library
+        .save(
+            &one,
+            TrackEdit {
+                artist: Some("Aimer".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert!(file_ids(&one).is_empty(), "the stale id left the file");
+    assert_eq!(file_ids(&two), [LISA_KR], "the other file keeps it");
+    assert_eq!(library.identities(&one).await, [("Aimer".into(), None)]);
+
+    library.deep_scan().await;
+    assert_eq!(library.identities(&one).await, [("Aimer".into(), None)]);
+    assert_eq!(
+        library.identities(&two).await,
+        [("LISA".into(), Some(LISA_KR.into()))]
+    );
+
+    // A spelling fix is the same artist: her id stays, on the file and on
+    // her row, through a deep rescan.
+    library
+        .save(
+            &two,
+            TrackEdit {
+                artist: Some("Lisa".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert_eq!(file_ids(&two), [LISA_KR]);
+    library.deep_scan().await;
+    assert_eq!(
+        library.identities(&two).await,
+        [("Lisa".into(), Some(LISA_KR.into()))]
+    );
+}
+
+/// A credit of several artists keeps each id on its own name: reordered,
+/// they travel with their names; one name replaced, the whole list goes,
+/// since an id list cannot leave a gap and the rest would shift.
+#[tokio::test]
+async fn a_multi_artist_credit_keeps_each_id_on_its_name() {
+    let library = Library::new().await;
+    let other = library.flac(
+        "pair.flac",
+        &[
+            ("TITLE", "pair"),
+            ("ARTIST", "Alpha; Beta"),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa",
+            ),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b0bb",
+            ),
+        ],
+    );
+    library.scan().await;
+
+    library
+        .save(
+            &other,
+            TrackEdit {
+                artist: Some("Beta; Alpha".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert_eq!(
+        file_ids(&other),
+        [
+            "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b0bb",
+            "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa"
+        ]
+    );
+    library.deep_scan().await;
+    assert_eq!(
+        library.identities(&other).await,
+        [
+            (
+                "Beta".into(),
+                Some("8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b0bb".into())
+            ),
+            (
+                "Alpha".into(),
+                Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa".into())
+            ),
+        ]
+    );
+
+    library
+        .save(
+            &other,
+            TrackEdit {
+                artist: Some("Beta; Gamma".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert!(file_ids(&other).is_empty());
+    library.deep_scan().await;
+    let names: Vec<String> = library
+        .identities(&other)
+        .await
+        .into_iter()
+        .map(|(name, _)| name)
+        .collect();
+    assert_eq!(names, ["Beta", "Gamma"]);
+    let gamma: Option<String> =
+        sqlx::query_scalar("SELECT mbid FROM artist WHERE canonical_name = 'gamma'")
+            .fetch_one(&library.pool)
+            .await
+            .unwrap();
+    assert_eq!(gamma, None, "no id slid onto the new name");
+}
+
+/// A DSF carries artist ids too, in its ID3 tag (the tag workshop writes
+/// them there): re-credited, it loses the stale ones as any other file.
+#[test]
+fn a_dsf_drops_an_artist_id_its_new_credit_no_longer_matches() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.dsf");
+    std::fs::write(&path, dsf_bytes()).unwrap();
+    let tagged = TrackEdit {
+        artist: Some("LISA".into()),
+        musicbrainz: crate::commands::edit::MusicBrainzEdit {
+            artist_id: Some(LISA_KR.into()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    crate::commands::edit::write_edit(&path, &tagged).unwrap();
+    assert_eq!(file_ids(&path), [LISA_KR]);
+
+    let respelled = TrackEdit {
+        artist: Some("Lisa".into()),
+        ..Default::default()
+    };
+    crate::commands::edit::write_edit(&path, &respelled).unwrap();
+    assert_eq!(file_ids(&path), [LISA_KR], "a spelling fix keeps it");
+
+    let recredited = TrackEdit {
+        artist: Some("Aimer".into()),
+        ..Default::default()
+    };
+    crate::commands::edit::write_edit(&path, &recredited).unwrap();
+    assert!(file_ids(&path).is_empty());
+}
+
+/// Two tracks of "LISA"'s album, her Album Artist id on both. One gets the
+/// Album Artist "Aimer" in the properties dialog: the stale id leaves that
+/// file, and through a deep rescan the track stays on "Aimer"'s album while
+/// the other stays on hers, with her id.
+#[tokio::test]
+async fn a_new_album_artist_does_not_go_back_to_the_old_album() {
+    let library = Library::new().await;
+    let tagged = |title: &'static str| {
+        [
+            ("TITLE", title),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Lalisa"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ]
+    };
+    let one = library.flac("one.flac", &tagged("one"));
+    let two = library.flac("two.flac", &tagged("two"));
+    library.scan().await;
+
+    library
+        .save(
+            &one,
+            TrackEdit {
+                album_artist: Some("Aimer".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert!(file_album_artist_ids(&one).is_empty(), "the stale id left");
+    assert_eq!(file_ids(&one), [LISA_KR], "the track artist's stays");
+    assert_eq!(file_album_artist_ids(&two), [LISA_KR]);
+
+    library.deep_scan().await;
+    let album = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_as::<_, (String, Option<String>)>(
+                "SELECT ar.name, ar.mbid FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(album(one.clone()).await, ("Aimer".into(), None));
+    assert_eq!(
+        album(two.clone()).await,
+        ("LISA".into(), Some(LISA_KR.into()))
+    );
+
+    // A spelling fix of the Album Artist keeps the id.
+    library
+        .save(
+            &two,
+            TrackEdit {
+                album_artist: Some("Lisa".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert_eq!(file_album_artist_ids(&two), [LISA_KR]);
+}
+
+/// Two Album Artist values in separate comments are two names: one id
+/// beside them is nobody's.
+#[tokio::test]
+async fn one_album_artist_id_beside_two_album_artist_values_is_nobodys() {
+    let library = Library::new().await;
+    library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "Alpha"),
+            ("ALBUMARTIST", "Alpha"),
+            ("ALBUMARTIST", "Beta"),
+            ("ALBUM", "Split"),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    let held: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist WHERE mbid = ?")
+        .bind(LISA_KR)
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    assert_eq!(held, 0, "the id went to no one");
+    assert_eq!(
+        library.artists_like("alpha").await,
+        [("Alpha".into(), None)]
+    );
+}
+
+impl Library {
+    /// Write `values` into a file the way the tag workshop does: the ids
+    /// the new names imply added, the differences written, re-hashed and
+    /// mirrored into the database with the file's spelling. Gives back the
+    /// old values of what changed, which is what its journal keeps for an
+    /// undo.
+    async fn workshop_write(
+        &self,
+        path: &Path,
+        values: &[(waveflow_core::tag_workshop::Field, &str)],
+    ) -> waveflow_core::tag_workshop::Values {
+        use crate::commands::tag_workshop::read::{read_values, to_db_edit, to_edit};
+        use waveflow_core::tag_workshop::{diff, with_implied_ids, Values};
+
+        let asked: Values = values.iter().map(|(f, v)| (*f, v.to_string())).collect();
+        let current = read_values(path).unwrap();
+        let names = crate::commands::tag_workshop::album_artist_values(path);
+        let diffs = diff(&current, &with_implied_ids(&current, &asked, &names));
+        let written: Values = diffs.iter().map(|d| (d.field, d.new.clone())).collect();
+        let old: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
+        patch_file(path, &TagPatch::Fields(&to_edit(&written))).unwrap();
+        let id = self.id(path).await;
+        rehash_track_file(&self.pool, id, path).await.unwrap();
+        let spelled = crate::commands::tag_workshop::file_spelling(path, &current);
+        crate::commands::edit::sync_db_spelled(
+            &self.pool,
+            id,
+            &to_db_edit(&written, path),
+            &spelled,
+        )
+        .await
+        .unwrap();
+        old
+    }
+
+    /// The workshop's undo of one file: `restore` written back, then the
+    /// database mirrored with the restored file's spelling.
+    async fn workshop_undo(&self, path: &Path, restore: &waveflow_core::tag_workshop::Values) {
+        use crate::commands::tag_workshop::read::{read_values, to_db_edit, to_edit};
+
+        patch_file(path, &TagPatch::Fields(&to_edit(restore))).unwrap();
+        let id = self.id(path).await;
+        rehash_track_file(&self.pool, id, path).await.unwrap();
+        let after = read_values(path).unwrap();
+        let spelled = crate::commands::tag_workshop::file_spelling(path, &after);
+        crate::commands::edit::sync_db_spelled(
+            &self.pool,
+            id,
+            &to_db_edit(restore, path),
+            &spelled,
+        )
+        .await
+        .unwrap();
+    }
+
+    /// `(track artist, its id, album artist, its id)` of a track.
+    async fn track_and_album(
+        &self,
+        path: &Path,
+    ) -> (String, Option<String>, String, Option<String>) {
+        sqlx::query_as(
+            "SELECT ar.name, ar.mbid, alar.name, alar.mbid FROM track t
+               JOIN artist ar ON ar.id = t.primary_artist
+               JOIN album al ON al.id = t.album_id
+               JOIN artist alar ON alar.id = al.artist_id
+              WHERE t.file_path = ?",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+/// The tag workshop re-credits one of two "LISA" tracks, artist and Album
+/// Artist, to "Aimer": the ids those names no longer match leave the file
+/// in the same batch, so a deep rescan keeps it on "Aimer" while the other
+/// stays hers. The undo puts the names and the ids back.
+#[tokio::test]
+async fn a_workshop_re_credit_survives_a_rescan_and_its_undo_restores_the_ids() {
+    use waveflow_core::tag_workshop::Field;
+
+    let library = Library::new().await;
+    let tagged = |title: &'static str| {
+        [
+            ("TITLE", title),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Lalisa"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ]
+    };
+    let one = library.flac("one.flac", &tagged("one"));
+    let two = library.flac("two.flac", &tagged("two"));
+    library.scan().await;
+
+    let old = library
+        .workshop_write(
+            &one,
+            &[(Field::Artist, "Aimer"), (Field::AlbumArtist, "Aimer")],
+        )
+        .await;
+    assert_eq!(
+        old.get(&Field::MbArtistId).map(String::as_str),
+        Some(LISA_KR),
+        "the journal keeps the id it removed"
+    );
+    assert!(file_ids(&one).is_empty());
+    assert!(file_album_artist_ids(&one).is_empty());
+
+    library.deep_scan().await;
+    let hers = (
+        "LISA".to_string(),
+        Some(LISA_KR.to_string()),
+        "LISA".to_string(),
+        Some(LISA_KR.to_string()),
+    );
+    assert_eq!(
+        library.track_and_album(&one).await,
+        ("Aimer".into(), None, "Aimer".into(), None)
+    );
+    assert_eq!(library.track_and_album(&two).await, hers);
+
+    library.workshop_undo(&one, &old).await;
+    assert_eq!(file_ids(&one), [LISA_KR]);
+    assert_eq!(file_album_artist_ids(&one), [LISA_KR]);
+    assert_eq!(library.track_and_album(&one).await, hers);
+    library.deep_scan().await;
+    assert_eq!(library.track_and_album(&one).await, hers);
+}
+
+/// An Album Artist id set alone in the workshop, on a file with two
+/// `ALBUMARTIST` values: two names, one id, nobody's. The database agrees
+/// with what a scan of the file reads.
+#[tokio::test]
+async fn a_workshop_album_artist_id_beside_two_album_artists_is_nobodys() {
+    use waveflow_core::tag_workshop::Field;
+
+    let library = Library::new().await;
+    let path = library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "Alpha"),
+            ("ALBUMARTIST", "Alpha"),
+            ("ALBUMARTIST", "Beta"),
+            ("ALBUM", "Split"),
+        ],
+    );
+    library.scan().await;
+
+    library
+        .workshop_write(&path, &[(Field::MbAlbumArtistId, LISA_KR)])
+        .await;
+    let held = || async {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM artist WHERE mbid = ?")
+            .bind(LISA_KR)
+            .fetch_one(&library.pool)
+            .await
+            .unwrap()
+    };
+    assert_eq!(held().await, 0, "the workshop gave the id to no one");
+    library.deep_scan().await;
+    assert_eq!(held().await, 0, "and neither does the scan");
+}
+
+/// A spelling fix of the first of two `ALBUMARTIST` values, in the
+/// workshop: the write leaves one name, so the id that was nobody's is
+/// removed with it rather than become that name's.
+#[tokio::test]
+async fn a_workshop_spelling_fix_beside_a_second_album_artist_drops_the_id() {
+    use waveflow_core::tag_workshop::Field;
+
+    let library = Library::new().await;
+    let path = library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "Alpha"),
+            ("ALBUMARTIST", "Alpha"),
+            ("ALBUMARTIST", "Beta"),
+            ("ALBUM", "Split"),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+
+    library
+        .workshop_write(&path, &[(Field::AlbumArtist, "ALPHA")])
+        .await;
+    assert!(file_album_artist_ids(&path).is_empty());
+    library.deep_scan().await;
+    let held: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist WHERE mbid = ?")
+        .bind(LISA_KR)
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    assert_eq!(held, 0);
 }
