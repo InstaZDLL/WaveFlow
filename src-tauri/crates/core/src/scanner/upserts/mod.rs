@@ -184,7 +184,9 @@ pub fn now_millis() -> i64 {
 // build (which skips this whole `upserts` module) can still consume it
 // from the always-compiled `extract` module. Re-exported here for
 // backwards source compatibility with existing imports.
-pub use super::canonical::{artist_credits, canonical_name, split_artist_name};
+pub use super::canonical::{
+    artist_credit_names, artist_credits, canonical_name, split_artist_name,
+};
 use super::extract::ArtworkSource;
 
 /// Upsert an artwork row keyed on its content hash. Existing rows are

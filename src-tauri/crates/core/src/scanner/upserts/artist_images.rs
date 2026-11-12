@@ -10,7 +10,7 @@ use crate::scanner::extract::{
     extract_artist_image, extract_artist_image_cached, ArtistImageDirCache, ExtractedCover,
 };
 
-use super::{canonical_name, split_artist_name, upsert_artwork, VARIOUS_ARTISTS_LABEL};
+use super::{artist_credit_names, canonical_name, upsert_artwork, VARIOUS_ARTISTS_LABEL};
 
 /// Per-scan cache threaded through [`maybe_link_artist_images`]. Bundles
 /// the two independent memos that make the sidecar-artist-image walk —
@@ -91,6 +91,7 @@ pub async fn maybe_link_artist_images(
     conn: &mut sqlx::SqliteConnection,
     artist_raw: Option<&str>,
     artist_ids: &[i64],
+    artist_mbids: &[String],
     track_path: &Path,
     artwork_dir: &Path,
     cache: &mut ArtistImageScanCache,
@@ -103,7 +104,7 @@ pub async fn maybe_link_artist_images(
     if crate::network_locator::is_locator_path(track_path) {
         return Ok(());
     }
-    let names = split_artist_name(raw);
+    let names = artist_credit_names(raw, artist_mbids);
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
     let parent = track_path.parent();
     for (name, id) in named_ids(&names, artist_ids) {

@@ -161,3 +161,73 @@ fn a_credit_pairs_names_and_ids_only_when_the_counts_agree() {
         [("Alpha".to_string(), None), ("Beta".to_string(), None)]
     );
 }
+
+#[test]
+fn two_namesakes_with_their_own_ids_stay_two_artists() {
+    use super::{
+        artist_credit, artist_credit_names, artist_credit_with_ids, artist_credits,
+        reconcile_artist_mbids,
+    };
+    let ids = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    let pair = |n: &str, i: &str| (n.to_string(), Some(i.to_string()));
+
+    // The credit keeps both, and the ids still pair with them (#1081).
+    let (credit, kept) = artist_credit_with_ids([], ["LiSA", "LISA"], &ids(&["a", "b"]));
+    assert_eq!(credit.as_deref(), Some("LiSA; LISA"));
+    assert_eq!(kept, ids(&["a", "b"]));
+    assert_eq!(
+        artist_credits("LiSA; LISA", &kept),
+        [pair("LiSA", "a"), pair("LISA", "b")]
+    );
+    assert_eq!(artist_credit_names("LiSA; LISA", &kept), ["LiSA", "LISA"]);
+
+    // The same name under the same id is one artist, and its id goes once.
+    let (credit, kept) = artist_credit_with_ids([], ["LiSA", "lisa"], &ids(&["a", "a"]));
+    assert_eq!(credit.as_deref(), Some("LiSA"));
+    assert_eq!(kept, ids(&["a"]));
+
+    // No id, or ids that do not pair: the name alone decides, as it did.
+    assert_eq!(
+        artist_credit_with_ids([], ["LiSA", "LISA"], &[])
+            .0
+            .as_deref(),
+        Some("LiSA")
+    );
+    let (credit, kept) = artist_credit_with_ids([], ["LiSA", "LISA"], &ids(&["a"]));
+    assert_eq!(credit.as_deref(), Some("LiSA"));
+    assert_eq!(kept, ids(&["a"]));
+    assert_eq!(artist_credit([], ["LiSA", "LISA"]).as_deref(), Some("LiSA"));
+
+    // ARTISTS still wins only when it lists more distinct artists.
+    let (credit, _) = artist_credit_with_ids(
+        ["LiSA", "LISA", "Beta"],
+        ["LiSA feat. LISA; Beta"],
+        &ids(&["a", "b", "c"]),
+    );
+    assert_eq!(credit.as_deref(), Some("LiSA; LISA; Beta"));
+
+    // An edit that keeps both spellings keeps both ids; a spelling that
+    // fits both names neither.
+    let old = ids(&["a", "b"]);
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "LiSA; LISA"),
+        None
+    );
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "LISA; LiSA"),
+        Some(ids(&["b", "a"]))
+    );
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "LISA"),
+        Some(ids(&["b"]))
+    );
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "Lisa"),
+        Some(vec![])
+    );
+    // Names filed together by a scan and one id still pair.
+    assert_eq!(
+        reconcile_artist_mbids("Beta; BETA", &ids(&["a"]), "Gamma"),
+        Some(vec![])
+    );
+}

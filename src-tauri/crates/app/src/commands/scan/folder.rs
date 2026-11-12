@@ -13,10 +13,11 @@ use tauri::Emitter;
 
 use waveflow_core::repository::{album::AlbumRepository, sqlite::SqliteAlbumRepository};
 use waveflow_core::scanner::{
-    link_va_artist_image, maybe_link_artist_images, merge_implicit_compilations, now_millis,
-    realign_album_by_identity, reattach_orphaned_play_events, refresh_folder_covers,
-    repoint_fallback_album_artist, split_artist_name, upsert_album_with_artist_mbid,
-    upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache,
+    artist_credit_names, link_va_artist_image, maybe_link_artist_images,
+    merge_implicit_compilations, now_millis, realign_album_by_identity,
+    reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
+    upsert_album_with_artist_mbid, upsert_artwork, ArtistImageScanCache, ExtractedFile,
+    UpsertCache,
 };
 
 use crate::{
@@ -954,7 +955,7 @@ pub(crate) async fn scan_folder_inner(
                 let mut multi_artist_renormalised = false;
                 let mut credit_identity_moved = false;
                 if let Some(raw) = &extracted.artist {
-                    let splits = split_artist_name(raw);
+                    let splits = artist_credit_names(raw, &extracted.artist_mbids);
                     let current_count: i64 =
                         sqlx::query_scalar("SELECT COUNT(*) FROM track_artist WHERE track_id = ?")
                             .bind(existing_track_id)
@@ -1065,6 +1066,7 @@ pub(crate) async fn scan_folder_inner(
                         &mut tx,
                         Some(raw),
                         &current_ids,
+                        &extracted.artist_mbids,
                         track_path,
                         artwork_dir,
                         &mut artist_image_cache,
@@ -1146,7 +1148,7 @@ pub(crate) async fn scan_folder_inner(
                 let tagged = extracted
                     .artist
                     .as_deref()
-                    .map(split_artist_name)
+                    .map(|raw| artist_credit_names(raw, &extracted.artist_mbids))
                     .unwrap_or_default();
                 let names: Vec<String> = stored.iter().map(|(_, name)| name.clone()).collect();
                 let user_split = is_split_of(&names, &tagged);
@@ -1192,6 +1194,7 @@ pub(crate) async fn scan_folder_inner(
                     &mut tx,
                     extracted.artist.as_deref(),
                     &artist_ids,
+                    &extracted.artist_mbids,
                     Path::new(&extracted.abs_path),
                     artwork_dir,
                     &mut artist_image_cache,
@@ -1419,6 +1422,7 @@ pub(crate) async fn scan_folder_inner(
                 &mut tx,
                 extracted.artist.as_deref(),
                 &artist_ids,
+                &extracted.artist_mbids,
                 Path::new(&extracted.abs_path),
                 artwork_dir,
                 &mut artist_image_cache,
@@ -1858,7 +1862,7 @@ async fn emit_track_insert_from_extracted(
     // split, matching the server's `track_artist.position`
     // semantic.
     let artists: Vec<String> = match &extracted.artist {
-        Some(s) => split_artist_name(s),
+        Some(s) => artist_credit_names(s, &extracted.artist_mbids),
         None => Vec::new(),
     };
     let wire = crate::sync::track_emit::TrackInsertWire {

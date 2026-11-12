@@ -11,7 +11,7 @@ use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::ItemKey;
 
 use waveflow_core::scanner::{
-    extract_album_artist, extract_album_artist_mbid, extract_artist_mbids, extract_artists,
+    extract_album_artist, extract_album_artist_mbid, extract_artist_credit,
     extract_compilation_flag, extract_cover, extract_folder_cover, extract_musical_key,
     extract_rating, extract_replay_gain, file_type_label, hash_file, hash_reader, split_genres,
     ExtractedCover, ExtractedFile, ReplayGainTags,
@@ -549,9 +549,14 @@ fn from_tagged(
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
     // The identity a file gives its artists, which tells two of one
     // spelling apart (#1076).
-    let (artist_mbids, album_artist_mbid) = match tag {
-        Some(tag) => (extract_artist_mbids(tag), extract_album_artist_mbid(tag)),
-        None => (Vec::new(), None),
+    // The credit comes with its ids aligned: two namesakes the ids tell
+    // apart stay two names (#1081).
+    let (artist_credit, artist_mbids, album_artist_mbid) = match tag {
+        Some(tag) => {
+            let (credit, ids) = extract_artist_credit(tag);
+            (credit, ids, extract_album_artist_mbid(tag))
+        }
+        None => (None, Vec::new(), None),
     };
     let (
         title,
@@ -572,7 +577,7 @@ fn from_tagged(
     ) = match tag {
         Some(tag) => (
             tag.title().map(|s| s.into_owned()),
-            extract_artists(tag),
+            artist_credit,
             tag.album().map(|s| s.into_owned()),
             extract_album_artist(tag),
             extract_compilation_flag(tag),
