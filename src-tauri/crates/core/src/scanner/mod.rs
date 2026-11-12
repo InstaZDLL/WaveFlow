@@ -27,7 +27,7 @@ pub mod upserts;
 
 pub use canonical::{
     album_artist_mbid, artist_credit, artist_credits, artist_mbids, canonical_name, pinyin_blob,
-    split_artist_name, split_genres,
+    reconcile_artist_mbids, split_artist_name, split_genres,
 };
 pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,

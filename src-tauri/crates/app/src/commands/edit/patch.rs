@@ -826,3 +826,40 @@ pub(super) fn write_tags_to_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     patch_file(path, &TagPatch::Fields(edit))
 }
+
+/// Write `edit` as the properties dialog and the batch editor do, and give
+/// back the edit as written, for `sync_db` to mirror.
+///
+/// An edit that rewrites the artist credit and names no artist ids first
+/// weighs the ids the file carries against the new names
+/// ([`reconcile_artist_mbids`](waveflow_core::scanner::reconcile_artist_mbids)):
+/// one left on a name it no longer belongs to would send the track back to
+/// that artist on its next scan (#1076). The artist ids of this file only;
+/// the Album Artist's are not touched, and neither is any artist in the
+/// library, whose id stays valid for its other tracks.
+pub(crate) fn write_edit(
+    path: &std::path::Path,
+    edit: &TrackEdit,
+) -> Result<TrackEdit, Box<dyn std::error::Error + Send + Sync>> {
+    let mut edit = edit.clone();
+    if let (Some(credit), None) = (edit.artist.as_deref(), edit.musicbrainz.artist_id.as_ref()) {
+        if let Some(ids) = file_artist_ids(path, credit) {
+            edit.musicbrainz.artist_id = Some(ids.join("; "));
+        }
+    }
+    write_tags_to_file(path, &edit)?;
+    Ok(edit)
+}
+
+/// The artist ids to write into `path` for its credit to become
+/// `new_credit`, or `None` to leave them be. A file that cannot be read
+/// here carries no ids a scan could read either.
+fn file_artist_ids(path: &std::path::Path, new_credit: &str) -> Option<Vec<String>> {
+    use lofty::file::TaggedFileExt;
+
+    let tagged = waveflow_core::scanner::extract::read_tagged_file(path).ok()?;
+    let tag = tagged.primary_tag().or_else(|| tagged.first_tag())?;
+    let old_credit = waveflow_core::scanner::extract_artists(tag).unwrap_or_default();
+    let old_ids = waveflow_core::scanner::extract_artist_mbids(tag);
+    waveflow_core::scanner::reconcile_artist_mbids(&old_credit, &old_ids, new_credit)
+}

@@ -136,6 +136,48 @@ pub fn album_artist_mbid<'a>(
     (ids.len() == 1).then(|| ids.remove(0))
 }
 
+/// The artist ids a file keeps when an edit rewrites its artist credit from
+/// `old_credit` to `new_credit` and names no ids of its own (#1076).
+///
+/// A scan pairs a file's ids with its names by position, and only when
+/// there are as many of each ([`artist_credits`]). An id left behind by an
+/// edit that changed the names would follow the new ones: the track
+/// renamed "Aimer" would go straight back to "LISA" on its next scan,
+/// found by her id. So:
+///
+/// - `None`: the ids stay as they are. The file has none, the new names are
+///   the old ones up to case, punctuation and spacing (a spelling fix keeps
+///   the identity), or ids that never paired still cannot pair.
+/// - `Some(ids)`: write these instead. The old ids reordered when every new
+///   name is an old one in a new order; empty, to remove them, as soon as
+///   one name is new, since an id list cannot leave one name without its
+///   id and keep the others paired.
+pub fn reconcile_artist_mbids(
+    old_credit: &str,
+    old_ids: &[String],
+    new_credit: &str,
+) -> Option<Vec<String>> {
+    if old_ids.is_empty() {
+        return None;
+    }
+    let old_names = split_artist_name(old_credit);
+    let new_names = split_artist_name(new_credit);
+    if old_ids.len() != old_names.len() {
+        // Never paired. They would as soon as the counts met.
+        return (new_names.len() == old_ids.len()).then(Vec::new);
+    }
+    let old_keys: Vec<String> = old_names.iter().map(|n| canonical_name(n)).collect();
+    let mut ids = Vec::with_capacity(new_names.len());
+    for name in &new_names {
+        let key = canonical_name(name);
+        match old_keys.iter().position(|k| *k == key) {
+            Some(i) => ids.push(old_ids[i].clone()),
+            None => return Some(Vec::new()),
+        }
+    }
+    (ids != old_ids).then_some(ids)
+}
+
 /// The artists a credit names, each with the MusicBrainz id the file gives
 /// it (#1076).
 ///

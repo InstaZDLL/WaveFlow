@@ -93,6 +93,42 @@ fn mbids_are_found_whatever_joins_them() {
 }
 
 #[test]
+fn an_edited_credit_keeps_only_the_ids_that_still_name_their_artist() {
+    use super::reconcile_artist_mbids;
+    let ids = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    // Another artist: the id goes.
+    assert_eq!(
+        reconcile_artist_mbids("LISA", &ids(&["kr"]), "Aimer"),
+        Some(vec![])
+    );
+    // A spelling fix keeps it.
+    assert_eq!(reconcile_artist_mbids("LISA", &ids(&["kr"]), "Lisa"), None);
+    // A reordered credit takes its ids along.
+    assert_eq!(
+        reconcile_artist_mbids("LISA; Alpha", &ids(&["kr", "a"]), "alpha; LISA"),
+        Some(ids(&["a", "kr"]))
+    );
+    // One new name among old ones: the list cannot hold a gap.
+    assert_eq!(
+        reconcile_artist_mbids("LISA; Alpha", &ids(&["kr", "a"]), "LISA; Beta"),
+        Some(vec![])
+    );
+    // A dropped name: the rest keep theirs.
+    assert_eq!(
+        reconcile_artist_mbids("LISA; Alpha", &ids(&["kr", "a"]), "LISA"),
+        Some(ids(&["kr"]))
+    );
+    // No ids, nothing to do.
+    assert_eq!(reconcile_artist_mbids("LISA", &[], "Aimer"), None);
+    // Ids that never paired go before they would.
+    assert_eq!(
+        reconcile_artist_mbids("A; B", &ids(&["x"]), "C"),
+        Some(vec![])
+    );
+    assert_eq!(reconcile_artist_mbids("A; B", &ids(&["x"]), "C; D"), None);
+}
+
+#[test]
 fn an_album_artist_id_needs_one_name_as_written() {
     use super::album_artist_mbid;
     let a = "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001";

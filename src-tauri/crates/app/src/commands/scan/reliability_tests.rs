@@ -2402,3 +2402,183 @@ async fn a_deep_rescan_gives_a_namesake_her_cover_and_her_spelling() {
     let (artist, text, _) = album(solo).await;
     assert_eq!((artist, text), ("LISA".into(), Some("LISA".into())));
 }
+
+impl Library {
+    /// Save `edit` the way the properties dialog does: written into the
+    /// file (artist ids reconciled), re-hashed, mirrored into the database.
+    async fn save(&self, path: &Path, edit: TrackEdit) {
+        let id = self.id(path).await;
+        let written = crate::commands::edit::write_edit(path, &edit).unwrap();
+        rehash_track_file(&self.pool, id, path).await.unwrap();
+        crate::commands::edit::sync_db(&self.pool, id, &written)
+            .await
+            .unwrap();
+    }
+
+    /// `(name, mbid)` of each artist a track is credited to, in order.
+    async fn identities(&self, path: &Path) -> Vec<(String, Option<String>)> {
+        sqlx::query_as(
+            "SELECT a.name, a.mbid FROM track_artist ta JOIN artist a ON a.id = ta.artist_id
+              WHERE ta.track_id = ? ORDER BY ta.position",
+        )
+        .bind(self.id(path).await)
+        .fetch_all(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+/// The artist ids a file carries now, as a scan reads them.
+fn file_ids(path: &Path) -> Vec<String> {
+    use lofty::file::TaggedFileExt;
+    let tagged = waveflow_core::scanner::extract::read_tagged_file(path).unwrap();
+    let tag = tagged.primary_tag().unwrap();
+    waveflow_core::scanner::extract_artist_mbids(tag)
+}
+
+/// One of two "LISA" tracks, both carrying her id, re-credited to "Aimer"
+/// in the properties dialog: it stays "Aimer"'s through a deep rescan, and
+/// the other track stays hers, with her id. A spelling fix keeps the id.
+#[tokio::test]
+async fn a_re_credited_track_does_not_go_back_to_its_old_artist() {
+    let library = Library::new().await;
+    let one = library.flac(
+        "one.flac",
+        &[
+            ("TITLE", "one"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    let two = library.flac(
+        "two.flac",
+        &[
+            ("TITLE", "two"),
+            ("ARTIST", "LISA"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(
+        library.identities(&one).await,
+        [("LISA".into(), Some(LISA_KR.into()))]
+    );
+
+    library
+        .save(
+            &one,
+            TrackEdit {
+                artist: Some("Aimer".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert!(file_ids(&one).is_empty(), "the stale id left the file");
+    assert_eq!(file_ids(&two), [LISA_KR], "the other file keeps it");
+    assert_eq!(library.identities(&one).await, [("Aimer".into(), None)]);
+
+    library.try_scan(1, true).await.unwrap();
+    assert_eq!(library.identities(&one).await, [("Aimer".into(), None)]);
+    assert_eq!(
+        library.identities(&two).await,
+        [("LISA".into(), Some(LISA_KR.into()))]
+    );
+
+    // A spelling fix is the same artist: her id stays, on the file and on
+    // her row, through a deep rescan.
+    library
+        .save(
+            &two,
+            TrackEdit {
+                artist: Some("Lisa".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert_eq!(file_ids(&two), [LISA_KR]);
+    library.try_scan(1, true).await.unwrap();
+    assert_eq!(
+        library.identities(&two).await,
+        [("Lisa".into(), Some(LISA_KR.into()))]
+    );
+}
+
+/// A credit of several artists keeps each id on its own name: reordered,
+/// they travel with their names; one name replaced, the whole list goes,
+/// since an id list cannot leave a gap and the rest would shift.
+#[tokio::test]
+async fn a_multi_artist_credit_keeps_each_id_on_its_name() {
+    let library = Library::new().await;
+    let other = library.flac(
+        "pair.flac",
+        &[
+            ("TITLE", "pair"),
+            ("ARTIST", "Alpha; Beta"),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa",
+            ),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b0bb",
+            ),
+        ],
+    );
+    library.scan().await;
+
+    library
+        .save(
+            &other,
+            TrackEdit {
+                artist: Some("Beta; Alpha".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert_eq!(
+        file_ids(&other),
+        [
+            "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b0bb",
+            "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa"
+        ]
+    );
+    library.try_scan(1, true).await.unwrap();
+    assert_eq!(
+        library.identities(&other).await,
+        [
+            (
+                "Beta".into(),
+                Some("8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b0bb".into())
+            ),
+            (
+                "Alpha".into(),
+                Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0aa".into())
+            ),
+        ]
+    );
+
+    library
+        .save(
+            &other,
+            TrackEdit {
+                artist: Some("Beta; Gamma".into()),
+                ..TrackEdit::default()
+            },
+        )
+        .await;
+    assert!(file_ids(&other).is_empty());
+    library.try_scan(1, true).await.unwrap();
+    let names: Vec<String> = library
+        .identities(&other)
+        .await
+        .into_iter()
+        .map(|(name, _)| name)
+        .collect();
+    assert_eq!(names, ["Beta", "Gamma"]);
+    let gamma: Option<String> =
+        sqlx::query_scalar("SELECT mbid FROM artist WHERE canonical_name = 'gamma'")
+            .fetch_one(&library.pool)
+            .await
+            .unwrap();
+    assert_eq!(gamma, None, "no id slid onto the new name");
+}
