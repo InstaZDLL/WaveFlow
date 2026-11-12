@@ -154,8 +154,11 @@ pub fn album_artist_mbid<'a>(
 ///   id and keep the others paired.
 ///
 /// Two old names that differ by case only ("LiSA; LISA", two ids, #1081)
-/// are two artists: a new name is the one it matches letter for letter, and
-/// a spelling that matches both ("Lisa") names no one of them, so the ids go.
+/// are two artists: a new name is the one it matches letter for letter; the
+/// namesakes no name matches that way pair, in order, with the names of
+/// their spelling left, when there are as many (the properties dialog shows
+/// the library's spelling, which may not be the file's). A spelling that
+/// still fits several of them ("Lisa" alone) names no one, so the ids go.
 pub fn reconcile_artist_mbids(
     old_credit: &str,
     old_ids: &[String],
@@ -180,24 +183,53 @@ pub fn reconcile_artist_mbids(
             .collect();
     }
     // Every name as typed, so "LiSA; LISA" keeps both of its artists.
+    let new: Vec<(&str, String)> = credit_parts(new_credit)
+        .map(|name| (name, canonical_name(name)))
+        .collect();
+    let old_keys: Vec<String> = old.iter().map(|(name, _)| canonical_name(name)).collect();
+    let group =
+        |key: &str| -> Vec<usize> { (0..old.len()).filter(|&i| old_keys[i] == key).collect() };
+    let mut found: Vec<Option<usize>> = vec![None; new.len()];
+    let mut taken = vec![false; old.len()];
+    // A name only one old artist answers to is that artist, whatever its
+    // spelling; among namesakes, the one spelled the same.
+    for (at, (name, key)) in new.iter().enumerate() {
+        match group(key).as_slice() {
+            [] => return Some(Vec::new()),
+            [only] => found[at] = Some(*only),
+            several => {
+                if let Some(&exact) = several.iter().find(|&&i| !taken[i] && old[i].0 == *name) {
+                    taken[exact] = true;
+                    found[at] = Some(exact);
+                }
+            }
+        }
+    }
+    // The namesakes left, in credit order, when as many names are left for
+    // them: the dialog shows the library's spelling, which need not be the
+    // file's ("Lisa; LISA" over a file's "LiSA; LISA").
+    for (at, (_, key)) in new.iter().enumerate() {
+        if found[at].is_some() {
+            continue;
+        }
+        let names_left: Vec<usize> = (at..new.len())
+            .filter(|&j| found[j].is_none() && new[j].1 == *key)
+            .collect();
+        let old_left: Vec<usize> = group(key).into_iter().filter(|&i| !taken[i]).collect();
+        if names_left.len() != old_left.len() {
+            // A spelling that fits several of them names no one of them.
+            return Some(Vec::new());
+        }
+        for (j, i) in names_left.into_iter().zip(old_left) {
+            taken[i] = true;
+            found[j] = Some(i);
+        }
+    }
     let mut ids: Vec<String> = Vec::new();
     let mut seen = std::collections::HashSet::new();
-    for name in credit_parts(new_credit) {
-        let key = canonical_name(name);
-        let same_key: Vec<&(String, Option<String>)> = old
-            .iter()
-            .filter(|(old_name, _)| canonical_name(old_name) == key)
-            .collect();
-        let found = match same_key.as_slice() {
-            [] => return Some(Vec::new()),
-            [only] => *only,
-            several => match several.iter().find(|(old_name, _)| old_name == name) {
-                Some(exact) => *exact,
-                None => return Some(Vec::new()),
-            },
-        };
-        let id = found.1.clone().unwrap_or_default();
-        if seen.insert((key, id.clone())) {
+    for ((_, key), i) in new.iter().zip(found) {
+        let id = i.and_then(|i| old[i].1.clone()).unwrap_or_default();
+        if seen.insert((key.clone(), id.clone())) {
             ids.push(id);
         }
     }
@@ -285,7 +317,7 @@ pub fn artist_credit_with_ids<'a>(
         values: impl IntoIterator<Item = &'a str>,
         mbids: &[String],
     ) -> (Vec<String>, Vec<String>) {
-        let joined: Vec<&str> = values.into_iter().flat_map(|v| v.split(' ')).collect();
+        let joined: Vec<&str> = values.into_iter().flat_map(|v| v.split('\0')).collect();
         let joined = joined.join("; ");
         let parts = credit_parts(&joined).count();
         if !mbids.is_empty() && mbids.len() == parts {

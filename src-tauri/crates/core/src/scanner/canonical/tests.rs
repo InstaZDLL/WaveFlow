@@ -225,6 +225,25 @@ fn two_namesakes_with_their_own_ids_stay_two_artists() {
         reconcile_artist_mbids("LiSA; LISA", &old, "Lisa"),
         Some(vec![])
     );
+    // The library's spelling, not the file's: what the exact match leaves
+    // pairs in order, so a save as shown or reordered keeps both ids.
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "Lisa; LISA"),
+        None
+    );
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "LISA; Lisa"),
+        Some(ids(&["b", "a"]))
+    );
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "lisa; Lisa"),
+        None
+    );
+    // A name added beside them is another artist: the list goes.
+    assert_eq!(
+        reconcile_artist_mbids("LiSA; LISA", &old, "LiSA; LISA; Beta"),
+        Some(vec![])
+    );
     // Names filed together by a scan and one id still pair.
     assert_eq!(
         reconcile_artist_mbids("Beta; BETA", &ids(&["a"]), "Gamma"),
