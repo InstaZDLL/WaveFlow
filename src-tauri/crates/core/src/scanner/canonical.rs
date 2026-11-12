@@ -173,9 +173,11 @@ pub fn reconcile_artist_mbids(
         // be as many as the ids ("Beta; BETA" and one id).
         let names = split_artist_name(old_credit);
         if names.len() != old_ids.len() {
-            // Never paired. They would as soon as the counts met.
-            let new_count = split_artist_name(new_credit).len();
-            return (new_count == old_ids.len()).then(Vec::new);
+            // Never paired. They would as soon as the counts met, as a scan
+            // counts them: the names as written or as filed together.
+            let pairs = credit_parts(new_credit).count() == old_ids.len()
+                || split_artist_name(new_credit).len() == old_ids.len();
+            return pairs.then(Vec::new);
         }
         old = names
             .into_iter()
@@ -192,12 +194,19 @@ pub fn reconcile_artist_mbids(
     let mut found: Vec<Option<usize>> = vec![None; new.len()];
     let mut taken = vec![false; old.len()];
     // A name only one old artist answers to is that artist, whatever its
-    // spelling; among namesakes, the one spelled the same.
+    // spelling; among namesakes, the one spelled the same, when the new
+    // credit spells it as many times as the old one ("Lisa" alone over two
+    // artists both spelled "Lisa" is neither).
     for (at, (name, key)) in new.iter().enumerate() {
         match group(key).as_slice() {
             [] => return Some(Vec::new()),
             [only] => found[at] = Some(*only),
             several => {
+                let exact_old = several.iter().filter(|&&i| old[i].0 == *name).count();
+                let exact_new = new.iter().filter(|(n, _)| n == name).count();
+                if exact_old != exact_new {
+                    continue;
+                }
                 if let Some(&exact) = several.iter().find(|&&i| !taken[i] && old[i].0 == *name) {
                     taken[exact] = true;
                     found[at] = Some(exact);

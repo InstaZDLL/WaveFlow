@@ -121,6 +121,12 @@ pub async fn maybe_link_artist_images(
         if canon.is_empty() || canon == va_canon {
             continue;
         }
+        // Two namesakes of one credit ("LiSA; LISA", told apart by their
+        // ids, #1081) would both match the one sidecar their spelling
+        // finds, and a linked image is never replaced: neither takes it.
+        if names.iter().filter(|n| canonical_name(n) == canon).count() > 1 {
+            continue;
+        }
         // Cheap pre-check so we don't walk the FS when the artist already
         // has artwork (Deezer fetch, manual upload, or earlier scan).
         let has_artwork: Option<i64> =

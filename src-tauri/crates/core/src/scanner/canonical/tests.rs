@@ -239,6 +239,21 @@ fn two_namesakes_with_their_own_ids_stay_two_artists() {
         reconcile_artist_mbids("LiSA; LISA", &old, "lisa; Lisa"),
         None
     );
+    // Two artists spelled alike: one name left says nothing of whose it is.
+    assert_eq!(
+        reconcile_artist_mbids("Lisa; Lisa", &old, "Lisa"),
+        Some(vec![])
+    );
+    assert_eq!(
+        reconcile_artist_mbids("Lisa; Lisa", &old, "Lisa; Lisa"),
+        None
+    );
+    // Ids that never paired go as soon as a scan would pair them, the
+    // names counted as written.
+    assert_eq!(
+        reconcile_artist_mbids("A; B; C", &old, "A; A"),
+        Some(vec![])
+    );
     // A name added beside them is another artist: the list goes.
     assert_eq!(
         reconcile_artist_mbids("LiSA; LISA", &old, "LiSA; LISA; Beta"),
