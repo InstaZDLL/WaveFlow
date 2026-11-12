@@ -869,3 +869,49 @@ async fn an_album_artist_id_without_a_named_album_artist_changes_nothing() {
     .unwrap();
     assert_eq!(keyed, 3, "still LISA's");
 }
+
+/// An undo that puts back two Album Artist values and one Album Artist id
+/// (#1082): the edit names the first value, the file holds both. A scan
+/// gives the id to no one, two names sharing one id, so the sync does not
+/// either: "Alpha" does not take it, and the track does not join the album
+/// of the artist who has it.
+#[tokio::test]
+async fn an_undo_of_two_album_artists_gives_their_one_id_to_neither() {
+    const ID: &str = "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001";
+    let pool = pool().await;
+    for statement in [
+        format!("INSERT INTO artist (id, name, canonical_name, mbid) VALUES (5, 'Other', 'other', '{ID}')"),
+        "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (5, 'the wall', 'the wall', 5, 1979, 0)"
+            .to_string(),
+    ] {
+        sqlx::raw_sql(&statement).execute(&pool).await.unwrap();
+    }
+    let undo = TrackEdit {
+        album_artist: Some("Alpha".into()),
+        album_artist_values: Some(vec!["Alpha".into(), "Beta".into()]),
+        musicbrainz: MusicBrainzEdit {
+            album_artist_id: Some(ID.into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    // The restored file, read back after the write.
+    let spelled = FileSpelling {
+        album_artist: Some("Alpha".into()),
+        album_artist_values: Some("Alpha; Beta".into()),
+        ..FileSpelling::default()
+    };
+    sync_db_spelled(&pool, 1, &undo, &spelled).await.unwrap();
+
+    let (album, artist, text, _) = album_of(&pool, 1).await;
+    assert_ne!(album, 5, "not the album of the artist who has the id");
+    assert_ne!(artist, Some(5));
+    assert_eq!(text.as_deref(), Some("Alpha"));
+    let holders: Vec<i64> = sqlx::query_scalar("SELECT id FROM artist WHERE mbid = ?")
+        .bind(ID)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(holders, [5], "nobody else takes the id");
+}
