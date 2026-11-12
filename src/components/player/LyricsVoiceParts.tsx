@@ -45,10 +45,11 @@ export function BackgroundVocals({
       {words.map((word, wi) => (
         <Fragment key={wi}>
           <span
+            // In one step: an animated opacity shakes the whole line on
+            // WebKit (`LYRICS_WORD_TRANSITION`).
             style={{
               opacity:
                 wi === activeWordIndex ? 1 : wi < activeWordIndex ? 0.75 : 0.4,
-              transition: "opacity 150ms ease",
             }}
           >
             {word.text}
