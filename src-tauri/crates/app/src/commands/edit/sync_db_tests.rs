@@ -552,7 +552,12 @@ async fn an_edited_id_moves_the_credit_to_its_artist() {
         },
         ..edit()
     };
-    sync_db(&pool, 2, &retag).await.unwrap();
+    // As the workshop sends it: the file's names beside the ids.
+    let spelled = FileSpelling {
+        artist: Some("LISA".into()),
+        album_artist: Some("LISA".into()),
+    };
+    sync_db_spelled(&pool, 2, &retag, &spelled).await.unwrap();
 
     let moved: (i64, i64) = sqlx::query_as(
         "SELECT t.primary_artist, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
