@@ -288,8 +288,10 @@ release-windows:
     - iex "& {$(irm bun.sh/install.ps1)} -Version $bunVersion"
     - $env:Path = "$env:USERPROFILE\.bun\bin;$env:Path"
     - python -c "import json,os; p='src-tauri/crates/app/tauri.conf.json'; c=json.load(open(p,encoding='utf-8')); c['version']=os.environ['VERSION']; open(p,'w',encoding='utf-8').write(json.dumps(c,indent=2)+'\n')"
-    # Authenticode, as release.yml does it: the object form of signCommand,
-    # signtool by absolute path, the PFX removed in after_script.
+    # Authenticode with a self-signed PFX: the object form of signCommand,
+    # signtool by absolute path, the PFX removed in after_script. release.yml
+    # signs through SignPath instead, which has no trusted build system on
+    # GitLab (docs/RELEASING.md, Windows signing with SignPath).
     - $pfxPath = (Join-Path $env:CI_PROJECT_DIR "cert.pfx") -replace '\\', '/'
     - "[IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:SIGNTOOL_PFX_BASE64))"
     - >-

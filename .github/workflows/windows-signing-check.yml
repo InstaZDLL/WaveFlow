@@ -1,0 +1,116 @@
+name: Windows signing check
+
+# Runs the Windows half of a release (build, two SignPath requests, updater
+# signature, Authenticode verification) and then stops: no tag, no release,
+# no upload, nothing reaches the mirror. It exists to prove the SignPath
+# wiring, and to try a signing policy before a release depends on it.
+#
+# It reads the same secret and variables as release.yml (SIGNPATH_API_TOKEN,
+# SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG, SIGNPATH_SIGNING_POLICY_SLUG)
+# and fails at once, naming what is missing, when they are not there. Under
+# test-signing nothing needs approving; under release-signing each of the two
+# requests waits for the manual approval.
+#
+# The push trigger is for the branch that introduced the workflow; a manual
+# run needs the workflow on the default branch.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/signpath-windows-signing
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-signing-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Sign the Windows bundles
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      - name: Read the app version
+        shell: bash
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('src-tauri/crates/app/tauri.conf.json','utf8')).version)")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+          echo "Checking version $VERSION"
+
+      - name: Ensure cmake is available
+        shell: bash
+        run: |
+          if ! cmake --version >/dev/null 2>&1; then
+            choco install cmake --no-progress -y
+            echo "C:/Program Files/CMake/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
+        with:
+          toolchain: 1.98.0
+
+      - name: Cache Cargo build
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri -> target
+          key: windows-release
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and sign the Windows bundles
+        uses: ./.github/actions/windows-signed-bundle
+        with:
+          version: ${{ env.VERSION }}
+          is-prerelease: ${{ env.IS_PRERELEASE }}
+          tauri-signing-private-key: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          tauri-signing-private-key-password: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          signpath-organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          signpath-project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signpath-signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+
+      - name: Install the setup silently and check what it wrote
+        shell: pwsh
+        # The one place the uninstaller can be seen signed: the installer
+        # writes it next to the app. A throwaway runner, so nothing to clean.
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          $dir = Join-Path $env:RUNNER_TEMP 'waveflow-install'
+          # /D must be the last argument and takes no quotes.
+          $install = Start-Process -FilePath $setup.FullName -ArgumentList '/S', "/D=$dir" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "the setup exited with $($install.ExitCode)" }
+          foreach ($name in 'waveflow.exe', 'uninstall.exe') {
+            $f = Join-Path $dir $name
+            if (-not (Test-Path $f)) { throw "$name was not installed" }
+            $sig = Get-AuthenticodeSignature -LiteralPath $f
+            Write-Host "[install] $name`: $($sig.Status) | $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -eq 'NotSigned' -or -not $sig.SignerCertificate) {
+              if ($name -eq 'uninstall.exe') {
+                Write-Host "::warning::uninstall.exe is not signed (known limit if the uninstaller changed between the two bundle passes)"
+              } else {
+                throw "$name is not signed"
+              }
+            }
+          }

@@ -2,7 +2,7 @@ name: Release
 
 # Triggered when a tag like v0.1.0 lands. Builds Linux (AppImage) and
 # Windows (NSIS) bundles, signs the updater payloads with the project's
-# minisign key, signs the Windows installer with Authenticode, codesigns
+# minisign key, signs the Windows binaries with SignPath, codesigns
 # (and optionally notarizes) the macOS bundle, and attaches everything
 # plus a merged latest.json updater manifest to the matching GitHub
 # release, then mirrors the lot onto Cloudflare R2 when configured.
@@ -10,8 +10,14 @@ name: Release
 # Required repository secrets:
 #   TAURI_SIGNING_PRIVATE_KEY            — raw contents of ~/.tauri/waveflow.key
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD   — passphrase for the above key
-#   SIGNTOOL_PFX_BASE64                  — base64-encoded Authenticode PFX
-#   SIGNTOOL_PFX_PASSWORD                — PFX export passphrase
+#   SIGNPATH_API_TOKEN                   — SignPath API token (CI user)
+# and the repository variables (not secret) naming the SignPath side:
+#   SIGNPATH_ORGANIZATION_ID             — the SignPath organization id
+#   SIGNPATH_PROJECT_SLUG                — the project, "waveflow"
+#   SIGNPATH_SIGNING_POLICY_SLUG         — test-signing, then release-signing
+# The Windows binaries are signed in two SignPath requests (the executable and
+# NSIS uninstaller, then the installers), each approved by hand under the
+# release policy: .github/actions/windows-signed-bundle, docs/RELEASING.md.
 #
 # Optional macOS signing secrets — the job degrades to ad-hoc signing when
 # APPLE_CERTIFICATE is unset, which still yields a sealed bundle with a
@@ -54,7 +60,9 @@ concurrency:
 jobs:
   desktop:
     name: Build (${{ matrix.platform }})
-    timeout-minutes: 60
+    # Windows waits for two manual SignPath approvals; 360 minutes is the most
+    # a GitHub-hosted job may run.
+    timeout-minutes: ${{ matrix.platform == 'windows' && 360 || 60 }}
     permissions:
       contents: write
       id-token: write
@@ -76,6 +84,9 @@ jobs:
             tauri_target: ""
           - os: windows-latest
             platform: windows
+            # Built and signed by .github/actions/windows-signed-bundle,
+            # which picks nsis,msi (nsis alone on a beta: WiX rejects a
+            # non-numeric pre-release version); kept for the record.
             tauri_bundles: nsis,msi
             tauri_target: ""
           - os: macos-latest
@@ -125,7 +136,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: .release-tools
-          sparse-checkout: scripts/release
+          sparse-checkout: |
+            scripts/release
+            .github/actions
           persist-credentials: false
 
       - name: Sync app version to the release tag
@@ -242,65 +255,6 @@ jobs:
             exit 1
           fi
 
-      - name: Configure Authenticode signing (Windows)
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        env:
-          PFX_BASE64: ${{ secrets.SIGNTOOL_PFX_BASE64 }}
-          PFX_PASSWORD: ${{ secrets.SIGNTOOL_PFX_PASSWORD }}
-        # Decodes the PFX, locates signtool, and injects an absolute-path
-        # signCommand into tauri.conf.json. Tauri's signCommand spawner
-        # (Rust Command::new) can't reliably launch pwsh wrappers on
-        # windows-latest, so we call signtool.exe directly — the OBJECT
-        # form of signCommand bypasses shell_words quoting quirks.
-        run: |
-          if (-not $env:PFX_BASE64) {
-            Write-Error "SIGNTOOL_PFX_BASE64 secret is required to publish a Windows release"
-            exit 1
-          }
-          if (-not $env:PFX_PASSWORD) {
-            Write-Error "SIGNTOOL_PFX_PASSWORD secret is required alongside SIGNTOOL_PFX_BASE64"
-            exit 1
-          }
-          Write-Host "::add-mask::$env:PFX_PASSWORD"
-
-          $pfxPath = (Join-Path $env:GITHUB_WORKSPACE "cert.pfx") -replace '\\', '/'
-          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
-
-          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-                      Sort-Object -Property @{ Expression = { try { [Version]$_.Directory.Parent.Name } catch { [Version]"0.0.0.0" } } } -Descending |
-                      Select-Object -First 1
-          if (-not $signtool) { Write-Error "signtool.exe not found in Windows Kits SDK"; exit 1 }
-          $signtoolPath = $signtool.FullName -replace '\\', '/'
-          Write-Host "[sign] Using $signtoolPath"
-
-          & $signtool.FullName /? | Out-Null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "signtool smoke-test failed (exit $LASTEXITCODE)"
-            exit 1
-          }
-
-          $configPath = "src-tauri/crates/app/tauri.conf.json"
-          $config = Get-Content $configPath -Raw | ConvertFrom-Json
-          $signCommandObj = [pscustomobject]@{
-            cmd = $signtoolPath
-            args = @(
-              "sign",
-              "/fd", "SHA256",
-              "/tr", "http://timestamp.digicert.com",
-              "/td", "SHA256",
-              "/f", $pfxPath,
-              "/p", $env:PFX_PASSWORD,
-              "%1"
-            )
-          }
-          if (-not $config.bundle.windows) {
-            $config.bundle | Add-Member -MemberType NoteProperty -Name windows -Value ([pscustomobject]@{}) -Force
-          }
-          $config.bundle.windows | Add-Member -MemberType NoteProperty -Name signCommand -Value $signCommandObj -Force
-          ($config | ConvertTo-Json -Depth 20) | Set-Content $configPath -Encoding utf8
-          Write-Host "[sign] signCommand injected into $configPath"
-
       - name: Resolve macOS signing mode
         if: matrix.platform == 'macos'
         shell: bash
@@ -373,7 +327,24 @@ jobs:
             echo "::warning::No APPLE_CERTIFICATE secret — falling back to ad-hoc signing. Gatekeeper still warns on first launch (right-click → Open), but the bundle gets a sealed, stable identity so macOS stops re-asking for folder access on every launch."
           fi
 
+      - name: Build and sign the Windows bundles
+        if: matrix.platform == 'windows'
+        # From the workflow's own commit, like the release scripts: see the
+        # second checkout above. Fails first thing when SignPath is not
+        # configured, and takes as long as the two manual approvals do.
+        uses: ./.release-tools/.github/actions/windows-signed-bundle
+        with:
+          version: ${{ env.VERSION }}
+          is-prerelease: ${{ env.IS_PRERELEASE }}
+          tauri-signing-private-key: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          tauri-signing-private-key-password: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          signpath-api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          signpath-organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          signpath-project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signpath-signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+
       - name: Build Tauri bundles
+        if: matrix.platform != 'windows'
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -397,16 +368,6 @@ jobs:
           if [ "$PLATFORM" = "macos" ] && [ "$MACOS_SIGN_MODE" = "adhoc" ]; then
             unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
             export APPLE_SIGNING_IDENTITY="-"
-          fi
-          # WiX/MSI rejects a non-numeric semver pre-release identifier
-          # ("optional pre-release identifier ... must be numeric-only" —
-          # e.g. 1.6.1-beta.1). So beta Windows builds ship the NSIS
-          # installer only: NSIS *is* the updater payload, and the MSI is the
-          # system-wide/corporate installer that the beta channel doesn't
-          # need. Stable releases (numeric version) still build nsis + msi.
-          if [ "$IS_PRERELEASE" = "true" ] && [ "$PLATFORM" = "windows" ]; then
-            BUNDLES="nsis"
-            echo "Pre-release Windows build — NSIS only (MSI/WiX rejects non-numeric pre-release versions)."
           fi
           # rpm refuses a "-" in its version, so 2.0.0-beta.1 cannot be an
           # .rpm at all ("invalid version ... contains invalid character").
@@ -471,24 +432,6 @@ jobs:
           GLIBC_FLOOR: "2.39"
         # After the two steps above, so it reads the AppImage that ships.
         run: bash .release-tools/scripts/release/check-glibc-floor.sh
-
-      - name: Scrub Authenticode secrets (Windows)
-        if: always() && matrix.platform == 'windows'
-        shell: pwsh
-        # Defence-in-depth: remove the decoded PFX and revert
-        # tauri.conf.json so the embedded password doesn't survive on
-        # the runner FS past this point.
-        run: |
-          $pfx = Join-Path $env:GITHUB_WORKSPACE "cert.pfx"
-          if (Test-Path $pfx) {
-            Remove-Item -LiteralPath $pfx -Force
-            Write-Host "[sign] Removed $pfx"
-          }
-          $config = "src-tauri/crates/app/tauri.conf.json"
-          if (Test-Path $config) {
-            git checkout -- $config
-            Write-Host "[sign] Reverted $config to HEAD"
-          }
 
       - name: Prepare release assets (Linux)
         if: matrix.platform == 'linux'
@@ -687,7 +630,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: .release-tools
-          sparse-checkout: scripts/release
+          sparse-checkout: |
+            scripts/release
+            .github/actions
           persist-credentials: false
 
       - name: Merge updater manifests
@@ -848,7 +793,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: .release-tools
-          sparse-checkout: scripts/release
+          sparse-checkout: |
+            scripts/release
+            .github/actions
           persist-credentials: false
 
       # No secret set is a repository without a mirror — a fork, or this one
