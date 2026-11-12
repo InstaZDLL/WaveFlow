@@ -313,6 +313,7 @@ fn a_new_name_takes_the_ids_it_implies_along() {
     let implied = with_implied_ids(
         &current,
         &ask(&[(Field::Artist, "Aimer"), (Field::AlbumArtist, "Aimer")]),
+        "LISA",
     );
     assert_eq!(
         implied.get(&Field::MbArtistId).map(String::as_str),
@@ -327,6 +328,7 @@ fn a_new_name_takes_the_ids_it_implies_along() {
     let implied = with_implied_ids(
         &current,
         &ask(&[(Field::Artist, "Lisa"), (Field::AlbumArtist, "Lisa")]),
+        "LISA",
     );
     assert!(!implied.contains_key(&Field::MbArtistId));
     assert!(!implied.contains_key(&Field::MbAlbumArtistId));
@@ -335,16 +337,56 @@ fn a_new_name_takes_the_ids_it_implies_along() {
     let implied = with_implied_ids(
         &current,
         &ask(&[(Field::Artist, "Aimer"), (Field::MbArtistId, "x")]),
+        "LISA",
     );
     assert_eq!(
         implied.get(&Field::MbArtistId).map(String::as_str),
         Some("x")
     );
 
+    // A spelling fix on a file with a second Album Artist value: the write
+    // leaves one name, so the id that was nobody's goes.
+    let implied = with_implied_ids(
+        &current,
+        &ask(&[(Field::AlbumArtist, "Lisa")]),
+        "LISA; Beta",
+    );
+    assert_eq!(
+        implied.get(&Field::MbAlbumArtistId).map(String::as_str),
+        Some("")
+    );
+
     // A file without ids implies nothing.
     let bare: Values = [(Field::Artist, "LISA".to_string())].into_iter().collect();
     assert_eq!(
-        with_implied_ids(&bare, &ask(&[(Field::Artist, "Aimer")])),
+        with_implied_ids(&bare, &ask(&[(Field::Artist, "Aimer")]), ""),
         ask(&[(Field::Artist, "Aimer")])
+    );
+}
+
+#[test]
+fn an_id_written_after_the_preview_refuses_the_write() {
+    let kr = "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002";
+    let asked: Values = [(Field::Artist, "Aimer".to_string())].into_iter().collect();
+    let previewed: Values = [(Field::Artist, "LISA".to_string())].into_iter().collect();
+    // As previewed: no id, so the write changes the name alone.
+    let diffs = planned_write(&previewed, &asked, &previewed, "").unwrap();
+    assert_eq!(diffs.len(), 1);
+
+    // Another tagger wrote her id since: removing it was never shown.
+    let mut now = previewed.clone();
+    now.insert(Field::MbArtistId, kr.to_string());
+    assert_eq!(planned_write(&now, &asked, &previewed, ""), None);
+
+    // A new preview lists it, and the write that follows goes through.
+    let mut expected = previewed.clone();
+    expected.insert(Field::MbArtistId, kr.to_string());
+    let mut asked_again = asked.clone();
+    asked_again.insert(Field::MbArtistId, String::new());
+    assert_eq!(
+        planned_write(&now, &asked_again, &expected, "")
+            .unwrap()
+            .len(),
+        2
     );
 }

@@ -2743,7 +2743,8 @@ impl Library {
 
         let asked: Values = values.iter().map(|(f, v)| (*f, v.to_string())).collect();
         let current = read_values(path).unwrap();
-        let diffs = diff(&current, &with_implied_ids(&current, &asked));
+        let names = crate::commands::tag_workshop::album_artist_values(path);
+        let diffs = diff(&current, &with_implied_ids(&current, &asked, &names));
         let written: Values = diffs.iter().map(|d| (d.field, d.new.clone())).collect();
         let old: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
         patch_file(path, &TagPatch::Fields(&to_edit(&written))).unwrap();
@@ -2891,4 +2892,38 @@ async fn a_workshop_album_artist_id_beside_two_album_artists_is_nobodys() {
     assert_eq!(held().await, 0, "the workshop gave the id to no one");
     library.deep_scan().await;
     assert_eq!(held().await, 0, "and neither does the scan");
+}
+
+/// A spelling fix of the first of two `ALBUMARTIST` values, in the
+/// workshop: the write leaves one name, so the id that was nobody's is
+/// removed with it rather than become that name's.
+#[tokio::test]
+async fn a_workshop_spelling_fix_beside_a_second_album_artist_drops_the_id() {
+    use waveflow_core::tag_workshop::Field;
+
+    let library = Library::new().await;
+    let path = library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "Alpha"),
+            ("ALBUMARTIST", "Alpha"),
+            ("ALBUMARTIST", "Beta"),
+            ("ALBUM", "Split"),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+
+    library
+        .workshop_write(&path, &[(Field::AlbumArtist, "ALPHA")])
+        .await;
+    assert!(file_album_artist_ids(&path).is_empty());
+    library.deep_scan().await;
+    let held: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist WHERE mbid = ?")
+        .bind(LISA_KR)
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    assert_eq!(held, 0);
 }

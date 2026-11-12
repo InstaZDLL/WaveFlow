@@ -275,11 +275,15 @@ pub fn diff(current: &Values, wanted: &Values) -> Vec<FieldDiff> {
 ///   [`reconcile_artist_mbids`](crate::scanner::reconcile_artist_mbids)
 ///   gives them: kept for a spelling fix, reordered with their names, all
 ///   removed once one name is another artist;
-/// - the Album Artist ids removed when the new name is another artist.
+/// - the Album Artist ids removed when the new name is another artist, or
+///   when the file holds several Album Artist values (`album_artist_values`,
+///   all of them `"; "`-joined; `current` holds the first): the write
+///   leaves one name, and an id that was nobody's beside two would become
+///   that one's.
 ///
 /// They become ordinary changes of the batch: the preview shows them, the
 /// journal records their old values, and an undo puts them back.
-pub fn with_implied_ids(current: &Values, wanted: &Values) -> Values {
+pub fn with_implied_ids(current: &Values, wanted: &Values, album_artist_values: &str) -> Values {
     use crate::scanner::{artist_mbids, canonical_name, reconcile_artist_mbids};
 
     let mut out = wanted.clone();
@@ -298,11 +302,43 @@ pub fn with_implied_ids(current: &Values, wanted: &Values) -> Values {
         wanted.contains_key(&Field::MbAlbumArtistId),
     ) {
         let held = !artist_mbids([now(Field::MbAlbumArtistId)]).is_empty();
-        if held && canonical_name(name) != canonical_name(now(Field::AlbumArtist)) {
+        let several = album_artist_values
+            .split("; ")
+            .filter(|v| !v.trim().is_empty())
+            .count()
+            > 1;
+        let renamed = canonical_name(name) != canonical_name(now(Field::AlbumArtist));
+        if held && (several || renamed) {
             out.insert(Field::MbAlbumArtistId, String::new());
         }
     }
     out
+}
+
+/// What a write of `asked` does to a file whose tags are `current`, with
+/// the ids its new names imply ([`with_implied_ids`]), or `None` when the
+/// file changed since the preview the write follows.
+///
+/// `expected` is the old value of every field the preview listed. Every
+/// difference the write would make is held to it, the implied ones too:
+/// an id another tagger wrote after the preview would otherwise be
+/// removed by a change the user never saw.
+pub fn planned_write(
+    current: &Values,
+    asked: &Values,
+    expected: &Values,
+    album_artist_values: &str,
+) -> Option<Vec<FieldDiff>> {
+    let diffs = diff(
+        current,
+        &with_implied_ids(current, asked, album_artist_values),
+    );
+    let seen: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
+    let expected: Values = expected
+        .iter()
+        .map(|(f, v)| (*f, normalize(*f, v)))
+        .collect();
+    (seen == expected).then_some(diffs)
 }
 
 #[cfg(test)]

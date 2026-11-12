@@ -47,7 +47,9 @@ use waveflow_core::enrichment::{LocalAlbum, LocalTrack};
 use waveflow_core::error::CoreError;
 use waveflow_core::metadata::album_match::TrackSignals;
 use waveflow_core::tag_workshop::proposal::{self, AlbumProposal};
-use waveflow_core::tag_workshop::{diff, journal, with_implied_ids, Field, FieldDiff, Values};
+use waveflow_core::tag_workshop::{
+    diff, journal, planned_write, with_implied_ids, Field, FieldDiff, Values,
+};
 
 use crate::audio::AudioEngine;
 use crate::commands::edit::{
@@ -181,6 +183,14 @@ pub(crate) fn file_spelling(path: &Path, values: &Values) -> FileSpelling {
         album_artist: values.get(&Field::AlbumArtist).cloned(),
         album_artist_values: crate::commands::edit::file_credits(path).map(|c| c.album_artist),
     }
+}
+
+/// Every value of `path`'s Album Artist tag, `"; "`-joined; empty when the
+/// file cannot be read.
+pub(crate) fn album_artist_values(path: &Path) -> String {
+    crate::commands::edit::file_credits(path)
+        .map(|c| c.album_artist)
+        .unwrap_or_default()
 }
 
 async fn spelling_blocking(path: PathBuf, values: Values) -> FileSpelling {
@@ -407,10 +417,16 @@ pub async fn tag_workshop_preview(
             // With the artist ids its new names imply, so the write shows
             // here what it will do to them (#1076).
             let (diffs, error) = match read_values(Path::new(&path)) {
-                Ok(current) => (
-                    diff(&current, &with_implied_ids(&current, &change.values)),
-                    None,
-                ),
+                Ok(current) => {
+                    let names = album_artist_values(Path::new(&path));
+                    (
+                        diff(
+                            &current,
+                            &with_implied_ids(&current, &change.values, &names),
+                        ),
+                        None,
+                    )
+                }
                 Err(err) => (Vec::new(), Some(err)),
             };
             if diffs.is_empty() && invalid.is_none() && error.is_none() {
@@ -588,24 +604,20 @@ pub async fn tag_workshop_apply(
         };
         // The ids the new names imply ride with them (#1076): written,
         // journaled and undone as any other field. The preview showed them,
-        // so the write that follows names them; a caller that did not
-        // preview is checked on the fields it named.
-        let wanted = with_implied_ids(&current, &change.values);
-        let diffs = diff(&current, &wanted);
-        let seen: Values = diffs
-            .iter()
-            .filter(|d| change.values.contains_key(&d.field))
-            .map(|d| (d.field, d.old.clone()))
-            .collect();
-        let expected: Values = change
-            .expected
-            .iter()
-            .map(|(f, v)| (*f, waveflow_core::tag_workshop::normalize(*f, v)))
-            .collect();
-        if seen != expected {
+        // so the write that follows names them. One the write would add
+        // on its own (an id another tagger wrote since) was never shown:
+        // it is a difference like any other, and the file is refused as
+        // changed since, for a new preview.
+        let names = {
+            let path = PathBuf::from(&path);
+            tokio::task::spawn_blocking(move || album_artist_values(&path))
+                .await
+                .unwrap_or_default()
+        };
+        let Some(diffs) = planned_write(&current, &change.values, &change.expected, &names) else {
             report.problems.push(problem("changed_since".into()));
             continue;
-        }
+        };
         if diffs.is_empty() {
             report.unchanged += 1;
             report.done.push(change.track_id);
