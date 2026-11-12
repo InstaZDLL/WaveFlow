@@ -83,6 +83,10 @@ pub fn split_artist_name(raw: &str) -> Vec<String> {
 /// (several values, `"; "`, `/`, a NUL), so the values are not split on a
 /// separator: every run of hex digits and dashes shaped like an id is one,
 /// whatever sits between them. Anything else in the tag is dropped.
+///
+/// A value shaped like an id (dashed groups of hex digits) that is not one
+/// makes the whole list empty: dropping it would shift the ids after it
+/// onto the wrong names, and [`artist_credits`] pairs by position.
 pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     fn is_mbid(token: &str) -> bool {
         let groups: Vec<&str> = token.split('-').collect();
@@ -92,9 +96,18 @@ pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String
                 .zip([8, 4, 4, 4, 12])
                 .all(|(g, len)| g.len() == len && g.bytes().all(|b| b.is_ascii_hexdigit()))
     }
-    values
+    let tokens: Vec<&str> = values
         .into_iter()
         .flat_map(|v| v.split(|c: char| !(c.is_ascii_hexdigit() || c == '-')))
+        .collect();
+    if tokens
+        .iter()
+        .any(|t| t.len() >= 8 && t.contains('-') && !is_mbid(t))
+    {
+        return Vec::new();
+    }
+    tokens
+        .into_iter()
         .filter(|t| is_mbid(t))
         .map(str::to_ascii_lowercase)
         .collect()

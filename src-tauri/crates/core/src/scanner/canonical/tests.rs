@@ -87,6 +87,8 @@ fn mbids_are_found_whatever_joins_them() {
     assert_eq!(artist_mbids([format!("{a}/{b}").as_str()]).len(), 2);
     assert_eq!(artist_mbids([format!("{a}\0{b}").as_str()]).len(), 2);
     assert!(artist_mbids(["", "not an id", "1234-5678"]).is_empty());
+    // A malformed id among valid ones would shift the rest onto other names.
+    assert!(artist_mbids([a, "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0", b]).is_empty());
 }
 
 #[test]
