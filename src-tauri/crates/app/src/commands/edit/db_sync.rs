@@ -5,8 +5,8 @@ use sqlx::SqlitePool;
 
 use waveflow_core::scanner::extra_tags::{stored_value, COMPOSER_KEY};
 use waveflow_core::scanner::{
-    canonical_name, split_artist_name, split_genres, upsert_album_with_artist_mbid,
-    upsert_artist_with_mbid, upsert_genre,
+    album_artist_mbid, artist_credits, artist_mbids, canonical_name, split_artist_name,
+    split_genres, upsert_album_with_artist_mbid, upsert_artist_with_mbid, upsert_genre,
 };
 
 use crate::error::AppResult;
@@ -28,12 +28,39 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         .await?
         .flatten();
 
+    // The artist ids the tag workshop writes into the file, when it does:
+    // they decide the identity of the credit as a scan of the file would
+    // (#1076), the names unchanged or not.
+    let edited_ids: Option<Vec<String>> = edit
+        .musicbrainz
+        .artist_id
+        .as_deref()
+        .map(|v| artist_mbids([v]));
+    // The credit to resolve: the one typed, or the track's own when only
+    // its ids changed.
+    let credit: Option<String> = match (edit.artist.as_ref(), edited_ids.is_some()) {
+        (Some(raw), _) => Some(raw.clone()),
+        (None, true) => {
+            sqlx::query_scalar(
+                "SELECT GROUP_CONCAT(name, '; ') FROM (
+                     SELECT ar.name FROM track_artist ta
+                       JOIN artist ar ON ar.id = ta.artist_id
+                      WHERE ta.track_id = ?
+                      ORDER BY ta.position)",
+            )
+            .bind(track_id)
+            .fetch_one(&mut *tx)
+            .await?
+        }
+        (None, false) => None,
+    };
+
     // Resolve the new artist list (and the new primary). When the
     // user didn't touch the artist field, leave the existing rows
     // alone — re-upserting the same names would no-op but the DELETE
     // + INSERT churn isn't free on a hot library.
     let (artist_ids, primary_artist_id): (Option<Vec<i64>>, Option<i64>) = if let Some(raw) =
-        edit.artist.as_ref()
+        credit.as_ref()
     {
         let mut ids: Vec<i64> = Vec::new();
         let current: Vec<i64> =
@@ -41,12 +68,28 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                 .bind(track_id)
                 .fetch_all(&mut *tx)
                 .await?;
-        for name in split_artist_name(raw) {
-            let identity = kept_identity(&mut tx, &current, &name).await?;
+        // Edited ids pair with the names as the scanner pairs them; without
+        // them, each artist keeps the identity it has.
+        let names: Vec<(String, Option<String>)> = match edited_ids.as_ref() {
+            Some(mbids) => artist_credits(raw, mbids),
+            None => split_artist_name(raw)
+                .into_iter()
+                .map(|name| (name, None))
+                .collect(),
+        };
+        for (name, paired) in names {
+            let identity = match edited_ids {
+                Some(_) => paired,
+                None => kept_identity(&mut tx, &current, &name).await?,
+            };
             if let Some(id) = upsert_artist_with_mbid(&mut tx, &name, identity.as_deref()).await? {
                 // First spelling wins when one credit lists an artist twice.
                 if !ids.contains(&id) {
-                    respell(&mut tx, Respell::Artist, id, &name).await?;
+                    // Only a typed name respells: the names read back from
+                    // the track may have found a namesake by its id.
+                    if edit.artist.is_some() {
+                        respell(&mut tx, Respell::Artist, id, &name).await?;
+                    }
                     ids.push(id);
                 }
             }
@@ -79,11 +122,12 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // file it now tags would put it in. The title is then the current
     // album's; a track in no album has nothing to regroup, and the
     // value lives in the file alone.
+    // An edited Album Artist id relinks it the same way.
+    let album_artist_edited =
+        edit.album_artist.is_some() || edit.musicbrainz.album_artist_id.is_some();
     let album_title: Option<String> = match edit.album.as_ref() {
         Some(title) => Some(title.trim().to_string()),
-        None if edit.album_artist.is_some() => {
-            current_album.as_ref().map(|(title, _, _)| title.clone())
-        }
+        None if album_artist_edited => current_album.as_ref().map(|(title, _, _)| title.clone()),
         None => None,
     };
     let new_album_id: Option<Option<i64>> = if let Some(title) = album_title {
@@ -151,7 +195,13 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
             // The album artist the track is in now keeps its identity
             // when the text still names it: "LISA" is found by its key
             // alone, and that key is "LiSA"'s when both are in the library.
+            //
+            // An id the tag workshop writes for it decides instead, under
+            // the rule the scanner reads it by.
             let album_artist_identity = match (album_artist, old_album_id) {
+                (Some(name), _) if edit.musicbrainz.album_artist_id.is_some() => {
+                    album_artist_mbid(name, edit.musicbrainz.album_artist_id.as_deref())
+                }
                 (Some(name), Some(old)) => {
                     let current: Vec<i64> = sqlx::query_scalar(
                         "SELECT artist_id FROM album WHERE id = ? AND artist_id IS NOT NULL",
@@ -282,7 +332,7 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // album keeps what it has. Never on a rename, where the album left is
     // another record — its cover, and a `manual` source no scan
     // overrides, would stick to the wrong album.
-    let moved_by_album_artist = edit.album.is_none() && edit.album_artist.is_some();
+    let moved_by_album_artist = edit.album.is_none() && album_artist_edited;
     if let (true, Some(Some(new_id)), Some(old_id)) =
         (moved_by_album_artist, new_album_id, old_album_id)
     {

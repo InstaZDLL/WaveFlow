@@ -536,3 +536,35 @@ async fn an_album_rename_keeps_the_album_artist_identity() {
     .unwrap();
     assert_eq!(album, ("Lalisa Deluxe".to_string(), 3));
 }
+
+/// An id the tag workshop writes decides the identity, even with the names
+/// left alone: the track and its album artist go to the artist that holds
+/// it, and no name changes.
+#[tokio::test]
+async fn an_edited_id_moves_the_credit_to_its_artist() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let retag = TrackEdit {
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            album_artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db(&pool, 2, &retag).await.unwrap();
+
+    let moved: (i64, i64) = sqlx::query_as(
+        "SELECT t.primary_artist, al.artist_id FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 2",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(moved, (2, 2));
+    let names: Vec<String> =
+        sqlx::query_scalar("SELECT name FROM artist WHERE id IN (2, 3) ORDER BY id")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(names, ["LiSA", "LISA"]);
+}

@@ -2147,3 +2147,71 @@ async fn a_deep_rescan_separates_namesakes_an_older_scan_merged() {
     assert_eq!(library.names(&kr).await, ["LISA"]);
     assert_eq!(library.artists_like("lisa").await.len(), 2);
 }
+
+/// One album an older scan keyed on the merged artist for both singers'
+/// tracks: the deep rescan moves the track that changes artist, not the
+/// album, so the one that stays keeps hers.
+#[tokio::test]
+async fn a_deep_rescan_moves_a_namesake_out_of_a_shared_album() {
+    let library = Library::new().await;
+    let jp = library.flac(
+        "jp.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "LiSA"),
+            ("ALBUM", "Same"),
+            ("MUSICBRAINZ_ARTISTID", LISA_JP),
+        ],
+    );
+    let kr = library.flac(
+        "kr.flac",
+        &[
+            ("TITLE", "b"),
+            ("ARTIST", "LISA"),
+            ("ALBUM", "Same"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+        ],
+    );
+    library.scan().await;
+    // The state an older build left: one artist, one album, both tracks.
+    sqlx::raw_sql(
+        "UPDATE track SET album_id = (SELECT MIN(id) FROM album WHERE canonical_title = 'same')
+          WHERE album_id IN (SELECT id FROM album WHERE canonical_title = 'same');
+         DELETE FROM album WHERE canonical_title = 'same'
+            AND id <> (SELECT MIN(id) FROM album WHERE canonical_title = 'same');
+         UPDATE artist SET name = 'LiSA' WHERE canonical_name = 'lisa';
+         UPDATE album SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE canonical_title = 'same';
+         UPDATE track_artist SET artist_id = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE artist_id IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         UPDATE track SET primary_artist = (SELECT id FROM artist WHERE canonical_name = 'lisa')
+          WHERE primary_artist IN (SELECT id FROM artist WHERE canonical_name LIKE 'lisa%');
+         DELETE FROM artist WHERE canonical_name LIKE 'lisa %';
+         UPDATE artist SET mbid = NULL WHERE canonical_name = 'lisa';",
+    )
+    .execute(&library.pool)
+    .await
+    .unwrap();
+
+    library.try_scan(1, true).await.unwrap();
+
+    let album_artist = |path: PathBuf| {
+        let pool = library.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT ar.name FROM track t
+                   JOIN album al ON al.id = t.album_id
+                   JOIN artist ar ON ar.id = al.artist_id
+                  WHERE t.file_path = ?",
+            )
+            .bind(path.to_string_lossy().to_string())
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(library.names(&jp).await, ["LiSA"]);
+    assert_eq!(library.names(&kr).await, ["LISA"]);
+    assert_eq!(album_artist(jp.clone()).await, "LiSA");
+    assert_eq!(album_artist(kr.clone()).await, "LISA");
+}

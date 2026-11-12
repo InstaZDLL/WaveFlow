@@ -84,8 +84,8 @@ pub fn split_artist_name(raw: &str) -> Vec<String> {
 /// separator: every run of hex digits and dashes shaped like an id is one,
 /// whatever sits between them. Anything else in the tag is dropped.
 ///
-/// A value shaped like an id (dashed groups of hex digits) that is not one
-/// makes the whole list empty: dropping it would shift the ids after it
+/// A value shaped like an id (dashed groups of hex digits, or a run of 32
+/// hex digits or more) that is not one makes the whole list empty: dropping it would shift the ids after it
 /// onto the wrong names, and [`artist_credits`] pairs by position.
 pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     fn is_mbid(token: &str) -> bool {
@@ -102,7 +102,7 @@ pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String
         .collect();
     if tokens
         .iter()
-        .any(|t| t.len() >= 8 && t.contains('-') && !is_mbid(t))
+        .any(|t| (t.len() >= 32 || (t.len() >= 8 && t.contains('-'))) && !is_mbid(t))
     {
         return Vec::new();
     }
@@ -111,6 +111,29 @@ pub fn artist_mbids<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String
         .filter(|t| is_mbid(t))
         .map(str::to_ascii_lowercase)
         .collect()
+}
+
+/// The MusicBrainz id an Album Artist credit carries, when it names one
+/// artist and the tag one id.
+///
+/// The names are counted as written, before any deduplication: "LiSA;
+/// LISA" is two artists even though [`split_artist_name`] files them under
+/// one key, and a single id would belong to only one of them.
+pub fn album_artist_mbid<'a>(
+    album_artist: &str,
+    values: impl IntoIterator<Item = &'a str>,
+) -> Option<String> {
+    let names = album_artist
+        .split("; ")
+        .filter(|s| !s.trim().is_empty())
+        .count();
+    if names != 1 {
+        return None;
+    }
+    // The same id written twice is still one.
+    let mut ids = artist_mbids(values);
+    ids.dedup();
+    (ids.len() == 1).then(|| ids.remove(0))
 }
 
 /// The artists a credit names, each with the MusicBrainz id the file gives

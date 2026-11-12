@@ -405,5 +405,81 @@ pub async fn repoint_fallback_album_artist(
     Ok(true)
 }
 
+/// [`repoint_fallback_album_artist`] for a track whose credit moved to
+/// another artist of the same spelling, told apart by its MusicBrainz id
+/// (#1076).
+///
+/// The album may hold tracks of both: a library scanned before ids were
+/// read keyed one album on the merged artist for "LiSA"'s and "LISA"'s
+/// tracks of one title. Moving the whole album would carry the tracks
+/// that stay with the old artist along with it. So while another track of
+/// the album is still credited to the old artist, only this track moves,
+/// into the album a fresh scan would have put it in (found or created on
+/// `(canonical_title, new_primary)`), taking the old album's cover when
+/// the new one has none. The last track to move takes the whole album, as
+/// [`repoint_fallback_album_artist`] does.
+///
+/// Returns whether the track ended up under the new artist.
+pub async fn repoint_album_for_identity(
+    conn: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    previous_primary: Option<i64>,
+    new_primary: i64,
+) -> CoreResult<bool> {
+    let current: Option<(i64, String, Option<i64>, String, i64)> = sqlx::query_as(
+        "SELECT al.id, al.title, al.year, t.file_path,
+                (SELECT COUNT(*) FROM track o
+                  WHERE o.album_id = al.id AND o.id <> t.id AND o.primary_artist IS ?2)
+           FROM track t
+           JOIN album al ON al.id = t.album_id
+          WHERE t.id = ?1
+            AND al.album_artist IS NULL
+            AND al.is_compilation = 0
+            AND al.artist_id IS ?2
+            AND al.artist_id IS NOT ?3",
+    )
+    .bind(track_id)
+    .bind(previous_primary)
+    .bind(new_primary)
+    .fetch_optional(&mut *conn)
+    .await?;
+    let Some((old_album, title, year, path, staying)) = current else {
+        return Ok(false);
+    };
+    if staying == 0 {
+        return repoint_fallback_album_artist(conn, track_id, previous_primary, new_primary).await;
+    }
+    let Some(target) = super::upsert_album_with_artist_mbid(
+        conn,
+        &title,
+        None,
+        None,
+        false,
+        Some(new_primary),
+        year,
+        &path,
+    )
+    .await?
+    else {
+        return Ok(false);
+    };
+    sqlx::query("UPDATE track SET album_id = ? WHERE id = ?")
+        .bind(target)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query(
+        "UPDATE album
+            SET artwork_id = (SELECT artwork_id FROM album WHERE id = ?1),
+                artwork_source = (SELECT artwork_source FROM album WHERE id = ?1)
+          WHERE id = ?2 AND artwork_id IS NULL AND ?2 <> ?1",
+    )
+    .bind(old_album)
+    .bind(target)
+    .execute(&mut *conn)
+    .await?;
+    Ok(true)
+}
+
 #[cfg(test)]
 mod tests;

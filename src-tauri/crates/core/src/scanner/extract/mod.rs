@@ -580,14 +580,12 @@ pub fn extract_artist_mbids(tag: &Tag) -> Vec<String> {
 
 /// The MusicBrainz id of the Album Artist, when the tag names exactly one
 /// id *and* the Album Artist is one name: an id for "Alpha; Beta" would
-/// be Alpha's, not the pair's.
+/// be Alpha's, not the pair's. See [`super::canonical::album_artist_mbid`].
 pub fn extract_album_artist_mbid(tag: &Tag) -> Option<String> {
-    if super::canonical::split_artist_name(&extract_album_artist(tag)?).len() != 1 {
-        return None;
-    }
-    let mut ids =
-        super::canonical::artist_mbids(tag.get_strings(ItemKey::MusicBrainzReleaseArtistId));
-    (ids.len() == 1).then(|| ids.remove(0))
+    super::canonical::album_artist_mbid(
+        &extract_album_artist(tag)?,
+        tag.get_strings(ItemKey::MusicBrainzReleaseArtistId),
+    )
 }
 
 /// Read the compilation flag (`TCMP` / `cpil` / `COMPILATION` / `Compilation`).

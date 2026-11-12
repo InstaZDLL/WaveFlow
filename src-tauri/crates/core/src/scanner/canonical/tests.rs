@@ -89,6 +89,18 @@ fn mbids_are_found_whatever_joins_them() {
     assert!(artist_mbids(["", "not an id", "1234-5678"]).is_empty());
     // A malformed id among valid ones would shift the rest onto other names.
     assert!(artist_mbids([a, "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a0", b]).is_empty());
+    assert!(artist_mbids([a, "7b6f3a521c1e4a5e9f0e0a3bd6f4a001", b]).is_empty());
+}
+
+#[test]
+fn an_album_artist_id_needs_one_name_as_written() {
+    use super::album_artist_mbid;
+    let a = "7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001";
+    assert_eq!(album_artist_mbid("LISA", [a]).as_deref(), Some(a));
+    assert_eq!(album_artist_mbid("LISA", [a, a]).as_deref(), Some(a));
+    // Two artists of one key are still two names.
+    assert_eq!(album_artist_mbid("LiSA; LISA", [a]), None);
+    assert_eq!(album_artist_mbid("Alpha; Beta", [a]), None);
 }
 
 #[test]

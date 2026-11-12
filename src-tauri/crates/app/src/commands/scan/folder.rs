@@ -14,9 +14,9 @@ use tauri::Emitter;
 use waveflow_core::repository::{album::AlbumRepository, sqlite::SqliteAlbumRepository};
 use waveflow_core::scanner::{
     link_va_artist_image, maybe_link_artist_images, merge_implicit_compilations, now_millis,
-    reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    split_artist_name, upsert_album_with_artist_mbid, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, UpsertCache,
+    reattach_orphaned_play_events, refresh_folder_covers, repoint_album_for_identity,
+    repoint_fallback_album_artist, split_artist_name, upsert_album_with_artist_mbid,
+    upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache,
 };
 
 use crate::{
@@ -1029,14 +1029,26 @@ pub(crate) async fn scan_folder_inner(
                             .bind(existing_track_id)
                             .execute(&mut *tx)
                             .await?;
+                        // A track that changed artist by identity alone may share
+                        // its album with tracks that stay: it moves on its own.
                         if let Some(first_id) = ids.first().copied() {
-                            repoint_fallback_album_artist(
-                                &mut tx,
-                                existing_track_id,
-                                previous_primary,
-                                first_id,
-                            )
-                            .await?;
+                            if identity_moved {
+                                repoint_album_for_identity(
+                                    &mut tx,
+                                    existing_track_id,
+                                    previous_primary,
+                                    first_id,
+                                )
+                                .await?;
+                            } else {
+                                repoint_fallback_album_artist(
+                                    &mut tx,
+                                    existing_track_id,
+                                    previous_primary,
+                                    first_id,
+                                )
+                                .await?;
+                            }
                         }
                     }
                     // Backfill local artist images AFTER the optional
