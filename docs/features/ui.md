@@ -753,6 +753,12 @@ The backend is [`global_shortcuts`](../../src-tauri/crates/app/src/global_shortc
 - **Single-click play** — optional Settings toggle, honoured by every list of tracks ([library.md](library.md)); the default is double-click.
 - **Framer Motion** — `motion/react` provides micro-interactions (sidebar nav reorder, modal open, view fade-in, queue drag). One global [`SkinMotionWrapper`](../../src/components/layout/SkinMotionWrapper.tsx) feeds skin-specific `transition` config to the `MotionConfig` provider so per-skin springs (Pulse uses `cubic-bezier(0.34, 1.56, 0.64, 1)`, Lounge stays tame, etc.) apply automatically without touching call sites.
 
+## Focus rings
+
+A control reached from the keyboard shows where it is; one the pointer focused does not. [`app.css`](../../src/app.css) gives every button, link and focusable role a 2 px outline of the accent, 2 px out, as a baseline under each skin's own focus light (Pulse's ring and halo, Liquid's charge). [`inputModality`](../../src/lib/inputModality.ts) marks an element focused right after a pointer press (`data-pointer-focus`), and the marked element loses its ring whatever key comes next (#866): the browser otherwise reads any key — a desktop shortcut through Super, Escape, a digit — as keyboard navigation and paints `:focus-visible` on the last thing clicked, and does so again when the window comes back from being minimised.
+
+**Focus never changes a control's shape** (#1086). The baseline sets no `border-radius`: an outline and a ring of `box-shadow` follow the control's own corners, so a round button keeps a round ring. The baseline is unlayered, so a radius set there beat Tailwind's `rounded-full` and squared the play button, the theater button and the immersive view's play button — and did so on a clicked button too, outline taken off but radius kept, which is how a rounded square appeared after a window was restored with no key pressed. A focus rule that sets a radius does so only on a surface that has no fill (the progress bars), where the radius shapes the ring and nothing else.
+
 ## High contrast
 
 A third axis alongside theme and skin (#596): **`auto` / `normal` / `high`**, per profile, in Settings → Appearance → Readability. `auto` is the default and defers to the OS `prefers-contrast: more`; the other two are explicit and win over the OS in both directions. [`applyContrast()`](../../src/lib/contrast.ts) writes the _resolved_ state (`high` or `normal`, never `auto`) to `data-contrast` on `<html>`, so no stylesheet has to know what `auto` resolved to.
