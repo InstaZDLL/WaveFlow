@@ -18,7 +18,44 @@ use super::*;
 /// is keyed on `(canonical_title, artist_id)`), and `track_artist`
 /// needs the new track row state.
 pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResult<()> {
+    sync_db_spelled(pool, track_id, edit, &FileSpelling::default()).await
+}
+
+/// How the file spells its artist credit and its Album Artist, read before
+/// an edit that sets their MusicBrainz ids and leaves the names alone (the
+/// tag workshop's).
+///
+/// The ids decide which artist the track goes to (#1076). When that is an
+/// artist the library does not hold yet, it is created under the name the
+/// file gives it, as a scan of the file would create it: the names the
+/// database holds are those of the artist the track leaves, which on a
+/// library where two namesakes were merged is the other one's spelling.
+/// An artist the id finds keeps its own name. A field the file leaves
+/// empty falls back to the database's.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct FileSpelling {
+    pub artist: Option<String>,
+    pub album_artist: Option<String>,
+}
+
+/// [`sync_db`], with the names the file spells (see [`FileSpelling`]).
+pub(crate) async fn sync_db_spelled(
+    pool: &SqlitePool,
+    track_id: i64,
+    edit: &TrackEdit,
+    spelled: &FileSpelling,
+) -> AppResult<()> {
     let mut tx = pool.begin().await?;
+    let file_artist = spelled
+        .artist
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let file_album_artist = spelled
+        .album_artist
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
 
     // The album the track leaves, if it does: its year may have come
     // from this track.
@@ -44,9 +81,10 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         .as_deref()
         .map(|v| artist_mbids([v]));
     // The credit to resolve: the one typed, or the track's own when only
-    // its ids changed.
+    // its ids changed, as the file spells it when it says.
     let credit: Option<String> = match (edit.artist.as_ref(), edited_ids.is_some()) {
         (Some(raw), _) => Some(raw.clone()),
+        (None, true) if file_artist.is_some() => file_artist.map(str::to_owned),
         (None, true) => {
             sqlx::query_scalar(
                 "SELECT GROUP_CONCAT(name, '; ') FROM (
@@ -200,6 +238,13 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                     named_album_artist,
                     carried_is_compilation && named_album_artist.is_none(),
                 ),
+                // An Album Artist id set alone: the name the file gives
+                // that artist, for a new one to be created under.
+                None if edit.musicbrainz.album_artist_id.is_some()
+                    && file_album_artist.is_some() =>
+                {
+                    (file_album_artist, carried_is_compilation)
+                }
                 None => (carried_album_artist.as_deref(), carried_is_compilation),
             };
             let track_path: String = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")

@@ -50,7 +50,9 @@ use waveflow_core::tag_workshop::proposal::{self, AlbumProposal};
 use waveflow_core::tag_workshop::{diff, journal, Field, FieldDiff, Values};
 
 use crate::audio::AudioEngine;
-use crate::commands::edit::{patch_file, rehash_track_file, sync_db, TagPatch};
+use crate::commands::edit::{
+    patch_file, rehash_track_file, sync_db, sync_db_spelled, FileSpelling, TagPatch,
+};
 use crate::commands::enrichment::{self, ProfileDb};
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
@@ -671,7 +673,15 @@ pub async fn tag_workshop_apply(
         //    file written and journaled; the next scan of the folder reads
         //    it back, so it is reported and the batch goes on.
         let db_edit = to_db_edit(&written, Path::new(&path));
-        if let Err(err) = retry_busy(|| sync_db(&pool, change.track_id, &db_edit)).await {
+        // The names as the file spells them, for an artist its new ids
+        // create while the names are left alone (#1076).
+        let spelled = FileSpelling {
+            artist: current.get(&Field::Artist).cloned(),
+            album_artist: current.get(&Field::AlbumArtist).cloned(),
+        };
+        if let Err(err) =
+            retry_busy(|| sync_db_spelled(&pool, change.track_id, &db_edit, &spelled)).await
+        {
             tracing::warn!(track_id = change.track_id, %err, "tag workshop database update failed");
             report.problems.push(problem(DATABASE_STALE.into()));
             continue;
