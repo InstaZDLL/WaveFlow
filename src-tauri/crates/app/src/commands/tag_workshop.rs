@@ -32,7 +32,7 @@
 //! its old values back, the same way. One that changed since — another
 //! tagger, a later batch — is refused and reported, never overwritten.
 
-mod read;
+pub(crate) mod read;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -47,7 +47,7 @@ use waveflow_core::enrichment::{LocalAlbum, LocalTrack};
 use waveflow_core::error::CoreError;
 use waveflow_core::metadata::album_match::TrackSignals;
 use waveflow_core::tag_workshop::proposal::{self, AlbumProposal};
-use waveflow_core::tag_workshop::{diff, journal, Field, FieldDiff, Values};
+use waveflow_core::tag_workshop::{diff, journal, with_implied_ids, Field, FieldDiff, Values};
 
 use crate::audio::AudioEngine;
 use crate::commands::edit::{
@@ -169,6 +169,29 @@ async fn read_blocking(path: PathBuf) -> Result<Values, String> {
     tokio::task::spawn_blocking(move || read_values(&path))
         .await
         .map_err(|e| format!("read join: {e}"))?
+}
+
+/// How `path` spells its artist credit and Album Artist, for `sync_db`
+/// (see [`FileSpelling`]): from `values`, the file as the workshop read it,
+/// and every value of its Album Artist tag, which `values` holds the first
+/// of.
+pub(crate) fn file_spelling(path: &Path, values: &Values) -> FileSpelling {
+    FileSpelling {
+        artist: values.get(&Field::Artist).cloned(),
+        album_artist: values.get(&Field::AlbumArtist).cloned(),
+        album_artist_values: crate::commands::edit::file_credits(path).map(|c| c.album_artist),
+    }
+}
+
+async fn spelling_blocking(path: PathBuf, values: Values) -> FileSpelling {
+    let fallback = FileSpelling {
+        artist: values.get(&Field::Artist).cloned(),
+        album_artist: values.get(&Field::AlbumArtist).cloned(),
+        album_artist_values: None,
+    };
+    tokio::task::spawn_blocking(move || file_spelling(&path, &values))
+        .await
+        .unwrap_or(fallback)
 }
 
 async fn full_hash(path: PathBuf) -> std::io::Result<String> {
@@ -381,8 +404,13 @@ pub async fn tag_workshop_preview(
             };
             let invalid =
                 first_invalid(&change.values).map(|(field, reason)| InvalidValue { field, reason });
+            // With the artist ids its new names imply, so the write shows
+            // here what it will do to them (#1076).
             let (diffs, error) = match read_values(Path::new(&path)) {
-                Ok(current) => (diff(&current, &change.values), None),
+                Ok(current) => (
+                    diff(&current, &with_implied_ids(&current, &change.values)),
+                    None,
+                ),
                 Err(err) => (Vec::new(), Some(err)),
             };
             if diffs.is_empty() && invalid.is_none() && error.is_none() {
@@ -558,8 +586,17 @@ pub async fn tag_workshop_apply(
                 continue;
             }
         };
-        let diffs = diff(&current, &change.values);
-        let seen: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
+        // The ids the new names imply ride with them (#1076): written,
+        // journaled and undone as any other field. The preview showed them,
+        // so the write that follows names them; a caller that did not
+        // preview is checked on the fields it named.
+        let wanted = with_implied_ids(&current, &change.values);
+        let diffs = diff(&current, &wanted);
+        let seen: Values = diffs
+            .iter()
+            .filter(|d| change.values.contains_key(&d.field))
+            .map(|d| (d.field, d.old.clone()))
+            .collect();
         let expected: Values = change
             .expected
             .iter()
@@ -675,10 +712,7 @@ pub async fn tag_workshop_apply(
         let db_edit = to_db_edit(&written, Path::new(&path));
         // The names as the file spells them, for an artist its new ids
         // create while the names are left alone (#1076).
-        let spelled = FileSpelling {
-            artist: current.get(&Field::Artist).cloned(),
-            album_artist: current.get(&Field::AlbumArtist).cloned(),
-        };
+        let spelled = spelling_blocking(PathBuf::from(&path), current.clone()).await;
         if let Err(err) =
             retry_busy(|| sync_db_spelled(&pool, change.track_id, &db_edit, &spelled)).await
         {
@@ -1001,10 +1035,7 @@ pub async fn tag_workshop_undo(
             // The names as the restored file spells them, for an artist the
             // restored ids create (#1076). Unread, the database's stand in.
             let after = read_blocking(path.clone()).await.unwrap_or_default();
-            let spelled = FileSpelling {
-                artist: after.get(&Field::Artist).cloned(),
-                album_artist: after.get(&Field::AlbumArtist).cloned(),
-            };
+            let spelled = spelling_blocking(path.clone(), after).await;
             let synced = async {
                 retry_busy(|| rehash_track_file(&pool, track_id, &path)).await?;
                 retry_busy(|| sync_db_spelled(&pool, track_id, &db_edit, &spelled)).await

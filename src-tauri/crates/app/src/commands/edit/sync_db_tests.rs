@@ -556,6 +556,7 @@ async fn an_edited_id_moves_the_credit_to_its_artist() {
     let spelled = FileSpelling {
         artist: Some("LISA".into()),
         album_artist: Some("LISA".into()),
+        ..FileSpelling::default()
     };
     sync_db_spelled(&pool, 2, &retag, &spelled).await.unwrap();
 
@@ -689,6 +690,7 @@ async fn ids_set_alone_name_a_new_artist_as_the_file_does() {
             let spelled = FileSpelling {
                 artist: Some(spelling.into()),
                 album_artist: Some(spelling.into()),
+                ..FileSpelling::default()
             };
             sync_db_spelled(&pool, track, &retag, &spelled)
                 .await
@@ -740,6 +742,7 @@ async fn an_id_that_finds_an_artist_keeps_her_name() {
     let spelled = FileSpelling {
         artist: Some("LISA".into()),
         album_artist: None,
+        ..FileSpelling::default()
     };
     sync_db_spelled(&pool, 2, &retag, &spelled).await.unwrap();
 

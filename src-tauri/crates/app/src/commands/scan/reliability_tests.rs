@@ -2726,3 +2726,169 @@ async fn one_album_artist_id_beside_two_album_artist_values_is_nobodys() {
         [("Alpha".into(), None)]
     );
 }
+
+impl Library {
+    /// Write `values` into a file the way the tag workshop does: the ids
+    /// the new names imply added, the differences written, re-hashed and
+    /// mirrored into the database with the file's spelling. Gives back the
+    /// old values of what changed, which is what its journal keeps for an
+    /// undo.
+    async fn workshop_write(
+        &self,
+        path: &Path,
+        values: &[(waveflow_core::tag_workshop::Field, &str)],
+    ) -> waveflow_core::tag_workshop::Values {
+        use crate::commands::tag_workshop::read::{read_values, to_db_edit, to_edit};
+        use waveflow_core::tag_workshop::{diff, with_implied_ids, Values};
+
+        let asked: Values = values.iter().map(|(f, v)| (*f, v.to_string())).collect();
+        let current = read_values(path).unwrap();
+        let diffs = diff(&current, &with_implied_ids(&current, &asked));
+        let written: Values = diffs.iter().map(|d| (d.field, d.new.clone())).collect();
+        let old: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
+        patch_file(path, &TagPatch::Fields(&to_edit(&written))).unwrap();
+        let id = self.id(path).await;
+        rehash_track_file(&self.pool, id, path).await.unwrap();
+        let spelled = crate::commands::tag_workshop::file_spelling(path, &current);
+        crate::commands::edit::sync_db_spelled(
+            &self.pool,
+            id,
+            &to_db_edit(&written, path),
+            &spelled,
+        )
+        .await
+        .unwrap();
+        old
+    }
+
+    /// The workshop's undo of one file: `restore` written back, then the
+    /// database mirrored with the restored file's spelling.
+    async fn workshop_undo(&self, path: &Path, restore: &waveflow_core::tag_workshop::Values) {
+        use crate::commands::tag_workshop::read::{read_values, to_db_edit, to_edit};
+
+        patch_file(path, &TagPatch::Fields(&to_edit(restore))).unwrap();
+        let id = self.id(path).await;
+        rehash_track_file(&self.pool, id, path).await.unwrap();
+        let after = read_values(path).unwrap();
+        let spelled = crate::commands::tag_workshop::file_spelling(path, &after);
+        crate::commands::edit::sync_db_spelled(
+            &self.pool,
+            id,
+            &to_db_edit(restore, path),
+            &spelled,
+        )
+        .await
+        .unwrap();
+    }
+
+    /// `(track artist, its id, album artist, its id)` of a track.
+    async fn track_and_album(
+        &self,
+        path: &Path,
+    ) -> (String, Option<String>, String, Option<String>) {
+        sqlx::query_as(
+            "SELECT ar.name, ar.mbid, alar.name, alar.mbid FROM track t
+               JOIN artist ar ON ar.id = t.primary_artist
+               JOIN album al ON al.id = t.album_id
+               JOIN artist alar ON alar.id = al.artist_id
+              WHERE t.file_path = ?",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+/// The tag workshop re-credits one of two "LISA" tracks, artist and Album
+/// Artist, to "Aimer": the ids those names no longer match leave the file
+/// in the same batch, so a deep rescan keeps it on "Aimer" while the other
+/// stays hers. The undo puts the names and the ids back.
+#[tokio::test]
+async fn a_workshop_re_credit_survives_a_rescan_and_its_undo_restores_the_ids() {
+    use waveflow_core::tag_workshop::Field;
+
+    let library = Library::new().await;
+    let tagged = |title: &'static str| {
+        [
+            ("TITLE", title),
+            ("ARTIST", "LISA"),
+            ("ALBUMARTIST", "LISA"),
+            ("ALBUM", "Lalisa"),
+            ("MUSICBRAINZ_ARTISTID", LISA_KR),
+            ("MUSICBRAINZ_ALBUMARTISTID", LISA_KR),
+        ]
+    };
+    let one = library.flac("one.flac", &tagged("one"));
+    let two = library.flac("two.flac", &tagged("two"));
+    library.scan().await;
+
+    let old = library
+        .workshop_write(
+            &one,
+            &[(Field::Artist, "Aimer"), (Field::AlbumArtist, "Aimer")],
+        )
+        .await;
+    assert_eq!(
+        old.get(&Field::MbArtistId).map(String::as_str),
+        Some(LISA_KR),
+        "the journal keeps the id it removed"
+    );
+    assert!(file_ids(&one).is_empty());
+    assert!(file_album_artist_ids(&one).is_empty());
+
+    library.deep_scan().await;
+    let hers = (
+        "LISA".to_string(),
+        Some(LISA_KR.to_string()),
+        "LISA".to_string(),
+        Some(LISA_KR.to_string()),
+    );
+    assert_eq!(
+        library.track_and_album(&one).await,
+        ("Aimer".into(), None, "Aimer".into(), None)
+    );
+    assert_eq!(library.track_and_album(&two).await, hers);
+
+    library.workshop_undo(&one, &old).await;
+    assert_eq!(file_ids(&one), [LISA_KR]);
+    assert_eq!(file_album_artist_ids(&one), [LISA_KR]);
+    assert_eq!(library.track_and_album(&one).await, hers);
+    library.deep_scan().await;
+    assert_eq!(library.track_and_album(&one).await, hers);
+}
+
+/// An Album Artist id set alone in the workshop, on a file with two
+/// `ALBUMARTIST` values: two names, one id, nobody's. The database agrees
+/// with what a scan of the file reads.
+#[tokio::test]
+async fn a_workshop_album_artist_id_beside_two_album_artists_is_nobodys() {
+    use waveflow_core::tag_workshop::Field;
+
+    let library = Library::new().await;
+    let path = library.flac(
+        "a.flac",
+        &[
+            ("TITLE", "a"),
+            ("ARTIST", "Alpha"),
+            ("ALBUMARTIST", "Alpha"),
+            ("ALBUMARTIST", "Beta"),
+            ("ALBUM", "Split"),
+        ],
+    );
+    library.scan().await;
+
+    library
+        .workshop_write(&path, &[(Field::MbAlbumArtistId, LISA_KR)])
+        .await;
+    let held = || async {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM artist WHERE mbid = ?")
+            .bind(LISA_KR)
+            .fetch_one(&library.pool)
+            .await
+            .unwrap()
+    };
+    assert_eq!(held().await, 0, "the workshop gave the id to no one");
+    library.deep_scan().await;
+    assert_eq!(held().await, 0, "and neither does the scan");
+}

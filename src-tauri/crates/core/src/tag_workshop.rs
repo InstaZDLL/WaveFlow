@@ -263,5 +263,47 @@ pub fn diff(current: &Values, wanted: &Values) -> Vec<FieldDiff> {
         .collect()
 }
 
+/// `wanted`, with the MusicBrainz artist ids its new names imply (#1076).
+///
+/// A new artist credit or Album Artist written over a file whose ids
+/// belong to the old names would leave those ids behind, and the next
+/// scan, finding the artist by them, would put the track back. So when
+/// `wanted` renames without naming ids of its own, the ids follow the
+/// rule the tag editor writes by:
+///
+/// - the artist ids as
+///   [`reconcile_artist_mbids`](crate::scanner::reconcile_artist_mbids)
+///   gives them: kept for a spelling fix, reordered with their names, all
+///   removed once one name is another artist;
+/// - the Album Artist ids removed when the new name is another artist.
+///
+/// They become ordinary changes of the batch: the preview shows them, the
+/// journal records their old values, and an undo puts them back.
+pub fn with_implied_ids(current: &Values, wanted: &Values) -> Values {
+    use crate::scanner::{artist_mbids, canonical_name, reconcile_artist_mbids};
+
+    let mut out = wanted.clone();
+    let now = |field: Field| current.get(&field).map(String::as_str).unwrap_or("");
+    if let (Some(credit), false) = (
+        wanted.get(&Field::Artist),
+        wanted.contains_key(&Field::MbArtistId),
+    ) {
+        let ids = artist_mbids([now(Field::MbArtistId)]);
+        if let Some(kept) = reconcile_artist_mbids(now(Field::Artist), &ids, credit) {
+            out.insert(Field::MbArtistId, kept.join("; "));
+        }
+    }
+    if let (Some(name), false) = (
+        wanted.get(&Field::AlbumArtist),
+        wanted.contains_key(&Field::MbAlbumArtistId),
+    ) {
+        let held = !artist_mbids([now(Field::MbAlbumArtistId)]).is_empty();
+        if held && canonical_name(name) != canonical_name(now(Field::AlbumArtist)) {
+            out.insert(Field::MbAlbumArtistId, String::new());
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests;

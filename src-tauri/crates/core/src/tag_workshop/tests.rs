@@ -293,3 +293,58 @@ mod proposals {
         assert_eq!(get(101, Field::DiscNumber).as_deref(), Some("1"));
     }
 }
+
+#[test]
+fn a_new_name_takes_the_ids_it_implies_along() {
+    let kr = "8c7a4b63-2d2f-4b6f-8a1f-1b4ce7a5b002";
+    let current: Values = [
+        (Field::Artist, "LISA".to_string()),
+        (Field::MbArtistId, kr.to_string()),
+        (Field::AlbumArtist, "LISA".to_string()),
+        (Field::MbAlbumArtistId, kr.to_string()),
+    ]
+    .into_iter()
+    .collect();
+    let ask = |pairs: &[(Field, &str)]| -> Values {
+        pairs.iter().map(|(f, v)| (*f, v.to_string())).collect()
+    };
+
+    // Another artist, on both fields: both ids go.
+    let implied = with_implied_ids(
+        &current,
+        &ask(&[(Field::Artist, "Aimer"), (Field::AlbumArtist, "Aimer")]),
+    );
+    assert_eq!(
+        implied.get(&Field::MbArtistId).map(String::as_str),
+        Some("")
+    );
+    assert_eq!(
+        implied.get(&Field::MbAlbumArtistId).map(String::as_str),
+        Some("")
+    );
+
+    // A spelling fix keeps them: nothing is added.
+    let implied = with_implied_ids(
+        &current,
+        &ask(&[(Field::Artist, "Lisa"), (Field::AlbumArtist, "Lisa")]),
+    );
+    assert!(!implied.contains_key(&Field::MbArtistId));
+    assert!(!implied.contains_key(&Field::MbAlbumArtistId));
+
+    // Ids the edit names are its own.
+    let implied = with_implied_ids(
+        &current,
+        &ask(&[(Field::Artist, "Aimer"), (Field::MbArtistId, "x")]),
+    );
+    assert_eq!(
+        implied.get(&Field::MbArtistId).map(String::as_str),
+        Some("x")
+    );
+
+    // A file without ids implies nothing.
+    let bare: Values = [(Field::Artist, "LISA".to_string())].into_iter().collect();
+    assert_eq!(
+        with_implied_ids(&bare, &ask(&[(Field::Artist, "Aimer")])),
+        ask(&[(Field::Artist, "Aimer")])
+    );
+}

@@ -35,7 +35,12 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FileSpelling {
     pub artist: Option<String>,
+    /// The Album Artist the file groups by: its first value, as the
+    /// scanner reads it.
     pub album_artist: Option<String>,
+    /// Every value of the file's Album Artist tag, `"; "`-joined: an id is
+    /// one artist's only when they name one, as the scanner counts them.
+    pub album_artist_values: Option<String>,
 }
 
 /// [`sync_db`], with the names the file spells (see [`FileSpelling`]).
@@ -53,6 +58,11 @@ pub(crate) async fn sync_db_spelled(
         .filter(|s| !s.is_empty());
     let file_album_artist = spelled
         .album_artist
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let file_album_artist_values = spelled
+        .album_artist_values
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty());
@@ -267,7 +277,13 @@ pub(crate) async fn sync_db_spelled(
                 (Some(name), _)
                     if edit.musicbrainz.album_artist_id.is_some() && names_album_artist =>
                 {
-                    album_artist_mbid(name, edit.musicbrainz.album_artist_id.as_deref())
+                    // Named by the edit, the file holds that one value once
+                    // written; otherwise every value the file holds counts.
+                    let names = match named_album_artist {
+                        Some(_) => name,
+                        None => file_album_artist_values.unwrap_or(name),
+                    };
+                    album_artist_mbid(names, edit.musicbrainz.album_artist_id.as_deref())
                 }
                 (Some(name), Some(old)) => {
                     let current: Vec<i64> = sqlx::query_scalar(
