@@ -591,7 +591,7 @@ SignPath signs a PE file or an MSI but cannot sign what sits inside an NSIS inst
 7. [`verify-updater-signature.mjs`](../scripts/release/verify-updater-signature.mjs) checks the new `.sig` the way the updater will, since `tauri signer` has no verify command: against the public key in `tauri.conf.json` (`plugins.updater.pubkey`), against the signed setup's bytes, and for the version it names (the tag's).
 8. `Get-AuthenticodeSignature` on the setup, the MSI and the exe: a file without a signature fails the job. Under `release-signing` the status must also be `Valid`.
 
-**The uninstaller** is signed because `makensis` writes it byte for byte the same whenever the installer script and its inputs do not change (measured: the same SHA-256 across two bundle runs, and with a different exe next to it). If it ever differs between the two passes, the release still goes out with an unsigned uninstaller and the job logs a warning; it is the one file where that is allowed. The NSIS plugin DLLs inside the setup are third-party code and are not signed, as the Foundation requires.
+**The uninstaller** is signed because `makensis` writes it byte for byte the same whenever the installer script and its inputs do not change (measured: the same SHA-256 across two bundle runs, and with a different exe next to it). If it ever differs between the two passes, or cannot be exported, the job logs a warning under `test-signing` and goes on with an unsigned uninstaller; under `release-signing` it fails instead, since a release is never half signed. The NSIS plugin DLLs inside the setup are third-party code and are not signed, as the Foundation requires.
 
 ### What lives where
 
@@ -622,7 +622,7 @@ Switching is a variable, not a change of code: once SignPath has issued the HSM 
 gh variable set SIGNPATH_SIGNING_POLICY_SLUG --body "release-signing"
 ```
 
-From then on every release waits for two manual approvals in SignPath, and the job's checks expect Windows to accept the signature. Approve both requests within the job's 360 minutes (a request gives up after 150 minutes of waiting); if the job gives up, re-run the release with `workflow_dispatch` and the existing tag.
+From then on every release waits for two manual approvals in SignPath. While the Windows job waits (up to a few hours), the Linux and macOS jobs have already published: the GitHub release has no Windows installer yet and `latest.json` is not merged, so the updater's GitHub endpoint answers 404 until the Windows job ends. Approve promptly after tagging; the release page and the manifest complete themselves afterwards. The job's checks also expect Windows to accept the signature, and an unsigned uninstaller fails the job. Approve both requests within the job's 360 minutes (a request gives up after 150 minutes of waiting); if the job gives up, re-run the release with `workflow_dispatch` and the existing tag.
 
 ### Trying it without a release
 
@@ -810,7 +810,11 @@ The real fix is the one above: a **Developer ID** certificate plus **notarizatio
   even without any reputation. EV is no shortcut: SmartScreen has
   treated EV and OV the same since 2024. Every executable file that
   ships must carry the signature, not only the installer: the app
-  binary, DLLs and the uninstaller too. To check a release,
+  binary and the uninstaller too. The NSIS plugin DLLs the setup
+  unpacks into its temporary folder stay unsigned: they are third-party
+  binaries, which the SignPath Foundation forbids signing. How Smart
+  App Control treats them is to be tested on a machine with it on, once
+  the release certificate is issued. To check a release,
   `Get-AuthenticodeSignature` on the installer and on the installed
   `waveflow.exe` must report `Valid`; the SignPath test certificate
   reports `UnknownError` (untrusted root).

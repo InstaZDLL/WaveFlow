@@ -92,6 +92,8 @@ jobs:
 
       - name: Install the setup silently and check what it wrote
         shell: pwsh
+        env:
+          POLICY: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
         # The one place the uninstaller can be seen signed: the installer
         # writes it next to the app. A throwaway runner, so nothing to clean.
         run: |
@@ -106,11 +108,11 @@ jobs:
             if (-not (Test-Path $f)) { throw "$name was not installed" }
             $sig = Get-AuthenticodeSignature -LiteralPath $f
             Write-Host "[install] $name`: $($sig.Status) | $($sig.SignerCertificate.Subject)"
-            if ($sig.Status -eq 'NotSigned' -or -not $sig.SignerCertificate) {
-              if ($name -eq 'uninstall.exe') {
-                Write-Host "::warning::uninstall.exe is not signed (known limit if the uninstaller changed between the two bundle passes)"
+            if ($sig.Status -notin 'Valid', 'UnknownError' -or -not $sig.SignerCertificate) {
+              if ($name -eq 'uninstall.exe' -and $env:POLICY -ne 'release-signing') {
+                Write-Host "::warning::uninstall.exe has no usable signature ($($sig.Status)); the release policy refuses that"
               } else {
-                throw "$name is not signed"
+                throw "$name has no usable signature ($($sig.Status))"
               }
             }
           }

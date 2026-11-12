@@ -7,8 +7,9 @@
 #
 # What it covers:
 #   - on a merge request and on the default branch: the checks of ci.yml;
-#   - on a tag vX.Y.Z or vX.Y.Z-beta.N: the three platform builds, signed as
-#     release.yml signs them, published on the R2 bucket the app's updater
+#   - on a tag vX.Y.Z or vX.Y.Z-beta.N: the three platform builds (Windows with
+#     a self-signed PFX: release.yml signs it through SignPath, which has no
+#     GitLab connector), published on the R2 bucket the app's updater
 #     reads (commands/updater.rs) and as a GitLab release linking there;
 #   - on a pipeline run by hand with BASE_VERSION set: cut-beta.yml.
 #
