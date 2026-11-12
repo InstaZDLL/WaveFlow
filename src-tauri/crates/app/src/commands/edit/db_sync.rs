@@ -68,6 +68,15 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                 .bind(track_id)
                 .fetch_all(&mut *tx)
                 .await?;
+        // The names the track is credited under now: one sent back as it
+        // is respells nothing, whichever row its id finds.
+        let current_names: Vec<String> = sqlx::query_scalar(
+            "SELECT ar.name FROM track_artist ta JOIN artist ar ON ar.id = ta.artist_id
+              WHERE ta.track_id = ?",
+        )
+        .bind(track_id)
+        .fetch_all(&mut *tx)
+        .await?;
         // Edited ids pair with the names as the scanner pairs them; without
         // them, each artist keeps the identity it has.
         let names: Vec<(String, Option<String>)> = match edited_ids.as_ref() {
@@ -85,9 +94,10 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
             if let Some(id) = upsert_artist_with_mbid(&mut tx, &name, identity.as_deref()).await? {
                 // First spelling wins when one credit lists an artist twice.
                 if !ids.contains(&id) {
-                    // Only a typed name respells: the names read back from
-                    // the track may have found a namesake by its id.
-                    if edit.artist.is_some() {
+                    // Only a name the user changed respells: one read back
+                    // from the track, or sent unchanged, may have found a
+                    // namesake by its id, and would rename it.
+                    if edit.artist.is_some() && !current_names.contains(&name) {
                         respell(&mut tx, Respell::Artist, id, &name).await?;
                     }
                     ids.push(id);
@@ -233,7 +243,11 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                 // own `COALESCE` keeps the first spelling it saw, so
                 // without this "the beatles" typed over "The Beatles"
                 // reached the file and nothing on screen.
-                if let Some(name) = named_album_artist {
+                // A name sent unchanged respells nothing: with a new id it
+                // may have found a namesake, which it would rename.
+                let unchanged = current_album.as_ref().and_then(|(_, aa, _)| aa.as_deref())
+                    == named_album_artist;
+                if let Some(name) = named_album_artist.filter(|_| !unchanged) {
                     sqlx::query("UPDATE album SET album_artist = ? WHERE id = ?")
                         .bind(name)
                         .bind(id)

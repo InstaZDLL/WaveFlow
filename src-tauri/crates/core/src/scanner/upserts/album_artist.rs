@@ -411,12 +411,12 @@ pub async fn repoint_fallback_album_artist(
 ///
 /// The album may hold tracks of both: a library scanned before ids were
 /// read keyed one album on the merged artist for "LiSA"'s and "LISA"'s
-/// tracks of one title. Moving the whole album would carry the tracks
-/// that stay with the old artist along with it. So while another track of
-/// the album is still credited to the old artist, only this track moves,
+/// tracks of one title. Moving the whole album would carry the other tracks
+/// along with it. So while the album holds any other track, only this one
+/// moves,
 /// into the album a fresh scan would have put it in (found or created on
 /// `(canonical_title, new_primary)`), taking the old album's cover when
-/// the new one has none. The last track to move takes the whole album, as
+/// the new one has none. A track alone in its album takes the album, as
 /// [`repoint_fallback_album_artist`] does.
 ///
 /// Returns whether the track ended up under the new artist.
@@ -428,8 +428,7 @@ pub async fn repoint_album_for_identity(
 ) -> CoreResult<bool> {
     let current: Option<(i64, String, Option<i64>, String, i64)> = sqlx::query_as(
         "SELECT al.id, al.title, al.year, t.file_path,
-                (SELECT COUNT(*) FROM track o
-                  WHERE o.album_id = al.id AND o.id <> t.id AND o.primary_artist IS ?2)
+                (SELECT COUNT(*) FROM track o WHERE o.album_id = al.id AND o.id <> t.id)
            FROM track t
            JOIN album al ON al.id = t.album_id
           WHERE t.id = ?1
@@ -443,10 +442,10 @@ pub async fn repoint_album_for_identity(
     .bind(new_primary)
     .fetch_optional(&mut *conn)
     .await?;
-    let Some((old_album, title, year, path, staying)) = current else {
+    let Some((old_album, title, year, path, others)) = current else {
         return Ok(false);
     };
-    if staying == 0 {
+    if others == 0 {
         return repoint_fallback_album_artist(conn, track_id, previous_primary, new_primary).await;
     }
     let Some(target) = super::upsert_album_with_artist_mbid(

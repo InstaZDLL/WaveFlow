@@ -568,3 +568,34 @@ async fn an_edited_id_moves_the_credit_to_its_artist() {
             .unwrap();
     assert_eq!(names, ["LiSA", "LISA"]);
 }
+
+/// The names sent back unchanged with a namesake's id move the track to
+/// that namesake without renaming it.
+#[tokio::test]
+async fn an_unchanged_name_with_a_new_id_renames_nobody() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    let retag = TrackEdit {
+        artist: Some("LISA".into()),
+        album_artist: Some("LISA".into()),
+        musicbrainz: MusicBrainzEdit {
+            artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            album_artist_id: Some("7b6f3a52-1c1e-4a5e-9f0e-0a3bd6f4a001".into()),
+            ..MusicBrainzEdit::default()
+        },
+        ..edit()
+    };
+    sync_db(&pool, 2, &retag).await.unwrap();
+
+    let primary: i64 = sqlx::query_scalar("SELECT primary_artist FROM track WHERE id = 2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(primary, 2);
+    let names: Vec<String> =
+        sqlx::query_scalar("SELECT name FROM artist WHERE id IN (2, 3) ORDER BY id")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(names, ["LiSA", "LISA"]);
+}
