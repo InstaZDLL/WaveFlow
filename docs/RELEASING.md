@@ -630,7 +630,7 @@ From then on every release waits for two manual approvals in SignPath. While the
 
 ### On GitLab
 
-[`.gitlab-ci.yml`](../.gitlab-ci.yml) does not use SignPath: the Foundation's conditions need a trusted build system, and SignPath has no connector for GitLab CI. Its `release-windows` job therefore keeps signing with the self-signed PFX (`SIGNTOOL_PFX_BASE64` and `SIGNTOOL_PFX_PASSWORD`), and a Windows build from the standby repository is again the kind Smart App Control may block. Fixing that means a certificate of our own, or a connector SignPath does not have today.
+[`.gitlab-ci.yml`](../.gitlab-ci.yml) does not use SignPath: the project's SignPath setup trusts GitHub.com builds only, and whether the Foundation's conditions would accept a GitLab build (SignPath does offer a GitLab.com trusted build system) has not been asked. Its `release-windows` job therefore keeps signing with the self-signed PFX (`SIGNTOOL_PFX_BASE64` and `SIGNTOOL_PFX_PASSWORD`), and a Windows build from the standby repository is again the kind Smart App Control may block. Fixing that means adding GitLab as a trusted build system in SignPath, if the Foundation allows it, or a certificate of our own.
 
 ## The AppImage is post-processed, and it has to stay that way
 

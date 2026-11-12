@@ -11,14 +11,11 @@ name: Windows signing check
 # test-signing nothing needs approving; under release-signing each of the two
 # requests waits for the manual approval.
 #
-# The push trigger is for the branch that introduced the workflow; a manual
-# run needs the workflow on the default branch.
+# Started by hand (Run workflow). Every run makes real signing requests: under
+# release-signing, two that wait for approval in SignPath.
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/signpath-windows-signing
 
 permissions:
   contents: read

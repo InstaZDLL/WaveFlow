@@ -8,8 +8,8 @@
 # What it covers:
 #   - on a merge request and on the default branch: the checks of ci.yml;
 #   - on a tag vX.Y.Z or vX.Y.Z-beta.N: the three platform builds (Windows with
-#     a self-signed PFX: release.yml signs it through SignPath, which has no
-#     GitLab connector), published on the R2 bucket the app's updater
+#     a self-signed PFX: release.yml signs it through SignPath, whose project
+#     trusts GitHub builds only), published on the R2 bucket the app's updater
 #     reads (commands/updater.rs) and as a GitLab release linking there;
 #   - on a pipeline run by hand with BASE_VERSION set: cut-beta.yml.
 #
@@ -291,8 +291,8 @@ release-windows:
     - python -c "import json,os; p='src-tauri/crates/app/tauri.conf.json'; c=json.load(open(p,encoding='utf-8')); c['version']=os.environ['VERSION']; open(p,'w',encoding='utf-8').write(json.dumps(c,indent=2)+'\n')"
     # Authenticode with a self-signed PFX: the object form of signCommand,
     # signtool by absolute path, the PFX removed in after_script. release.yml
-    # signs through SignPath instead, which has no trusted build system on
-    # GitLab (docs/RELEASING.md, Windows signing with SignPath).
+    # signs through SignPath instead, whose project trusts GitHub builds only
+    # (docs/RELEASING.md, Windows signing with SignPath).
     - $pfxPath = (Join-Path $env:CI_PROJECT_DIR "cert.pfx") -replace '\\', '/'
     - "[IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:SIGNTOOL_PFX_BASE64))"
     - >-
