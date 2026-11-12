@@ -36,7 +36,7 @@ import {
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { useLyricsShare } from "../../hooks/useLyricsShare";
-import { lyricsLineClass } from "../../lib/lyricsLine";
+import { LYRICS_WORD_TRANSITION, lyricsLineClass } from "../../lib/lyricsLine";
 import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 import { ContextTip } from "../discovery/ContextTip";
@@ -462,8 +462,7 @@ export function LyricsPanel({
                                     wi === lineWordIndex
                                       ? "scale(1.04)"
                                       : "scale(1)",
-                                  transition:
-                                    "color 150ms ease, opacity 150ms ease, transform 150ms ease",
+                                  transition: LYRICS_WORD_TRANSITION,
                                 }}
                               >
                                 {word.text}

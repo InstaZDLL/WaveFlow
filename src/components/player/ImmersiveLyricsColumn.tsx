@@ -347,10 +347,14 @@ export function ImmersiveLyricsColumn({
                                       // box would dim the sung overlay with
                                       // it and no fill would ever read as
                                       // brighter than the unsung text.
+                                      //
+                                      // No transition, here or on the
+                                      // layers: an animated transform or
+                                      // opacity shakes the whole line on
+                                      // WebKit (`LYRICS_WORD_TRANSITION`).
                                       transform: isActiveWord
                                         ? "scale(1.04)"
                                         : "scale(1)",
-                                      transition: "transform 150ms ease",
                                     }}
                                   >
                                     <span
@@ -361,7 +365,6 @@ export function ImmersiveLyricsColumn({
                                             : isActiveWord
                                               ? 0.5
                                               : 0.45,
-                                        transition: "opacity 150ms ease",
                                       }}
                                     >
                                       {isHeld ? (
@@ -438,7 +441,6 @@ export function ImmersiveLyricsColumn({
                                             : isActive && wi < lineWordIndex
                                               ? 0.7
                                               : 0.45,
-                                        transition: "opacity 150ms ease",
                                       }}
                                     >
                                       {word.text}
