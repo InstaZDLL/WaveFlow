@@ -407,6 +407,8 @@ The request was for the appearance choice Chrome offers on Linux, and it does no
 | macOS    | `TitleBarStyle::Overlay` + an emptied title | a 28 px drag strip, so the real traffic lights float over our own top bar                                      |
 | Windows  | —                                           | nothing: the option is not offered                                                                             |
 
+The Linux title bar's buttons call the window API from the page, so each needs its permission in [`capabilities/default.json`](../../src-tauri/crates/app/capabilities/default.json): `allow-minimize`, `allow-toggle-maximize`, `allow-close`, `allow-start-dragging`. A missing one fails in silence but for a line in the console — minimise and maximise did nothing from the feature's first release until #1086 found them.
+
 `adwaita` is Linux only and draws nothing either: it keeps the desktop's frame and changes how it looks — see [GNOME style](#gnome-style) below.
 
 - **Windows is excluded on purpose.** A frame we drew ourselves would lose Snap Layouts and the system menu — a worse Windows than the one the user has, and nobody asked. `supported: false` hides the card, and the resolver refuses `app` there even if the row says otherwise (a database carried over from a Linux install).
@@ -752,6 +754,14 @@ The backend is [`global_shortcuts`](../../src-tauri/crates/app/src/global_shortc
 - **`prefers-reduced-motion`** respected for the radial transition and for animated SVGs. Loading spinners stop too (one `.animate-spin` rule in [`app.css`](../../src/app.css)); that is why a busy button swaps its icon for `Loader2` instead of spinning its own icon — a stopped `Loader2` still reads as loading, a stopped refresh arrow reads as an idle button.
 - **Single-click play** — optional Settings toggle, honoured by every list of tracks ([library.md](library.md)); the default is double-click.
 - **Framer Motion** — `motion/react` provides micro-interactions (sidebar nav reorder, modal open, view fade-in, queue drag). One global [`SkinMotionWrapper`](../../src/components/layout/SkinMotionWrapper.tsx) feeds skin-specific `transition` config to the `MotionConfig` provider so per-skin springs (Pulse uses `cubic-bezier(0.34, 1.56, 0.64, 1)`, Lounge stays tame, etc.) apply automatically without touching call sites.
+
+## Focus rings
+
+A control reached from the keyboard shows where it is; one the pointer focused does not. [`app.css`](../../src/app.css) gives every button, link and focusable role a 2 px outline of the accent, 2 px out, as a baseline under each skin's own focus light (Pulse's ring and halo, Liquid's charge). [`inputModality`](../../src/lib/inputModality.ts) marks an element focused right after a pointer press (`data-pointer-focus`), and the marked element loses its ring whatever key comes next (#866): the browser otherwise reads any key — a desktop shortcut through Super, Escape, a digit — as keyboard navigation and paints `:focus-visible` on the last thing clicked, and does so again when the window comes back from being minimised.
+
+**Focus never changes a control's shape** (#1086). The baseline sets no `border-radius`: an outline and a ring of `box-shadow` follow the control's own corners, so a round button keeps a round ring. The baseline is unlayered, so a radius set there beat Tailwind's `rounded-full` and squared the play button, the theater button and the immersive view's play button — and did so on a clicked button too, outline taken off but radius kept, which is how a rounded square appeared after a window was restored with no key pressed. A focus rule that sets a radius does so only on a surface that has no fill (the progress bars), where the radius shapes the ring and nothing else.
+
+**A skin's focus light carries the guard itself** (#1086). The global `[data-pointer-focus]` rule takes off the outline and Tailwind's ring, but a skin's light — Pulse's ring and halo, Liquid's charge, Editorial's rubric outline, Fluid's tone on a menu row — is its own declaration, often a `box-shadow` over the control's resting one, and more specific. WebKitGTK hands `:focus-visible` back to the element that had focus when the window is restored, so without the guard a clicked play button came back ringed. Every skin rule on `:focus-visible` is written `:focus-visible:not(:where([data-pointer-focus]))`: the `:where()` keeps the specificity, and so the order between a skin's own rules, what it was. A text field is the exception — clicked, it is where the typing goes, so it keeps its ring.
 
 ## High contrast
 

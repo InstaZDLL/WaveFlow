@@ -330,8 +330,10 @@
   > :is(img, div) {
   box-shadow: 0 0 0 1px var(--fe-hairline);
 }
-:root[data-skin="pulse"] [data-nav-item]:focus-visible,
-:root[data-skin="pulse"] [data-sidebar-row]:focus-visible {
+:root[data-skin="pulse"]
+  [data-nav-item]:focus-visible:not(:where([data-pointer-focus])),
+:root[data-skin="pulse"]
+  [data-sidebar-row]:focus-visible:not(:where([data-pointer-focus])) {
   outline: 0;
   box-shadow: var(--pu-ring-accent), var(--pu-halo);
 }
@@ -507,7 +509,9 @@
   box-shadow: 0 0 36px -4px
     color-mix(in srgb, var(--fe-accent) 85%, transparent) !important;
 }
-:root[data-skin="pulse"] footer :where(button:focus-visible) {
+:root[data-skin="pulse"]
+  footer
+  :where(button:focus-visible:not(:where([data-pointer-focus]))) {
   outline: 0;
   box-shadow: var(--pu-ring-accent), var(--pu-halo);
 }
@@ -518,7 +522,7 @@
   button:where(
     [class*="bg-emerald-500"],
     [class*="bg-emerald-600"]
-  ):focus-visible {
+  ):focus-visible:not(:where([data-pointer-focus])) {
   outline: 0;
   box-shadow:
     0 0 0 2px var(--fe-bg),
@@ -660,7 +664,9 @@
     0 10px 30px -18px rgb(0 0 0 / 0.9);
 }
 :root[data-skin="pulse"] .fe-tile-hover:hover .fe-tile,
-:root[data-skin="pulse"] .fe-tile-hover:focus-visible .fe-tile {
+:root[data-skin="pulse"]
+  .fe-tile-hover:focus-visible:not(:where([data-pointer-focus]))
+  .fe-tile {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--fe-accent) 55%, transparent),
     0 0 28px -8px color-mix(in srgb, var(--fe-accent) 55%, transparent),
@@ -728,8 +734,10 @@
 :root[data-skin="pulse"] .fe-spectrum__cta:hover:not(:disabled) {
   filter: brightness(1.1);
 }
-:root[data-skin="pulse"] .fe-cta:focus-visible,
-:root[data-skin="pulse"] .fe-spectrum__cta:focus-visible,
+:root[data-skin="pulse"]
+  .fe-cta:focus-visible:not(:where([data-pointer-focus])),
+:root[data-skin="pulse"]
+  .fe-spectrum__cta:focus-visible:not(:where([data-pointer-focus])),
 :root[data-skin="pulse"]
   main
   [data-page-hero]
@@ -739,7 +747,7 @@
     [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
         [class*="absolute"]
       )
-  ):focus-visible {
+  ):focus-visible:not(:where([data-pointer-focus])) {
   outline: 0;
   box-shadow:
     0 0 0 2px var(--fe-bg),
@@ -754,8 +762,10 @@
 :root[data-skin="pulse"] .fe-icon-btn:hover {
   background-color: var(--pu-fill-accent);
 }
-:root[data-skin="pulse"] .fe-link:focus-visible,
-:root[data-skin="pulse"] .fe-icon-btn:focus-visible {
+:root[data-skin="pulse"]
+  .fe-link:focus-visible:not(:where([data-pointer-focus])),
+:root[data-skin="pulse"]
+  .fe-icon-btn:focus-visible:not(:where([data-pointer-focus])) {
   outline: 0;
   box-shadow: var(--pu-ring-accent), var(--pu-halo);
   border-radius: 0.625rem;
@@ -911,7 +921,8 @@
   path {
   stroke: var(--fe-accent);
 }
-:root[data-skin="pulse"] .fe-spectrum__radio:focus-visible {
+:root[data-skin="pulse"]
+  .fe-spectrum__radio:focus-visible:not(:where([data-pointer-focus])) {
   outline: 0;
   box-shadow: var(--pu-ring-accent), var(--pu-halo);
 }
@@ -933,7 +944,9 @@
   border-radius: 1rem !important;
 }
 :root[data-skin="pulse"] [role="menu"] [role="menuitem"]:hover,
-:root[data-skin="pulse"] [role="menu"] [role="menuitem"]:focus-visible,
+:root[data-skin="pulse"]
+  [role="menu"]
+  [role="menuitem"]:focus-visible:not(:where([data-pointer-focus])),
 :root[data-skin="pulse"] [class*="hover:bg-emerald-500"]:hover {
   background-color: var(--pu-fill-accent) !important;
   color: var(--fe-accent) !important;

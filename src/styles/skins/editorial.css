@@ -293,7 +293,8 @@
 :root[data-skin="editorial"] .fe-panel__pill,
 :root[data-skin="editorial"] .fe-panel__lyrics,
 :root[data-skin="editorial"] .fe-panel__tab,
-:root[data-skin="editorial"] .fe-progress:focus-visible,
+:root[data-skin="editorial"]
+  .fe-progress:focus-visible:not(:where([data-pointer-focus])),
 :root[data-skin="editorial"] main [class*="rounded-[1.125rem]"],
 :root[data-skin="editorial"] main [class*="rounded-xl"],
 :root[data-skin="editorial"] main [class*="rounded-2xl"],
@@ -376,7 +377,9 @@
   box-shadow: 0 0 0 1px var(--ed-rule);
 }
 :root[data-skin="editorial"] .fe-tile-hover:hover .fe-tile,
-:root[data-skin="editorial"] .fe-tile-hover:focus-visible .fe-tile {
+:root[data-skin="editorial"]
+  .fe-tile-hover:focus-visible:not(:where([data-pointer-focus]))
+  .fe-tile {
   transform: none;
   box-shadow: 0 0 0 1px var(--ed-ink);
 }
@@ -518,8 +521,10 @@
   color: var(--fe-accent-ink) !important;
 }
 /* Their resting shadow is `!important`, so the focus ring is too. */
-:root[data-skin="editorial"] .fe-cta:focus-visible,
-:root[data-skin="editorial"] .fe-spectrum__cta:focus-visible,
+:root[data-skin="editorial"]
+  .fe-cta:focus-visible:not(:where([data-pointer-focus])),
+:root[data-skin="editorial"]
+  .fe-spectrum__cta:focus-visible:not(:where([data-pointer-focus])),
 :root[data-skin="editorial"][data-layout="fluid"]
   main
   [data-page-hero]
@@ -529,13 +534,13 @@
     [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
         [class*="absolute"]
       )
-  ):focus-visible,
+  ):focus-visible:not(:where([data-pointer-focus])),
 :root[data-skin="editorial"][data-layout="fluid"]
   footer
   button:is(
     [class*="bg-emerald-500"],
     [class*="bg-emerald-600"]
-  ):focus-visible {
+  ):focus-visible:not(:where([data-pointer-focus])) {
   outline: 0;
   box-shadow:
     0 0 0 2px var(--ed-paper),
@@ -770,8 +775,10 @@
   > :is(img, div) {
   box-shadow: 0 0 0 1px var(--ed-rule);
 }
-:root[data-skin="editorial"] [data-nav-item]:focus-visible,
-:root[data-skin="editorial"] [data-sidebar-row]:focus-visible {
+:root[data-skin="editorial"]
+  [data-nav-item]:focus-visible:not(:where([data-pointer-focus])),
+:root[data-skin="editorial"]
+  [data-sidebar-row]:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--fe-accent);
   outline-offset: -2px;
 }
@@ -837,7 +844,9 @@
     var(--ed-proof-shadow) !important;
 }
 :root[data-skin="editorial"] [role="menu"] [role="menuitem"]:hover,
-:root[data-skin="editorial"] [role="menu"] [role="menuitem"]:focus-visible,
+:root[data-skin="editorial"]
+  [role="menu"]
+  [role="menuitem"]:focus-visible:not(:where([data-pointer-focus])),
 :root[data-skin="editorial"]
   [data-topbar-popover]
   :is([class*="hover:bg-zinc-50"], [class*="hover:bg-zinc-100"]):hover,
@@ -883,7 +892,9 @@
 :root[data-skin="editorial"] footer :where(button:hover:not(:disabled)) {
   color: var(--ed-ink) !important;
 }
-:root[data-skin="editorial"] footer :where(button:focus-visible) {
+:root[data-skin="editorial"]
+  footer
+  :where(button:focus-visible:not(:where([data-pointer-focus]))) {
   outline: 2px solid var(--fe-accent);
   outline-offset: 1px;
 }
@@ -1337,7 +1348,8 @@
 :root[data-skin="editorial"] .fe-spectrum__wave svg path {
   stroke: currentColor;
 }
-:root[data-skin="editorial"] .fe-spectrum__radio:focus-visible {
+:root[data-skin="editorial"]
+  .fe-spectrum__radio:focus-visible:not(:where([data-pointer-focus])) {
   outline-color: var(--fe-accent);
 }
 :root[data-skin="editorial"] .fe-spectrum__cta {
