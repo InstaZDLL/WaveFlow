@@ -93,6 +93,14 @@ pub struct TrackEdit {
     /// credits. It decides which album the track is grouped into, so a
     /// change moves the track (see [`sync_db`]). Empty clears it.
     pub album_artist: Option<String>,
+    /// Every Album Artist value to write, in order, in place of the one
+    /// `album_artist` names, when there are several. Only the tag
+    /// workshop's undo sets it, to put back a file's values as they were
+    /// (#1082): it is never read from the frontend, and every other write
+    /// replaces the field with one name. Read only when `album_artist` is
+    /// set, which then holds the first of them.
+    #[serde(skip)]
+    pub album_artist_values: Option<Vec<String>>,
     /// The composer (`TCOM` / `COMPOSER` / `©wrt`), stored in `track_tag`
     /// under [`COMPOSER_KEY`] — the row the scanner fills from the same
     /// frame. Empty clears it.

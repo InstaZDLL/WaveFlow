@@ -298,3 +298,96 @@ fn a_dff_is_shown_and_never_written() {
     let err = read_values(Path::new("/music/track.dff")).unwrap_err();
     assert!(err.contains("DFF"));
 }
+
+/// The profile schema, in memory, with the one track the journal names.
+async fn journal_pool() -> sqlx::SqlitePool {
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(
+            SqliteConnectOptions::from_str(":memory:")
+                .unwrap()
+                .foreign_keys(true),
+        )
+        .await
+        .unwrap();
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+    pool
+}
+
+/// A file with two Album Artist values gets both back from an undo of a
+/// batch that rewrote the field (#1082): the write leaves one name, the
+/// journal keeps both, and the undo writes them in their order, the first
+/// (the one the scanner groups by) first. The values go through the
+/// journal and back, and the undo's edit is the one `tag_workshop_undo`
+/// builds.
+#[tokio::test]
+async fn an_undo_puts_back_every_album_artist_value() {
+    let list = |path: &Path| {
+        crate::commands::edit::file_credits(path)
+            .expect("credits")
+            .album_artist_list
+    };
+    let pool = journal_pool().await;
+    let mut conn = pool.acquire().await.unwrap();
+    for name in ["silence.mp3", "silence.flac", "silence.m4a"] {
+        let (_dir, path) = copy_fixture(name);
+        // Two values, as another tagger leaves them.
+        let two = vec!["Alpha".to_string(), "Beta".to_string()];
+        let mut setup = to_edit(&Values::from([(Field::AlbumArtist, "Alpha".to_string())]));
+        setup.album_artist_values = Some(two.clone());
+        patch_file(&path, &TagPatch::Fields(&setup)).expect("setup");
+        assert_eq!(list(&path), two, "{name}: two values written");
+        let before = read_values(&path).expect("read");
+        assert_eq!(before[&Field::AlbumArtist], "Alpha", "{name}");
+
+        // The batch: one name in place of both, journaled as the command
+        // journals it, with the list the file held.
+        let wanted = Values::from([(Field::AlbumArtist, "ALPHA".to_string())]);
+        let diffs = diff(&before, &wanted);
+        let batch = journal::create_batch(&mut conn, name, None, 0)
+            .await
+            .unwrap();
+        let old_values = journal::OldValues::from([(Field::AlbumArtist, list(&path))]);
+        journal::journal_file_with_values(
+            &mut conn,
+            batch,
+            None,
+            &path.to_string_lossy(),
+            &diffs,
+            &old_values,
+        )
+        .await
+        .unwrap();
+        write(&path, &wanted);
+        assert_eq!(list(&path), ["ALPHA"], "{name}");
+
+        // The undo, from what the journal reads back.
+        let files = journal::batch_files(&mut conn, batch).await.unwrap();
+        let undo = undo_edit(&files[0]);
+        patch_file(&path, &TagPatch::Fields(&undo)).expect("undo");
+        assert_eq!(list(&path), two, "{name}: both values are back, in order");
+        assert_eq!(read_values(&path).expect("read"), before, "{name}");
+    }
+}
+
+/// Without the journaled list, an edit still writes one name: several
+/// Album Artist values are only ever written back by an undo.
+#[test]
+fn an_edit_writes_one_album_artist() {
+    let (_dir, path) = copy_fixture("silence.flac");
+    write(
+        &path,
+        &Values::from([(Field::AlbumArtist, "Alpha; Beta".to_string())]),
+    );
+    assert_eq!(
+        crate::commands::edit::file_credits(&path)
+            .expect("credits")
+            .album_artist_list,
+        ["Alpha; Beta"]
+    );
+}

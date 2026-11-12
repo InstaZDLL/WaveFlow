@@ -274,8 +274,23 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
     // under the same key cannot outlive the one the user replaced.
     if let Some(aa) = edit.album_artist.as_ref() {
         tag.remove_key(ItemKey::AlbumArtist);
-        if !aa.trim().is_empty() {
-            tag.insert_text(ItemKey::AlbumArtist, aa.trim().to_string());
+        match edit.album_artist_values.as_deref() {
+            // An undo putting back several values (#1082): one item each,
+            // the first first, which is the one the scanner groups by, and
+            // each as the file held it, untrimmed: what was there goes back.
+            Some(values) if values.len() > 1 => {
+                for value in values {
+                    tag.push(lofty::tag::TagItem::new(
+                        ItemKey::AlbumArtist,
+                        lofty::tag::ItemValue::Text(value.clone()),
+                    ));
+                }
+            }
+            _ => {
+                if !aa.trim().is_empty() {
+                    tag.insert_text(ItemKey::AlbumArtist, aa.trim().to_string());
+                }
+            }
         }
     }
     if let Some(c) = edit.composer.as_ref() {
@@ -880,6 +895,9 @@ pub(crate) struct FileCredits {
     pub artist_ids: Vec<String>,
     /// Every Album Artist value, `"; "`-joined.
     pub album_artist: String,
+    /// Every Album Artist value, in the file's order: what the tag workshop
+    /// journals when it replaces them, for an undo to write back (#1082).
+    pub album_artist_list: Vec<String>,
     pub album_artist_ids: Vec<String>,
 }
 
@@ -902,13 +920,15 @@ pub(crate) fn file_credits(path: &std::path::Path) -> Option<FileCredits> {
         return Some(FileCredits::default());
     };
     let (artist, artist_ids) = waveflow_core::scanner::extract_artist_credit(tag);
+    let album_artist_list: Vec<String> = tag
+        .get_strings(ItemKey::AlbumArtist)
+        .map(str::to_owned)
+        .collect();
     Some(FileCredits {
         artist: artist.unwrap_or_default(),
         artist_ids,
-        album_artist: tag
-            .get_strings(ItemKey::AlbumArtist)
-            .collect::<Vec<_>>()
-            .join("; "),
+        album_artist: album_artist_list.join("; "),
+        album_artist_list,
         album_artist_ids: waveflow_core::scanner::artist_mbids(
             tag.get_strings(ItemKey::MusicBrainzReleaseArtistId),
         ),
@@ -941,6 +961,7 @@ fn dsf_credits(path: &std::path::Path) -> Option<FileCredits> {
         artist: waveflow_core::audio_format::dsd::metadata::id3_artists(&tag).unwrap_or_default(),
         artist_ids: ids(ARTIST),
         album_artist: tag.album_artist().unwrap_or_default().to_owned(),
+        album_artist_list: tag.album_artist().map(str::to_owned).into_iter().collect(),
         album_artist_ids: ids(ALBUM_ARTIST),
     })
 }

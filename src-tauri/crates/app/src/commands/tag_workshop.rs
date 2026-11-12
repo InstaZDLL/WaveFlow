@@ -53,7 +53,7 @@ use waveflow_core::tag_workshop::{
 
 use crate::audio::AudioEngine;
 use crate::commands::edit::{
-    patch_file, rehash_track_file, sync_db_spelled, FileSpelling, TagPatch,
+    patch_file, rehash_track_file, sync_db_spelled, FileSpelling, TagPatch, TrackEdit,
 };
 use crate::commands::enrichment::{self, ProfileDb};
 use crate::error::{AppError, AppResult};
@@ -608,12 +608,27 @@ pub async fn tag_workshop_apply(
         // on its own (an id another tagger wrote since) was never shown:
         // it is a difference like any other, and the file is refused as
         // changed since, for a new preview.
-        let names = {
+        // Every Album Artist value the file holds: joined, for the ids the
+        // new name implies, and one by one, for the journal, since the
+        // write replaces them all with one name and an undo puts them all
+        // back (#1082).
+        // A file read a moment ago that cannot be read now is changing:
+        // left as it is, since the journal would miss what it holds.
+        let album_artists = {
             let path = PathBuf::from(&path);
-            tokio::task::spawn_blocking(move || album_artist_values(&path))
-                .await
-                .unwrap_or_default()
+            let read = tokio::task::spawn_blocking(move || {
+                crate::commands::edit::file_credits(&path).map(|c| c.album_artist_list)
+            })
+            .await;
+            match read {
+                Ok(Some(list)) => list,
+                Ok(None) | Err(_) => {
+                    report.problems.push(problem("changed_since".into()));
+                    continue;
+                }
+            }
         };
+        let names = album_artists.join("; ");
         let Some(diffs) = planned_write(&current, &change.values, &change.expected, &names) else {
             report.problems.push(problem("changed_since".into()));
             continue;
@@ -631,11 +646,21 @@ pub async fn tag_workshop_apply(
             let path = path.clone();
             let diffs = diffs.clone();
             let track_id = change.track_id;
+            let old_values = journal::OldValues::from([(Field::AlbumArtist, album_artists)]);
             enrichment::write_now(&pool, move |conn| {
                 let path = path.clone();
                 let diffs = diffs.clone();
+                let old_values = old_values.clone();
                 Box::pin(async move {
-                    journal::journal_file(conn, batch_id, Some(track_id), &path, &diffs).await
+                    journal::journal_file_with_values(
+                        conn,
+                        batch_id,
+                        Some(track_id),
+                        &path,
+                        &diffs,
+                        &old_values,
+                    )
+                    .await
                 })
             })
             .await
@@ -908,6 +933,28 @@ pub struct UndoReport {
     pub done: bool,
 }
 
+/// The values that put a journaled file back: each field's old value, an
+/// absent one as an empty value, which removes it.
+fn undo_values(file: &journal::JournaledFile) -> Values {
+    file.fields
+        .iter()
+        .map(|f| (f.field, f.old.clone().unwrap_or_default()))
+        .collect()
+}
+
+/// The file edit of an undo: [`undo_values`], and an Album Artist that
+/// held several values gets them all back, the first being the one the
+/// old value names (#1082).
+pub(crate) fn undo_edit(file: &journal::JournaledFile) -> TrackEdit {
+    let mut edit = to_edit(&undo_values(file));
+    edit.album_artist_values = file
+        .fields
+        .iter()
+        .find(|f| f.field == Field::AlbumArtist && f.old_values.len() > 1)
+        .map(|f| f.old_values.clone());
+    edit
+}
+
 /// Put back the values a batch replaced, in every file it wrote that has
 /// not changed since. The others are reported and left as they are.
 #[tauri::command]
@@ -985,12 +1032,6 @@ pub async fn tag_workshop_undo(
             }
         }
 
-        // The old values, an absent one as an empty value: removed.
-        let restore: Values = file
-            .fields
-            .iter()
-            .map(|f| (f.field, f.old.clone().unwrap_or_default()))
-            .collect();
         // The track that is this file now, if it still is.
         let track_id = match file.track_id {
             Some(id) => match track_path(&pool, id).await {
@@ -1008,7 +1049,8 @@ pub async fn tag_workshop_undo(
             None => None,
         };
         pause_if_playing(&engine, track_id).await;
-        let file_edit = to_edit(&restore);
+        let restore = undo_values(&file);
+        let file_edit = undo_edit(&file);
         let outcome = {
             let path = path.clone();
             tokio::task::spawn_blocking(move || {

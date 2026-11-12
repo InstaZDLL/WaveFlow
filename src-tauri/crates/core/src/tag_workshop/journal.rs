@@ -78,6 +78,26 @@ pub async fn journal_file(
     path: &str,
     diffs: &[FieldDiff],
 ) -> CoreResult<i64> {
+    journal_file_with_values(conn, batch_id, track_id, path, diffs, &OldValues::new()).await
+}
+
+/// Every value a field holds in a file, in the file's order, for the fields
+/// that hold several: what [`journal_file_with_values`] keeps beside the one
+/// text a [`FieldDiff`] carries.
+pub type OldValues = std::collections::BTreeMap<Field, Vec<String>>;
+
+/// [`journal_file`], with `old_values`: every value a field the write
+/// replaces held before it, when it held several (#1082). Kept only for a
+/// field `diffs` rewrites and that held more than one value; an undo writes
+/// them all back ([`JournaledField::old_values`]).
+pub async fn journal_file_with_values(
+    conn: &mut SqliteConnection,
+    batch_id: i64,
+    track_id: Option<i64>,
+    path: &str,
+    diffs: &[FieldDiff],
+    old_values: &OldValues,
+) -> CoreResult<i64> {
     let file_id: i64 = sqlx::query_scalar(
         "INSERT INTO tag_workshop_file (batch_id, track_id, file_path, status)
          VALUES (?, ?, ?, 'pending')
@@ -89,14 +109,20 @@ pub async fn journal_file(
     .fetch_one(&mut *conn)
     .await?;
     for diff in diffs {
+        let several = old_values
+            .get(&diff.field)
+            .filter(|values| values.len() > 1)
+            // A list of strings always serializes.
+            .and_then(|values| serde_json::to_string(values).ok());
         sqlx::query(
-            "INSERT INTO tag_workshop_field (file_id, field, old_value, new_value)
-             VALUES (?, ?, ?, ?)",
+            "INSERT INTO tag_workshop_field (file_id, field, old_value, new_value, old_values)
+             VALUES (?, ?, ?, ?, ?)",
         )
         .bind(file_id)
         .bind(diff.field.as_str())
         .bind(Some(diff.old.as_str()).filter(|v| !v.is_empty()))
         .bind(&diff.new)
+        .bind(several)
         .execute(&mut *conn)
         .await?;
     }
@@ -222,6 +248,10 @@ pub struct JournaledField {
     /// `None` when the file did not carry the field.
     pub old: Option<String>,
     pub new: String,
+    /// Every value the field held, in the file's order, when it held
+    /// several (#1082); empty otherwise, `old` then says it all. An entry
+    /// a newer build wrote in a form this one cannot read is empty too.
+    pub old_values: Vec<String>,
 }
 
 /// One journaled file and what was written into it.
@@ -258,8 +288,9 @@ pub async fn batch_files(
     .bind(batch_id)
     .fetch_all(&mut *conn)
     .await?;
-    let fields: Vec<(i64, String, Option<String>, String)> = sqlx::query_as(
-        "SELECT fd.file_id, fd.field, fd.old_value, fd.new_value
+    type FieldRow = (i64, String, Option<String>, String, Option<String>);
+    let fields: Vec<FieldRow> = sqlx::query_as(
+        "SELECT fd.file_id, fd.field, fd.old_value, fd.new_value, fd.old_values
            FROM tag_workshop_field fd
            JOIN tag_workshop_file f ON f.id = fd.file_id
           WHERE f.batch_id = ?",
@@ -283,14 +314,22 @@ pub async fn batch_files(
         .collect();
     let index: std::collections::HashMap<i64, usize> =
         out.iter().enumerate().map(|(i, f)| (f.id, i)).collect();
-    for (file_id, field, old, new) in fields {
+    for (file_id, field, old, new, old_values) in fields {
         // A field name this build does not know came from a newer one;
         // leaving it out of an undo is safer than writing it blind.
         let Some(field) = Field::parse(&field) else {
             continue;
         };
         if let Some(&at) = index.get(&file_id) {
-            out[at].fields.push(JournaledField { field, old, new });
+            let old_values = old_values
+                .and_then(|json| serde_json::from_str::<Vec<String>>(&json).ok())
+                .unwrap_or_default();
+            out[at].fields.push(JournaledField {
+                field,
+                old,
+                new,
+                old_values,
+            });
         }
     }
     for file in &mut out {

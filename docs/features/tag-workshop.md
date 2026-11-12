@@ -21,7 +21,7 @@ At most 5,000 files open at once (`MAX_FILES`), and the view says so when a sour
 
 One row per file, virtualized against the page scroller ([invariant](../architecture/invariants.md#virtual-scroll-everywhere)); the header stays at the top of the page while it scrolls. Three groups of columns can be shown or hidden: **Tags** (title, artists, album, album artist, year, genres, composer), **Numbers** (track, track total, disc, disc total) and **MusicBrainz IDs**. Every cell is an input; an edited cell is highlighted until it is written or discarded.
 
-Artists and genres are lists joined with `"; "`, the library's [one multi-artist separator](library.md#multi-artist), read as the scanner reads them, so an undo writes back every name; an Album Artist is kept whole, as the scanner keeps it. The artist is one field here: an undo restores the names the library credits, as one `ARTIST` value. A file whose `ARTIST` was the credit as printed (`Beta feat. Alpha`) beside an `ARTISTS` list gets the names back, not that wording nor the second tag.
+Artists and genres are lists joined with `"; "`, the library's [one multi-artist separator](library.md#multi-artist), read as the scanner reads them, so an undo writes back every name; an Album Artist is kept whole, as the scanner keeps it: the table shows its first value, the one the scanner groups by, and a write leaves one name. The artist is one field here: an undo restores the names the library credits, as one `ARTIST` value. A file whose `ARTIST` was the credit as printed (`Beta feat. Alpha`) beside an `ARTISTS` list gets the names back, not that wording nor the second tag.
 
 The tools act on the ticked rows, or on every editable row when none is ticked:
 
@@ -88,15 +88,17 @@ Each batch is listed under the table with its name, date and counts. **Undo this
 
 **When the file is restored but its row is not.** The undo marks a file undone as soon as its old values are back in it, before it updates the database. Should that update fail past its retries, the file stays undone — its bytes no longer hash to what the batch left, so it could not be undone again anyway — and is reported as `database_stale`: its row still shows the batch's values. Nothing new is kept for it, because the scan already catches it up: neither the workshop nor any tag write updates `track.file_modified` / `file_size`, so the scan's fast path, which compares those with the disk, finds the file changed and reads it back — at once in a watched folder, whose watcher sees the write, on the next scan of the folder otherwise. Such a file does not hold the batch open: the batch is settled from its journal once none of its files is left `written` or `pending`, as for any undo, since the lagging row catches up on its own and a file already restored has nothing left to undo. A write whose database update fails is reported the same way.
 
+**Every Album Artist value comes back.** A file can hold the Album Artist twice (two Vorbis `ALBUMARTIST` comments, a multi-value `TPE2`, two `aART`). A write that changes the field leaves the one name asked for, so the journal keeps every value the file held, in order (`old_values`), and an undo writes them all back, the first first (#1082). Only an undo writes several: the first value is the one the scanner groups the album by ([`(canonical_title, album_artist_id)`](../architecture/invariants.md#album-grouping--canonical_title-album_artist_id)), and an undo that puts the same values back in the same order leaves the album where it was before the batch; the editor and the workshop otherwise write one name, as they always did. A batch journaled before this kept one value, and its undo restores that one.
+
 The year is restored as a year: a file whose tag held a full date (`1991-09-24`) and was given another year gets `1991` back, not the day.
 
 ## Storage
 
-Migration `20261030180000_tag_workshop_journal.sql` — see [storage](../architecture/storage.md#datadb-per-profile):
+Migrations `20261030180000_tag_workshop_journal.sql` and `20261112120000_tag_workshop_old_values.sql` — see [storage](../architecture/storage.md#datadb-per-profile):
 
 - `tag_workshop_batch` — one row per batch: when, its name, the release it was matched with, when it was undone;
 - `tag_workshop_file` — one row per file a batch touched: its path, its track (`ON DELETE SET NULL`: the record of what was written into a file outlives the track), its status (`pending`, `written`, `failed`, `undone`), the hash the write left, the error of a refused write;
-- `tag_workshop_field` — the old value (`NULL` when absent) and the new one of every field written.
+- `tag_workshop_field` — the old value (`NULL` when absent) and the new one of every field written, and `old_values`, a JSON array of every value the field held when it held several (the Album Artist), `NULL` otherwise.
 
 A batch that wrote nothing is not kept.
 
