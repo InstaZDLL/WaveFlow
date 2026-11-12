@@ -490,6 +490,38 @@ async fn with_two_namesakes(pool: &SqlitePool) {
     }
 }
 
+/// One namesake with no id beside one with an id, both credited on one
+/// track: saved as it is, the credit keeps both. The one with no id is
+/// found again by its plain key, never under the other's id, which would
+/// put both names on one artist and drop the other.
+#[tokio::test]
+async fn an_edit_keeps_a_namesake_without_an_id_beside_one_with_an_id() {
+    let pool = pool().await;
+    with_two_namesakes(&pool).await;
+    sqlx::raw_sql(
+        "UPDATE artist SET mbid = NULL WHERE id = 2;
+         UPDATE track SET primary_artist = 2 WHERE id = 2;
+         DELETE FROM track_artist WHERE track_id = 2;
+         INSERT INTO track_artist (track_id, artist_id, position) VALUES (2, 2, 0), (2, 3, 1);",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let save = TrackEdit {
+        artist: Some("LiSA; LISA".into()),
+        ..edit()
+    };
+    sync_db(&pool, 2, &save).await.unwrap();
+    let credited: Vec<i64> = sqlx::query_scalar(
+        "SELECT artist_id FROM track_artist WHERE track_id = 2 ORDER BY position",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(credited, [2, 3]);
+}
+
 /// A track credited to both namesakes keeps both when its credit is saved
 /// as it is, with or without the ids (#1081): the names alone would have
 /// found "LiSA" twice.
