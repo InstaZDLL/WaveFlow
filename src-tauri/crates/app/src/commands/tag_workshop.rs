@@ -612,15 +612,21 @@ pub async fn tag_workshop_apply(
         // new name implies, and one by one, for the journal, since the
         // write replaces them all with one name and an undo puts them all
         // back (#1082).
+        // A file read a moment ago that cannot be read now is changing:
+        // left as it is, since the journal would miss what it holds.
         let album_artists = {
             let path = PathBuf::from(&path);
-            tokio::task::spawn_blocking(move || {
-                crate::commands::edit::file_credits(&path)
-                    .map(|c| c.album_artist_list)
-                    .unwrap_or_default()
+            let read = tokio::task::spawn_blocking(move || {
+                crate::commands::edit::file_credits(&path).map(|c| c.album_artist_list)
             })
-            .await
-            .unwrap_or_default()
+            .await;
+            match read {
+                Ok(Some(list)) => list,
+                Ok(None) | Err(_) => {
+                    report.problems.push(problem("changed_since".into()));
+                    continue;
+                }
+            }
         };
         let names = album_artists.join("; ");
         let Some(diffs) = planned_write(&current, &change.values, &change.expected, &names) else {
