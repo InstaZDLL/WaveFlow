@@ -143,6 +143,15 @@ jobs:
             echo "::error::$TAG_NAME is not a published stable release"
             exit 1
           fi
+          # The real repository only moves forward: rebuilding it for an
+          # older tag would drop every newer release from the pool. A
+          # rewind is a rehearsal (apt-test), never apt/.
+          newest=$(gh release list --exclude-pre-releases --exclude-drafts 
+            --limit 1 --json tagName --jq ".[0].tagName")
+          if [ "$PREFIX" = "apt" ] && [ "$TAG_NAME" != "$newest" ]; then
+            echo "::error::$TAG_NAME is not the newest stable release ($newest): publishing it under apt/ would remove newer versions"
+            exit 1
+          fi
           kept=0
           for t in "${TAGS[@]}"; do
             [ "$kept" -lt "$KEEP_RELEASES" ] || break

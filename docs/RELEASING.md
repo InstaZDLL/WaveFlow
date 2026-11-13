@@ -544,7 +544,7 @@ One suite (`stable`), one component (`main`), one architecture (`amd64`). `Relea
 
 The `verify` jobs then do what a user does, through the public domain, on `debian:stable`, `ubuntu:22.04` and `ubuntu:24.04`: add the repository with `signed-by`, `apt update`, `apt install wave-flow`, and compare the installed version with the tag. Any failure fails the run.
 
-A manual run takes `tag_name` and `prefix`. Use `prefix=apt-test` to rehearse: it writes under `apt-test/` and nothing users read. A rebuild for an older tag builds the repository as it was at that tag.
+A manual run takes `tag_name` and `prefix`. Use `prefix=apt-test` to rehearse: it writes under `apt-test/` and nothing users read. A rebuild for an older tag builds the repository as it was at that tag, which is why `prefix=apt` refuses any tag but the newest stable release (it would drop the newer versions). One known limit: indexes are replaced in place, without `by-hash` paths, so a client reading during the few seconds of an upload can see a hash mismatch and succeeds on the next `apt update`.
 
 ### The signing key
 
