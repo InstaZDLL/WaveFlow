@@ -574,7 +574,9 @@ impl ChromeSupport {
         let compositor_frame = platform_app && crate::adwaita_frame::compositor_draws_frame(app);
         Self {
             app: platform_app && !compositor_frame,
-            adwaita: crate::adwaita_frame::available(app),
+            // GTK draws no frame where the compositor does, so the style has
+            // nothing to restyle there: not offered either.
+            adwaita: crate::adwaita_frame::available(app) && !compositor_frame,
             app_needs_xwayland: compositor_frame,
         }
     }

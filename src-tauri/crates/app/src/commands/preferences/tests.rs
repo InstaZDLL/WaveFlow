@@ -15,7 +15,7 @@ const NO_ADWAITA: ChromeSupport = ChromeSupport {
 /// WaveFlow's own bar would be a second one (#1089).
 const COMPOSITOR_FRAME: ChromeSupport = ChromeSupport {
     app: false,
-    adwaita: true,
+    adwaita: false,
     app_needs_xwayland: true,
 };
 /// Windows.
@@ -156,6 +156,7 @@ fn a_compositor_frame_explains_the_missing_option() {
     assert!(state.supported);
     assert!(state.app_needs_xwayland);
     assert!(!state.options.contains(&"app"));
+    assert!(!state.options.contains(&"adwaita"));
     let plain = WindowChromeState::new(WindowChrome::System, NOTHING);
     assert!(!plain.supported);
     assert!(!plain.app_needs_xwayland);
