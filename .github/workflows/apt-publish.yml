@@ -176,9 +176,9 @@ jobs:
             awk -F: '$1 == "sec" { s = 1 } s && $1 == "fpr" { print $10; exit }')
           echo "Signing key fingerprint: $FPR"
           if [ "$FPR" != "$APT_GPG_EXPECTED_FPR" ]; then
+            echo "::error::signing key is $FPR, expected $APT_GPG_EXPECTED_FPR"
             exit 1
           fi
-            echo "::error::signing key is $FPR, expected $APT_GPG_EXPECTED_FPR"
           echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
           echo "APT_GPG_KEY_FPR=$FPR" >> "$GITHUB_ENV"
           echo "APT_GPG_PASSPHRASE_FILE=$RUNNER_TEMP/apt-pass" >> "$GITHUB_ENV"
