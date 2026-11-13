@@ -178,12 +178,22 @@ function ClipPlayer({ clip }: { clip: OpenClip }) {
           <TriangleAlert size={32} className="text-amber-400" />
           <p className="text-lg font-semibold">{t("clip.unplayableTitle")}</p>
           <p className="text-sm text-white/70">{t("clip.unplayableBody")}</p>
+          {/* Here as well as in the top bar, which theater mode fades
+              out: with nothing playing there is no reason to stay. */}
+          <button
+            type="button"
+            onClick={backToAudio}
+            className="mt-2 rounded-full bg-white/15 px-4 py-2 text-sm font-medium transition-colors hover:bg-white/25"
+          >
+            {t("clip.backToAudio")}
+          </button>
         </div>
       )}
 
       <div
         data-theater-chrome
-        className="absolute top-0 inset-x-0 flex items-start justify-between gap-4 px-8 py-6 pointer-events-none *:pointer-events-auto"
+        // A scrim: the title is white over colours nobody can know ahead.
+        className="absolute top-0 inset-x-0 flex items-start justify-between gap-4 bg-linear-to-b from-black/70 to-transparent px-8 pt-6 pb-12 pointer-events-none *:pointer-events-auto"
       >
         <button
           type="button"
