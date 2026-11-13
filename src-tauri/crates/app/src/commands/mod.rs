@@ -11,6 +11,7 @@ pub mod backup;
 pub mod browse;
 pub mod canvas;
 pub mod changelog;
+pub mod clip;
 pub mod deezer;
 pub mod desktop_lyrics;
 pub mod diagnostics;

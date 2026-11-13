@@ -193,6 +193,11 @@ fn resolved(path: &Path, stamp: Option<Stamp>) -> Option<PathBuf> {
 /// file's path, length and mtime, and is served instead. A file that
 /// cannot be converted is served as it is and logged.
 async fn playable(app: &AppHandle, path: &Path) -> PathBuf {
+    // Only an ISO-BMFF file is ever fragmented this way; a WebM or Matroska
+    // music video is served as it is.
+    if !matches!(video_mime(path), Some("video/mp4" | "video/quicktime")) {
+        return path.to_path_buf();
+    }
     if let Some(served) = resolved(path, stamp(path).await) {
         return served;
     }
@@ -320,13 +325,16 @@ fn is_plain_absolute(path: &Path) -> bool {
             .all(|c| matches!(c, Component::RootDir | Component::Normal(_)))
 }
 
-/// Only the containers a clip or a motion cover can be; anything else in
+/// Only the containers a Canvas, a music video or a motion cover can be; anything else in
 /// the scope (covers, artist images) is not this server's to hand out.
 fn video_mime(path: &Path) -> Option<&'static str> {
     let ext = path.extension()?.to_str()?.to_ascii_lowercase();
     match ext.as_str() {
         "mp4" | "m4v" => Some("video/mp4"),
         "mov" => Some("video/quicktime"),
+        // A track's music video (#1073) can be either of these.
+        "webm" => Some("video/webm"),
+        "mkv" => Some("video/x-matroska"),
         _ => None,
     }
 }

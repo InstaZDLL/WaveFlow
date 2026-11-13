@@ -15,6 +15,11 @@ fn only_video_containers_are_served() {
         video_mime(Path::new("/a/clip.mov")),
         Some("video/quicktime")
     );
+    assert_eq!(video_mime(Path::new("/a/clip.webm")), Some("video/webm"));
+    assert_eq!(
+        video_mime(Path::new("/a/clip.MKV")),
+        Some("video/x-matroska")
+    );
     assert_eq!(video_mime(Path::new("/a/cover.jpg")), None);
     assert_eq!(video_mime(Path::new("/a/noext")), None);
 }

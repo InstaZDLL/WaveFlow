@@ -21,6 +21,7 @@
 //! a menu item, a window message or an OS-overlay callback calls them,
 //! so they are sync and spawn the one branch that needs the database.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -71,6 +72,9 @@ pub enum Moved {
 /// [`play_and_wait`] and logs what it returns. A caller already inside a
 /// task awaits that directly instead, and can answer its client.
 pub fn play(app: &AppHandle, label: &str) {
+    if route_to_clip(app, ClipControl::Play) {
+        return;
+    }
     let app = app.clone();
     let label = label.to_owned();
     tauri::async_runtime::spawn(async move {
@@ -78,6 +82,58 @@ pub fn play(app: &AppHandle, label: &str) {
             tracing::warn!(%err, "{label} play: failed");
         }
     });
+}
+
+/// Whether the main window is playing a track's music video (#1073).
+///
+/// The clip plays in the webview with its own sound while the track waits
+/// paused. Without this, a play / pause pressed outside the window — a
+/// media key, the tray, a taskbar button, a global shortcut — would start
+/// the track under the video, or do nothing to the video at all, which on
+/// a six-minute clip is not what anybody pressing Pause means. So while a
+/// clip is open those reach it instead, as a `clip:control` event.
+///
+/// Next and previous are not rerouted: they move the queue, the track
+/// starts, and the frontend closes the clip when it does.
+static CLIP_OPEN: AtomicBool = AtomicBool::new(false);
+
+pub fn set_clip_open(open: bool) {
+    CLIP_OPEN.store(open, Ordering::Release);
+}
+
+/// What a surface asked of the clip, as the `clip:control` payload.
+#[derive(Clone, Copy, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ClipControl {
+    Play,
+    Pause,
+    Toggle,
+}
+
+/// Hand `control` to an open clip. `false` when none is open, or the event
+/// could not be sent, and the caller drives the track as usual.
+fn route_to_clip(app: &AppHandle, control: ClipControl) -> bool {
+    if !CLIP_OPEN.load(Ordering::Acquire) {
+        return false;
+    }
+    match app.emit("clip:control", control) {
+        Ok(()) => true,
+        Err(err) => {
+            tracing::warn!(%err, "could not hand a control to the open clip");
+            false
+        }
+    }
+}
+
+/// Pause, for a surface with a separate Pause button (the OS media
+/// overlay): the open clip's if there is one, else the track's.
+pub fn pause(app: &AppHandle) {
+    if route_to_clip(app, ClipControl::Pause) {
+        return;
+    }
+    if let Some(engine) = app.try_state::<Arc<AudioEngine>>() {
+        let _ = engine.send(AudioCmd::Pause);
+    }
 }
 
 /// [`play`]'s rule, awaited, so MPD can answer its client once the work
@@ -111,6 +167,9 @@ pub async fn play_and_wait(app: &AppHandle) -> AppResult<()> {
 /// persisted resume point through [`resume_last`] instead. `Loading` is
 /// left alone: a track is already on its way.
 pub fn toggle_play_pause(app: &AppHandle, label: &str) {
+    if route_to_clip(app, ClipControl::Toggle) {
+        return;
+    }
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
         return;
     };
