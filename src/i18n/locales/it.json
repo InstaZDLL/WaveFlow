@@ -5008,7 +5008,6 @@
     }
   },
   "clip": {
-    "show": "Videoclip",
     "play": "Riproduci il videoclip",
     "label": "Videoclip di {{title}}",
     "backToAudio": "Torna all'audio",

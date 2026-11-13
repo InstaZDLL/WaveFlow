@@ -4865,7 +4865,6 @@
     }
   },
   "clip": {
-    "show": "Clip",
     "play": "Play the clip",
     "label": "Clip of {{title}}",
     "backToAudio": "Back to audio",

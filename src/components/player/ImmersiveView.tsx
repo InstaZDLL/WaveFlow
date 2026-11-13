@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, PanelRight, Mic2, MoreHorizontal, Tv } from "lucide-react";
+import {
+  X,
+  PanelRight,
+  Mic2,
+  MoreHorizontal,
+  Tv,
+  Clapperboard,
+} from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
@@ -30,6 +37,8 @@ import { CanvasToggleButton } from "./CanvasToggleButton";
 import { CanvasPickerModal } from "../common/CanvasPickerModal";
 import { LINUX } from "../../hooks/usePlayableVideo";
 import { ClipStage } from "./ClipStage";
+import { useTrackClip } from "../../hooks/useTrackClip";
+import { openClip } from "../../lib/clipPlayer";
 
 /** Below this width the dual-column layout collapses to a single column
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
@@ -168,6 +177,12 @@ export function ImmersiveView({
   // `canvasEditable` already keeps a server track out of the picker. Shared
   // local-vs-remote split with CanvasStage.
   const hasManualCanvas = !!canvasPath && !isRemoteCanvasUrl(canvasPath);
+
+  // The track's music video (#1073): the Clip button shows only when the
+  // disk has one for it, never as a dead control. Not gated on reduced
+  // motion, unlike the Canvas: it is a film the user asks for, not a
+  // decoration.
+  const clip = useTrackClip(currentTrack);
 
   // Escape close + focus trap. Only mounted while open → pass `true`.
   const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
@@ -600,6 +615,24 @@ export function ImmersiveView({
               lyricLines={lyrics.isFetching ? [] : shareableLyricLines(lyrics)}
               activeLyricIndex={lyrics.activeIndex}
             />
+          )}
+          {currentTrack && clip && (
+            <button
+              type="button"
+              onClick={() =>
+                openClip({
+                  trackId: currentTrack.id,
+                  localPath: clip.localPath,
+                  title: currentTrack.title,
+                  artist: currentTrack.artist_name,
+                })
+              }
+              aria-label={t("clip.play")}
+              title={t("clip.play")}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition-colors"
+            >
+              <Clapperboard size={22} />
+            </button>
           )}
           <button
             type="button"

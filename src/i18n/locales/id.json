@@ -4860,7 +4860,6 @@
     }
   },
   "clip": {
-    "show": "Klip",
     "play": "Putar klip",
     "label": "Klip {{title}}",
     "backToAudio": "Kembali ke audio",

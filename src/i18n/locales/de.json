@@ -4865,7 +4865,6 @@
     }
   },
   "clip": {
-    "show": "Musikvideo",
     "play": "Musikvideo abspielen",
     "label": "Musikvideo zu {{title}}",
     "backToAudio": "Zurück zum Audio",

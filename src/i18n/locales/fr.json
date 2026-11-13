@@ -5005,7 +5005,6 @@
     }
   },
   "clip": {
-    "show": "Clip",
     "play": "Lire le clip",
     "label": "Clip de {{title}}",
     "backToAudio": "Revenir à l'audio",

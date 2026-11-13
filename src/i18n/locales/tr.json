@@ -4865,7 +4865,6 @@
     }
   },
   "clip": {
-    "show": "Klip",
     "play": "Klibi oynat",
     "label": "{{title}} klibi",
     "backToAudio": "Sese dön",

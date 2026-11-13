@@ -4860,7 +4860,6 @@
     }
   },
   "clip": {
-    "show": "MV",
     "play": "播放 MV",
     "label": "{{title}} 的 MV",
     "backToAudio": "返回音訊",

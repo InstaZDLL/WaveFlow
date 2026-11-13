@@ -4865,7 +4865,6 @@
     }
   },
   "clip": {
-    "show": "Videoclip",
     "play": "Videoclip afspelen",
     "label": "Videoclip van {{title}}",
     "backToAudio": "Terug naar audio",

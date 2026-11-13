@@ -5018,7 +5018,6 @@
     }
   },
   "clip": {
-    "show": "Clipe",
     "play": "Reproduzir o clipe",
     "label": "Clipe de {{title}}",
     "backToAudio": "Voltar ao áudio",
