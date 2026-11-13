@@ -35,13 +35,10 @@ prefix="${2:?usage: publish-apt-r2.sh [--dry-run] <tree-dir> <prefix>}"
 
 # Only the two folders an APT repository lives in: this script must not
 # be able to reach releases/, stable/, plugins/ or anything else.
-case "$prefix" in
-  apt | apt-[a-z0-9-]*) ;;
-  *)
-    echo "::error::prefix '$prefix' is not apt or apt-<name>" >&2
-    exit 1
-    ;;
-esac
+if ! [[ "$prefix" =~ ^apt(-[a-z0-9-]+)?$ ]]; then
+  echo "::error::prefix '$prefix' is not apt or apt-<name>" >&2
+  exit 1
+fi
 
 state="$(r2_state)"
 if [ "$state" != "configured" ] && [ "${R2_DRY_RUN:-0}" != "1" ]; then

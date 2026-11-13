@@ -87,6 +87,12 @@ jobs:
             echo "::error::$TAG is a pre-release: the APT repository is stable only"
             exit 1
           fi
+          # Strict, before anything is written to GITHUB_ENV: a tag with a
+          # newline must not be able to add variables to later steps.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag is not a stable vX.Y.Z tag"
+            exit 1
+          fi
           if ! [[ "$PREFIX" =~ ^apt(-[a-z0-9-]+)?$ ]]; then
             echo "::error::prefix '$PREFIX' must be apt or apt-<name>"
             exit 1
@@ -155,7 +161,12 @@ jobs:
           kept=0
           for t in "${TAGS[@]}"; do
             [ "$kept" -lt "$KEEP_RELEASES" ] || break
-            if gh release download "$t" --pattern "WaveFlow_*_linux-x86_64.deb" --dir debs 2>/dev/null; then
+            # Ask for the asset first: only its absence means "no .deb".
+            # A failed listing or download (5xx, rate limit) stops the job
+            # rather than quietly dropping that version from the pool.
+            assets=$(gh release view "$t" --json assets --jq '.assets[].name')
+            if grep -Eq '^WaveFlow_.*_linux-x86_64\.deb$' <<<"$assets"; then
+              gh release download "$t" --pattern "WaveFlow_*_linux-x86_64.deb" --dir debs
               kept=$((kept + 1))
             elif [ "$t" = "$TAG_NAME" ]; then
               echo "::error::$t has no .deb"
