@@ -27,11 +27,17 @@ const ARROW_SEEK_S = 5;
  */
 export function ClipStage() {
   const clip = useOpenClip();
-  // Mounted for as long as the immersive view is: closing the view, by
-  // whatever path, closes the clip with it, so it does not come back at
-  // the next opening.
-  useEffect(() => closeClip, []);
-  if (!clip) return null;
+  // The player mounts one render after this stage. Opened from a context
+  // menu, the clip and the immersive view mount together, and a child's
+  // effects run before its parent's: the view's modal would then register
+  // after the clip's and take Escape from it. One render later, the
+  // view's is in place and the clip's goes on top. (Closing the view
+  // closes the clip: `PlayerContext`.)
+  const [ready, setReady] = useState(false);
+  // Deliberately a second render: see above.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setReady(true), []);
+  if (!clip || !ready) return null;
   return <ClipPlayer key={`${clip.trackId}:${clip.localPath}`} clip={clip} />;
 }
 
@@ -159,6 +165,8 @@ function ClipPlayer({ clip }: { clip: OpenClip }) {
       {!unplayable && (
         <video
           ref={videoRef}
+          // In the focus trap, so its controls can be reached with Tab.
+          tabIndex={0}
           controls
           playsInline
           className="h-full w-full object-contain"

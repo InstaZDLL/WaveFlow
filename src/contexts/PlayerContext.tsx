@@ -58,6 +58,7 @@ import { remoteArtwork } from "../lib/tauri/remoteServer";
 import { setPlayerPosition } from "../hooks/usePlayerPosition";
 import { startSpectrumFeed } from "../lib/spectrumFeed";
 import { noteDiscovery } from "../lib/discovery";
+import { closeClip } from "../lib/clipPlayer";
 import {
   isRadioTrack,
   isRemoteTrack,
@@ -1133,6 +1134,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // own lyrics via `useTrackLyrics` — so opening it no longer needs to
   // force the right-edge LyricsPanel open the way the old karaoke
   // overlay did.
+  // A music video (#1073) lives inside the immersive view: closed with it,
+  // by whatever path (Escape, the close button, a profile switch), so it
+  // does not come back at the next opening.
+  useEffect(() => {
+    if (!immersiveOpen) closeClip();
+  }, [immersiveOpen]);
+
   const openImmersive = useCallback((tab: "nowPlaying" | "lyrics") => {
     setImmersiveInitialTab(tab);
     setImmersiveStartsInTheater(false);

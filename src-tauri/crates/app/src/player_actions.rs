@@ -71,7 +71,14 @@ pub enum Moved {
 /// Sync wrapper for callback threads (souvlaki, the tray): spawns
 /// [`play_and_wait`] and logs what it returns. A caller already inside a
 /// task awaits that directly instead, and can answer its client.
+///
+/// While a music video is open the OS overlay shows the track paused, so
+/// Play is the one button it offers: here it plays or pauses the clip,
+/// where [`play_and_wait`]'s Play (MPD's) only ever plays it.
 pub fn play(app: &AppHandle, label: &str) {
+    if route_to_clip(app, ClipControl::Toggle) {
+        return;
+    }
     let app = app.clone();
     let label = label.to_owned();
     tauri::async_runtime::spawn(async move {
