@@ -34,7 +34,20 @@ interface ImmersiveNowPlayingProps {
   onNavigateToArtist: (artistId: number) => void;
   isLiked: boolean;
   onToggleLike: () => void;
+  /** The panel is docked below (portrait window, #1077): the column has
+   *  only part of the height, and its parent is a size container. */
+  stacked?: boolean;
 }
+
+/** The cover's cap. `42vh` assumes the column has the whole height; docked
+ *  above the panel it has 55 % of it, and the cover alone would push the
+ *  title and the transport out of a 900 × 1200 window. Stacked, the cover
+ *  also leaves the column 24rem — the metadata, the transport, the gaps
+ *  and the padding (about 22rem, measured), plus some air under the
+ *  floating buttons — and never shrinks under 6rem. */
+const COVER_CAP = "max-w-[min(42vh,24rem)]";
+const STACKED_COVER_CAP =
+  "max-w-[min(42vh,24rem,max(6rem,calc(100cqh-24rem)))]";
 
 /**
  * Left column of the immersive view (issue #328): the cover hero, track
@@ -52,6 +65,7 @@ export function ImmersiveNowPlaying({
   onNavigateToArtist,
   isLiked,
   onToggleLike,
+  stacked = false,
 }: ImmersiveNowPlayingProps) {
   const { t } = useTranslation();
   // The Fluid skin draws the progress as its wave, as in the player bar.
@@ -152,7 +166,9 @@ export function ImmersiveNowPlaying({
     // stack still fits a 1080p viewport at 125 % DPI (see #54).
     <div className="h-full flex flex-col items-center justify-center text-white px-8 py-10 gap-7 min-h-0">
       {trackMenu.render()}
-      <div className="relative w-full max-w-[min(42vh,24rem)] aspect-square shrink-0">
+      <div
+        className={`relative w-full ${stacked ? STACKED_COVER_CAP : COVER_CAP} aspect-square shrink-0`}
+      >
         <Artwork
           path={currentTrack?.artwork_path ?? null}
           path1x={currentTrack?.artwork_path_1x ?? null}

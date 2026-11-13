@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, PanelRight, Mic2, MoreHorizontal, Tv } from "lucide-react";
+import {
+  X,
+  PanelBottom,
+  PanelRight,
+  Mic2,
+  MoreHorizontal,
+  Tv,
+} from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
@@ -87,7 +94,8 @@ interface ImmersiveViewProps {
  * fit):
  *  - **merged** (pref ON + wide window): now-playing on the left + a
  *    tabbed control panel ([`ImmersiveSidePanel`] — Lyrics / Queue) on
- *    the right; a `PanelRight` button hides/shows the panel.
+ *    the right — below it on a portrait window (#1077); a `PanelRight`
+ *    (`PanelBottom`) button hides/shows the panel.
  *  - **classic** (pref OFF or narrow window): now-playing fullscreen with
  *    a Mic2 button flipping to a lyrics-only fullscreen — the pre-#328
  *    behaviour, deliberately left intact (no panel, no queue).
@@ -171,16 +179,25 @@ export function ImmersiveView({
   // Escape close + focus trap. Only mounted while open → pass `true`.
   const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
 
-  // Track the viewport width so the dual layout collapses on narrow
-  // windows. `window.innerWidth` is fine — the view is always
-  // full-window so there's no inner container to measure.
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  // Track the viewport size so the dual layout collapses on narrow
+  // windows and stacks on portrait ones. `window.innerWidth` is fine — the
+  // view is always full-window so there's no inner container to measure.
+  const [viewport, setViewport] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
   useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
+    const onResize = () =>
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+  const viewportWidth = viewport.width;
   const narrow = viewportWidth < NARROW_BREAKPOINT;
+  // A window taller than wide (a monitor turned to portrait, #1077) has the
+  // height to spare and not the width: the panel goes below now-playing,
+  // across the whole width, instead of beside it in a strip of 40 %.
+  const portrait = viewport.height > viewportWidth;
   const theaterZoom = theater
     ? Math.min(
         THEATER_MAX_ZOOM,
@@ -199,6 +216,10 @@ export function ImmersiveView({
   // Theater mode always has the two columns: the tracklist beside the
   // cover is what it is for.
   const dual = (mergedLyrics || theater) && !narrow;
+  // Where the panel docks in the dual layout: beside now-playing, or below
+  // it on a portrait window. Theater mode follows the same rule — a TV
+  // turned on its side wants its tracklist below the cover too.
+  const panelBelow = dual && portrait;
 
   // Static source for the blurred backdrop: a pre-resized variant or
   // nothing. Never a library track's `artwork_path`, which can be the
@@ -542,7 +563,11 @@ export function ImmersiveView({
                     : "bg-white/10 hover:bg-white/20 text-white/80"
                 }`}
               >
-                <PanelRight className="rtl:-scale-x-100" size={22} />
+                {panelBelow ? (
+                  <PanelBottom size={22} />
+                ) : (
+                  <PanelRight className="rtl:-scale-x-100" size={22} />
+                )}
               </button>
             ) : (
               <button
@@ -624,11 +649,18 @@ export function ImmersiveView({
           </button>
         </div>
 
-        {/* Columns */}
-        <div className="flex-1 flex min-h-0">
+        {/* Columns — or rows, with the panel below on a portrait window. */}
+        <div className={`flex-1 flex min-h-0${panelBelow ? " flex-col" : ""}`}>
           {showNowPlaying && (
-            <div className="min-w-0 flex-1 transition-all duration-300">
+            <div
+              // Stacked, the column is a size container: the cover is
+              // capped by the column's height, not the window's.
+              className={`min-w-0 min-h-0 flex-1 transition-all duration-300${
+                panelBelow ? " [container-type:size]" : ""
+              }`}
+            >
               <ImmersiveNowPlaying
+                stacked={panelBelow}
                 onClose={onClose}
                 onNavigateToArtist={onNavigateToArtist}
                 isLiked={isLiked}
@@ -636,15 +668,24 @@ export function ImmersiveView({
               />
             </div>
           )}
-          {/* NEW merged view → tabbed control panel on the right. */}
+          {/* NEW merged view → tabbed control panel on the right, or
+              below on a portrait window. Below, the floating buttons sit
+              over now-playing, not over the panel, so the panel does not
+              measure them: its tabs have the whole line. */}
           {dual && panelShown && currentTrack && (
-            <div className="min-w-0 w-2/5 border-s border-white/10">
+            <div
+              className={
+                panelBelow
+                  ? "min-h-0 h-[45%] shrink-0 border-t border-white/10"
+                  : "min-w-0 w-2/5 border-s border-white/10"
+              }
+            >
               <ImmersiveSidePanel
                 track={currentTrack}
                 lyrics={lyrics}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
-                buttonBarRef={buttonBarRef}
+                buttonBarRef={panelBelow ? undefined : buttonBarRef}
               />
             </div>
           )}
