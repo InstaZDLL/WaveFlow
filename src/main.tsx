@@ -47,6 +47,7 @@ import "@fontsource/space-mono/700.css";
 import "@fontsource-variable/dm-sans/opsz.css";
 import { i18nReady } from "./i18n";
 import { markBundleReady, markI18nReady } from "./lib/startupTiming";
+import { playerSetClipOpen } from "./lib/tauri/clip";
 import { WINDOW_ROLE } from "./lib/windowRole";
 
 // First statement that runs once the entry module is executing: the
@@ -67,6 +68,14 @@ if (WINDOW_ROLE === "lyrics") {
 // See `html.mini-player-window` in app.css for what was producing one.
 if (WINDOW_ROLE === "mini") {
   document.documentElement.classList.add("mini-player-window");
+}
+// A reload of the main window with a music video open (#1073) would leave
+// the backend routing play / pause from the media keys to a clip that is
+// no longer there: the flag starts lowered with the page.
+if (WINDOW_ROLE === "main") {
+  playerSetClipOpen(false).catch((err) =>
+    console.error("[main] reset clip flag failed", err),
+  );
 }
 
 // The main window is created with `visible: false` in tauri.conf.json
