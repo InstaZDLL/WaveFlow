@@ -85,7 +85,8 @@ Actions):
 | `WINGET_PAT`                         | GitHub Personal Access Token (classic, `public_repo` scope) the `.github/workflows/winget.yml` action uses to fork microsoft/winget-pkgs and open the PR with the new manifest |
 | `COPR_LOGIN`                         | `login` field from <https://copr.fedorainfracloud.org/api/> — `.github/workflows/copr.yml` uses it to authenticate to Fedora COPR via `copr-cli`                               |
 | `COPR_TOKEN`                         | `token` field from the same COPR API page (paired with `COPR_LOGIN`). Token lifetime is 6 months — rotate when builds start returning `401 Unauthorized`                       |
-| `BUILDKITE_PACKAGES_TOKEN`           | Buildkite API token (`read_packages` + `write_packages`) for `.github/workflows/apt-publish.yml` to push the `.deb` to the `instazdll/waveflow` registry                       |
+| `APT_GPG_PRIVATE_KEY`                | armored secret key that signs the APT repository ([APT repository](#apt-repository)); `.github/workflows/apt-publish.yml` imports it for the run only                         |
+| `APT_GPG_PASSPHRASE`                 | passphrase of that key                                                                                                                                                         |
 
 ### Optional: the R2 mirror
 
@@ -510,6 +511,56 @@ Then re-run the `Mirror to R2` job of the last release (or the whole workflow wi
 
 Builds older than 2.0 know only GitHub. They cannot be moved; if GitHub goes, their users reinstall from the website once.
 
+## APT repository
+
+Debian and Ubuntu users install WaveFlow from a static, signed APT repository on the same R2 bucket as the updater mirror, served at `https://download.waveflow.app/apt/`. It replaces the Buildkite Packages registry, which refused uploads (HTTP 403, registry full). Pre-releases are never in it.
+
+```sh
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo curl -fsSL https://download.waveflow.app/apt/waveflow.gpg -o /etc/apt/keyrings/waveflow.gpg
+echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] https://download.waveflow.app/apt stable main" | sudo tee /etc/apt/sources.list.d/waveflow.list
+sudo apt update && sudo apt install wave-flow
+```
+
+The package is `wave-flow` (the name Tauri gives the Debian package), not `waveflow`.
+
+### Structure
+
+```
+apt/waveflow.gpg                             public key, binary (for signed-by=)
+apt/waveflow.asc                             the same key, armored
+apt/dists/stable/{Release,Release.gpg,InRelease}
+apt/dists/stable/main/binary-amd64/{Packages,Packages.gz}
+apt/pool/main/w/wave-flow/wave-flow_<version>_amd64.deb
+```
+
+One suite (`stable`), one component (`main`), one architecture (`amd64`). `Release` carries Origin, Label, Suite, Codename, Architectures, Components and Date, and **no `Valid-Until`**: the repository is rebuilt on a release, not on a clock, and an expiry would make every client refuse it after a quiet month.
+
+### How it is built
+
+`.github/workflows/apt-publish.yml`, dispatched by `release.yml` after every stable release (and on `release: published`, stable only). It is stateless: each run downloads the `.deb` of the three newest stable releases from GitHub, renames them to the Debian pattern, and rebuilds the whole tree with `scripts/release/build-apt-repo.sh` (`apt-ftparchive` for `Packages` and `Release`, `gpg --clearsign` for `InRelease`, a detached armored signature for `Release.gpg`, then a check of both signatures against the exported key). The generator knows nothing about the destination, so the same tree can be copied to another host (a server of our own, an S3-compatible bucket) as a `mirror+` source.
+
+`scripts/release/publish-apt-r2.sh` uploads in an order that never leaves an index naming a missing file: `pool/` (immutable, one-year cache), the keys, `Packages*`, `Release` and `Release.gpg`, `InRelease` last (`dists/` and the keys cache for a minute). Only then are the `pool/` files the new index no longer lists deleted. It refuses any prefix other than `apt` or `apt-<name>`.
+
+The `verify` jobs then do what a user does, through the public domain, on `debian:stable`, `ubuntu:22.04` and `ubuntu:24.04`: add the repository with `signed-by`, `apt update`, `apt install wave-flow`, and compare the installed version with the tag. Any failure fails the run.
+
+A manual run takes `tag_name` and `prefix`. Use `prefix=apt-test` to rehearse: it writes under `apt-test/` and nothing users read. A rebuild for an older tag builds the repository as it was at that tag.
+
+### The signing key
+
+- Secrets: `APT_GPG_PRIVATE_KEY` (armored secret key, RSA 4096) and `APT_GPG_PASSPHRASE`. The passphrase reaches `gpg` through a file in `$RUNNER_TEMP`, never an argument, and the keyring is deleted at the end of the job.
+- Long id: `D00B159309D12EA1`. Full fingerprint: `4B92C10AD8200F3370BBAB2ED00B159309D12EA1` — pinned in the workflow (`APT_GPG_EXPECTED_FPR`); the job prints the fingerprint it found and fails if it differs, so a key replaced by mistake publishes nothing.
+- **Expiry: five years after creation, about November 2031.** An expired key makes `apt update` fail for every user, so extend it well before: on the machine that holds the key, `gpg --edit-key D00B159309D12EA1`, `expire`, a new duration, `save`; export it (`gpg --armor --export-secret-keys D00B159309D12EA1`) into the `APT_GPG_PRIVATE_KEY` secret, then re-run the workflow with `prefix=apt` on the latest tag. That rewrites `waveflow.gpg`, `waveflow.asc` and the signatures. The fingerprint does not change when only the expiry does. Users with the key already in `/etc/apt/keyrings/` must fetch the new `waveflow.gpg` once; the key file is the only thing that carries the new date.
+- A **new** key (a lost passphrase, a leak) changes the fingerprint: update `APT_GPG_EXPECTED_FPR`, republish, and tell users to replace the keyring file.
+
+### Moving from Buildkite
+
+Users of `https://packages.buildkite.com/instazdll/waveflow/` must switch: remove `/etc/apt/sources.list.d/waveflow.list` and the old keyring, then follow the four commands above. The old registry is no longer updated. `BUILDKITE_PACKAGES_TOKEN` is unused and can be deleted from the repository secrets.
+
+### On GitLab
+
+The standby `.gitlab-ci.yml` has no APT job (it never had a Buildkite one either). Run `apt-publish.yml` from GitHub, or run `build-apt-repo.sh` and `publish-apt-r2.sh` by hand with the key in `GNUPGHOME`.
+
 ## Switching to GitLab
 
 [`.gitlab-ci.yml`](../.gitlab-ci.yml) is a standby copy of `ci.yml`, `release.yml` and `cut-beta.yml`. Nothing runs it on GitHub. It exists so that losing the GitHub account costs a few hours of setup rather than a rewrite of the release pipeline at the worst possible moment. On GitLab, R2 is the only download host: the builds write manifests that point there directly, and the GitLab release holds links to the files rather than the files (a project's storage quota would not take an installer set per version).
@@ -557,7 +608,7 @@ Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` t
 | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **release-please** opens the release PR, bumps, tags                                                          | GitHub-only, no GitLab support. Cut by hand: bump the version in every file [`release-please-config.json`](../release-please-config.json) lists — `package.json`, `src-tauri/crates/app/tauri.conf.json`, `src-tauri/crates/app/Cargo.toml`, `src-tauri/crates/core/Cargo.toml` — and `.release-please-manifest.json`, run `cargo check` to refresh `Cargo.lock`, write the `CHANGELOG.md` entry, commit `chore(main): release X.Y.Z`, then push a signed tag `vX.Y.Z`. The tag starts the release pipeline. A GitLab-aware tool can take this over later. |
 | **Beta channel**: `cut-beta.yml`                                                                              | The `cut-beta` job: Run pipeline by hand with `BASE_VERSION`. Its tag push starts the release itself — a project access token's push does, unlike `GITHUB_TOKEN`'s. The stable-onto-beta copy is not needed (see [above](#how-the-app-reads-two-hosts)).                                                                                                                                                                                                                                                                                                   |
-| **Downstream dispatches** (AUR, winget, COPR, apt)                                                            | Not ported; publish by hand or add jobs. Every one downloads from GitHub today: point `packaging/aur/PKGBUILD`'s `source` and `packaging/copr/waveflow.spec`'s `asset_url` at `https://download.waveflow.app/releases/v${version}/…`, and `apt-publish.yml`'s `gh release download` at the same files. AUR and COPR push with their own keys, from anywhere. winget opens a pull request on `microsoft/winget-pkgs` on GitHub, which needs _a_ GitHub account — not necessarily this one — and `wingetcreate update` with the R2 URLs.                     |
+| **Downstream dispatches** (AUR, winget, COPR, apt)                                                            | Not ported; publish by hand or add jobs. Every one downloads from GitHub today: point `packaging/aur/PKGBUILD`'s `source` and `packaging/copr/waveflow.spec`'s `asset_url` at `https://download.waveflow.app/releases/v${version}/…`, and `apt-publish.yml`'s `gh release download` at the same files (its generator, `build-apt-repo.sh`, does not care where the tree goes: [APT repository](#apt-repository)). AUR and COPR push with their own keys, from anywhere. winget opens a pull request on `microsoft/winget-pkgs` on GitHub, which needs _a_ GitHub account — not necessarily this one — and `wingetcreate update` with the R2 URLs.                     |
 | **Flathub**                                                                                                   | The manifest builds from the GitHub repository's URL: point it at the GitLab one in the Flathub repository.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **AppImage delta updates** (`appimage-update-info.sh`)                                                        | The string embedded in the image sends AppImageUpdate to GitHub's releases, so the GitLab build does not embed it and ships no `.zsync`. Images already out keep asking GitHub and lose delta updates; the in-app updater is unaffected. Bringing them back means the generic `zsync` transport, pointing at a fixed-name `.zsync` on R2.                                                                                                                                                                                                                  |
 | **Install links**                                                                                             | The README, the website's download buttons and `packaging/flatpak/…metainfo.xml` link to GitHub releases and issues. Point them at waveflow.app and GitLab. The binaries also carry the GitHub URL in a few User-Agent strings and the Discord presence button; harmless, change them in the next release.                                                                                                                                                                                                                                                 |

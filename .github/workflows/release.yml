@@ -714,7 +714,7 @@ jobs:
         # release was created by GITHUB_TOKEN (anti-loop safeguard),
         # so the workflows that need to react to a new release have
         # to be dispatched explicitly. AUR, Winget, COPR and the
-        # Buildkite Packages apt registry each repackage the freshly-
+        # signed APT repository on R2 each repackage the freshly-
         # published artefacts onto their own channel.
         shell: bash
         env:

@@ -54,9 +54,7 @@ env:
   R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL || 'https://download.waveflow.app' }}
   # Full fingerprint of the signing key. A key replaced by mistake must
   # fail the job, not publish under another identity.
-  APT_GPG_EXPECTED_FPR: PENDING
-  # Short id of the same key, checked while the full one is pending.
-  APT_GPG_EXPECTED_LONGID: D00B159309D12EA1
+  APT_GPG_EXPECTED_FPR: 4B92C10AD8200F3370BBAB2ED00B159309D12EA1
   # How many stable releases the repository keeps.
   KEEP_RELEASES: 3
 
@@ -177,11 +175,7 @@ jobs:
           FPR=$(gpg --batch --with-colons --list-secret-keys |
             awk -F: '$1 == "sec" { s = 1 } s && $1 == "fpr" { print $10; exit }')
           echo "Signing key fingerprint: $FPR"
-          if [ "$APT_GPG_EXPECTED_FPR" = "PENDING" ]; then
-            echo "::warning::expected fingerprint not pinned yet; checking the long id only"
-            [ "${FPR: -16}" = "$APT_GPG_EXPECTED_LONGID" ] || { echo "::error::wrong key"; exit 1; }
-          elif [ "$FPR" != "$APT_GPG_EXPECTED_FPR" ]; then
-            echo "::error::signing key is $FPR, expected $APT_GPG_EXPECTED_FPR"
+          if [ "$FPR" != "$APT_GPG_EXPECTED_FPR" ]; then
             exit 1
           fi
           echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
