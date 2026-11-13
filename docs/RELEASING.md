@@ -80,8 +80,7 @@ Actions):
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `TAURI_SIGNING_PRIVATE_KEY`          | raw contents of `~/.tauri/waveflow.key`                                                                                                                                        |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | passphrase for the above key                                                                                                                                                   |
-| `SIGNTOOL_PFX_BASE64`                | `base64 -w0 < cert.pfx` for Windows Authenticode                                                                                                                               |
-| `SIGNTOOL_PFX_PASSWORD`              | PFX export passphrase                                                                                                                                                          |
+| `SIGNPATH_API_TOKEN`                 | API token of the SignPath CI user, for the Windows signing ([SignPath](#windows-signing-with-signpath))                                                                        |
 | `AUR_SSH_PRIVATE_KEY`                | private half of the SSH key registered on the maintainer's AUR account, used by `.github/workflows/aur.yml` to push PKGBUILD updates                                           |
 | `WINGET_PAT`                         | GitHub Personal Access Token (classic, `public_repo` scope) the `.github/workflows/winget.yml` action uses to fork microsoft/winget-pkgs and open the PR with the new manifest |
 | `COPR_LOGIN`                         | `login` field from <https://copr.fedorainfracloud.org/api/> — `.github/workflows/copr.yml` uses it to authenticate to Fedora COPR via `copr-cli`                               |
@@ -139,7 +138,7 @@ accident.
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).
 
-The maintainer keeps local copies of all four key/cert files under
+The maintainer keeps local copies of the key files under
 `secrets/` (gitignored — see [`.gitignore`](../.gitignore)) so they
 can be re-uploaded when rotating. Push them to GitHub Actions secrets
 with the `gh` CLI:
@@ -149,9 +148,9 @@ with the `gh` CLI:
 #                           the file directly to gh secret set.
 Get-Content -Raw secrets/aur | gh secret set AUR_SSH_PRIVATE_KEY
 Get-Content -Raw secrets/waveflow.key | gh secret set TAURI_SIGNING_PRIVATE_KEY
-[Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path secrets/cert.pfx))) | gh secret set SIGNTOOL_PFX_BASE64
 gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body "<passphrase>"
-gh secret set SIGNTOOL_PFX_PASSWORD            --body "<passphrase>"
+# the SignPath CI user's token, pasted when gh asks for it:
+gh secret set SIGNPATH_API_TOKEN
 ```
 
 ### 1. Cut the release via release-please
@@ -221,10 +220,13 @@ pushed by hand would start it on its own; release-please's does not):
   glibc newer than `GLIBC_FLOOR` (2.39); raise both together, on
   purpose — and `.gitlab-ci.yml`'s `ubuntu:24.04` image and its own
   `GLIBC_FLOOR` with them.
-- Builds Windows on `windows-latest`, signs every artefact with
-  the Authenticode PFX — produces a `*-setup.exe` (NSIS, per-user
-  under `%LOCALAPPDATA%`, also the updater payload) and a `.msi`
-  (system-wide install for IT deployment).
+- Builds Windows on `windows-latest` and signs it through SignPath in
+  two requests, each waiting for a manual approval
+  ([below](#windows-signing-with-signpath)) — produces a `*-setup.exe`
+  (NSIS, per-user under `%LOCALAPPDATA%`, also the updater payload) and
+  a `.msi` (system-wide install for IT deployment). The Windows job may
+  therefore run for hours; its limit is 360 minutes, the most GitHub
+  allows a hosted job.
 - Builds macOS (`*.dmg` + `*.app.tar.gz` + `.sig`) on `macos-latest`
   as a universal binary covering both Intel and Apple Silicon, and
   codesigns the bundle — with a Developer ID + notarization when the
@@ -539,15 +541,15 @@ Compute minutes are the real limit: the Free tier's 400 a month do not cover one
 
 Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` tags (Settings → Repository → Protected tags): a protected variable is only given to pipelines of protected refs, so an unprotected tag would build without its keys. Mask what GitLab accepts to mask, and keep every one of them protected either way.
 
-| Variable                                                                 | Same as on GitHub       | Notes                                                                |
-| ------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------- |
-| `TAURI_SIGNING_PRIVATE_KEY`, `…_PASSWORD`                                | yes                     | the same key: the installed apps trust only its public half          |
-| `SIGNTOOL_PFX_BASE64`, `SIGNTOOL_PFX_PASSWORD`                           | yes                     |                                                                      |
-| `APPLE_CERTIFICATE` … `APPLE_TEAM_ID`                                    | yes, optional           | none set = ad-hoc signing, as on GitHub; a partial set fails         |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET` | yes                     | **required** here: R2 is the only host, a release without them fails |
-| `R2_PUBLIC_URL`                                                          | the repository variable | only if the domain is not `https://download.waveflow.app`            |
-| `MACOS_RUNNER_TAG`                                                       | —                       | the tag of your own Mac runner, if not the hosted one                |
-| `GITLAB_PUSH_TOKEN`                                                      | —                       | project access token, `write_repository`, for the cut-beta job       |
+| Variable                                                                 | Same as on GitHub       | Notes                                                                                                |
+| ------------------------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`, `…_PASSWORD`                                | yes                     | the same key: the installed apps trust only its public half                                          |
+| `SIGNTOOL_PFX_BASE64`, `SIGNTOOL_PFX_PASSWORD`                           | GitLab only             | the self-signed PFX the Windows job still signs with, see [SignPath](#windows-signing-with-signpath) |
+| `APPLE_CERTIFICATE` … `APPLE_TEAM_ID`                                    | yes, optional           | none set = ad-hoc signing, as on GitHub; a partial set fails                                         |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET` | yes                     | **required** here: R2 is the only host, a release without them fails                                 |
+| `R2_PUBLIC_URL`                                                          | the repository variable | only if the domain is not `https://download.waveflow.app`                                            |
+| `MACOS_RUNNER_TAG`                                                       | —                       | the tag of your own Mac runner, if not the hosted one                                                |
+| `GITLAB_PUSH_TOKEN`                                                      | —                       | project access token, `write_repository`, for the cut-beta job                                       |
 
 ### What does not carry over
 
@@ -571,6 +573,64 @@ Settings → CI/CD → Variables. Mark them **protected** and protect the `v*` t
 4. Cut the next release by hand as above. Its manifest replaces `stable/latest.json` on R2, and every 2.0+ installation sees it.
 5. Make the backup public, since it is now the project's home and the source Flathub and the downstream packages build from, and open the latest import's issues to the public (or move them into the backup) so issues can be read and filed again.
 6. Update the install links, then the downstream packages one by one.
+
+## Windows signing with SignPath
+
+The Windows binaries are signed by [SignPath](https://signpath.org) (the SignPath Foundation's free certificate for open-source projects), so that Smart App Control stops blocking the installer (#610). The conditions the Foundation sets shape the pipeline: every release signature is approved by hand, the signed file must come from a GitHub-hosted build of this repository, only our own binaries are signed, and their product metadata is enforced.
+
+### The two requests
+
+SignPath signs a PE file or an MSI but cannot sign what sits inside an NSIS installer, so the Windows half of `release.yml` is the composite action [`.github/actions/windows-signed-bundle`](../.github/actions/windows-signed-bundle/action.yml), run from the workflow's own commit like the release scripts:
+
+1. `tauri build --no-bundle` builds `waveflow.exe`, with no signing.
+2. A first `tauri bundle --bundles nsis --no-binary-patching` is thrown away; its only use is the NSIS uninstaller, which the bundler hands to a `signCommand` ([`nsis-uninstaller-dispatch.mjs`](../scripts/release/nsis-uninstaller-dispatch.mjs)) that exports it. The dispatcher ignores every other file the bundler offers (the exe, the NSIS plugin DLLs, the setup).
+3. **Approval 1 of 2**, artifact configuration `app`: `waveflow.exe` and the uninstaller.
+4. The signed exe goes back to `target/release`, and `tauri bundle --no-binary-patching` builds the installers (nsis, and msi on a stable release). `--no-binary-patching` matters: the bundler would otherwise rewrite the exe it embeds and break its signature. The dispatcher puts the signed uninstaller in place, and only if its SHA-256 is the exported one.
+5. **Approval 2 of 2**, artifact configuration `installers`: the NSIS setup and the MSI (the beta has none, hence `min-matches="0"`).
+6. The updater `.sig` the bundler wrote covers unsigned bytes: it is deleted, and `tauri signer sign --app-version` recomputes it on the signed setup. The version is the one the bundler bound into the first signature, read back from it: `requireSignedVersion` refuses a payload that does not name it. Only then does `prepare-assets.py windows` run, so nothing derived from the setup (signature, manifest) exists before the last signature.
+7. [`verify-updater-signature.mjs`](../scripts/release/verify-updater-signature.mjs) checks the new `.sig` the way the updater will, since `tauri signer` has no verify command: against the public key in `tauri.conf.json` (`plugins.updater.pubkey`), against the signed setup's bytes, and for the version it names (the tag's).
+8. `Get-AuthenticodeSignature` on the setup, the MSI and the exe: a file without a signature fails the job. Under `release-signing` the status must also be `Valid`.
+
+**The uninstaller** is signed because `makensis` writes it byte for byte the same whenever the installer script and its inputs do not change (measured: the same SHA-256 across two bundle runs, and with a different exe next to it). If it ever differs between the two passes, or cannot be exported, the job logs a warning under `test-signing` and goes on with an unsigned uninstaller; under `release-signing` it fails instead, since a release is never half signed. The NSIS plugin DLLs inside the setup are third-party code and are not signed, as the Foundation requires.
+
+### What lives where
+
+| Where                                                                                                  | What                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Secret `SIGNPATH_API_TOKEN`                                                                            | the API token of a SignPath CI user                                                                                     |
+| Variable `SIGNPATH_ORGANIZATION_ID`                                                                    | the organization id                                                                                                     |
+| Variable `SIGNPATH_PROJECT_SLUG`                                                                       | the project's slug (the project is "WaveFlow")                                                                          |
+| Variable `SIGNPATH_SIGNING_POLICY_SLUG`                                                                | `test-signing` or `release-signing`                                                                                     |
+| [`.signpath/app.xml`](../.signpath/app.xml), [`.signpath/installers.xml`](../.signpath/installers.xml) | the two artifact configurations, pasted into SignPath under the slugs `app` and `installers`; keep both sides identical |
+
+```bash
+gh secret set SIGNPATH_API_TOKEN
+gh variable set SIGNPATH_ORGANIZATION_ID --body "<organization id>"
+gh variable set SIGNPATH_PROJECT_SLUG --body "<project slug>"
+gh variable set SIGNPATH_SIGNING_POLICY_SLUG --body "test-signing"
+```
+
+A tag built by this workflow needs `@tauri-apps/cli` 2.12.0 or newer, the first with `tauri bundle --no-binary-patching`. The Windows job checks it before building anything, so a patch release cut from a maintenance branch that pins an older CLI stops at once with a message saying so, never half signed; the branch has to take the newer CLI first. (The 1.9 line already pins `^2.12.1`; no maintenance branch exists today.)
+
+With any of them missing the Windows job fails on its first step, naming what is missing: a release is never published unsigned by accident.
+
+### From the test certificate to the release one
+
+Switching is a variable, not a change of code: once SignPath has issued the HSM certificate and `release-signing` is valid,
+
+```bash
+gh variable set SIGNPATH_SIGNING_POLICY_SLUG --body "release-signing"
+```
+
+From then on every release waits for two manual approvals in SignPath. While the Windows job waits (up to a few hours), the Linux and macOS jobs have already published: the GitHub release has no Windows installer yet and `latest.json` is not merged, so the updater's GitHub endpoint answers 404 until the Windows job ends. Approve promptly after tagging; the release page and the manifest complete themselves afterwards. The job's checks also expect Windows to accept the signature, and an unsigned uninstaller fails the job. Approve both requests within the job's 360 minutes (a request gives up after 150 minutes of waiting); if the job gives up, re-run the release with `workflow_dispatch` and the existing tag.
+
+### Trying it without a release
+
+[`windows-signing-check.yml`](../.github/workflows/windows-signing-check.yml) runs the same action and stops: no tag, no release, no upload, no R2. It also installs the setup silently on the runner and looks at the signature of the installed exe and uninstaller. It is started by hand from the Actions tab (**Run workflow**); use it to try a policy before a release depends on it. It makes real signing requests: under `release-signing` every run creates two that wait for approval in SignPath.
+
+### On GitLab
+
+[`.gitlab-ci.yml`](../.gitlab-ci.yml) does not use SignPath: the project's SignPath setup trusts GitHub.com builds only, and whether the Foundation's conditions would accept a GitLab build (SignPath does offer a GitLab.com trusted build system) has not been asked. Its `release-windows` job therefore keeps signing with the self-signed PFX (`SIGNTOOL_PFX_BASE64` and `SIGNTOOL_PFX_PASSWORD`), and a Windows build from the standby repository is again the kind Smart App Control may block. Fixing that means adding GitLab as a trusted build system in SignPath, if the Foundation allows it, or a certificate of our own.
 
 ## The AppImage is post-processed, and it has to stay that way
 
@@ -737,23 +797,24 @@ The real fix is the one above: a **Developer ID** certificate plus **notarizatio
   installer GUI, no clicks needed. Switch to `quiet` for fully
   silent (less obvious to the user) or `basicUi` for the standard
   NSIS dialog.
-- **Windows Authenticode signing** is wired through the release
-  workflow via `SIGNTOOL_PFX_BASE64` + `SIGNTOOL_PFX_PASSWORD`
-  secrets. **The certificate in those secrets is self-signed**, so
-  the builds are signed but not trusted: the chain doesn't end at a
-  CA in Microsoft's Trusted Root Program, and Windows treats WaveFlow
-  as coming from an unknown publisher. Downloads won't change that.
-  Smart App Control blocks the app whenever Microsoft's online
-  reputation service has no positive verdict for the build, which is
-  why it fails on some days and works on others (#610). Microsoft's
-  own comparison lists a self-signed certificate as blocking
-  installation for public users.
+- **Windows Authenticode signing** goes through SignPath, see
+  [Windows signing with SignPath](#windows-signing-with-signpath). Until
+  the SignPath Foundation certificate is issued (policy
+  `release-signing`) the builds are signed by the test certificate,
+  which no Windows trusts. Smart App Control blocks the app whenever
+  Microsoft's online reputation service has no positive verdict for a
+  build signed by a certificate outside the Trusted Root Program, which
+  is why it failed on some days and worked on others (#610).
 - **What fixes it** is a code-signing certificate from a CA in the
   Trusted Root Program: with that, Smart App Control allows the app
   even without any reputation. EV is no shortcut: SmartScreen has
   treated EV and OV the same since 2024. Every executable file that
   ships must carry the signature, not only the installer: the app
-  binary, DLLs and the uninstaller too. To check a release,
+  binary and the uninstaller too. The NSIS plugin DLLs the setup
+  unpacks into its temporary folder stay unsigned: they are third-party
+  binaries, which the SignPath Foundation forbids signing. How Smart
+  App Control treats them is to be tested on a machine with it on, once
+  the release certificate is issued. To check a release,
   `Get-AuthenticodeSignature` on the installer and on the installed
-  `waveflow.exe` must report `Valid`; the self-signed certificate
+  `waveflow.exe` must report `Valid`; the SignPath test certificate
   reports `UnknownError` (untrusted root).
