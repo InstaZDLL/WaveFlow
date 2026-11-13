@@ -180,7 +180,7 @@ fn find_clip_prefers_the_sibling_then_the_clips_folder_then_the_file_itself() {
     let song = write(dir, "Song.flac", b"fLaC");
     assert_eq!(find_clip(&song), None);
 
-    let in_clips = write(dir, "CLIPS/song.webm", b"webm");
+    let in_clips = write(dir, "CLIPS/song.webm", &EBML_MAGIC);
     assert_eq!(find_clip(&song), Some((in_clips, ClipOrigin::ClipsDir)));
 
     let beside = write(dir, "Song.mp4", &video_mp4());
@@ -210,6 +210,28 @@ fn a_track_in_a_clips_folder_is_not_offered_its_neighbours() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path();
     let kept = write(dir, "Clips/Song.mp4", &audio_mp4());
-    write(dir, "Clips/Song.webm", b"webm");
+    write(dir, "Clips/Song.webm", &EBML_MAGIC);
     assert_eq!(find_clip(&kept), None);
+}
+
+/// A file named like a video is checked before it reaches the webview's
+/// asset scope.
+#[test]
+fn a_webm_that_is_not_one_is_not_a_clip() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path();
+    let song = write(dir, "Song.flac", b"fLaC");
+    write(dir, "Song.webm", b"not a video");
+    assert_eq!(find_clip(&song), None);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_named_like_a_clip_is_not_one() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path();
+    let song = write(dir, "Song.flac", b"fLaC");
+    let target = write(dir, "elsewhere/real.webm", &EBML_MAGIC);
+    std::os::unix::fs::symlink(&target, dir.join("Song.webm")).unwrap();
+    assert_eq!(find_clip(&song), None);
 }

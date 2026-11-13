@@ -269,13 +269,31 @@ pub fn file_has_video_track(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Whether a local video file is one: confirmed for the ISO-BMFF
-/// containers, taken at its extension for the others.
+/// The four bytes every EBML document starts with: WebM and Matroska.
+const EBML_MAGIC: [u8; 4] = [0x1a, 0x45, 0xdf, 0xa3];
+
+fn starts_with_ebml(path: &Path) -> bool {
+    let mut head = [0u8; 4];
+    fs::File::open(path)
+        .and_then(|mut file| file.read_exact(&mut head))
+        .is_ok_and(|()| head == EBML_MAGIC)
+}
+
+/// Whether a local file is a video the webview may be handed: a regular
+/// file, not a link, with a moving picture in it for the ISO-BMFF
+/// containers and an EBML header for the others.
+///
+/// The answer puts the file in the webview's asset scope, so the content
+/// is checked rather than the name trusted: a link named `Song.webm`
+/// could otherwise open any file it points at to the webview.
 fn is_local_video(path: &Path) -> bool {
+    if !fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_file()) {
+        return false;
+    }
     match lowercase_extension(path) {
         Some(ext) if ISO_BMFF_EXTENSIONS.contains(&ext.as_str()) => file_has_video_track(path),
-        Some(ext) => VIDEO_EXTENSIONS.contains(&ext.as_str()),
-        None => false,
+        Some(ext) if VIDEO_EXTENSIONS.contains(&ext.as_str()) => starts_with_ebml(path),
+        _ => false,
     }
 }
 
@@ -296,9 +314,7 @@ fn video_named_in(dir: &Path, stem: &str, track: &Path) -> Option<PathBuf> {
         let ext = lowercase_extension(path).unwrap_or_default();
         VIDEO_EXTENSIONS.iter().position(|known| *known == ext)
     });
-    found
-        .into_iter()
-        .find(|path| path.is_file() && is_local_video(path))
+    found.into_iter().find(|path| is_local_video(path))
 }
 
 /// The `Clips` directory of `dir`, whatever its case.
