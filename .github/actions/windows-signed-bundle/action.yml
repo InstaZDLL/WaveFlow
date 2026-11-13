@@ -139,8 +139,17 @@ runs:
         # the configuration, so the version it is told is the one the file
         # carries; the build must still agree with the tag on the numeric part.
         $pv = (Get-Item signing/app/waveflow.exe).VersionInfo.ProductVersion
-        $core = ($env:RELEASE_VERSION -split '-')[0]
-        if (-not $pv -or -not $pv.StartsWith($core)) {
+        # Numeric segments compared one by one, so 1.9.80 is not 1.9.8; a
+        # pre-release or build suffix on either side is ignored, and a
+        # fourth segment is fine when it is zero (2.0.1 is 2.0.1.0).
+        $want = (($env:RELEASE_VERSION -split '[-+]')[0]).Split('.')
+        $have = (($pv -split '[-+]')[0]).Split('.')
+        $same = $pv -and $have.Count -ge $want.Count
+        for ($i = 0; $same -and $i -lt $have.Count; $i++) {
+          $expected = if ($i -lt $want.Count) { $want[$i] } else { '0' }
+          if ($have[$i] -ne $expected) { $same = $false }
+        }
+        if (-not $same) {
           throw "waveflow.exe carries product version '$pv', expected $env:RELEASE_VERSION"
         }
         "version=$pv" >> $env:GITHUB_OUTPUT
@@ -188,8 +197,10 @@ runs:
           $sig = Get-AuthenticodeSignature -LiteralPath $path
           # A signature Windows can read: Valid, or UnknownError (the chain
           # of the test certificate is not trusted). HashMismatch, NotTrusted,
-          # Incompatible and the rest are not signatures worth shipping.
-          if ($sig.Status -notin 'Valid', 'UnknownError' -or -not $sig.SignerCertificate) {
+          # Incompatible and the rest are not signatures worth shipping. The
+          # release policy's certificate must chain to a trusted root.
+          $accepted = if ($env:POLICY -eq 'release-signing') { @('Valid') } else { @('Valid', 'UnknownError') }
+          if ($sig.Status -notin $accepted -or -not $sig.SignerCertificate) {
             throw "$path carries no usable Authenticode signature ($($sig.Status))"
           }
           Write-Host "[sign] $([IO.Path]::GetFileName($path)): $($sig.Status), $($sig.SignerCertificate.Subject)"
