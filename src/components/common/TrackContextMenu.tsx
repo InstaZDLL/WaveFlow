@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import {
+  Clapperboard,
   Disc3,
   ExternalLink,
   FileAudio,
@@ -31,6 +32,9 @@ import { isNetworkPath } from "../../lib/networkTracks";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { TrackMoodSubmenu } from "./TrackMoodSubmenu";
 import { openTagWorkshop } from "../../lib/tagWorkshop";
+import { useTrackClip } from "../../hooks/useTrackClip";
+import { usePlayer } from "../../hooks/usePlayer";
+import { openClip } from "../../lib/clipPlayer";
 
 export interface TrackContextMenuProps {
   point: ContextMenuPoint;
@@ -103,6 +107,10 @@ export function TrackContextMenu({
   onShowBatchEdit,
 }: TrackContextMenuProps) {
   const { t } = useTranslation();
+  const { openImmersive } = usePlayer();
+  // The track's music video (#1073), looked up as the menu opens: the
+  // entry appears once the disk has answered, and only when there is one.
+  const clip = useTrackClip(track);
   const artists = parseArtistList(track.artist_ids, track.artist_name);
   // A smart playlist is rebuilt from its rules, so a track added by hand
   // would vanish at the next regeneration. The backend refuses it too.
@@ -149,6 +157,21 @@ export function TrackContextMenu({
         label={t("trackActions.startRadio")}
         onSelect={closeAfter(() => onStartRadio(track.id))}
       />
+      {clip && (
+        <ContextMenuItem
+          icon={<Clapperboard size={14} />}
+          label={t("clip.play")}
+          onSelect={closeAfter(() => {
+            openClip({
+              trackId: track.id,
+              localPath: clip.localPath,
+              title: track.title,
+              artist: track.artist_name,
+            });
+            openImmersive("nowPlaying");
+          })}
+        />
+      )}
 
       <ContextMenuSeparator />
 

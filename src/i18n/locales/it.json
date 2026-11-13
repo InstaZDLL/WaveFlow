@@ -5006,5 +5006,14 @@
       "downloadFailed": "Errore sul server",
       "forgetPosition": "Riproduci {{title}} dall'inizio"
     }
+  },
+  "clip": {
+    "show": "Videoclip",
+    "play": "Riproduci il videoclip",
+    "label": "Videoclip di {{title}}",
+    "backToAudio": "Torna all'audio",
+    "unplayableTitle": "Questo videoclip non può essere riprodotto qui",
+    "unplayableBody": "Il lettore video di questo sistema non supporta il formato di questo video. Il brano resta in pausa dov'era.",
+    "exclusiveNoSound": "Nessun audio per il videoclip con l'uscita esclusiva: disattivala per sentirlo."
   }
 }

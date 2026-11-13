@@ -4858,5 +4858,14 @@
       "downloadFailed": "在伺服器上失敗",
       "forgetPosition": "從頭播放 {{title}}"
     }
+  },
+  "clip": {
+    "show": "MV",
+    "play": "播放 MV",
+    "label": "{{title}} 的 MV",
+    "backToAudio": "返回音訊",
+    "unplayableTitle": "此 MV 無法在此播放",
+    "unplayableBody": "此系統的影片播放器不支援這部影片的格式。曲目仍暫停在原位置。",
+    "exclusiveNoSound": "獨占輸出模式下 MV 沒有聲音：關閉獨占輸出即可聽到。"
   }
 }

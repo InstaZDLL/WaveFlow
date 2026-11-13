@@ -29,6 +29,7 @@ import { shareableLyricLines } from "../../lib/lyricsCard";
 import { CanvasToggleButton } from "./CanvasToggleButton";
 import { CanvasPickerModal } from "../common/CanvasPickerModal";
 import { LINUX } from "../../hooks/usePlayableVideo";
+import { ClipStage } from "./ClipStage";
 
 /** Below this width the dual-column layout collapses to a single column
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
@@ -677,6 +678,10 @@ export function ImmersiveView({
           )}
         </div>
       </div>
+
+      {/* A track's music video (#1073), over everything above and outside
+          the theater zoom, which the webview's own controls do not need. */}
+      <ClipStage />
 
       {canvasPickerTarget && (
         <CanvasPickerModal

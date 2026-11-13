@@ -4863,5 +4863,14 @@
       "downloadFailed": "Fehler auf dem Server",
       "forgetPosition": "{{title}} von vorn abspielen"
     }
+  },
+  "clip": {
+    "show": "Musikvideo",
+    "play": "Musikvideo abspielen",
+    "label": "Musikvideo zu {{title}}",
+    "backToAudio": "Zurück zum Audio",
+    "unplayableTitle": "Dieses Musikvideo kann hier nicht abgespielt werden",
+    "unplayableBody": "Der Videoplayer dieses Systems unterstützt das Format dieses Videos nicht. Der Titel bleibt an seiner Position pausiert.",
+    "exclusiveNoSound": "Kein Ton für das Musikvideo bei exklusiver Ausgabe: Schalte sie aus, um es zu hören."
   }
 }

@@ -5016,5 +5016,14 @@
       "downloadFailed": "Falha no servidor",
       "forgetPosition": "Tocar {{title}} desde o início"
     }
+  },
+  "clip": {
+    "show": "Clipe",
+    "play": "Reproduzir o clipe",
+    "label": "Clipe de {{title}}",
+    "backToAudio": "Voltar ao áudio",
+    "unplayableTitle": "Este clipe não pode ser reproduzido aqui",
+    "unplayableBody": "O player de vídeo deste sistema não suporta o formato deste vídeo. A faixa continua pausada onde estava.",
+    "exclusiveNoSound": "Sem som para o clipe com a saída exclusiva: desative-a para ouvi-lo."
   }
 }
