@@ -3101,8 +3101,7 @@
           "hint": "WaveFlow draws it, and the window buttons sit in its own bar."
         }
       },
-      "needsXwayland": "On this Wayland session the compositor always draws the window's frame, so WaveFlow cannot replace it with its own bar. Turn on XWayland to get this choice.",
-      "enableXwayland": "Turn on XWayland"
+      "needsXwayland": "On this Wayland session the compositor always draws the window's frame, so WaveFlow cannot replace it with its own bar. Turn on XWayland to get this choice."
     },
     "canvasCache": {
       "cacheLabel": "Save Canvas videos locally",

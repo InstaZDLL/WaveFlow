@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { AppWindow } from "lucide-react";
 
 import { useWindowChrome } from "../../../hooks/useWindowChrome";
-import { useXwaylandChoice } from "../../../hooks/useXwaylandChoice";
 import { SettingsChoiceCards } from "./SettingsChoiceCards";
 import { WindowFramePreview } from "./settingsPreviews";
 
@@ -30,7 +29,6 @@ export function WindowChromeCard() {
     busy,
     choose,
   } = useWindowChrome();
-  const xwayland = useXwaylandChoice();
 
   if (!ready || !supported) return null;
 
@@ -69,26 +67,11 @@ export function WindowChromeCard() {
       />
 
       {needsXwayland ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p className="text-xs settings-description min-w-0 flex-1">
-            {t("settings.windowChrome.needsXwayland")}
-          </p>
-          {xwayland.status && !xwayland.status.set_by_user && !xwayland.on ? (
-            <button
-              type="button"
-              className="text-xs font-medium underline"
-              disabled={xwayland.busy}
-              onClick={xwayland.toggle}
-            >
-              {t("settings.windowChrome.enableXwayland")}
-            </button>
-          ) : null}
-          {xwayland.pending ? (
-            <p className="text-xs text-amber-600 dark:text-amber-400 w-full">
-              {t("settings.xwayland.nextStart")}
-            </p>
-          ) : null}
-        </div>
+        // The XWayland switch is the card right below, so this only says
+        // why `app` is missing and where the way back is.
+        <p className="text-xs settings-description mt-3">
+          {t("settings.windowChrome.needsXwayland")}
+        </p>
       ) : null}
     </section>
   );
