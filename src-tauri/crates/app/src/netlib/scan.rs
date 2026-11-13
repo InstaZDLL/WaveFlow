@@ -226,7 +226,11 @@ pub fn walk(
     // reads of its box headers; one that cannot be read stays a track.
     let source = Arc::clone(&listing.source);
     let meta = &listing.meta;
+    // A stop is asked before each read, and a stopped filter yields no list.
     let clips = waveflow_core::scanner::clips::drop_clips(&mut listing.files, |locator| {
+        if should_stop() {
+            return false;
+        }
         let Some(locator) = locator.to_str() else {
             return false;
         };
@@ -242,6 +246,9 @@ pub fn walk(
         );
         waveflow_core::scanner::clips::has_video_track(&mut reader).unwrap_or(false)
     });
+    if should_stop() {
+        return Ok(None);
+    }
     if clips > 0 {
         tracing::debug!(
             clips,

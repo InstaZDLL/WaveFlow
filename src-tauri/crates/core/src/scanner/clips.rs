@@ -82,7 +82,8 @@ pub fn is_clips_dir_name(name: &OsStr) -> bool {
 
 /// The `.mp4` files of a walk that its other files make clips, by name
 /// alone: one with a non-`.mp4` file of the same name in its directory, or
-/// one in a `Clips` directory whose parent holds a file of that name.
+/// one in a `Clips` directory whose parent holds a file of that name — an
+/// audio `.mp4` included, since the clip has a folder of its own there.
 /// Indices into `files`, in order.
 ///
 /// `files` is a walk's list of audio files, local paths or share locators
@@ -91,13 +92,17 @@ pub fn is_clips_dir_name(name: &OsStr) -> bool {
 /// [`has_video_track`] before dropping it, so an audio `.mp4` that merely
 /// shares a name with another file stays a track.
 pub fn clip_candidates(files: &[PathBuf]) -> Vec<usize> {
-    let mut audio: HashSet<(&Path, String)> = HashSet::new();
+    // Beside a clip, only another container can be its song (two `.mp4`
+    // files of one name cannot share a folder); above a `Clips` folder,
+    // any file can.
+    let mut others: HashSet<(&Path, String)> = HashSet::new();
+    let mut any: HashSet<(&Path, String)> = HashSet::new();
     for file in files {
-        if lowercase_extension(file).as_deref() == Some("mp4") {
-            continue;
-        }
         if let (Some(dir), Some(stem)) = (file.parent(), stem_key(file)) {
-            audio.insert((dir, stem));
+            if lowercase_extension(file).as_deref() != Some("mp4") {
+                others.insert((dir, stem.clone()));
+            }
+            any.insert((dir, stem));
         }
     }
     files
@@ -108,13 +113,13 @@ pub fn clip_candidates(files: &[PathBuf]) -> Vec<usize> {
             let (Some(dir), Some(stem)) = (file.parent(), stem_key(file)) else {
                 return false;
             };
-            if audio.contains(&(dir, stem.clone())) {
+            if others.contains(&(dir, stem.clone())) {
                 return true;
             }
             dir.file_name().is_some_and(is_clips_dir_name)
                 && dir
                     .parent()
-                    .is_some_and(|parent| audio.contains(&(parent, stem)))
+                    .is_some_and(|parent| any.contains(&(parent, stem)))
         })
         .map(|(index, _)| index)
         .collect()
@@ -322,7 +327,12 @@ fn clips_dir_of(dir: &Path) -> Option<PathBuf> {
     fs::read_dir(dir)
         .ok()?
         .filter_map(Result::ok)
-        .find(|entry| is_clips_dir_name(&entry.file_name()) && entry.path().is_dir())
+        // Not a link: what is found there enters the webview's asset scope,
+        // and a linked folder could lead anywhere.
+        .find(|entry| {
+            is_clips_dir_name(&entry.file_name())
+                && fs::symlink_metadata(entry.path()).is_ok_and(|meta| meta.is_dir())
+        })
         .map(|entry| entry.path())
 }
 

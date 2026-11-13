@@ -118,6 +118,11 @@ fn an_mp4_in_a_clips_folder_matches_the_song_above_it() {
         candidates(&["/m/A/Song.flac", "/m/A/clips/Song.mp4"]),
         ["/m/A/clips/Song.mp4"]
     );
+    // An audio `.mp4` can be the song above a `Clips` folder.
+    assert_eq!(
+        candidates(&["/m/A/Song.mp4", "/m/A/Clips/Song.mp4"]),
+        ["/m/A/Clips/Song.mp4"]
+    );
     // A `Clips` folder of another album, or a song elsewhere, is not it.
     assert!(candidates(&["/m/B/Song.flac", "/m/A/Clips/Song.mp4"]).is_empty());
 }
@@ -233,5 +238,16 @@ fn a_link_named_like_a_clip_is_not_one() {
     let song = write(dir, "Song.flac", b"fLaC");
     let target = write(dir, "elsewhere/real.webm", &EBML_MAGIC);
     std::os::unix::fs::symlink(&target, dir.join("Song.webm")).unwrap();
+    assert_eq!(find_clip(&song), None);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_linked_clips_folder_is_not_followed() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path();
+    let song = write(dir, "A/Song.flac", b"fLaC");
+    write(dir, "elsewhere/Song.webm", &EBML_MAGIC);
+    std::os::unix::fs::symlink(dir.join("elsewhere"), dir.join("A/Clips")).unwrap();
     assert_eq!(find_clip(&song), None);
 }
