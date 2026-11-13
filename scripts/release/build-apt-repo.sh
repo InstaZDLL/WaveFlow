@@ -101,6 +101,34 @@ grep -q '^Date:' "$dist/Release" ||
 gpg --batch --export "$fpr" >"$out/waveflow.gpg"
 gpg --batch --armor --export "$fpr" >"$out/waveflow.asc"
 
+# Expiry of the key, as the clients will read it from the published file
+# and as the runner imported it (primary key and subkeys alike). An
+# expired key breaks `apt update` for everyone, so a key with less than
+# APT_GPG_MIN_DAYS left (default 90) fails the build while there is still
+# time to extend it (docs/RELEASING.md#the-signing-key).
+min_days="${APT_GPG_MIN_DAYS:-90}"
+now="$(date -u +%s)"
+check_expiry() {
+  local label="$1"
+  shift
+  local line kind exp
+  while IFS= read -r line; do
+    kind="$(cut -d: -f1 <<<"$line")"
+    exp="$(cut -d: -f7 <<<"$line")"
+    if [ -z "$exp" ]; then
+      echo "$label $kind: no expiry"
+      continue
+    fi
+    echo "$label $kind expires $(date -u -d "@$exp" +%F)"
+    if [ "$exp" -lt $((now + min_days * 86400)) ]; then
+      echo "::error::$label $kind expires $(date -u -d "@$exp" +%F), under $min_days days: extend it" >&2
+      return 1
+    fi
+  done < <(grep -E '^(pub|sec|sub|ssb):' "$@" || true)
+}
+check_expiry "published key" <(gpg --batch --with-colons --show-keys "$out/waveflow.gpg")
+check_expiry "imported key" <(gpg --batch --with-colons --list-secret-keys "$fpr")
+
 sign=(gpg --batch --yes --pinentry-mode loopback --passphrase-file "$pass_file" --local-user "$fpr")
 "${sign[@]}" --clearsign --output "$dist/InRelease" "$dist/Release"
 "${sign[@]}" --detach-sign --armor --output "$dist/Release.gpg" "$dist/Release"
