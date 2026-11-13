@@ -3334,7 +3334,8 @@
           "label": "WaveFlow",
           "hint": "يرسمه WaveFlow، وتستقر أزرار النافذة في شريطه الخاص."
         }
-      }
+      },
+      "needsXwayland": "في جلسة Wayland هذه يرسم مركّب النوافذ إطار النافذة دائمًا، لذا لا يستطيع WaveFlow استبداله بشريطه الخاص. فعّل XWayland للحصول على هذا الخيار."
     },
     "canvasCache": {
       "cacheLabel": "حفظ مقاطع Canvas محليًا",

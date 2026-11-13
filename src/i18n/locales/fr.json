@@ -3169,7 +3169,8 @@
           "label": "WaveFlow",
           "hint": "WaveFlow le dessine, et les boutons de la fenêtre se posent dans sa propre barre."
         }
-      }
+      },
+      "needsXwayland": "Sur cette session Wayland, le compositeur dessine toujours le cadre de la fenêtre : WaveFlow ne peut pas le remplacer par sa propre barre. Activez XWayland pour obtenir ce choix."
     },
     "canvasCache": {
       "cacheLabel": "Enregistrer les Canvas en local",

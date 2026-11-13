@@ -20,7 +20,8 @@
 //! window manager draws it — Mutter's own on GNOME, KWin's on KDE — and a
 //! GTK stylesheet does not reach it; the choice is not offered there. On
 //! KDE's Wayland session GTK asks KWin for its frame too, and the rules,
-//! all scoped to `.csd`, simply match nothing.
+//! all scoped to `.csd`, simply match nothing. That compositor frame is
+//! also why `app` is not offered there ([`compositor_draws_frame`]).
 //!
 //! **Only the main window.** Every rule sits under [`WINDOW_CLASS`], put on
 //! that window alone, so the file pickers, the tray menu, the mini-player
@@ -227,6 +228,48 @@ pub fn available(app: &AppHandle) -> bool {
     }
 }
 
+/// Whether the compositor of this Wayland session draws a window's frame
+/// itself and keeps drawing it however the window asks: GDK reports that
+/// it prefers server-side decorations, which it learns from the
+/// compositor's `org_kde_kwin_server_decoration_manager` global (KWin, and
+/// the wlroots family). Mutter does not advertise it, so GNOME answers no.
+///
+/// This is the one place `set_decorations(false)` cannot reach: tao
+/// (0.37) only keeps such a compositor from adding its frame to a window
+/// *created* undecorated, and changing the decoration state of an existing
+/// window is still unsupported (tao#1218, tao#899, KDE bug 484800). The
+/// main window is created decorated, so there the bar `app` would draw
+/// ends up under the compositor's, and the choice is not offered --
+/// XWayland, where the window manager respects the removal, still is.
+///
+/// Asked like [`available`]: GDK, main thread, once per launch, a failed
+/// ask not cached and answering `false`. Always `false` off the Wayland
+/// backend and off Linux.
+pub fn compositor_draws_frame(app: &AppHandle) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        static SSD: OnceLock<bool> = OnceLock::new();
+        if let Some(known) = SSD.get() {
+            return *known;
+        }
+        match on_main_thread(app, |_| gtk_side::display_prefers_ssd()) {
+            Ok(prefers) => *SSD.get_or_init(|| prefers),
+            Err(err) => {
+                tracing::warn!(
+                    ?err,
+                    "could not ask GDK whether the compositor draws frames"
+                );
+                false
+            }
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        false
+    }
+}
+
 /// Turn the style on or off for the main window. Returns whether it was
 /// on before, so a caller whose next step fails can put it back.
 ///
@@ -322,6 +365,35 @@ mod gtk_side {
     pub(super) fn display_is_wayland() -> Result<bool, String> {
         let display = gtk::gdk::Display::default().ok_or("no default display")?;
         Ok(display.backend().is_wayland())
+    }
+
+    /// `gdk_wayland_display_prefers_ssd`, looked up at run time: it is
+    /// recent in GTK 3.24, and a plain link would stop WaveFlow from
+    /// starting at all against an older one. A missing symbol is a no.
+    pub(super) fn display_prefers_ssd() -> Result<bool, String> {
+        use gtk::glib::translate::ToGlibPtr;
+
+        let display = gtk::gdk::Display::default().ok_or("no default display")?;
+        if !display.backend().is_wayland() {
+            return Ok(false);
+        }
+        // SAFETY: `dlsym` on the process's own namespace with a
+        // NUL-terminated name; the symbol, when found, has exactly this
+        // signature in `gdkwayland.h`, and is called on the main thread
+        // with the live Wayland display just checked.
+        unsafe {
+            let sym = libc::dlsym(
+                libc::RTLD_DEFAULT,
+                c"gdk_wayland_display_prefers_ssd".as_ptr(),
+            );
+            if sym.is_null() {
+                return Ok(false);
+            }
+            let prefers: unsafe extern "C" fn(*mut std::ffi::c_void) -> i32 =
+                std::mem::transmute(sym);
+            let raw: *mut gtk::gdk::ffi::GdkDisplay = display.to_glib_none().0;
+            Ok(prefers(raw.cast()) != 0)
+        }
     }
 
     fn current_colors() -> FrameColors {

@@ -513,7 +513,11 @@ pub async fn set_desktop_lyrics_bounds(
 ///   (`docs/upstream-blockers.md`, B1) that keeps everything the toolkit
 ///   gives a frame. Only offered where GTK draws the frame, which is its
 ///   Wayland backend: under X11 the window manager does, and a stored
-///   `adwaita` is the desktop's frame there.
+///   `adwaita` is the desktop's frame there. `app` is not offered on a
+///   Wayland compositor that draws the frame itself and keeps it (KWin,
+///   #1089): the window is created decorated, the compositor ignores a
+///   later removal, and the interface's bar would sit under its own. A
+///   stored `app` is the desktop's frame there until XWayland is on.
 /// - **macOS**: dropping the decorations would take the traffic lights with
 ///   them, and drawing our own would be the one thing a macOS user would
 ///   call *not* native. `app` makes the title bar a transparent overlay
@@ -558,13 +562,22 @@ pub enum WindowChrome {
 struct ChromeSupport {
     app: bool,
     adwaita: bool,
+    /// `app` is refused only because the Wayland compositor draws the frame
+    /// whatever the window asks (KWin): XWayland would honour it. Kept
+    /// apart from `app` so the interface can say why and offer the way out.
+    app_needs_xwayland: bool,
 }
 
 impl ChromeSupport {
     fn detect(app: &tauri::AppHandle) -> Self {
+        let platform_app = cfg!(any(target_os = "linux", target_os = "macos"));
+        let compositor_frame = platform_app && crate::adwaita_frame::compositor_draws_frame(app);
         Self {
-            app: cfg!(any(target_os = "linux", target_os = "macos")),
-            adwaita: crate::adwaita_frame::available(app),
+            app: platform_app && !compositor_frame,
+            // GTK draws no frame where the compositor does, so the style has
+            // nothing to restyle there: not offered either.
+            adwaita: crate::adwaita_frame::available(app) && !compositor_frame,
+            app_needs_xwayland: compositor_frame,
         }
     }
 
@@ -652,6 +665,9 @@ pub struct WindowChromeState {
     pub supported: bool,
     /// The choices this platform and launch offer, in display order.
     pub options: Vec<&'static str>,
+    /// `app` is not among `options` because this Wayland compositor draws
+    /// the frame itself; it comes back under XWayland (restart needed).
+    pub app_needs_xwayland: bool,
 }
 
 impl WindowChromeState {
@@ -660,8 +676,11 @@ impl WindowChromeState {
         Self {
             chrome: chrome.as_str().to_string(),
             draw: chrome.draw().to_string(),
-            supported: options.len() > 1,
+            // The card also shows when the only thing to say is why `app`
+            // is missing, or a KDE user is left with a blank page (#1089).
+            supported: options.len() > 1 || support.app_needs_xwayland,
             options,
+            app_needs_xwayland: support.app_needs_xwayland,
         }
     }
 }
