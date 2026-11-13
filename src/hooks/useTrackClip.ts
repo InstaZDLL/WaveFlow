@@ -22,11 +22,14 @@ export function useTrackClip(track: Track | null): TrackClip | null {
   const eligible =
     track !== null && track.id >= 0 && !isNetworkPath(track.file_path);
   const trackId = eligible ? track.id : null;
+  // The path too: a relinked or replaced file keeps its id, and its clip
+  // is looked for beside the new one.
+  const filePath = eligible ? track.file_path : null;
   const [found, setFound] = useState<{
     key: string;
     clip: TrackClip | null;
   } | null>(null);
-  const key = trackId === null ? null : `${profileId}:${trackId}`;
+  const key = trackId === null ? null : `${profileId}:${trackId}:${filePath}`;
 
   useEffect(() => {
     if (trackId === null || key === null) return;

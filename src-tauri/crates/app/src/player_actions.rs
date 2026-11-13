@@ -72,9 +72,6 @@ pub enum Moved {
 /// [`play_and_wait`] and logs what it returns. A caller already inside a
 /// task awaits that directly instead, and can answer its client.
 pub fn play(app: &AppHandle, label: &str) {
-    if route_to_clip(app, ClipControl::Play) {
-        return;
-    }
     let app = app.clone();
     let label = label.to_owned();
     tauri::async_runtime::spawn(async move {
@@ -139,6 +136,10 @@ pub fn pause(app: &AppHandle) {
 /// [`play`]'s rule, awaited, so MPD can answer its client once the work
 /// is done rather than once it is queued.
 pub async fn play_and_wait(app: &AppHandle) -> AppResult<()> {
+    // The open music video's Play, for the overlay and MPD alike.
+    if route_to_clip(app, ClipControl::Play) {
+        return Ok(());
+    }
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
         return Ok(());
     };
