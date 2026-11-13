@@ -3100,7 +3100,9 @@
           "label": "WaveFlow",
           "hint": "Onu WaveFlow çizer ve pencere düğmeleri kendi çubuğunda yer alır."
         }
-      }
+      },
+      "needsXwayland": "Bu Wayland oturumunda pencere çerçevesini her zaman birleştirici (compositor) çizer; bu yüzden WaveFlow onu kendi çubuğuyla değiştiremez. Bu seçeneği kullanmak için XWayland'i açın.",
+      "enableXwayland": "XWayland'i aç"
     },
     "canvasCache": {
       "cacheLabel": "Canvas videolarını yerel olarak kaydet",

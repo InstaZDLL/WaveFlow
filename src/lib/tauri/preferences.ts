@@ -66,6 +66,9 @@ export interface WindowChromeState {
   draw: "none" | "titlebar" | "overlay";
   supported: boolean;
   options: WindowChrome[];
+  /** `app` is missing from `options` because this Wayland compositor
+   *  draws the frame itself; XWayland (next start) brings it back. */
+  app_needs_xwayland: boolean;
 }
 
 export function getWindowChrome(): Promise<WindowChromeState> {

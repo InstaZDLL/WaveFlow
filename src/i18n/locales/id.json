@@ -3098,7 +3098,9 @@
           "label": "WaveFlow",
           "hint": "WaveFlow yang menggambarnya, dan tombol jendela berada di bilahnya sendiri."
         }
-      }
+      },
+      "needsXwayland": "Pada sesi Wayland ini, compositor selalu menggambar bingkai jendela, sehingga WaveFlow tidak dapat menggantinya dengan bilah buatannya sendiri. Aktifkan XWayland untuk mendapatkan pilihan ini.",
+      "enableXwayland": "Aktifkan XWayland"
     },
     "canvasCache": {
       "cacheLabel": "Simpan Canvas secara lokal",

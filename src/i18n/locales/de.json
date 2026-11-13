@@ -3100,7 +3100,9 @@
           "label": "WaveFlow",
           "hint": "WaveFlow zeichnet ihn, und die Fensterknöpfe sitzen in seiner eigenen Leiste."
         }
-      }
+      },
+      "needsXwayland": "In dieser Wayland-Sitzung zeichnet der Compositor den Fensterrahmen immer selbst, WaveFlow kann ihn daher nicht durch eine eigene Leiste ersetzen. Aktiviere XWayland, um diese Auswahl zu erhalten.",
+      "enableXwayland": "XWayland aktivieren"
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokal speichern",

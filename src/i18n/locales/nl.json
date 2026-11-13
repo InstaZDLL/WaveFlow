@@ -3100,7 +3100,9 @@
           "label": "WaveFlow",
           "hint": "WaveFlow tekent hem, en de vensterknoppen zitten in zijn eigen balk."
         }
-      }
+      },
+      "needsXwayland": "In deze Wayland-sessie tekent de compositor altijd het vensterkader, dus WaveFlow kan het niet vervangen door een eigen balk. Schakel XWayland in om deze keuze te krijgen.",
+      "enableXwayland": "XWayland inschakelen"
     },
     "canvasCache": {
       "cacheLabel": "Canvas lokaal opslaan",

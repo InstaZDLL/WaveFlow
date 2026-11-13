@@ -3098,7 +3098,9 @@
           "label": "WaveFlow",
           "hint": "WaveFlow가 직접 그리며, 창 버튼이 WaveFlow의 막대 안에 놓입니다."
         }
-      }
+      },
+      "needsXwayland": "이 Wayland 세션에서는 컴포지터가 항상 창 프레임을 그리므로 WaveFlow가 자체 막대로 대체할 수 없습니다. 이 선택을 사용하려면 XWayland를 켜세요.",
+      "enableXwayland": "XWayland 켜기"
     },
     "canvasCache": {
       "cacheLabel": "Canvas 동영상을 로컬에 저장",

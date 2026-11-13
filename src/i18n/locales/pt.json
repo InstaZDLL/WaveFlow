@@ -3170,7 +3170,9 @@
           "label": "WaveFlow",
           "hint": "É o WaveFlow que a desenha, e os botões da janela ficam na sua própria barra."
         }
-      }
+      },
+      "needsXwayland": "Nesta sessão Wayland, o compositor desenha sempre a moldura da janela, por isso o WaveFlow não a pode substituir pela sua própria barra. Ative o XWayland para ter esta opção.",
+      "enableXwayland": "Ativar o XWayland"
     },
     "canvasCache": {
       "cacheLabel": "Guardar os Canvas localmente",

@@ -3,16 +3,26 @@ use super::*;
 const EVERYTHING: ChromeSupport = ChromeSupport {
     app: true,
     adwaita: true,
+    app_needs_xwayland: false,
 };
 /// macOS, or Linux under X11: no frame GTK draws.
 const NO_ADWAITA: ChromeSupport = ChromeSupport {
     app: true,
     adwaita: false,
+    app_needs_xwayland: false,
+};
+/// KWin on Wayland: the compositor draws the frame and keeps it, so
+/// WaveFlow's own bar would be a second one (#1089).
+const COMPOSITOR_FRAME: ChromeSupport = ChromeSupport {
+    app: false,
+    adwaita: true,
+    app_needs_xwayland: true,
 };
 /// Windows.
 const NOTHING: ChromeSupport = ChromeSupport {
     app: false,
     adwaita: false,
+    app_needs_xwayland: false,
 };
 
 /// A stored choice this session could not put on the window must not
@@ -123,4 +133,30 @@ async fn the_whats_new_marker_starts_absent_and_follows_the_version() {
         read_whats_new_marker(&pool).await.unwrap().as_deref(),
         Some("2.0.0")
     );
+}
+
+/// #1089: on a compositor that keeps drawing its frame, a stored `app`
+/// resolves to the desktop's frame -- not to a title bar drawn under the
+/// compositor's -- and the choice is kept, so it comes back by itself
+/// once XWayland is on.
+#[test]
+fn a_compositor_frame_refuses_app_without_losing_it() {
+    let stored = WindowChrome::App;
+    let resolved = effective_chrome(stored, false, COMPOSITOR_FRAME);
+    assert_eq!(resolved, WindowChrome::System);
+    assert_eq!(resolved.draw(), "none");
+    assert_eq!(effective_chrome(stored, false, NO_ADWAITA), stored);
+}
+
+/// The card has something to say there (why `app` is missing) even when
+/// the only choice left is the desktop's frame.
+#[test]
+fn a_compositor_frame_explains_the_missing_option() {
+    let state = WindowChromeState::new(WindowChrome::System, COMPOSITOR_FRAME);
+    assert!(state.supported);
+    assert!(state.app_needs_xwayland);
+    assert!(!state.options.contains(&"app"));
+    let plain = WindowChromeState::new(WindowChrome::System, NOTHING);
+    assert!(!plain.supported);
+    assert!(!plain.app_needs_xwayland);
 }

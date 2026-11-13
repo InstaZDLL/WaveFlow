@@ -3098,7 +3098,9 @@
           "label": "WaveFlow",
           "hint": "WaveFlow が描き、ウィンドウのボタンは WaveFlow 自身のバーに収まります。"
         }
-      }
+      },
+      "needsXwayland": "この Wayland セッションでは、ウィンドウの枠は常にコンポジターが描画するため、WaveFlow が独自のバーに置き換えることはできません。この選択肢を使うには XWayland を有効にしてください。",
+      "enableXwayland": "XWayland を有効にする"
     },
     "canvasCache": {
       "cacheLabel": "Canvas 動画をローカルに保存",

@@ -3169,7 +3169,9 @@
           "label": "WaveFlow",
           "hint": "Lo dibuja WaveFlow, y los botones de la ventana se sitúan en su propia barra."
         }
-      }
+      },
+      "needsXwayland": "En esta sesión de Wayland, el compositor siempre dibuja el marco de la ventana, así que WaveFlow no puede sustituirlo por su propia barra. Activa XWayland para disponer de esta opción.",
+      "enableXwayland": "Activar XWayland"
     },
     "canvasCache": {
       "cacheLabel": "Guardar los Canvas localmente",
