@@ -42,12 +42,18 @@ interface ImmersiveNowPlayingProps {
 /** The cover's cap. `42vh` assumes the column has the whole height; docked
  *  above the panel it has 55 % of it, and the cover alone would push the
  *  title and the transport out of a 900 × 1200 window. Stacked, the cover
- *  also leaves the column 24rem — the metadata, the transport, the gaps
- *  and the padding (about 22rem, measured), plus some air under the
- *  floating buttons — and never shrinks under 6rem. */
+ *  also leaves the column 26.5rem — the metadata, the transport, the gaps
+ *  and the padding (about 24.5rem, measured), plus some air — and never
+ *  shrinks under 6rem. */
 const COVER_CAP = "max-w-[min(42vh,24rem)]";
 const STACKED_COVER_CAP =
-  "max-w-[min(42vh,24rem,max(6rem,calc(100cqh-24rem)))]";
+  "max-w-[min(42vh,24rem,max(6rem,calc(100cqh-26.5rem)))]";
+/** Stacked, the view's floating buttons sit over this column's top (their
+ *  bar is `py-6` around 42px buttons, 66px down to their bottom edge): a
+ *  short column centred the cover up under them, its corner behind the
+ *  first button on a 600 px window. `pt-20` keeps the cover below them. */
+const PADDING_Y = "py-10";
+const STACKED_PADDING_Y = "pt-20 pb-10";
 
 /**
  * Left column of the immersive view (issue #328): the cover hero, track
@@ -164,7 +170,11 @@ export function ImmersiveNowPlaying({
     // one group so the column never reads as "cover floating at top,
     // controls stranded at the bottom". The cover is sized so the full
     // stack still fits a 1080p viewport at 125 % DPI (see #54).
-    <div className="h-full flex flex-col items-center justify-center text-white px-8 py-10 gap-7 min-h-0">
+    <div
+      className={`h-full flex flex-col items-center justify-center text-white px-8 ${
+        stacked ? STACKED_PADDING_Y : PADDING_Y
+      } gap-7 min-h-0`}
+    >
       {trackMenu.render()}
       <div
         className={`relative w-full ${stacked ? STACKED_COVER_CAP : COVER_CAP} aspect-square shrink-0`}

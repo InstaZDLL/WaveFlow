@@ -41,6 +41,17 @@ import { LINUX } from "../../hooks/usePlayableVideo";
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
  *  desktop widths. */
 const NARROW_BREAKPOINT = 900;
+/** The same floor for a portrait window, where the panel stacks below
+ *  now-playing and does not need the width beside it. Measured: at 600 px
+ *  the cover, the title, the transport and the tabs still fit without
+ *  overlap or overflow. */
+const PORTRAIT_NARROW_BREAKPOINT = 600;
+/** Stacking also needs height: now-playing gets 55 % of it, and its fixed
+ *  part (metadata, transport, gaps, padding) takes about 26.5rem. Below
+ *  this, a window taller than wide (600 × 601) would leave the cover no
+ *  room and push the transport out of a column that does not scroll; at
+ *  1000 px the cover still keeps about 8rem. */
+const STACKED_MIN_HEIGHT = 1000;
 
 /**
  * Theater mode lays the view out as if the window were this wide and
@@ -193,17 +204,25 @@ export function ImmersiveView({
     return () => window.removeEventListener("resize", onResize);
   }, []);
   const viewportWidth = viewport.width;
-  const narrow = viewportWidth < NARROW_BREAKPOINT;
-  // A window taller than wide (a monitor turned to portrait, #1077) has the
-  // height to spare and not the width: the panel goes below now-playing,
-  // across the whole width, instead of beside it in a strip of 40 %.
-  const portrait = viewport.height > viewportWidth;
   const theaterZoom = theater
     ? Math.min(
         THEATER_MAX_ZOOM,
         Math.max(1, viewportWidth / THEATER_BASE_WIDTH),
       )
     : 1;
+  // A window taller than wide (a monitor turned to portrait, #1077) has the
+  // height to spare and not the width: the panel goes below now-playing,
+  // across the whole width, instead of beside it in a strip of 40 %. Only
+  // when there is height enough for it — measured in layout pixels, since
+  // theater mode's zoom shrinks the height the foreground is laid out in.
+  const portrait =
+    viewport.height > viewportWidth &&
+    viewport.height / theaterZoom >= STACKED_MIN_HEIGHT;
+  // Stacked, the layout needs far less width than two columns: a 1080 px
+  // portrait screen at 125 % or 150 % Windows scaling is only 864 or 720
+  // CSS px wide, and would otherwise fall back to the classic view.
+  const narrow =
+    viewportWidth < (portrait ? PORTRAIT_NARROW_BREAKPOINT : NARROW_BREAKPOINT);
 
   // Two genuinely distinct interfaces, chosen by the merged pref (and
   // forced to the classic one on narrow windows where two columns don't
