@@ -511,7 +511,7 @@ export function NowPlayingPanel({
     </div>
   );
   // A clip opened from the menu of another track than the one playing says
-  // whose it is: the cover's title would name the wrong song.
+  // whose it is, and shows on its own (see the body below).
   const foreignClip =
     clipInPanel && clipState.clip?.trackId !== currentTrack?.id
       ? clipState.clip
@@ -597,7 +597,10 @@ export function NowPlayingPanel({
         </div>
       )}
 
-      {currentTrack ? (
+      {/* A clip of another track than the one playing gets the panel to
+          itself: the radio, the album and the artist below are the playing
+          track's, and would read as the clip's. */}
+      {currentTrack && !foreignClip ? (
         <div className={embedded ? "space-y-6 pb-6" : "p-6 space-y-6"}>
           {/* Large artwork — keyboard-accessible lightbox trigger. The
                 Canvas overlay lives on a shared relative wrapper so it still
@@ -705,10 +708,7 @@ export function NowPlayingPanel({
 
           {/* Track info — under the cover, unless a tall Canvas took it
                 over the clip above (or the embedded form, always). */}
-          {clipIdentity ??
-            (!identityOverCover && (
-              <div className={inset}>{trackIdentity}</div>
-            ))}
+          {!identityOverCover && <div className={inset}>{trackIdentity}</div>}
 
           {/* Embedded: where the track comes from, the two actions as
                 pills, and a glimpse of the lyrics that opens their tab. */}
