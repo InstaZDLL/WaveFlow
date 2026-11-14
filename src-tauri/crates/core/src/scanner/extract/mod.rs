@@ -647,9 +647,16 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
             .read()
             .map_err(|e| error_chain(&e))
     };
-    let mut tagged = read(ParsingMode::BestAttempt)
-        .or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))?;
+    let mut tagged = match read(ParsingMode::BestAttempt)
+        .or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
+    {
+        Ok(tagged) => tagged,
+        // A frame declaring UTF-8 over bytes that are not makes lofty refuse the
+        // file: read it again with that declaration corrected.
+        Err(first) => return read_declared_utf8_as_latin1(path).ok_or(first),
+    };
     complete_ape_tag(path, &mut tagged);
+    super::legacy_text::repair_tagged_file(&mut tagged);
     Ok(tagged)
 }
 
@@ -657,6 +664,26 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
 /// `hint` stands in for the extension `Probe::open` would have read, and only
 /// counts when the content does not settle the format.
 pub fn read_tagged_from<R: Read + Seek>(
+    reader: &mut R,
+    hint: Option<FileType>,
+) -> Result<lofty::file::TaggedFile, String> {
+    match read_tagged_plain(reader, hint) {
+        Ok(tagged) => Ok(tagged),
+        Err(first) => {
+            use super::legacy_text::utf8_frames::{invalid_utf8_frames, Patched};
+            let offsets = invalid_utf8_frames(reader).unwrap_or_default();
+            if offsets.is_empty() {
+                return Err(first);
+            }
+            let mut patched = Patched::new(&mut *reader, offsets).map_err(|_| first.clone())?;
+            read_tagged_plain(&mut patched, hint).map_err(|_| first)
+        }
+    }
+}
+
+/// [`read_tagged_from`] without the second chance for a frame that declares
+/// UTF-8 falsely.
+fn read_tagged_plain<R: Read + Seek>(
     reader: &mut R,
     hint: Option<FileType>,
 ) -> Result<lofty::file::TaggedFile, String> {
@@ -681,7 +708,24 @@ pub fn read_tagged_from<R: Read + Seek>(
             .read()
             .map_err(|e| error_chain(&e))
     };
-    read(ParsingMode::BestAttempt).or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
+    let mut tagged = read(ParsingMode::BestAttempt)
+        .or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))?;
+    super::legacy_text::repair_tagged_file(&mut tagged);
+    Ok(tagged)
+}
+
+/// The file at `path` read with its falsely declared UTF-8 frames taken for
+/// Latin-1 (see [`super::legacy_text::utf8_frames`]), or `None` when it has
+/// none or still cannot be read.
+fn read_declared_utf8_as_latin1(path: &Path) -> Option<lofty::file::TaggedFile> {
+    let mut file = fs::File::open(path).ok()?;
+    let hint = FileType::from_path(path);
+    let offsets = super::legacy_text::utf8_frames::invalid_utf8_frames(&mut file).ok()?;
+    if offsets.is_empty() {
+        return None;
+    }
+    let mut patched = super::legacy_text::utf8_frames::Patched::new(file, offsets).ok()?;
+    read_tagged_plain(&mut patched, hint).ok()
 }
 
 /// An error and every cause under it, `outer: inner: …`.

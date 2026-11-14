@@ -26,12 +26,17 @@ pub fn decode(bytes: &[u8]) -> Cow<'_, str> {
     if let Ok(text) = std::str::from_utf8(bytes) {
         return Cow::Borrowed(text);
     }
-    // ISO-2022-JP is 7-bit, so valid UTF-8 and already taken above.
+    guess(bytes).decode_without_bom_handling(bytes).0
+}
+
+/// The encoding `bytes` most likely are in, never UTF-8: a caller has ruled
+/// that out. A guess from a handful of bytes is a guess, so a caller that
+/// changes what it shows by it also checks that the bytes decode cleanly.
+pub fn guess(bytes: &[u8]) -> &'static encoding_rs::Encoding {
+    // ISO-2022-JP is 7-bit, so valid UTF-8 and already taken by the callers.
     let mut detector = EncodingDetector::new(Iso2022JpDetection::Deny);
     detector.feed(bytes, true);
-    // Not UTF-8: that was ruled out by the check above.
-    let encoding = detector.guess(None, Utf8Detection::Deny);
-    encoding.decode_without_bom_handling(bytes).0
+    detector.guess(None, Utf8Detection::Deny)
 }
 
 #[cfg(test)]

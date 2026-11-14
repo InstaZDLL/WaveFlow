@@ -14,6 +14,7 @@ pub mod clips;
 pub mod extra_tags;
 pub mod extract;
 pub mod folders;
+pub mod legacy_text;
 pub mod replay_gain;
 pub mod reserved;
 
