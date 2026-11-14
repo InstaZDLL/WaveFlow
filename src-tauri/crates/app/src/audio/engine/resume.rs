@@ -16,6 +16,10 @@ use crate::podcast::playback::EpisodeLoad;
 pub(crate) struct ParkedSession {
     pub(super) load: LastLoad,
     pub(super) start_ms: u64,
+    /// The user put it at `start_ms` since it was parked
+    /// ([`AudioEngine::seek`]): that position is taken as asked, its last
+    /// two seconds included.
+    pub(super) seeked: bool,
 }
 
 impl ParkedSession {
@@ -31,9 +35,12 @@ impl ParkedSession {
     ///
     /// A park in the track's last two seconds starts it over, as the
     /// persisted resume point does (#898). A stream carries no position
-    /// worth adjusting: its resume starts where the server is.
+    /// worth adjusting: its resume starts where the server is. A position
+    /// the user sought to while parked is kept as it is: that is a choice,
+    /// not a track left finished.
     pub(crate) fn into_command(self, intent: LoadIntent) -> AudioCmd {
         let start_ms = match &self.load.source {
+            _ if self.seeked => self.start_ms,
             LastLoadSource::Local { duration_ms, .. }
             | LastLoadSource::RemoteFile { duration_ms, .. } => {
                 crate::queue::resume_position(self.start_ms, *duration_ms)
@@ -372,6 +379,20 @@ pub(super) fn resume_start_ms(load: &LastLoad, live: LivePosition) -> u64 {
     }
 }
 
+/// The pure half of [`AudioEngine::seek_parked`]: a park that a newer load
+/// has superseded describes a session the user has left, and is not
+/// moved — the seek belongs to whatever replaced it.
+pub(super) fn move_parked(parked: &mut Option<ParkedSession>, superseded: bool, ms: u64) -> bool {
+    match parked.as_mut() {
+        Some(session) if !superseded => {
+            session.start_ms = ms;
+            session.seeked = true;
+            true
+        }
+        _ => false,
+    }
+}
+
 impl AudioEngine {
     /// Whether a device that goes away should park playback instead of
     /// letting it move to whatever the system falls back to (#617).
@@ -509,7 +530,11 @@ impl AudioEngine {
         if let Some(load) = self.shared.last_load() {
             let start_ms = resume_start_ms(&load, live);
             if let Ok(mut guard) = self.parked_resume.lock() {
-                *guard = Some(ParkedSession { load, start_ms });
+                *guard = Some(ParkedSession {
+                    load,
+                    start_ms,
+                    seeked: false,
+                });
             }
         }
         super::super::decoder::transition_state(
@@ -551,6 +576,54 @@ impl AudioEngine {
                 tracing::warn!(%err, "output rebuild: paused resume point not saved");
             }
         });
+    }
+
+    /// Seek what the user is listening to, to `ms`: the loaded track, or
+    /// the session an output rebuild parked. Every seek a user asks for —
+    /// the progress bar, the OS overlay, MPD — goes through here rather
+    /// than sending [`AudioCmd::Seek`] itself.
+    pub fn seek(&self, ms: u64) -> crate::error::AppResult<()> {
+        if self.seek_parked(ms) {
+            return Ok(());
+        }
+        self.send(AudioCmd::Seek(ms))
+    }
+
+    /// Where the user is in what they are listening to: the parked
+    /// session's position while one is held, the decoder's otherwise. A
+    /// relative seek (the OS overlay's skip, MPD's `seekcur +5`) starts
+    /// from here, so two of them in a row add up on a parked session too,
+    /// and so does Previous's choice between restarting the track and
+    /// stepping back.
+    pub fn position_ms(&self) -> u64 {
+        let parked = self.parked_resume.lock().ok().and_then(|guard| {
+            guard
+                .as_ref()
+                .filter(|parked| !self.load_intent_superseded(parked.intent()))
+                .map(|parked| parked.start_ms)
+        });
+        parked.unwrap_or_else(|| self.shared.current_position_ms())
+    }
+
+    /// Move the parked session to `ms`, if one is held, and say whether it
+    /// was.
+    ///
+    /// A parked session has nothing loaded: the rebuild's `Unload` took the
+    /// track away, so a `Seek` reaches a decoder with nothing to seek and is
+    /// dropped, and the next Play picked the session up where it was
+    /// parked. Dragging the progress bar after a device change during a
+    /// pause did nothing, and leaving a music video (#1073) — which pauses
+    /// the track, then seeks it to the clip's position before resuming —
+    /// brought the track back at the moment the clip had been opened
+    /// whenever the output was rebuilt in between.
+    fn seek_parked(&self, ms: u64) -> bool {
+        let Ok(mut guard) = self.parked_resume.lock() else {
+            return false;
+        };
+        let superseded = guard
+            .as_ref()
+            .is_some_and(|parked| self.load_intent_superseded(parked.intent()));
+        move_parked(&mut guard, superseded, ms)
     }
 
     pub(crate) fn clear_parked_resume(&self) {

@@ -477,8 +477,8 @@ pub async fn player_previous(
     let intent = engine.next_load_intent();
     // Same restart-vs-step rule as the local queue applies to a remote
     // one: past 3 s, "previous" restarts the current track.
-    if engine.shared().current_position_ms() > 3000 {
-        return crate::player_actions::restart_current(&engine);
+    if engine.position_ms() > 3000 {
+        return crate::player_actions::restart_current(&app).await;
     }
     if state.podcast_playback.is_active() {
         crate::podcast::playback::advance(

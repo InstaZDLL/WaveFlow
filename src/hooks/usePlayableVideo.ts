@@ -33,6 +33,20 @@ function loopbackBaseUrl(): Promise<string | null> {
 }
 
 /**
+ * The address a `<video>` can play `source` from, by the rules described
+ * above, or `null` when it cannot be set up (no loopback server on Linux).
+ */
+export async function playableVideoSrc(
+  source: string,
+  remote: boolean,
+): Promise<string | null> {
+  if (remote) return source;
+  if (!LINUX) return convertFileSrc(source);
+  const base = await loopbackBaseUrl();
+  return base ? `${base}&path=${encodeURIComponent(source)}` : null;
+}
+
+/**
  * Point `ref`'s `<video>` at a Canvas clip or a motion cover. `remote` URLs
  * (a plugin's, a server's ticketed one, an uncached motion cover) load as
  * they are; a local path goes through the asset protocol, or on Linux
@@ -56,13 +70,13 @@ export function usePlayableVideo(
     }
 
     let cancelled = false;
-    void loopbackBaseUrl().then((base) => {
+    void playableVideoSrc(source, false).then((src) => {
       if (cancelled) return;
-      if (!base) {
+      if (!src) {
         setFailed(true);
         return;
       }
-      video.src = `${base}&path=${encodeURIComponent(source)}`;
+      video.src = src;
     });
 
     return () => {

@@ -142,13 +142,86 @@ fn a_park_at_the_very_end_resumes_from_the_start() {
             replay_gain: TrackGain::default(),
         };
         let load = LastLoad::capture(&cmd).expect("a load is captured");
-        match (ParkedSession { load, start_ms }).into_command(LoadIntent::from_raw(2)) {
+        match (ParkedSession {
+            load,
+            start_ms,
+            seeked: false,
+        })
+        .into_command(LoadIntent::from_raw(2))
+        {
             AudioCmd::LoadAndPlay { start_ms, .. } => start_ms,
             _ => panic!("a library track resumes as LoadAndPlay"),
         }
     };
     assert_eq!(park(199_000), 0);
     assert_eq!(park(60_000), 60_000);
+}
+
+fn parked_at(start_ms: u64) -> Option<ParkedSession> {
+    // Long enough that neither position falls in the last two seconds,
+    // which a resume starts over from.
+    let cmd = AudioCmd::LoadAndPlay {
+        intent: LoadIntent::from_raw(1),
+        path: PathBuf::from("/dev/null"),
+        start_ms: 0,
+        track_id: 42,
+        duration_ms: 200_000,
+        source_type: "album".into(),
+        source_id: Some(7),
+        replay_gain: TrackGain::default(),
+    };
+    let load = LastLoad::capture(&cmd).expect("a load is captured");
+    Some(ParkedSession {
+        load,
+        start_ms,
+        seeked: false,
+    })
+}
+
+fn resumes_at(parked: Option<ParkedSession>) -> u64 {
+    match parked
+        .expect("still parked")
+        .into_command(LoadIntent::from_raw(2))
+    {
+        AudioCmd::LoadAndPlay { start_ms, .. } => start_ms,
+        _ => panic!("a library track resumes as LoadAndPlay"),
+    }
+}
+
+#[test]
+fn a_seek_moves_a_parked_session() {
+    // Nothing is loaded while a session is parked, so a `Seek` sent to the
+    // decoder was dropped and Play brought the track back where it was
+    // parked: leaving a music video put the track back at the moment the
+    // clip was opened (#1073).
+    let mut parked = parked_at(10_000);
+    assert!(super::resume::move_parked(&mut parked, false, 60_000));
+    assert_eq!(resumes_at(parked), 60_000);
+}
+
+#[test]
+fn a_seek_into_the_last_two_seconds_is_kept() {
+    // A park left there starts over (#898); a seek the user asked for is
+    // a choice, and leaving a clip that ran past the song puts the track
+    // just before its end on purpose.
+    let mut parked = parked_at(10_000);
+    assert!(super::resume::move_parked(&mut parked, false, 199_500));
+    assert_eq!(resumes_at(parked), 199_500);
+}
+
+#[test]
+fn a_seek_leaves_a_superseded_park_alone() {
+    // The user has moved on to another load: the seek is that load's.
+    let mut parked = parked_at(10_000);
+    assert!(!super::resume::move_parked(&mut parked, true, 60_000));
+    assert_eq!(resumes_at(parked), 10_000);
+}
+
+#[test]
+fn a_seek_with_nothing_parked_goes_to_the_decoder() {
+    let mut parked = None;
+    assert!(!super::resume::move_parked(&mut parked, false, 60_000));
+    assert!(parked.is_none());
 }
 
 #[test]
