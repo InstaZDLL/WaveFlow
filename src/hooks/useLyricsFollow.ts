@@ -144,7 +144,8 @@ export function useLyricsFollow({
   }, [activeIndex, enabled, browsing, lineRefs]);
 
   // ── The sung line coming into view ────────────────────────────────
-  // Whether the sung line has been out of view since the browsing began.
+  // Whether the sung line has been out of view (less than half of it shown)
+  // since the browsing began.
   // Kept across line changes: the line before was out of view and this one
   // is in it is the music reaching what the user scrolled ahead to.
   const outOfView = useRef(false);
@@ -160,9 +161,9 @@ export function useLyricsFollow({
       // out of view then back in it within one callback still resumes.
       (entries) => {
         for (const entry of entries) {
-          if (!entry.isIntersecting) {
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
             outOfView.current = true;
-          } else if (outOfView.current && entry.intersectionRatio >= 0.5) {
+          } else if (outOfView.current) {
             setBrowsingFor(null);
             return;
           }
