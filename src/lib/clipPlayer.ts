@@ -64,6 +64,10 @@ let epoch = 0;
  *  and says nothing about where the clip is. */
 let video: { session: number; element: HTMLVideoElement } | null = null;
 let videoPositioned = false;
+/** Elements already put at their clip's position. One element serves a
+ *  whole session and moves between surfaces without reloading, so its
+ *  metadata loads once: a surface that adopts it later finds it placed. */
+const positionedElements = new WeakSet<HTMLVideoElement>();
 const listeners = new Set<() => void>();
 
 function set(next: Partial<ClipState>) {
@@ -163,8 +167,8 @@ export function requestBackToAudio(exit: ClipExit = "user"): void {
 
 /**
  * The surface showing the clip hands its `<video>` over, for `session`. The
- * element is resumed at the clip's position and in its play state, so a
- * move between surfaces does not restart it.
+ * session's one element moves between surfaces as it plays, so a move does
+ * not restart it.
  */
 export function attachClipVideo(
   session: number,
@@ -172,7 +176,7 @@ export function attachClipVideo(
 ): void {
   if (!isCurrentClipSession(session)) return;
   video = { session, element };
-  videoPositioned = false;
+  videoPositioned = positionedElements.has(element);
 }
 
 /** The surface lets go of its element. Its position is kept for the next
@@ -190,8 +194,13 @@ export function detachClipVideo(
 }
 
 /** The element of `session` now stands at the clip's position. */
-export function markClipPositioned(session: number): void {
-  if (video?.session === session) videoPositioned = true;
+export function markClipPositioned(
+  session: number,
+  element: HTMLVideoElement,
+): void {
+  if (!isCurrentClipSession(session)) return;
+  positionedElements.add(element);
+  if (video?.element === element) videoPositioned = true;
 }
 
 /** What the element of `session` reports, for the transport. Ignored once
