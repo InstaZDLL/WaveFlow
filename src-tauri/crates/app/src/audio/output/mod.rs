@@ -944,12 +944,14 @@ enum StreamErrorClass {
     /// A notice that leaves the stream playing: a default-device stream
     /// rerouted by the OS, or real-time scheduling refused.
     PlaysOn,
-    /// Something went wrong with the stream; `device_gone` when the
-    /// stream is over and only a rebuild brings the output back: the
-    /// device went away, or the stream was invalidated — cpal 0.18 on
+    /// The stream is over but the device is still there: cpal 0.18 on
     /// macOS pauses the stream itself and says `StreamInvalidated` when
     /// another app changes the device's sample rate, and WASAPI says it
-    /// for `AUDCLNT_E_RESOURCES_INVALIDATED`.
+    /// for `AUDCLNT_E_RESOURCES_INVALIDATED`. Nothing more will come from
+    /// such a stream, so a single one has to lead to a rebuild.
+    Invalidated,
+    /// Something went wrong with the stream; `device_gone` when the
+    /// device itself went away.
     Fault { device_gone: bool },
 }
 
@@ -959,12 +961,15 @@ fn stream_error_class(kind: cpal::ErrorKind) -> StreamErrorClass {
         cpal::ErrorKind::DeviceChanged | cpal::ErrorKind::RealtimeDenied => {
             StreamErrorClass::PlaysOn
         }
-        cpal::ErrorKind::DeviceNotAvailable | cpal::ErrorKind::StreamInvalidated => {
-            StreamErrorClass::Fault { device_gone: true }
-        }
+        cpal::ErrorKind::StreamInvalidated => StreamErrorClass::Invalidated,
+        cpal::ErrorKind::DeviceNotAvailable => StreamErrorClass::Fault { device_gone: true },
         _ => StreamErrorClass::Fault { device_gone: false },
     }
 }
+
+/// The largest sample that converts to `I24` without overflow:
+/// `(2^23 - 1) / 2^23`, exact in an `f32`.
+const I24_CEILING: f32 = 8_388_607.0 / 8_388_608.0;
 
 /// What a stream's two callbacks own: the ring's consumer and the shared
 /// state for the data callback; the app handle, the stall signal and the
@@ -1022,6 +1027,12 @@ where
     // no recovering stream reaches ([`StreamErrorStorm::on_xrun`]).
     let err_shared = shared.clone();
     let err_app = app.clone();
+    // The conversion to `I24` does not saturate: +1.0 becomes 2^23, one
+    // past the format's largest value, which the 24 bits of an `S24LE`
+    // word read as -2^23 — a full-scale click on every positive peak.
+    // `i16` and `i32` saturate in the cast, and floats are written as is.
+    let bound_i24 = T::FORMAT == SampleFormat::I24;
+    let mut invalidated = false;
     let mut storm = StreamErrorStorm::default();
     let err_fn = move |err: cpal::Error| {
         let now = std::time::Instant::now();
@@ -1032,6 +1043,23 @@ where
             }
             StreamErrorClass::PlaysOn => {
                 tracing::info!(?err, "cpal stream notice");
+                StormAction::Quiet
+            }
+            // Handed to the output thread like a storm, rather than to the
+            // device-loss rebuild: that one is dropped when the rebuild gate
+            // is settling, and an invalidated stream says nothing again,
+            // while the output thread drops the stream and asks until a
+            // rebuild replaces it. The device is still there, so nothing is
+            // reported to the user and the rebuild resumes playback.
+            StreamErrorClass::Invalidated => {
+                if !invalidated {
+                    invalidated = true;
+                    tracing::warn!(
+                        ?err,
+                        "cpal stream invalidated; dropping it and rebuilding the output"
+                    );
+                    let _ = stall_tx.try_send(());
+                }
                 StormAction::Quiet
             }
             StreamErrorClass::Fault { device_gone } => storm.on_error(now, device_gone),
@@ -1112,7 +1140,12 @@ where
                         }
                         Err(_) => 0.0,
                     };
-                    *slot = T::from_sample(sample * volume * norm_gain);
+                    let value = sample * volume * norm_gain;
+                    *slot = T::from_sample(if bound_i24 {
+                        value.min(I24_CEILING)
+                    } else {
+                        value
+                    });
                 }
 
                 if written > 0 {

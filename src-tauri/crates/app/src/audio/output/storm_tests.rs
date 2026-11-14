@@ -148,10 +148,10 @@ fn an_xrun_is_recovered_and_a_lost_device_is_a_fault() {
         StreamErrorClass::Fault { device_gone: true }
     );
     // A paused stream that only a rebuild restarts (macOS, after another
-    // app changed the device rate): one occurrence must rebuild.
+    // app changed the device rate), with the device still there.
     assert_eq!(
         stream_error_class(cpal::ErrorKind::StreamInvalidated),
-        StreamErrorClass::Fault { device_gone: true }
+        StreamErrorClass::Invalidated
     );
     assert_eq!(
         stream_error_class(cpal::ErrorKind::BackendError),

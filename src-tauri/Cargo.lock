@@ -329,6 +329,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1254ebf6529f3763c491acfb5ab6e960809e3c75a38584cc664f8c5667fb7107"
 
 [[package]]
+name = "audio_thread_priority"
+version = "0.35.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b1b4a0adbf971420cca66a75361a1190f34a6762d66361e5cde03dda35d1ed3"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "log",
+ "mach2 0.4.3",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "audioadapter"
 version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -971,13 +984,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f02e8d0327b42d3e2e4ab2119af397344eb9fc54a34bf0ddeaa1277af8681f1"
 dependencies = [
  "alsa",
+ "alsa-sys",
+ "audio_thread_priority",
  "block2",
  "coreaudio-rs",
  "dasp_sample",
  "jni 0.22.4",
  "js-sys",
  "libc",
- "mach2",
+ "mach2 0.6.0",
  "ndk",
  "ndk-context",
  "num-derive",
@@ -1164,7 +1179,7 @@ checksum = "127c50e5e2b2b97116d4e2c079db6ce29b07303cd1ab48a8bb4c2abbf16a7a68"
 dependencies = [
  "cranelift-codegen",
  "libc",
- "mach2",
+ "mach2 0.6.0",
  "target-lexicon 0.13.5",
 ]
 
@@ -3369,6 +3384,15 @@ checksum = "f3d0581a75c45969c63afd2bb87b1d8b25cfcc556c7a918cf9bb13b0fe8d2381"
 dependencies = [
  "nix",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "mach2"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -7706,7 +7730,7 @@ dependencies = [
  "futures",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "memfd",
  "object",
  "once_cell",
