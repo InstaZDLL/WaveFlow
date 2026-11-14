@@ -146,10 +146,18 @@ pub fn stop(app: &AppHandle) {
 /// the music, so the track plays from its start and the clip gives way
 /// (the frontend closes it when the track starts). Shared by the frontend's
 /// command and the other surfaces.
-pub fn restart_current(engine: &AudioEngine) -> AppResult<()> {
+///
+/// The track starts through [`start_track`], not a bare `Resume`: an
+/// output rebuild during the clip parks the paused track with nothing
+/// loaded, the decoder drops a `Resume` then, and Previous did nothing —
+/// the track stayed stopped and the clip stayed open. On a machine where
+/// the sound server drops the stream each time a clip opens, that was the
+/// usual case, not a rare one.
+pub async fn restart_current(app: &AppHandle) -> AppResult<()> {
+    let engine = app.state::<Arc<AudioEngine>>();
     engine.seek(0)?;
     if CLIP_OPEN.load(Ordering::Acquire) {
-        engine.send(AudioCmd::Resume)?;
+        start_track(app).await?;
     }
     Ok(())
 }
@@ -172,6 +180,14 @@ pub async fn play_and_wait(app: &AppHandle) -> AppResult<()> {
     if route_to_clip(app, ClipControl::Play) {
         return Ok(());
     }
+    start_track(app).await
+}
+
+/// Play the track, whatever state it is in: resume a paused one, load the
+/// session from where it was otherwise — a session an output rebuild
+/// parked first, then the persisted resume point ([`resume_last`]). A bare
+/// `AudioCmd::Resume` only ever reaches a paused track.
+async fn start_track(app: &AppHandle) -> AppResult<()> {
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
         return Ok(());
     };
@@ -456,7 +472,9 @@ pub async fn next(app: &AppHandle, label: &str) -> Moved {
 pub async fn previous(app: &AppHandle, label: &str) -> Moved {
     let engine = app.state::<Arc<AudioEngine>>();
     if engine.position_ms() > PREVIOUS_RESTART_THRESHOLD_MS {
-        let _ = restart_current(&engine);
+        if let Err(err) = restart_current(app).await {
+            tracing::warn!(%err, "{label} previous: restart failed");
+        }
         return Moved::Restarted;
     }
     if let Some(moved) = try_podcast_advance(app, Direction::Previous, label).await {
