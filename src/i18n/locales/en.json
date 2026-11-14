@@ -4867,9 +4867,12 @@
   "clip": {
     "play": "Play the clip",
     "label": "Clip of {{title}}",
-    "backToAudio": "Back to audio",
     "unplayableTitle": "This clip can't be played here",
     "unplayableBody": "This system's video player doesn't support this video's format. The track stays paused where it was.",
-    "exclusiveNoSound": "No sound for the clip in exclusive output: turn it off to hear it."
+    "exclusiveNoSound": "No sound for the clip in exclusive output: turn it off to hear it.",
+    "switchToVideo": "Switch to video",
+    "switchToAudio": "Switch to audio",
+    "expand": "Enlarge the video",
+    "shrink": "Shrink the video"
   }
 }

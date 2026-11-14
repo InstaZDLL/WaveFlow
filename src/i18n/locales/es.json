@@ -5007,9 +5007,12 @@
   "clip": {
     "play": "Reproducir el videoclip",
     "label": "Videoclip de {{title}}",
-    "backToAudio": "Volver al audio",
     "unplayableTitle": "Este videoclip no se puede reproducir aquí",
     "unplayableBody": "El reproductor de vídeo de este sistema no admite el formato de este vídeo. La pista sigue en pausa donde estaba.",
-    "exclusiveNoSound": "El videoclip no tiene sonido con la salida exclusiva: desactívala para oírlo."
+    "exclusiveNoSound": "El videoclip no tiene sonido con la salida exclusiva: desactívala para oírlo.",
+    "switchToVideo": "Cambiar al vídeo",
+    "switchToAudio": "Cambiar al audio",
+    "expand": "Ampliar el vídeo",
+    "shrink": "Reducir el vídeo"
   }
 }

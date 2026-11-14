@@ -14,6 +14,7 @@ import {
 import { toggleLikeTrack } from "../lib/tauri/track";
 import { openFilesToPlay, openFolderToPlay } from "../lib/openToPlay";
 import { isStreamTrack } from "../lib/playerSources";
+import { clipState, toggleClip } from "../lib/clipPlayer";
 
 /**
  * Wires global keyboard shortcuts to PlayerContext actions. Mounted
@@ -129,7 +130,10 @@ async function dispatch(
 ) {
   switch (action) {
     case "togglePlayback":
-      await player.togglePlayback();
+      // The music video's, while one is shown (#1073): the track waits
+      // paused under it, and starting it would close the clip.
+      if (clipState().clip !== null) toggleClip();
+      else await player.togglePlayback();
       break;
     case "next":
       await player.next();

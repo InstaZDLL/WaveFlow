@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { X, Music2, Radio, User } from "lucide-react";
+import {
+  X,
+  Music2,
+  Radio,
+  User,
+  Clapperboard,
+  Maximize2,
+  Music,
+} from "lucide-react";
 import { LyricsPreviewCard } from "./fluid/LyricsPreviewCard";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -30,6 +38,13 @@ import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { CanvasStage } from "../player/CanvasStage";
 import { CoverSlideshow } from "../player/CoverSlideshow";
 import { CanvasToggleButton } from "../player/CanvasToggleButton";
+import { ClipVideo } from "../player/ClipVideo";
+import { useTrackClip } from "../../hooks/useTrackClip";
+import {
+  openClipForTrack,
+  requestBackToAudio,
+  useClipState,
+} from "../../lib/clipPlayer";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
 import { enrichArtistByName, enrichArtistDeezer } from "../../lib/tauri/detail";
@@ -81,6 +96,8 @@ export function NowPlayingPanel({
     openRightPanel,
     currentTrack,
     isNowPlayingOpen,
+    immersiveOpen,
+    openImmersive,
   } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
@@ -401,7 +418,14 @@ export function NowPlayingPanel({
   // reference does it (#694). They differ only in the colours they can
   // afford: over a clip whose palette we cannot know, white on a scrim is
   // the only safe pair, so the panel's own zinc scale is out.
-  const identityOverCover = canvasTall || embedded;
+  // The track's music video (#1073). It plays here, in place of the cover,
+  // unless the immersive view is open, which shows it enlarged instead
+  // (`ClipHost` keeps one surface at a time).
+  const trackClip = useTrackClip(currentTrack);
+  const clipState = useClipState();
+  const clipOpen = clipState.clip !== null;
+  const clipInPanel = clipOpen && !immersiveOpen;
+  const identityOverCover = !clipInPanel && (canvasTall || embedded);
   const identityTone = identityOverCover
     ? {
         title: "text-white",
@@ -499,24 +523,64 @@ export function NowPlayingPanel({
                 height cap so the aspect ratio survives the clamp: a definite
                 width lets `aspect-ratio` derive the height, where a
                 `max-height` would just squash the box out of ratio. */}
-          <div
-            className={`relative mx-auto transition-[width,aspect-ratio] duration-500 ${canvasTall ? "" : "w-full"} ${embedded ? "fe-panel__hero" : ""}`}
-            style={
-              canvasTall && clipAspect != null
-                ? {
-                    aspectRatio: clipAspect,
-                    width: `min(100%, calc(56vh * ${clipAspect}))`,
-                  }
-                : undefined
-            }
-          >
-            {currentTrack.artwork_path ? (
+          {clipInPanel ? (
+            // The clip in place of the cover, in a frame of its own shape:
+            // a music video is landscape far more often than square.
+            <div
+              className={`relative mx-auto w-full overflow-hidden rounded-2xl bg-black ${embedded ? "fe-panel__hero" : "shadow-lg"}`}
+              style={{ aspectRatio: clipState.aspect ?? 16 / 9 }}
+            >
+              <ClipVideo className="h-full w-full" />
               <button
                 type="button"
-                onClick={() => setIsLightboxOpen(true)}
-                aria-label={t("common.viewArtwork")}
-                className={`relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full ${canvasTall ? "h-full" : ""}`}
+                onClick={() => openImmersive("nowPlaying")}
+                aria-label={t("clip.expand")}
+                title={t("clip.expand")}
+                className="absolute end-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white/85 transition-colors hover:text-white"
               >
+                <Maximize2 size={16} />
+              </button>
+            </div>
+          ) : (
+            <div
+              className={`relative mx-auto transition-[width,aspect-ratio] duration-500 ${canvasTall ? "" : "w-full"} ${embedded ? "fe-panel__hero" : ""}`}
+              style={
+                canvasTall && clipAspect != null
+                  ? {
+                      aspectRatio: clipAspect,
+                      width: `min(100%, calc(56vh * ${clipAspect}))`,
+                    }
+                  : undefined
+              }
+            >
+              {currentTrack.artwork_path ? (
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  aria-label={t("common.viewArtwork")}
+                  className={`relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full ${canvasTall ? "h-full" : ""}`}
+                >
+                  <Artwork
+                    path={currentTrack.artwork_path}
+                    path1x={currentTrack.artwork_path_1x}
+                    path2x={currentTrack.artwork_path_2x}
+                    size="full"
+                    alt={currentTrack.album_title ?? currentTrack.title}
+                    className={coverClass}
+                    iconSize={80}
+                    rounded="2xl"
+                  />
+                  {!canvasActive && (
+                    <MotionCoverOverlay
+                      artist={currentTrack.artist_name}
+                      album={currentTrack.album_title}
+                      albumId={currentTrack.album_id}
+                      rounded="2xl"
+                      className="shadow-lg"
+                    />
+                  )}
+                </button>
+              ) : (
                 <Artwork
                   path={currentTrack.artwork_path}
                   path1x={currentTrack.artwork_path_1x}
@@ -527,71 +591,81 @@ export function NowPlayingPanel({
                   iconSize={80}
                   rounded="2xl"
                 />
-                {!canvasActive && (
-                  <MotionCoverOverlay
-                    artist={currentTrack.artist_name}
-                    album={currentTrack.album_title}
-                    albumId={currentTrack.album_id}
-                    rounded="2xl"
-                    className="shadow-lg"
-                  />
-                )}
-              </button>
-            ) : (
-              <Artwork
-                path={currentTrack.artwork_path}
-                path1x={currentTrack.artwork_path_1x}
-                path2x={currentTrack.artwork_path_2x}
-                size="full"
-                alt={currentTrack.album_title ?? currentTrack.title}
-                className={coverClass}
-                iconSize={80}
+              )}
+              <CanvasStage
+                path={canvasPath}
+                enabled={canvasEnabled && !reducedMotion}
                 rounded="2xl"
+                className="shadow-lg"
+                onAspect={(path, aspect) => setCanvasShape({ path, aspect })}
               />
-            )}
-            <CanvasStage
-              path={canvasPath}
-              enabled={canvasEnabled && !reducedMotion}
-              rounded="2xl"
-              className="shadow-lg"
-              onAspect={(path, aspect) => setCanvasShape({ path, aspect })}
-            />
-            <CoverSlideshow
-              artistSrc={slideshow.artistSrc}
-              enabled={slideshow.active}
-              rounded="2xl"
-              className="shadow-lg"
-            />
-            {/* Over the clip's lower part, the way the reference does it:
-                  with the square frame gone there is nothing else holding
-                  that space, and the scrim is what makes white text safe
-                  over colours we cannot know in advance. */}
-            {identityOverCover && (
-              <div
-                className={`absolute inset-x-0 bottom-0 rounded-b-2xl bg-linear-to-t from-black/80 via-black/45 to-transparent ${embedded ? "px-6 pb-5 pt-16" : "p-4"}`}
+              <CoverSlideshow
+                artistSrc={slideshow.artistSrc}
+                enabled={slideshow.active}
+                rounded="2xl"
+                className="shadow-lg"
+              />
+              {/* Over the clip's lower part, the way the reference does it:
+                    with the square frame gone there is nothing else holding
+                    that space, and the scrim is what makes white text safe
+                    over colours we cannot know in advance. */}
+              {identityOverCover && (
+                <div
+                  className={`absolute inset-x-0 bottom-0 rounded-b-2xl bg-linear-to-t from-black/80 via-black/45 to-transparent ${embedded ? "px-6 pb-5 pt-16" : "p-4"}`}
+                >
+                  {trackIdentity}
+                </div>
+              )}
+              {/* Embedded, the Canvas toggle sits on the cover's corner:
+                    the shell's bar has no room for a per-tab control. */}
+              {embedded && canvasAvailable && (
+                <CanvasToggleButton
+                  enabled={canvasEnabled}
+                  onToggle={() => setCanvasEnabled(!canvasEnabled)}
+                  size={16}
+                  className={`absolute end-3 top-3 z-10 rounded-full p-2 transition-colors ${
+                    canvasEnabled
+                      ? "bg-black/55 text-[var(--fe-accent)]"
+                      : "bg-black/45 text-white/80 hover:text-white"
+                  }`}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Switch between the track and its music video (#1073): the two
+                line up at the moment of the switch, in either direction. */}
+          {(clipOpen || trackClip) && (
+            <div className={inset}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (clipOpen) {
+                    requestBackToAudio("user");
+                  } else if (trackClip && currentTrack) {
+                    openClipForTrack(
+                      currentTrack,
+                      trackClip.localPath,
+                      currentTrack.id,
+                    );
+                  }
+                }}
+                aria-pressed={clipOpen}
+                className={
+                  embedded
+                    ? "fe-panel__pill w-full"
+                    : "w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
+                }
               >
-                {trackIdentity}
-              </div>
-            )}
-            {/* Embedded, the Canvas toggle sits on the cover's corner:
-                  the shell's bar has no room for a per-tab control. */}
-            {embedded && canvasAvailable && (
-              <CanvasToggleButton
-                enabled={canvasEnabled}
-                onToggle={() => setCanvasEnabled(!canvasEnabled)}
-                size={16}
-                className={`absolute end-3 top-3 z-10 rounded-full p-2 transition-colors ${
-                  canvasEnabled
-                    ? "bg-black/55 text-[var(--fe-accent)]"
-                    : "bg-black/45 text-white/80 hover:text-white"
-                }`}
-              />
-            )}
-          </div>
+                {clipOpen ? <Music size={16} /> : <Clapperboard size={16} />}
+                {clipOpen ? t("clip.switchToAudio") : t("clip.switchToVideo")}
+              </button>
+            </div>
+          )}
 
           {/* Track info — under the cover, unless a tall Canvas took it
                 over the clip above (or the embedded form, always). */}
-          {!identityOverCover && trackIdentity}
+          {!identityOverCover && <div className={inset}>{trackIdentity}</div>}
 
           {/* Embedded: where the track comes from, the two actions as
                 pills, and a glimpse of the lyrics that opens their tab. */}

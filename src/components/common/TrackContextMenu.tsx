@@ -34,7 +34,7 @@ import { TrackMoodSubmenu } from "./TrackMoodSubmenu";
 import { openTagWorkshop } from "../../lib/tagWorkshop";
 import { useTrackClip } from "../../hooks/useTrackClip";
 import { usePlayer } from "../../hooks/usePlayer";
-import { openClip } from "../../lib/clipPlayer";
+import { openClipForTrack } from "../../lib/clipPlayer";
 
 export interface TrackContextMenuProps {
   point: ContextMenuPoint;
@@ -107,7 +107,7 @@ export function TrackContextMenu({
   onShowBatchEdit,
 }: TrackContextMenuProps) {
   const { t } = useTranslation();
-  const { openImmersive } = usePlayer();
+  const { openRightPanel, currentTrack } = usePlayer();
   // The track's music video (#1073), looked up as the menu opens: the
   // entry appears once the disk has answered, and only when there is one.
   const clip = useTrackClip(track);
@@ -162,13 +162,9 @@ export function TrackContextMenu({
           icon={<Clapperboard size={14} />}
           label={t("clip.play")}
           onSelect={closeAfter(() => {
-            openClip({
-              trackId: track.id,
-              localPath: clip.localPath,
-              title: track.title,
-              artist: track.artist_name,
-            });
-            openImmersive("nowPlaying");
+            openClipForTrack(track, clip.localPath, currentTrack?.id ?? null);
+            // The clip shows in the now-playing panel, enlarged from there.
+            openRightPanel("nowPlaying");
           })}
         />
       )}

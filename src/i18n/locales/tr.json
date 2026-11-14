@@ -4867,9 +4867,12 @@
   "clip": {
     "play": "Klibi oynat",
     "label": "{{title}} klibi",
-    "backToAudio": "Sese dön",
     "unplayableTitle": "Bu klip burada oynatılamıyor",
     "unplayableBody": "Bu sistemin video oynatıcısı bu videonun biçimini desteklemiyor. Parça bulunduğu yerde duraklatılmış olarak kalır.",
-    "exclusiveNoSound": "Özel çıkışta klibin sesi yok: duymak için kapatın."
+    "exclusiveNoSound": "Özel çıkışta klibin sesi yok: duymak için kapatın.",
+    "switchToVideo": "Videoya geç",
+    "switchToAudio": "Sese geç",
+    "expand": "Videoyu büyüt",
+    "shrink": "Videoyu küçült"
   }
 }

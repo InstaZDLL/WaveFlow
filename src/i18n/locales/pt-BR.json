@@ -5020,9 +5020,12 @@
   "clip": {
     "play": "Reproduzir o clipe",
     "label": "Clipe de {{title}}",
-    "backToAudio": "Voltar ao áudio",
     "unplayableTitle": "Este clipe não pode ser reproduzido aqui",
     "unplayableBody": "O player de vídeo deste sistema não suporta o formato deste vídeo. A faixa continua pausada onde estava.",
-    "exclusiveNoSound": "Sem som para o clipe com a saída exclusiva: desative-a para ouvi-lo."
+    "exclusiveNoSound": "Sem som para o clipe com a saída exclusiva: desative-a para ouvi-lo.",
+    "switchToVideo": "Mudar para o vídeo",
+    "switchToAudio": "Mudar para o áudio",
+    "expand": "Ampliar o vídeo",
+    "shrink": "Reduzir o vídeo"
   }
 }

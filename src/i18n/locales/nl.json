@@ -4867,9 +4867,12 @@
   "clip": {
     "play": "Videoclip afspelen",
     "label": "Videoclip van {{title}}",
-    "backToAudio": "Terug naar audio",
     "unplayableTitle": "Deze videoclip kan hier niet worden afgespeeld",
     "unplayableBody": "De videospeler van dit systeem ondersteunt het formaat van deze video niet. Het nummer blijft gepauzeerd waar het was.",
-    "exclusiveNoSound": "Geen geluid voor de videoclip bij exclusieve uitvoer: schakel die uit om het te horen."
+    "exclusiveNoSound": "Geen geluid voor de videoclip bij exclusieve uitvoer: schakel die uit om het te horen.",
+    "switchToVideo": "Naar video",
+    "switchToAudio": "Naar audio",
+    "expand": "Video vergroten",
+    "shrink": "Video verkleinen"
   }
 }
