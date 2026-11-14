@@ -1809,7 +1809,8 @@
       "fullscreen": "全螢幕",
       "edit": "編輯歌詞",
       "cycleLocalization": "切換輔助文字",
-      "searchAnyway": "仍然搜尋"
+      "searchAnyway": "仍然搜尋",
+      "backToPlayback": "回到播放位置"
     },
     "localization": {
       "off": "不顯示輔助文字",

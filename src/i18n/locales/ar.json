@@ -2003,7 +2003,8 @@
       "fullscreen": "ملء الشاشة",
       "edit": "تعديل الكلمات",
       "cycleLocalization": "تغيير السطر الإضافي",
-      "searchAnyway": "البحث على أي حال"
+      "searchAnyway": "البحث على أي حال",
+      "backToPlayback": "العودة إلى موضع التشغيل"
     },
     "localization": {
       "off": "بدون سطر إضافي",

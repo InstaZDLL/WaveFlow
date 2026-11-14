@@ -1872,7 +1872,8 @@
       "fullscreen": "Schermo intero",
       "edit": "Modifica i testi",
       "cycleLocalization": "Cambia la lettura aggiuntiva",
-      "searchAnyway": "Cerca comunque"
+      "searchAnyway": "Cerca comunque",
+      "backToPlayback": "Torna alla riproduzione"
     },
     "localization": {
       "off": "Nessuna lettura aggiuntiva",

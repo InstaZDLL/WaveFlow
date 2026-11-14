@@ -1811,7 +1811,8 @@
       "fullscreen": "Tam ekran",
       "edit": "Sözleri düzenle",
       "cycleLocalization": "Ek metni değiştir",
-      "searchAnyway": "Yine de ara"
+      "searchAnyway": "Yine de ara",
+      "backToPlayback": "Çalan satıra dön"
     },
     "localization": {
       "off": "Ek metin yok",

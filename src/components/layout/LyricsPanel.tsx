@@ -39,6 +39,8 @@ import { useLyricsShare } from "../../hooks/useLyricsShare";
 import { LYRICS_WORD_TRANSITION, lyricsLineClass } from "../../lib/lyricsLine";
 import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
+import { LyricsResumeButton } from "../player/LyricsResumeButton";
+import { useLyricsFollow } from "../../hooks/useLyricsFollow";
 import { ContextTip } from "../discovery/ContextTip";
 import { useTip } from "../discovery/useTip";
 import {
@@ -183,20 +185,19 @@ export function LyricsPanel({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [editorWanted, isFetching, currentTrack, noLibraryRow]);
 
-  // ── Active-line auto-scroll (view-local) ─────────────────────────
-  // The active index itself comes from the shared hook; only the
-  // scroll-into-view (which targets *this* panel's line nodes) lives
-  // here. The immersive view keeps its own ref array + scroll effect.
+  // ── Following the sung line (view-local) ─────────────────────────
+  // The active index itself comes from the shared hook; the centring on
+  // it, and its pause while the user browses (#1096), target *this*
+  // panel's line nodes. The immersive view follows with its own.
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!isLyricsOpen || !isSynced || activeIndex < 0) return;
-    const node = lineRefs.current[activeIndex];
-    if (node) {
-      node.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [activeIndex, isLyricsOpen, isSynced]);
+  const follow = useLyricsFollow({
+    containerRef,
+    lineRefs,
+    activeIndex,
+    enabled: isLyricsOpen && isSynced,
+    resetKeys: [currentTrack?.id, payload],
+  });
 
   // Provider picker closes itself, then the shared refetch runs.
   const handleRefetch = async (
@@ -210,7 +211,9 @@ export function LyricsPanel({
     void clear();
   };
 
+  // A line picked is where the user wants to be: follow from there.
   const handleSeekToLine = (line: LyricsLine) => {
+    follow.resume();
     seekToLine(line);
   };
 
@@ -355,208 +358,222 @@ export function LyricsPanel({
       </div>
 
       {/* Body */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto px-6 py-4">
-        {currentTrack == null ? (
-          <EmptyState icon={<Music2 size={40} />} text={t("lyrics.noTrack")} />
-        ) : isFetching && !payload ? (
-          <EmptyState text={t("lyrics.loading")} />
-        ) : error ? (
-          // Transient error (network, DB, profile pool) — distinct
-          // from a cached empty miss so the user knows to retry via
-          // the refetch button below rather than reaching for Import.
-          // The raw error stays in console.error; the panel surfaces
-          // a localized, action-oriented message.
-          <EmptyState
-            icon={<AlertCircle size={40} />}
-            text={t("lyrics.fetchError")}
-          />
-        ) : !payload || payload.content.trim() === "" ? (
-          <>
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <div
+          ref={containerRef}
+          // Browsing, every line reads sharp (the skins' blur is lifted).
+          data-lyrics-browsing={follow.browsing ? "" : undefined}
+          className="flex-1 overflow-y-auto px-6 py-4"
+        >
+          {currentTrack == null ? (
             <EmptyState
               icon={<Music2 size={40} />}
-              text={
-                excludedGenre
-                  ? t("lyrics.excludedGenre", { genre: excludedGenre })
-                  : t("lyrics.notFound")
-              }
+              text={t("lyrics.noTrack")}
             />
-            {sourcesTip.visible && (
-              <ContextTip
-                title={t("tips.lyricsSources.title")}
-                body={t("tips.lyricsSources.body")}
-                action={{
-                  label: t("tips.lyricsSources.action"),
-                  onClick: () => openView({ view: "extensions" }),
-                }}
-                onDismiss={sourcesTip.dismiss}
+          ) : isFetching && !payload ? (
+            <EmptyState text={t("lyrics.loading")} />
+          ) : error ? (
+            // Transient error (network, DB, profile pool) — distinct
+            // from a cached empty miss so the user knows to retry via
+            // the refetch button below rather than reaching for Import.
+            // The raw error stays in console.error; the panel surfaces
+            // a localized, action-oriented message.
+            <EmptyState
+              icon={<AlertCircle size={40} />}
+              text={t("lyrics.fetchError")}
+            />
+          ) : !payload || payload.content.trim() === "" ? (
+            <>
+              <EmptyState
+                icon={<Music2 size={40} />}
+                text={
+                  excludedGenre
+                    ? t("lyrics.excludedGenre", { genre: excludedGenre })
+                    : t("lyrics.notFound")
+                }
               />
-            )}
-          </>
-        ) : isSynced ? (
-          <ul className="space-y-3 py-32">
-            {activeInterlude?.afterIndex === -1 && (
-              <PanelInterlude progress={activeInterlude.progress} />
-            )}
-            {lrcLines.map((line, index) => {
-              // Through the interlude after it, a line is sung and done.
-              const beforeInterlude = activeInterlude?.afterIndex === index;
-              // The other voice of a duet, still holding its line, stays lit
-              // beside the active one.
-              const isOverlap = index === overlapIndex;
-              const isActive =
-                (index === activeIndex && !beforeInterlude) || isOverlap;
-              const isPast =
-                (index < activeIndex && !isOverlap) || beforeInterlude;
-              const lineWordIndex = isOverlap
-                ? overlapWordIndex
-                : activeWordIndex;
-              const lineBackgroundWordIndex = isOverlap
-                ? overlapBackgroundWordIndex
-                : activeBackgroundWordIndex;
-              const hasWords = isActive && (line.words?.length ?? 0) > 0;
-              const separators = hasWords ? wordSeparators(line.words!) : [];
-              const romanizationSeparators = line.romanization?.words
-                ? wordSeparators(line.romanization.words)
-                : [];
-              // A duet's second voice answers from the other side, the
-              // sides being the line's own (`dir="auto"` below).
-              const align = line.side === "end" ? "text-end" : "text-start";
-              return (
-                <Fragment key={`${line.timeMs}-${index}`}>
-                  <li
-                    ref={(el) => {
-                      lineRefs.current[index] = el;
-                    }}
-                  >
-                    <button
-                      type="button"
-                      // The line's direction is its own text's: bidi sees
-                      // the word boxes as neutral objects, so in a
-                      // left-to-right block an Arabic line's words would
-                      // be laid out backwards.
-                      dir="auto"
-                      onClick={() => handleSeekToLine(line)}
-                      className={`block w-full ${align} ${lyricsLineClass(isActive, isPast)}`}
+              {sourcesTip.visible && (
+                <ContextTip
+                  title={t("tips.lyricsSources.title")}
+                  body={t("tips.lyricsSources.body")}
+                  action={{
+                    label: t("tips.lyricsSources.action"),
+                    onClick: () => openView({ view: "extensions" }),
+                  }}
+                  onDismiss={sourcesTip.dismiss}
+                />
+              )}
+            </>
+          ) : isSynced ? (
+            <ul className="space-y-3 py-32">
+              {activeInterlude?.afterIndex === -1 && (
+                <PanelInterlude progress={activeInterlude.progress} />
+              )}
+              {lrcLines.map((line, index) => {
+                // Through the interlude after it, a line is sung and done.
+                const beforeInterlude = activeInterlude?.afterIndex === index;
+                // The other voice of a duet, still holding its line, stays lit
+                // beside the active one.
+                const isOverlap = index === overlapIndex;
+                const isActive =
+                  (index === activeIndex && !beforeInterlude) || isOverlap;
+                const isPast =
+                  (index < activeIndex && !isOverlap) || beforeInterlude;
+                const lineWordIndex = isOverlap
+                  ? overlapWordIndex
+                  : activeWordIndex;
+                const lineBackgroundWordIndex = isOverlap
+                  ? overlapBackgroundWordIndex
+                  : activeBackgroundWordIndex;
+                const hasWords = isActive && (line.words?.length ?? 0) > 0;
+                const separators = hasWords ? wordSeparators(line.words!) : [];
+                const romanizationSeparators = line.romanization?.words
+                  ? wordSeparators(line.romanization.words)
+                  : [];
+                // A duet's second voice answers from the other side, the
+                // sides being the line's own (`dir="auto"` below).
+                const align = line.side === "end" ? "text-end" : "text-start";
+                return (
+                  <Fragment key={`${line.timeMs}-${index}`}>
+                    <li
+                      ref={(el) => {
+                        lineRefs.current[index] = el;
+                      }}
                     >
-                      {hasWords ? (
-                        <span>
-                          {line.words!.map((word, wi) => (
-                            // `inline-block` drops a space at the end of
-                            // its own text, so the gap between two words
-                            // is a text node outside the box: the one
-                            // `wordSeparators` says the source has, a
-                            // space or nothing (a Chinese line timed per
-                            // character).
-                            <Fragment key={wi}>
-                              <span
-                                className={
-                                  wi === lineWordIndex
-                                    ? "text-pink-500 dark:text-pink-400"
-                                    : wi < lineWordIndex
-                                      ? ""
-                                      : "opacity-60"
-                                }
-                                style={{
-                                  display: "inline-block",
-                                  transform:
-                                    wi === lineWordIndex
-                                      ? "scale(1.04)"
-                                      : "scale(1)",
-                                  transition: LYRICS_WORD_TRANSITION,
-                                }}
-                              >
-                                {word.text}
-                              </span>
-                              {separators[wi]}
-                            </Fragment>
-                          ))}
-                        </span>
-                      ) : (
-                        line.text || " "
-                      )}
-                      {line.background && (
-                        <BackgroundVocals
-                          reading={line.background}
-                          active={isActive}
-                          activeWordIndex={lineBackgroundWordIndex}
-                          className="wf-lyrics-reading mt-0.5 text-sm font-normal"
-                        />
-                      )}
-                      {localization === "romanization" && line.romanization && (
-                        <span
-                          dir="auto"
-                          className="wf-lyrics-reading block mt-0.5 text-sm font-normal"
-                        >
-                          {line.romanization.words ? (
-                            // Word for word with the line above, sharing
-                            // its bounds, so `lineWordIndex` addresses
-                            // both: a romanized word lights up with the
-                            // word it reads out.
-                            line.romanization.words.map((word, wi) => (
+                      <button
+                        type="button"
+                        // The line's direction is its own text's: bidi sees
+                        // the word boxes as neutral objects, so in a
+                        // left-to-right block an Arabic line's words would
+                        // be laid out backwards.
+                        dir="auto"
+                        onClick={() => handleSeekToLine(line)}
+                        className={`block w-full ${align} ${lyricsLineClass(isActive, isPast)}`}
+                      >
+                        {hasWords ? (
+                          <span>
+                            {line.words!.map((word, wi) => (
+                              // `inline-block` drops a space at the end of
+                              // its own text, so the gap between two words
+                              // is a text node outside the box: the one
+                              // `wordSeparators` says the source has, a
+                              // space or nothing (a Chinese line timed per
+                              // character).
                               <Fragment key={wi}>
                                 <span
                                   className={
-                                    isActive && wi === lineWordIndex
+                                    wi === lineWordIndex
                                       ? "text-pink-500 dark:text-pink-400"
-                                      : isActive && wi < lineWordIndex
+                                      : wi < lineWordIndex
                                         ? ""
                                         : "opacity-60"
                                   }
-                                  style={{ display: "inline-block" }}
+                                  style={{
+                                    display: "inline-block",
+                                    transform:
+                                      wi === lineWordIndex
+                                        ? "scale(1.04)"
+                                        : "scale(1)",
+                                    transition: LYRICS_WORD_TRANSITION,
+                                  }}
                                 >
                                   {word.text}
                                 </span>
-                                {romanizationSeparators[wi]}
+                                {separators[wi]}
                               </Fragment>
-                            ))
-                          ) : (
-                            // A line-timed document romanizes the line
-                            // and stops there. Nothing to highlight
-                            // inside it — which is just as true of the
-                            // line above.
-                            <span className="opacity-70">
-                              {line.romanization.text}
+                            ))}
+                          </span>
+                        ) : (
+                          line.text || " "
+                        )}
+                        {line.background && (
+                          <BackgroundVocals
+                            reading={line.background}
+                            active={isActive}
+                            activeWordIndex={lineBackgroundWordIndex}
+                            className="wf-lyrics-reading mt-0.5 text-sm font-normal"
+                          />
+                        )}
+                        {localization === "romanization" &&
+                          line.romanization && (
+                            <span
+                              dir="auto"
+                              className="wf-lyrics-reading block mt-0.5 text-sm font-normal"
+                            >
+                              {line.romanization.words ? (
+                                // Word for word with the line above, sharing
+                                // its bounds, so `lineWordIndex` addresses
+                                // both: a romanized word lights up with the
+                                // word it reads out.
+                                line.romanization.words.map((word, wi) => (
+                                  <Fragment key={wi}>
+                                    <span
+                                      className={
+                                        isActive && wi === lineWordIndex
+                                          ? "text-pink-500 dark:text-pink-400"
+                                          : isActive && wi < lineWordIndex
+                                            ? ""
+                                            : "opacity-60"
+                                      }
+                                      style={{ display: "inline-block" }}
+                                    >
+                                      {word.text}
+                                    </span>
+                                    {romanizationSeparators[wi]}
+                                  </Fragment>
+                                ))
+                              ) : (
+                                // A line-timed document romanizes the line
+                                // and stops there. Nothing to highlight
+                                // inside it — which is just as true of the
+                                // line above.
+                                <span className="opacity-70">
+                                  {line.romanization.text}
+                                </span>
+                              )}
                             </span>
                           )}
-                        </span>
-                      )}
-                      {/* Lines the file stamped with this one (#821):
+                        {/* Lines the file stamped with this one (#821):
                             inside the button, so they take its colour and
                             light with it. Always shown — the file's author
                             wrote them; the toggle governs the TTML's own. */}
-                      {line.companions?.map((companion, ci) => (
-                        <span
-                          key={ci}
-                          dir="auto"
-                          className="wf-lyrics-reading block mt-0.5 text-sm font-normal opacity-80"
-                        >
-                          {companion}
-                        </span>
-                      ))}
-                      {localization === "translation" && line.translation && (
-                        <span
-                          dir="auto"
-                          className="wf-lyrics-reading block mt-0.5 text-sm font-normal italic opacity-70"
-                        >
-                          {line.translation}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                  {beforeInterlude && (
-                    <PanelInterlude
-                      progress={activeInterlude.progress}
-                      align={align}
-                    />
-                  )}
-                </Fragment>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200 whitespace-pre-line">
-            {isRadio ? radioPlainText : payload.content}
-          </p>
+                        {line.companions?.map((companion, ci) => (
+                          <span
+                            key={ci}
+                            dir="auto"
+                            className="wf-lyrics-reading block mt-0.5 text-sm font-normal opacity-80"
+                          >
+                            {companion}
+                          </span>
+                        ))}
+                        {localization === "translation" && line.translation && (
+                          <span
+                            dir="auto"
+                            className="wf-lyrics-reading block mt-0.5 text-sm font-normal italic opacity-70"
+                          >
+                            {line.translation}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                    {beforeInterlude && (
+                      <PanelInterlude
+                        progress={activeInterlude.progress}
+                        align={align}
+                      />
+                    )}
+                  </Fragment>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200 whitespace-pre-line">
+              {isRadio ? radioPlainText : payload.content}
+            </p>
+          )}
+        </div>
+        {follow.browsing && (
+          <LyricsResumeButton onClick={follow.backToLine} variant="panel" />
         )}
       </div>
 

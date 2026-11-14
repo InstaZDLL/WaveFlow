@@ -1809,7 +1809,8 @@
       "fullscreen": "Layar penuh",
       "edit": "Sunting lirik",
       "cycleLocalization": "Ganti baris tambahan",
-      "searchAnyway": "Tetap cari"
+      "searchAnyway": "Tetap cari",
+      "backToPlayback": "Kembali ke yang diputar"
     },
     "localization": {
       "off": "Tanpa baris tambahan",

@@ -1809,7 +1809,8 @@
       "fullscreen": "全屏",
       "edit": "编辑歌词",
       "cycleLocalization": "切换附加行",
-      "searchAnyway": "仍然搜索"
+      "searchAnyway": "仍然搜索",
+      "backToPlayback": "回到播放位置"
     },
     "localization": {
       "off": "不显示附加行",
