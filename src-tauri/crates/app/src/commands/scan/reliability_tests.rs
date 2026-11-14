@@ -3124,7 +3124,38 @@ fn gbk(text: &str) -> Vec<u8> {
     encoding_rs::GBK.encode(text).0.into_owned()
 }
 
+/// The GBK texts of the tests below, as an older build stored them.
+const MISREAD: &[(&str, &str)] = &[
+    ("夜曲", "Ò¹Çú"),
+    ("十一月的萧邦", "Ê®Ò»ÔÂµÄÏô°î"),
+    ("周杰伦", "ÖÜ½ÜÂ×"),
+];
+
 impl Library {
+    /// What a library scanned by an older build holds: each text of
+    /// `misread` stored as it was read then, and the pass not done yet.
+    async fn store_misread(&self, misread: &[(&str, &str)]) {
+        for (from, to) in misread {
+            // The keys the old build computed from the text it had, so that
+            // the scan does not find these rows again by the right spelling.
+            let key = waveflow_core::scanner::canonical_name(to);
+            for sql in [
+                "UPDATE track SET title = ?1 WHERE title = ?2 AND ?3 = ?3",
+                "UPDATE album SET title = ?1, canonical_title = ?3 WHERE title = ?2",
+                "UPDATE artist SET name = ?1, canonical_name = ?3 WHERE name = ?2",
+            ] {
+                sqlx::query(sql)
+                    .bind(to)
+                    .bind(from)
+                    .bind(&key)
+                    .execute(&self.pool)
+                    .await
+                    .unwrap();
+            }
+        }
+        self.clear_setting("scan.legacy_text_backfill_done.1").await;
+    }
+
     /// `(title, album, artist names in order)` of the track at `path`.
     async fn text_of(&self, path: &Path) -> (String, Option<String>, Vec<String>) {
         let (title, album): (String, Option<String>) = sqlx::query_as(
@@ -3184,31 +3215,7 @@ async fn the_next_scan_repairs_a_legacy_code_page_tag_already_stored() {
     );
 
     // What a library scanned by an older build holds, with no pass done yet.
-    for (from, to) in [
-        ("夜曲", "Ò¹Çú"),
-        ("十一月的萧邦", "Ê®Ò»ÔÂµÄÏô°î"),
-        ("周杰伦", "ÖÜ½ÜÂ×"),
-    ] {
-        // The keys the old build computed from the text it had, so that the
-        // scan does not find these rows again by the right spelling.
-        let key = waveflow_core::scanner::canonical_name(to);
-        for sql in [
-            "UPDATE track SET title = ?1 WHERE title = ?2 AND ?3 = ?3",
-            "UPDATE album SET title = ?1, canonical_title = ?3 WHERE title = ?2",
-            "UPDATE artist SET name = ?1, canonical_name = ?3 WHERE name = ?2",
-        ] {
-            sqlx::query(sql)
-                .bind(to)
-                .bind(from)
-                .bind(&key)
-                .execute(&library.pool)
-                .await
-                .unwrap();
-        }
-    }
-    library
-        .clear_setting("scan.legacy_text_backfill_done.1")
-        .await;
+    library.store_misread(MISREAD).await;
     let western_before = library.text_of(&western).await;
     assert_eq!(library.text_of(&chinese).await.0, "Ò¹Çú");
 
@@ -3263,4 +3270,117 @@ async fn the_next_scan_gives_a_track_listed_by_its_file_name_its_tag() {
     let (title, _, artists) = library.text_of(&path).await;
     assert_eq!(title, "夜曲");
     assert_eq!(artists, vec!["周杰伦".to_string()]);
+}
+
+/// The tag of the tests below: three GBK fields, as many as the guess needs.
+fn gbk_frames() -> Vec<(&'static str, Vec<u8>)> {
+    vec![
+        ("TIT2", gbk("夜曲")),
+        ("TPE1", gbk("周杰伦")),
+        ("TALB", gbk("十一月的萧邦")),
+    ]
+}
+
+fn frame_refs<'a>(frames: &'a [(&'static str, Vec<u8>)]) -> Vec<(&'static str, &'a [u8])> {
+    frames
+        .iter()
+        .map(|(id, text)| (*id, text.as_slice()))
+        .collect()
+}
+
+/// A track marked unavailable whose file comes back unchanged is taken up
+/// again by the unchanged branch; the pass repairs it there like the others.
+#[tokio::test]
+async fn the_pass_repairs_a_track_whose_file_comes_back() {
+    let library = Library::new().await;
+    let path = library.path("chinese.mp3");
+    mp3_with_raw_latin1_frames(&path, &frame_refs(&gbk_frames()));
+    library.scan().await;
+    library.store_misread(MISREAD).await;
+    sqlx::query("UPDATE track SET is_available = 0")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "夜曲");
+    let available: i64 = sqlx::query_scalar("SELECT is_available FROM track")
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    assert_eq!(available, 1);
+}
+
+/// A file rewritten only to repair its text keeps the rating stored for it:
+/// as for any unchanged file, the file's own moves it on a deep rescan alone.
+#[tokio::test]
+async fn the_pass_keeps_the_stored_rating() {
+    let library = Library::new().await;
+    let path = library.path("chinese.mp3");
+    let mut frames = gbk_frames();
+    // An empty e-mail, then the rating byte (the helper's encoding byte is
+    // the e-mail's terminator).
+    frames.push(("POPM", vec![128]));
+    mp3_with_raw_latin1_frames(&path, &frame_refs(&frames));
+    library.scan().await;
+    let rating = || async {
+        sqlx::query_scalar::<_, Option<i64>>("SELECT rating FROM track")
+            .fetch_one(&library.pool)
+            .await
+            .unwrap()
+    };
+    let read = rating().await;
+    assert!(
+        read.is_some_and(|r| r != 255),
+        "the file's rating: {read:?}"
+    );
+    sqlx::query("UPDATE track SET rating = 255")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    library.store_misread(MISREAD).await;
+
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "夜曲");
+    assert_eq!(rating().await, Some(255));
+}
+
+/// A tag the reader refuses says nothing about the text stored for its
+/// track: the row stays as it is, and the pass stays pending.
+#[tokio::test]
+async fn the_pass_leaves_a_track_whose_tag_is_refused() {
+    let library = Library::new().await;
+    let path = library.path("01.mp3");
+    mp3_with_raw_latin1_frames(&path, &frame_refs(&gbk_frames()));
+    // UTF-8 declared over GBK in a tag flagged unsynchronised, which the
+    // second chance does not walk: the reader refuses it.
+    let mut bytes = std::fs::read(&path).unwrap();
+    bytes[5] = 0x80;
+    for frame in [b"TIT2", b"TPE1", b"TALB"] {
+        let at = bytes.windows(4).position(|w| w == frame).unwrap();
+        bytes[at + 10] = 3;
+    }
+    std::fs::write(&path, bytes).unwrap();
+    library.scan().await;
+    assert_eq!(
+        library.text_of(&path).await.0,
+        "01",
+        "listed by its file name"
+    );
+
+    // A text the library holds from elsewhere (an older build, the editor).
+    sqlx::query("UPDATE track SET title = 'Café', title_from_filename = 0")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    library
+        .clear_setting("scan.legacy_text_backfill_done.1")
+        .await;
+
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "Café");
+    assert!(library
+        .setting("scan.legacy_text_backfill_done.1")
+        .await
+        .is_none());
 }

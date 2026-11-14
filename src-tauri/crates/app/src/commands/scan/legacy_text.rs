@@ -21,8 +21,10 @@ use std::collections::HashMap;
 use sqlx::SqlitePool;
 use waveflow_core::scanner::extract::ExtractedFile;
 
-/// `file_path` of each available track of the folder whose text is a
-/// candidate, with those texts as stored.
+/// `file_path` of each track of the folder whose text is a candidate, with
+/// those texts as stored. A track marked unavailable is one too: its file can
+/// come back unchanged, and the scan takes it up again through the unchanged
+/// branch, which would bring the misread title back with it.
 pub(super) async fn suspects(
     pool: &SqlitePool,
     folder_id: i64,
@@ -31,25 +33,25 @@ pub(super) async fn suspects(
     // `artist`, whichever way the track reaches them.
     let rows: Vec<(String, String)> = sqlx::query_as(
         "SELECT t.file_path, t.title
-           FROM track t WHERE t.folder_id = ?1 AND t.is_available = 1
+           FROM track t WHERE t.folder_id = ?1
          UNION ALL
          SELECT t.file_path, al.title
            FROM track t JOIN album al ON al.id = t.album_id
-          WHERE t.folder_id = ?1 AND t.is_available = 1
+          WHERE t.folder_id = ?1
          UNION ALL
          SELECT t.file_path, ar.name
            FROM track t JOIN track_artist ta ON ta.track_id = t.id
                         JOIN artist ar ON ar.id = ta.artist_id
-          WHERE t.folder_id = ?1 AND t.is_available = 1
+          WHERE t.folder_id = ?1
          UNION ALL
          SELECT t.file_path, ar.name
            FROM track t JOIN album al ON al.id = t.album_id
                         JOIN artist ar ON ar.id = al.artist_id
-          WHERE t.folder_id = ?1 AND t.is_available = 1
+          WHERE t.folder_id = ?1
          UNION ALL
          SELECT t.file_path, ''
            FROM track t
-          WHERE t.folder_id = ?1 AND t.is_available = 1 AND t.title_from_filename = 1",
+          WHERE t.folder_id = ?1 AND t.title_from_filename = 1",
     )
     .bind(folder_id)
     .fetch_all(pool)

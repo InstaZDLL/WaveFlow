@@ -869,11 +869,20 @@ pub(crate) async fn scan_folder_inner(
                 previous_album_ids.insert(id);
             }
             // A track the legacy-code-page pass reads differently now is a
-            // changed one: its title, album and credits are rewritten.
-            let legacy_text_stale = legacy_text_suspects
-                .get(&extracted.abs_path)
-                .is_some_and(|stored| super::legacy_text::stale(stored, &extracted));
-            if mtime == extracted.modified_ms && hash == &extracted.hash && !legacy_text_stale {
+            // changed one: its title, album and credits are rewritten. Not
+            // when the reader refused the tag: the file's text is still in
+            // it, unread, and taking the empty fields for its answer would
+            // swap the stored title for the file name and drop the album.
+            // The track keeps its row and the pass stays pending.
+            let legacy_text_suspect = legacy_text_suspects.get(&extracted.abs_path);
+            if legacy_text_suspect.is_some() && extracted.tag_refused {
+                legacy_text_backfill_failed = true;
+            }
+            let legacy_text_stale = !extracted.tag_refused
+                && legacy_text_suspect
+                    .is_some_and(|stored| super::legacy_text::stale(stored, &extracted));
+            let unchanged_file = mtime == extracted.modified_ms && hash == &extracted.hash;
+            if unchanged_file && !legacy_text_stale {
                 // Track content hasn't changed — backfill paths only.
                 // See the historical comments at the top of this branch
                 // for context on why these queries still run on a
@@ -1266,6 +1275,9 @@ pub(crate) async fn scan_folder_inner(
                         -- A rating set in WaveFlow on a share's track lives
                         -- here alone, since the file cannot be written: the
                         -- file changing on the share must not take it away.
+                        -- Nor a file that did not change at all, rewritten
+                        -- only to repair its text: as in the unchanged
+                        -- branch, its rating moves on a deep rescan alone.
                         rating = CASE WHEN ? THEN COALESCE(rating, ?) ELSE COALESCE(?, rating) END,
                         rg_track_gain_db = ?, rg_track_peak = ?,
                         rg_album_gain_db = ?, rg_album_peak = ?,
@@ -1297,7 +1309,7 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
-                .bind(is_network)
+                .bind(is_network || (unchanged_file && !deep))
                 .bind(extracted.rating.map(|r| r as i64))
                 .bind(extracted.rating.map(|r| r as i64))
                 .bind(extracted.replay_gain.track_gain_db)

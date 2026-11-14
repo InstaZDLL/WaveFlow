@@ -253,6 +253,12 @@ pub struct ExtractedFile {
     /// stored title against the path in SQL would report every single
     /// correctly tagged `Song.mp3` as untitled.
     pub title_from_filename: bool,
+    /// No tag was read at all: the reader refused the file, so every tag
+    /// field above is empty for that reason and not because the file has
+    /// none. A pass that compares stored text with what the file says must
+    /// not take this for an answer (`title_from_filename` cannot tell: a
+    /// tag that reads and has no title sets it too).
+    pub tag_refused: bool,
     pub artist: Option<String>,
     /// The MusicBrainz id the file gives each of `artist`'s names, in the
     /// tag's order (see [`super::canonical::artist_credits`] for how they pair).
