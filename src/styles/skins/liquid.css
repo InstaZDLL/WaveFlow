@@ -804,12 +804,12 @@
   ul
   > li:has(> button[class*="scale-[1.02]"])
   + li
-  > button,
+  > button:not([class*="scale-[1.02]"]),
 :root[data-skin="liquid"]
   .fe-panel
   ul
   > li:has(+ li > button[class*="scale-[1.02]"])
-  > button {
+  > button:not([class*="scale-[1.02]"]) {
   opacity: 0.9;
   filter: none;
   -webkit-text-fill-color: currentColor;
@@ -823,12 +823,12 @@
   > li:has(> button[class*="scale-[1.02]"])
   + li
   + li
-  > button,
+  > button:not([class*="scale-[1.02]"]),
 :root[data-skin="liquid"]
   .fe-panel
   ul
   > li:has(+ li + li > button[class*="scale-[1.02]"])
-  > button {
+  > button:not([class*="scale-[1.02]"]) {
   opacity: 0.72;
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
@@ -1362,24 +1362,24 @@
   ul
   > li:has(> button[class*="scale-[1.04]"])
   + li
-  > button,
+  > button:not([class*="scale-[1.04]"]),
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(+ li > button[class*="scale-[1.04]"])
-  > button,
+  > button:not([class*="scale-[1.04]"]),
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(> button[class*="scale-[1.04]"])
   + li
   + li
-  > button,
+  > button:not([class*="scale-[1.04]"]),
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(+ li + li > button[class*="scale-[1.04]"])
-  > button {
+  > button:not([class*="scale-[1.04]"]) {
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
 }

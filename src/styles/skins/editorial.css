@@ -1077,12 +1077,12 @@
   ul
   > li:has(> button[class*="scale-[1.02]"])
   + li
-  > button,
+  > button:not([class*="scale-[1.02]"]),
 :root[data-skin="editorial"]
   .fe-panel
   ul
   > li:has(+ li > button[class*="scale-[1.02]"])
-  > button {
+  > button:not([class*="scale-[1.02]"]) {
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
   opacity: 0.8;
@@ -1095,12 +1095,12 @@
   > li:has(> button[class*="scale-[1.02]"])
   + li
   + li
-  > button,
+  > button:not([class*="scale-[1.02]"]),
 :root[data-skin="editorial"]
   .fe-panel
   ul
   > li:has(+ li + li > button[class*="scale-[1.02]"])
-  > button {
+  > button:not([class*="scale-[1.02]"]) {
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
   opacity: 0.55;
