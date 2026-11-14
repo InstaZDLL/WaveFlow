@@ -198,10 +198,22 @@ function element(): HTMLVideoElement | null {
   return video && isCurrentClipSession(video.session) ? video.element : null;
 }
 
-/** Play the element, and say so in the store when the webview refuses
- *  (autoplay with sound): the Play button then reads Play, not Pause. */
+/**
+ * Play the element, and say so in the store when the webview refuses
+ * (autoplay with sound, `NotAllowedError`): the Play button then reads
+ * Play, not Pause. Only a refusal of the element still showing the clip
+ * counts. A play interrupted (`AbortError`) is no refusal: a move to the
+ * other surface reloads the outgoing element under a pending `play()` (the
+ * Linux loopback does), and the incoming element of the same session must
+ * keep playing; a `pause()` that interrupts one reports itself through the
+ * element's own `pause` event.
+ */
 export function playClipElement(session: number, target: HTMLVideoElement) {
-  void target.play().catch(() => reportClipProgress(session, { paused: true }));
+  void target.play().catch((err: unknown) => {
+    if (err instanceof DOMException && err.name === "AbortError") return;
+    if (video?.element !== target) return;
+    reportClipProgress(session, { paused: true });
+  });
 }
 
 export function toggleClip(): void {
