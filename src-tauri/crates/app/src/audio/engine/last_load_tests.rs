@@ -2,6 +2,7 @@ use super::super::replay_gain::TrackGain;
 use super::resume::{resume_start_ms, LastLoadSource, LivePosition};
 use super::*;
 use std::path::PathBuf;
+use waveflow_core::playback::stream::ActiveStream;
 
 fn url_cmd(url: &str, track_id: i64, intent: u64) -> AudioCmd {
     AudioCmd::LoadUrlAndPlay {
@@ -344,4 +345,189 @@ fn a_decoder_with_no_load_on_record_pairs_with_nothing() {
         position_ms: 90_000,
     };
     assert_eq!(resume_start_ms(&snap, live), 12_000);
+}
+
+/// A short stereo WAV, so a hand-off has a real stream to swap in.
+fn write_wav(path: &std::path::Path) {
+    let (rate, frames, channels) = (44_100_u32, 4_410_u32, 2_u16);
+    let data_len = frames * u32::from(channels) * 2;
+    let mut bytes = Vec::new();
+    bytes.extend(b"RIFF");
+    bytes.extend((36 + data_len).to_le_bytes());
+    bytes.extend(b"WAVEfmt ");
+    bytes.extend(16_u32.to_le_bytes());
+    bytes.extend(1_u16.to_le_bytes());
+    bytes.extend(channels.to_le_bytes());
+    bytes.extend(rate.to_le_bytes());
+    bytes.extend((rate * u32::from(channels) * 2).to_le_bytes());
+    bytes.extend((channels * 2).to_le_bytes());
+    bytes.extend(16_u16.to_le_bytes());
+    bytes.extend(b"data");
+    bytes.extend(data_len.to_le_bytes());
+    bytes.resize(bytes.len() + data_len as usize, 0);
+    std::fs::write(path, bytes).unwrap();
+}
+
+/// The stream `SetNextTrack` would have prepared for `track_id`.
+fn prepared(path: &std::path::Path, track_id: i64, gain_db: f64) -> ActiveStream {
+    ActiveStream::open(
+        path,
+        track_id,
+        200_000,
+        "playlist".into(),
+        Some(11),
+        TrackGain {
+            gain_db: Some(gain_db),
+            ..Default::default()
+        },
+        0,
+        false,
+    )
+    .expect("the prepared stream opens")
+}
+
+/// The decoder's side of a hand-off: what it records, then the track it
+/// marks as started.
+fn hand_off(shared: &SharedPlayback, next: &ActiveStream, start_ms: u64) {
+    shared.record_handed_off_load(next, start_ms);
+    shared
+        .current_track_id
+        .store(next.track_id, std::sync::atomic::Ordering::Release);
+}
+
+fn rebuild_live(shared: &SharedPlayback, position_ms: u64) -> LivePosition {
+    LivePosition {
+        intent: shared.last_load_intent(),
+        track_id: shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire),
+        position_ms,
+    }
+}
+
+/// The reported case (#1103): a track resumed after a rebuild, then a run
+/// of tracks the decoder moved through on its own — gapless, then a
+/// crossfade — and a second rebuild. It used to put back the track the
+/// run started from, at the position of the first resume.
+#[test]
+fn a_rebuild_after_hand_offs_resumes_the_track_playing_now() {
+    let dir = tempfile::tempdir().unwrap();
+    let (gapless, faded) = (dir.path().join("66.wav"), dir.path().join("42.wav"));
+    write_wav(&gapless);
+    write_wav(&faded);
+
+    let shared = SharedPlayback::new();
+    shared.record_accepted_load(&local_cmd(168, 9, 164_769));
+    shared
+        .current_track_id
+        .store(168, std::sync::atomic::Ordering::Release);
+
+    hand_off(&shared, &prepared(&gapless, 66, -3.0), 0);
+    let load = shared.last_load().expect("a load on record");
+    assert_eq!(load.track_id, 66);
+    assert_eq!(load.start_ms, 0);
+
+    hand_off(&shared, &prepared(&faded, 42, -6.0), 4_000);
+    let load = shared.last_load().expect("a load on record");
+    assert_eq!(load.track_id, 42);
+    assert_eq!(load.start_ms, 4_000, "the fade was already 4 s into it");
+    assert_eq!(
+        load.intent,
+        LoadIntent::from_raw(9),
+        "no load arrived: the intent on record is still the one the decoder holds"
+    );
+
+    // The rebuild pairs the live position with the track playing now,
+    // and sends that track back, whole, under the intent on record.
+    let live = rebuild_live(&shared, 31_000);
+    assert_eq!(resume_start_ms(&load, live), 31_000);
+    match load.into_command(LoadIntent::from_raw(9), 31_000) {
+        AudioCmd::LoadAndPlay {
+            intent,
+            path,
+            start_ms,
+            track_id,
+            duration_ms,
+            source_type,
+            source_id,
+            replay_gain,
+        } => {
+            assert_eq!(intent, LoadIntent::from_raw(9));
+            assert_eq!(path, faded);
+            assert_eq!(start_ms, 31_000);
+            assert_eq!(track_id, 42);
+            assert_eq!(duration_ms, 200_000);
+            assert_eq!(source_type, "playlist");
+            assert_eq!(source_id, Some(11));
+            assert_eq!(replay_gain.gain_db, Some(-6.0));
+        }
+        other => panic!("expected a library load, got {other:?}"),
+    }
+}
+
+/// A gapless hand-off out of a stream: the next track is a library one,
+/// and the rebuild resumes it, not the station.
+#[test]
+fn a_hand_off_out_of_a_stream_records_a_library_track() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("next.wav");
+    write_wav(&path);
+
+    let shared = SharedPlayback::new();
+    shared.record_accepted_load(&url_cmd("https://server.invalid/stream", -4, 3));
+    hand_off(&shared, &prepared(&path, 5, 0.0), 0);
+
+    let load = shared.last_load().expect("a load on record");
+    assert_eq!(load.intent, LoadIntent::from_raw(3));
+    assert_eq!(load.track_id, 5);
+    assert_eq!(load.title, None);
+    assert!(matches!(
+        load.source,
+        LastLoadSource::Local { path: ref p, .. } if p == &path
+    ));
+}
+
+/// A newer pick still outranks what a hand-off recorded: the hand-off
+/// claims nothing.
+#[test]
+fn a_pick_after_a_hand_off_still_wins() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("next.wav");
+    write_wav(&path);
+
+    let shared = SharedPlayback::new();
+    shared.record_accepted_load(&local_cmd(1, 4, 0));
+    hand_off(&shared, &prepared(&path, 2, 0.0), 0);
+    shared.record_accepted_load(&local_cmd(3, 5, 0));
+
+    let load = shared.last_load().expect("a load on record");
+    assert_eq!((load.track_id, load.intent), (3, LoadIntent::from_raw(5)));
+}
+
+/// A stream with no path to reopen, or no load to continue, leaves
+/// nothing on record rather than the track before.
+#[test]
+fn a_hand_off_it_cannot_describe_clears_the_record() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("next.wav");
+    write_wav(&path);
+    let from_bytes = ActiveStream::open_from_source(
+        Box::new(std::fs::File::open(&path).unwrap()),
+        Some("wav"),
+        2,
+        1_000,
+        "album".into(),
+        None,
+        TrackGain::default(),
+    )
+    .unwrap();
+
+    let shared = SharedPlayback::new();
+    shared.record_accepted_load(&local_cmd(1, 4, 0));
+    shared.record_handed_off_load(&from_bytes, 0);
+    assert_eq!(shared.last_load(), None);
+
+    let fresh = SharedPlayback::new();
+    fresh.record_handed_off_load(&prepared(&path, 2, 0.0), 0);
+    assert_eq!(fresh.last_load(), None);
 }

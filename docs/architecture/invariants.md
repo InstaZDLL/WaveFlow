@@ -253,7 +253,9 @@ token, and deliberately so: the rebuild is putting back what its `Unload`
 took away, so it has to be accepted when nothing newer has arrived and to
 give way when something has. Read what to put back from
 `SharedPlayback::last_load` — written by the decoder at receipt, so it
-already names the track a user picked mid-rebuild — never from a snapshot
+already names the track a user picked mid-rebuild, and again at a gapless
+or crossfade hand-off, which keeps the intent on record and claims
+nothing (#1103) — never from a snapshot
 taken before the stop, which is what left nothing playing at all (#634).
 
 Detail, and why `SetNextTrack` is excluded: [ordering the

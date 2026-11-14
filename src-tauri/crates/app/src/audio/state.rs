@@ -6,7 +6,8 @@
 //!
 //! [`SharedPlayback::last_load`] is the one exception, and it is one
 //! because the callback never looks at it: it is written by the decoder
-//! when it accepts a load and read by the output-rebuild paths, both of
+//! when it accepts a load or hands off to the next track on its own, and
+//! read by the output-rebuild paths, both of
 //! which are allowed to block. Nothing that runs inside the callback may
 //! touch it.
 
@@ -184,7 +185,9 @@ pub struct SharedPlayback {
     /// without passing through [`AudioEngine::send`](super::engine::AudioEngine::send).
     /// Recording it there rather than at send time is what makes it "what
     /// is playing" rather than "what was asked for": a load superseded on
-    /// the way in never reaches this field.
+    /// the way in never reaches this field. A gapless or crossfade
+    /// hand-off, which moves to the next track with no load at all,
+    /// writes it too ([`Self::record_handed_off_load`]).
     ///
     /// The one lock in this struct — see the module note. The audio
     /// callback must never read it.
@@ -659,6 +662,35 @@ impl SharedPlayback {
         };
         if let Ok(mut guard) = self.last_load.lock() {
             *guard = Some(load);
+        }
+    }
+
+    /// Record the track a gapless or crossfade hand-off has just moved the
+    /// decoder to, playing from `start_ms` (#1103). See
+    /// [`LastLoad::handed_off`] for why it keeps the intent on record.
+    ///
+    /// No load on record, or a stream with no path, clears the snapshot
+    /// rather than keeping the outgoing track: a rebuild that resumes
+    /// nothing is a pause, one that resumes the track before is a wrong
+    /// song at a wrong place. Neither happens — a hand-off only runs inside
+    /// a track the decoder accepted, on a stream `SetNextTrack` opened
+    /// from a path — but the fallback is chosen for if it ever does.
+    pub fn record_handed_off_load(
+        &self,
+        next: &waveflow_core::playback::stream::ActiveStream,
+        start_ms: u64,
+    ) {
+        if let Ok(mut guard) = self.last_load.lock() {
+            let handed_off = guard
+                .as_ref()
+                .and_then(|current| LastLoad::handed_off(current.intent, next, start_ms));
+            if handed_off.is_none() {
+                tracing::warn!(
+                    track_id = next.track_id,
+                    "hand-off with no load to continue; an output rebuild will resume nothing"
+                );
+            }
+            *guard = handed_off;
         }
     }
 

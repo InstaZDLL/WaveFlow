@@ -1146,3 +1146,29 @@ fn a_coarse_seek_with_nothing_to_estimate_from_falls_back() {
     stream.coarse_seek = true;
     assert!(stream.seek_ms(60_000).abs_diff(60_000) < 1000);
 }
+
+/// A stream opened from a path keeps it, so the decoder can describe a
+/// stream it switched to on its own as a load again (#1103); a stream
+/// handed over as bytes has none to keep.
+#[test]
+fn a_stream_keeps_the_path_it_was_opened_from() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    assert_eq!(
+        open_tone(&path).source_path.as_deref(),
+        Some(path.as_path())
+    );
+
+    let from_bytes = ActiveStream::open_from_source(
+        Box::new(File::open(&path).unwrap()),
+        Some("wav"),
+        0,
+        0,
+        String::new(),
+        None,
+        TrackGain::default(),
+    )
+    .unwrap();
+    assert_eq!(from_bytes.source_path, None);
+}
