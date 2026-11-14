@@ -62,11 +62,18 @@ export function useLyricsFollow({
   enabled,
   resetKeys,
 }: LyricsFollowOptions): LyricsFollow {
-  // The key the browsing started under: it ends with the track it began on,
-  // without an effect to clear it.
+  // The key the browsing started under: it ends with the track it began on.
   const [browsingFor, setBrowsingFor] = useState<readonly unknown[] | null>(
     null,
   );
+  const sameKeys =
+    browsingFor !== null &&
+    browsingFor.length === resetKeys.length &&
+    browsingFor.every((key, i) => Object.is(key, resetKeys[i]));
+  // Cleared as soon as the keys differ, not only masked: going from A to B
+  // and back to A before B's lyrics load would otherwise bring back A's
+  // browsing with no new gesture.
+  if (browsingFor !== null && !sameKeys) setBrowsingFor(null);
   // Hidden (the panel closed, the lyrics no longer synced) ends it too, so
   // the lyrics follow again when they come back.
   const [wasEnabled, setWasEnabled] = useState(enabled);
@@ -74,11 +81,7 @@ export function useLyricsFollow({
     setWasEnabled(enabled);
     if (!enabled) setBrowsingFor(null);
   }
-  const browsing =
-    enabled &&
-    browsingFor !== null &&
-    browsingFor.length === resetKeys.length &&
-    browsingFor.every((key, i) => Object.is(key, resetKeys[i]));
+  const browsing = enabled && sameKeys;
   // The listeners below read the keys at the moment of the gesture.
   const keysRef = useRef(resetKeys);
   useEffect(() => {
@@ -153,11 +156,16 @@ export function useLyricsFollow({
     const line = activeIndex >= 0 ? lineRefs.current[activeIndex] : null;
     if (!browsing || !container || !line) return;
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) {
-          outOfView.current = true;
-        } else if (outOfView.current && entry.intersectionRatio >= 0.5) {
-          setBrowsingFor(null);
+      // A batch can hold several observations of the line, oldest first:
+      // out of view then back in it within one callback still resumes.
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) {
+            outOfView.current = true;
+          } else if (outOfView.current && entry.intersectionRatio >= 0.5) {
+            setBrowsingFor(null);
+            return;
+          }
         }
       },
       { root: container, threshold: [0, 0.5] },
