@@ -1927,7 +1927,8 @@
       "fullscreen": "Полный экран",
       "edit": "Изменить текст",
       "cycleLocalization": "Сменить дополнительную строку",
-      "searchAnyway": "Всё равно искать"
+      "searchAnyway": "Всё равно искать",
+      "backToPlayback": "Вернуться к воспроизведению"
     },
     "localization": {
       "off": "Без дополнительной строки",

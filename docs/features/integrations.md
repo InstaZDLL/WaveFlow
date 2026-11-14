@@ -247,7 +247,7 @@ It hangs off `upsert_lyrics`, the funnel every primary write already passes thro
 
 **Library-wide prefetch.** `prefetch_library_lyrics` walks every available track without a cached row, or with a partial miss past its date (deduped by `file_hash`), minus the excluded genres, runs the same waterfall, and persists each hit. Network calls are throttled at 500 ms (~2 req/s) to be a polite guest; embedded and sidecar hits skip the throttle. Progress streams over `lyrics:prefetch-progress`. A single global run is enforced via an `AtomicBool`; `cancel_lyrics_prefetch` flips a second `AtomicBool` the worker checks per iteration. Resumable — a partial cancel just leaves uncached rows for the next run.
 
-The lyrics panel renders synced lines with auto-scroll and a 200 ms transition; un-synced lyrics fall back to a static block.
+The lyrics panel renders synced lines following the sung line (paused while the user browses them, see [`ui.md`](ui.md#following-the-sung-line)) and a 200 ms transition; un-synced lyrics fall back to a static block.
 
 ### Word-level lyrics (Enhanced LRC + TTML)
 

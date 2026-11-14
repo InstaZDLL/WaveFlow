@@ -1809,7 +1809,8 @@
       "fullscreen": "전체 화면",
       "edit": "가사 편집",
       "cycleLocalization": "보조 표기 전환",
-      "searchAnyway": "그래도 검색"
+      "searchAnyway": "그래도 검색",
+      "backToPlayback": "재생 위치로 돌아가기"
     },
     "localization": {
       "off": "보조 표기 없음",

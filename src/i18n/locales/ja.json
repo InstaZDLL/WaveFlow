@@ -1809,7 +1809,8 @@
       "fullscreen": "フルスクリーン",
       "edit": "歌詞を編集",
       "cycleLocalization": "追加表示を切り替え",
-      "searchAnyway": "それでも検索"
+      "searchAnyway": "それでも検索",
+      "backToPlayback": "再生位置に戻る"
     },
     "localization": {
       "off": "追加表示なし",

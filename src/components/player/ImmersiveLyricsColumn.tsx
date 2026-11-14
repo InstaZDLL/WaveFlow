@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Music2, AlertCircle, Upload, RefreshCcw, Loader2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
@@ -11,6 +11,8 @@ import {
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
 import type { ActiveInterlude } from "../../hooks/useTrackLyrics";
 import { BackgroundVocals, InterludeDots } from "./LyricsVoiceParts";
+import { LyricsResumeButton } from "./LyricsResumeButton";
+import { useLyricsFollow } from "../../hooks/useLyricsFollow";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
 import { isHeldNote } from "../../lib/heldNote";
 import { HeldNoteText } from "./HeldNote";
@@ -71,8 +73,9 @@ interface ImmersiveLyricsColumnProps {
  * `useTrackLyrics` hook (owned by `ImmersiveView`) instead of being
  * threaded from the side panel — so the merged view never double-fetches.
  *
- * Auto-scroll keeps its own ref array here (independent from the side
- * `LyricsPanel`, which scrolls in parallel). A clean miss renders a
+ * Following the sung line keeps its own ref array here (independent from
+ * the side `LyricsPanel`, which scrolls in parallel), and pauses while the
+ * user browses the lyrics (`useLyricsFollow`). A clean miss renders a
  * discreet "No lyrics — Import / Fetch" CTA rather than vanishing, so
  * the column width stays stable across track changes.
  */
@@ -129,18 +132,28 @@ export function ImmersiveLyricsColumn({
     isSynced ? lrcLines[overlapIndex]?.words?.[overlapWordIndex] : undefined,
   );
 
-  // Keep the active line vertically centered. Own ref array so this
-  // scroller and the side panel can scroll independently.
-  useEffect(() => {
-    if (!isSynced || activeIndex < 0) return;
-    const node = lineRefs.current[activeIndex];
-    if (node) {
-      node.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [activeIndex, isSynced]);
+  // Keep the active line vertically centered, unless the user is browsing
+  // the lyrics (#1096). Own refs so this scroller and the side panel
+  // scroll independently.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const follow = useLyricsFollow({
+    containerRef,
+    lineRefs,
+    activeIndex,
+    enabled: isSynced,
+    resetKeys: [track.id, payload],
+  });
+  // A line picked is where the user wants to be: follow from there.
+  const seekLine = (line: LyricsLine) => {
+    follow.resume();
+    onSeek(line);
+  };
 
   return (
-    <div className="h-full flex flex-col text-white">
+    // Under the side panel's tabs it shares a column with them: `flex-1
+    // min-h-0` gives it what they leave, where `h-full` alone ran past the
+    // window's foot by their height (and the button below off screen).
+    <div className="h-full flex-1 min-h-0 flex flex-col text-white">
       {showHeader && (
         <div className="px-8 pt-8 pb-4 shrink-0 flex items-center gap-4">
           {onCoverClick ? (
@@ -188,310 +201,327 @@ export function ImmersiveLyricsColumn({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-8 scroll-smooth">
-        <div className="max-w-3xl mx-auto">
-          {isFetching && !payload ? (
-            <CenteredMessage text={t("lyrics.loading")} />
-          ) : error ? (
-            <CenteredMessage
-              icon={<AlertCircle size={56} />}
-              text={t("lyrics.fetchError")}
-            />
-          ) : !payload || payload.content.trim() === "" ? (
-            <CenteredMessage
-              icon={<Music2 size={56} />}
-              text={
-                excludedGenre
-                  ? t("lyrics.excludedGenre", { genre: excludedGenre })
-                  : t("lyrics.notFound")
-              }
-              // Discreet recovery CTA — hidden for radio (no library row
-              // to import-to / refetch-for).
-              actions={
-                isRadio ? undefined : (
-                  <div className="mt-5 flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={onImport}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm"
-                    >
-                      <Upload size={15} />
-                      {t("lyrics.actions.import")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onRefetch}
-                      disabled={isFetching}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm disabled:opacity-50"
-                    >
-                      {isFetching ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : (
-                        <RefreshCcw size={15} />
-                      )}
-                      {/* A refetch ignores the excluded genres, so here
-                          it is the way to search anyway. */}
-                      {excludedGenre
-                        ? t("lyrics.actions.searchAnyway")
-                        : t("lyrics.actions.refetch")}
-                    </button>
-                  </div>
-                )
-              }
-            />
-          ) : isSynced ? (
-            <ul className="py-[40vh] space-y-6">
-              {activeInterlude?.afterIndex === -1 && (
-                <InterludeRow
-                  progress={activeInterlude.progress}
-                  align={syncCentered ? "text-center" : "text-start"}
-                />
-              )}
-              {lrcLines.map((line, index) => {
-                const distance = Math.abs(index - activeIndex);
-                // Through the interlude after it, a line is sung and done:
-                // dimmed like the past, while the dots below take over.
-                const beforeInterlude = activeInterlude?.afterIndex === index;
-                // The other voice of a duet, still holding its line, stays lit
-                // beside the active one.
-                const isOverlap = index === overlapIndex;
-                const isActive =
-                  (index === activeIndex && !beforeInterlude) || isOverlap;
-                const isPast =
-                  (index < activeIndex && !isOverlap) || beforeInterlude;
-                const lineWordIndex = isOverlap
-                  ? overlapWordIndex
-                  : activeWordIndex;
-                const lineBackgroundWordIndex = isOverlap
-                  ? overlapBackgroundWordIndex
-                  : activeBackgroundWordIndex;
-                const lineFillRef = isOverlap ? overlapFillRef : wordFillRef;
-                const lineColor = isOverlap ? overlapColor : highlightColor;
-                // A duet answers from the other side, unless the user
-                // centred the lyrics, which then holds for every voice.
-                // The sides are the line's own (`dir="auto"` below): an
-                // Arabic line starts at the right.
-                const align = syncCentered
-                  ? "text-center"
-                  : line.side === "end"
-                    ? "text-end"
-                    : "text-start";
-                // Smooth fade based on distance from the active line —
-                // feels like Apple Music's lyrics view.
-                const opacity = isActive
-                  ? 1
-                  : Math.max(0.18, 0.7 - distance * 0.08);
-                const hasWords = isActive && (line.words?.length ?? 0) > 0;
-                const separators = hasWords ? wordSeparators(line.words!) : [];
-                const romanizationSeparators = line.romanization?.words
-                  ? wordSeparators(line.romanization.words)
-                  : [];
-                return (
-                  <Fragment key={`${line.timeMs}-${index}`}>
-                    <li
-                      ref={(el) => {
-                        lineRefs.current[index] = el;
-                      }}
-                      style={{ opacity }}
-                    >
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <div
+          ref={containerRef}
+          // Browsing, every line reads sharp (the skins' blur is lifted).
+          data-lyrics-browsing={follow.browsing ? "" : undefined}
+          className="flex-1 overflow-y-auto px-8 scroll-smooth"
+        >
+          <div className="max-w-3xl mx-auto">
+            {isFetching && !payload ? (
+              <CenteredMessage text={t("lyrics.loading")} />
+            ) : error ? (
+              <CenteredMessage
+                icon={<AlertCircle size={56} />}
+                text={t("lyrics.fetchError")}
+              />
+            ) : !payload || payload.content.trim() === "" ? (
+              <CenteredMessage
+                icon={<Music2 size={56} />}
+                text={
+                  excludedGenre
+                    ? t("lyrics.excludedGenre", { genre: excludedGenre })
+                    : t("lyrics.notFound")
+                }
+                // Discreet recovery CTA — hidden for radio (no library row
+                // to import-to / refetch-for).
+                actions={
+                  isRadio ? undefined : (
+                    <div className="mt-5 flex items-center justify-center gap-3">
                       <button
                         type="button"
-                        // The line's direction is its own text's, not the
-                        // interface's: bidi sees the word boxes as neutral
-                        // objects, so in a left-to-right block an Arabic
-                        // line's words would be laid out backwards.
-                        dir="auto"
-                        onClick={() => onSeek(line)}
-                        className={`block w-full text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
-                          align
-                        } ${
-                          isActive
-                            ? "text-white scale-[1.04]"
-                            : isPast
-                              ? "text-white/40"
-                              : "text-white/70 hover:text-white"
-                        } ${isActive && lineColor ? "wf-lyrics-highlight" : ""}`}
-                        style={
-                          isActive && lineColor
-                            ? { color: lineColor }
-                            : undefined
-                        }
+                        onClick={onImport}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm"
                       >
-                        {hasWords ? (
-                          <span>
-                            {line.words!.map((word, wi) => {
-                              const wState =
-                                wi === lineWordIndex
-                                  ? "active"
-                                  : wi < lineWordIndex
-                                    ? "past"
-                                    : "future";
-                              const isActiveWord = wState === "active";
-                              // A note held long enough for its length
-                              // gets a wave through its letters.
-                              const isHeld =
-                                heldNotes && isActiveWord && isHeldNote(word);
-                              // The gap between adjacent word boxes is a
-                              // text node outside them (`inline-block`
-                              // drops its own trailing space): the one the
-                              // source has, a space or nothing — see
-                              // `wordSeparators`.
-                              return (
-                                <Fragment key={wi}>
-                                  <span
-                                    className="karaoke-word"
-                                    style={{
-                                      // Opacity lives on the layers, not
-                                      // here: a parent's opacity applies to
-                                      // its whole subtree, so dimming the
-                                      // box would dim the sung overlay with
-                                      // it and no fill would ever read as
-                                      // brighter than the unsung text.
-                                      //
-                                      // No transition, here or on the
-                                      // layers: an animated transform or
-                                      // opacity shakes the whole line on
-                                      // WebKit (`LYRICS_WORD_TRANSITION`).
-                                      transform: isActiveWord
-                                        ? "scale(1.04)"
-                                        : "scale(1)",
-                                    }}
-                                  >
+                        <Upload size={15} />
+                        {t("lyrics.actions.import")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onRefetch}
+                        disabled={isFetching}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm disabled:opacity-50"
+                      >
+                        {isFetching ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <RefreshCcw size={15} />
+                        )}
+                        {/* A refetch ignores the excluded genres, so here
+                          it is the way to search anyway. */}
+                        {excludedGenre
+                          ? t("lyrics.actions.searchAnyway")
+                          : t("lyrics.actions.refetch")}
+                      </button>
+                    </div>
+                  )
+                }
+              />
+            ) : isSynced ? (
+              <ul className="py-[40vh] space-y-6">
+                {activeInterlude?.afterIndex === -1 && (
+                  <InterludeRow
+                    progress={activeInterlude.progress}
+                    align={syncCentered ? "text-center" : "text-start"}
+                  />
+                )}
+                {lrcLines.map((line, index) => {
+                  const distance = Math.abs(index - activeIndex);
+                  // Through the interlude after it, a line is sung and done:
+                  // dimmed like the past, while the dots below take over.
+                  const beforeInterlude = activeInterlude?.afterIndex === index;
+                  // The other voice of a duet, still holding its line, stays lit
+                  // beside the active one.
+                  const isOverlap = index === overlapIndex;
+                  const isActive =
+                    (index === activeIndex && !beforeInterlude) || isOverlap;
+                  const isPast =
+                    (index < activeIndex && !isOverlap) || beforeInterlude;
+                  const lineWordIndex = isOverlap
+                    ? overlapWordIndex
+                    : activeWordIndex;
+                  const lineBackgroundWordIndex = isOverlap
+                    ? overlapBackgroundWordIndex
+                    : activeBackgroundWordIndex;
+                  const lineFillRef = isOverlap ? overlapFillRef : wordFillRef;
+                  const lineColor = isOverlap ? overlapColor : highlightColor;
+                  // A duet answers from the other side, unless the user
+                  // centred the lyrics, which then holds for every voice.
+                  // The sides are the line's own (`dir="auto"` below): an
+                  // Arabic line starts at the right.
+                  const align = syncCentered
+                    ? "text-center"
+                    : line.side === "end"
+                      ? "text-end"
+                      : "text-start";
+                  // A fade with the distance from the active line; none
+                  // while the user browses, every line being read then.
+                  const opacity = isActive
+                    ? 1
+                    : follow.browsing
+                      ? 0.7
+                      : Math.max(0.18, 0.7 - distance * 0.08);
+                  const hasWords = isActive && (line.words?.length ?? 0) > 0;
+                  const separators = hasWords
+                    ? wordSeparators(line.words!)
+                    : [];
+                  const romanizationSeparators = line.romanization?.words
+                    ? wordSeparators(line.romanization.words)
+                    : [];
+                  return (
+                    <Fragment key={`${line.timeMs}-${index}`}>
+                      <li
+                        ref={(el) => {
+                          lineRefs.current[index] = el;
+                        }}
+                        style={{ opacity }}
+                      >
+                        <button
+                          type="button"
+                          // The line's direction is its own text's, not the
+                          // interface's: bidi sees the word boxes as neutral
+                          // objects, so in a left-to-right block an Arabic
+                          // line's words would be laid out backwards.
+                          dir="auto"
+                          onClick={() => seekLine(line)}
+                          className={`block w-full text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
+                            align
+                          } ${
+                            isActive
+                              ? "text-white scale-[1.04]"
+                              : isPast
+                                ? "text-white/40"
+                                : "text-white/70 hover:text-white"
+                          } ${isActive && lineColor ? "wf-lyrics-highlight" : ""}`}
+                          style={
+                            isActive && lineColor
+                              ? { color: lineColor }
+                              : undefined
+                          }
+                        >
+                          {hasWords ? (
+                            <span>
+                              {line.words!.map((word, wi) => {
+                                const wState =
+                                  wi === lineWordIndex
+                                    ? "active"
+                                    : wi < lineWordIndex
+                                      ? "past"
+                                      : "future";
+                                const isActiveWord = wState === "active";
+                                // A note held long enough for its length
+                                // gets a wave through its letters.
+                                const isHeld =
+                                  heldNotes && isActiveWord && isHeldNote(word);
+                                // The gap between adjacent word boxes is a
+                                // text node outside them (`inline-block`
+                                // drops its own trailing space): the one the
+                                // source has, a space or nothing — see
+                                // `wordSeparators`.
+                                return (
+                                  <Fragment key={wi}>
                                     <span
+                                      className="karaoke-word"
                                       style={{
-                                        opacity:
-                                          wState === "past"
-                                            ? 0.8
-                                            : isActiveWord
-                                              ? 0.5
-                                              : 0.45,
+                                        // Opacity lives on the layers, not
+                                        // here: a parent's opacity applies to
+                                        // its whole subtree, so dimming the
+                                        // box would dim the sung overlay with
+                                        // it and no fill would ever read as
+                                        // brighter than the unsung text.
+                                        //
+                                        // No transition, here or on the
+                                        // layers: an animated transform or
+                                        // opacity shakes the whole line on
+                                        // WebKit (`LYRICS_WORD_TRANSITION`).
+                                        transform: isActiveWord
+                                          ? "scale(1.04)"
+                                          : "scale(1)",
                                       }}
                                     >
-                                      {isHeld ? (
-                                        <HeldNoteText word={word} glow />
-                                      ) : (
-                                        word.text
-                                      )}
-                                    </span>
-                                    {isActiveWord && (
-                                      // Sung overlay, clipped to the fill
-                                      // fraction. `aria-hidden` because the
-                                      // base layer above already carries the
-                                      // text for assistive tech — without it
-                                      // a screen reader would read the word
-                                      // twice.
                                       <span
-                                        ref={lineFillRef}
-                                        aria-hidden="true"
-                                        className={`karaoke-word__fill${
-                                          isHeld
-                                            ? " karaoke-word__fill--held"
-                                            : ""
-                                        }`}
+                                        style={{
+                                          opacity:
+                                            wState === "past"
+                                              ? 0.8
+                                              : isActiveWord
+                                                ? 0.5
+                                                : 0.45,
+                                        }}
                                       >
                                         {isHeld ? (
-                                          <HeldNoteText word={word} />
+                                          <HeldNoteText word={word} glow />
                                         ) : (
                                           word.text
                                         )}
                                       </span>
-                                    )}
-                                  </span>
-                                  {separators[wi]}
-                                </Fragment>
-                              );
-                            })}
-                          </span>
-                        ) : (
-                          line.text || " "
-                        )}
-                        {line.background && (
-                          <BackgroundVocals
-                            reading={line.background}
-                            active={isActive}
-                            activeWordIndex={lineBackgroundWordIndex}
-                            className="wf-lyrics-reading mt-1 text-xl md:text-2xl font-semibold"
-                          />
-                        )}
-                        {localization === "romanization" &&
-                          line.romanization && (
-                            <span
-                              dir="auto"
-                              className="wf-lyrics-reading block mt-1 text-xl md:text-2xl font-semibold"
-                            >
-                              {line.romanization.words ? (
-                                // Word for word with the line above it,
-                                // sharing its bounds, so `lineWordIndex`
-                                // addresses both.
-                                //
-                                // No progressive fill here, deliberately:
-                                // `useKaraokeWordFill` returns one ref
-                                // callback for one element, and the sweep
-                                // belongs on the line the eye is following.
-                                // The romanization takes the discrete
-                                // highlight, which still marks the word
-                                // being sung.
-                                line.romanization.words.map((word, wi) => (
-                                  <Fragment key={wi}>
-                                    <span
-                                      style={{
-                                        opacity:
-                                          isActive && wi === lineWordIndex
-                                            ? 1
-                                            : isActive && wi < lineWordIndex
-                                              ? 0.7
-                                              : 0.45,
-                                      }}
-                                    >
-                                      {word.text}
+                                      {isActiveWord && (
+                                        // Sung overlay, clipped to the fill
+                                        // fraction. `aria-hidden` because the
+                                        // base layer above already carries the
+                                        // text for assistive tech — without it
+                                        // a screen reader would read the word
+                                        // twice.
+                                        <span
+                                          ref={lineFillRef}
+                                          aria-hidden="true"
+                                          className={`karaoke-word__fill${
+                                            isHeld
+                                              ? " karaoke-word__fill--held"
+                                              : ""
+                                          }`}
+                                        >
+                                          {isHeld ? (
+                                            <HeldNoteText word={word} />
+                                          ) : (
+                                            word.text
+                                          )}
+                                        </span>
+                                      )}
                                     </span>
-                                    {romanizationSeparators[wi]}
+                                    {separators[wi]}
                                   </Fragment>
-                                ))
-                              ) : (
-                                <span style={{ opacity: isActive ? 0.9 : 0.5 }}>
-                                  {line.romanization.text}
-                                </span>
-                              )}
+                                );
+                              })}
                             </span>
+                          ) : (
+                            line.text || " "
                           )}
-                        {/* Lines the file stamped with this one (#821),
+                          {line.background && (
+                            <BackgroundVocals
+                              reading={line.background}
+                              active={isActive}
+                              activeWordIndex={lineBackgroundWordIndex}
+                              className="wf-lyrics-reading mt-1 text-xl md:text-2xl font-semibold"
+                            />
+                          )}
+                          {localization === "romanization" &&
+                            line.romanization && (
+                              <span
+                                dir="auto"
+                                className="wf-lyrics-reading block mt-1 text-xl md:text-2xl font-semibold"
+                              >
+                                {line.romanization.words ? (
+                                  // Word for word with the line above it,
+                                  // sharing its bounds, so `lineWordIndex`
+                                  // addresses both.
+                                  //
+                                  // No progressive fill here, deliberately:
+                                  // `useKaraokeWordFill` returns one ref
+                                  // callback for one element, and the sweep
+                                  // belongs on the line the eye is following.
+                                  // The romanization takes the discrete
+                                  // highlight, which still marks the word
+                                  // being sung.
+                                  line.romanization.words.map((word, wi) => (
+                                    <Fragment key={wi}>
+                                      <span
+                                        style={{
+                                          opacity:
+                                            isActive && wi === lineWordIndex
+                                              ? 1
+                                              : isActive && wi < lineWordIndex
+                                                ? 0.7
+                                                : 0.45,
+                                        }}
+                                      >
+                                        {word.text}
+                                      </span>
+                                      {romanizationSeparators[wi]}
+                                    </Fragment>
+                                  ))
+                                ) : (
+                                  <span
+                                    style={{ opacity: isActive ? 0.9 : 0.5 }}
+                                  >
+                                    {line.romanization.text}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          {/* Lines the file stamped with this one (#821),
                             lit with it: see LyricsPanel. */}
-                        {line.companions?.map((companion, ci) => (
-                          <span
-                            key={ci}
-                            dir="auto"
-                            className="wf-lyrics-reading block mt-1 text-lg md:text-xl font-medium opacity-80"
-                          >
-                            {companion}
-                          </span>
-                        ))}
-                        {localization === "translation" && line.translation && (
-                          <span
-                            dir="auto"
-                            className="wf-lyrics-reading block mt-1 text-lg md:text-xl font-normal italic text-white/60"
-                          >
-                            {line.translation}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                    {beforeInterlude && (
-                      <InterludeRow
-                        progress={activeInterlude.progress}
-                        align={align}
-                      />
-                    )}
-                  </Fragment>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-2xl leading-relaxed text-white/90 whitespace-pre-line pt-16 pb-[40vh] text-center">
-              {staticText ?? payload.content}
-            </p>
-          )}
+                          {line.companions?.map((companion, ci) => (
+                            <span
+                              key={ci}
+                              dir="auto"
+                              className="wf-lyrics-reading block mt-1 text-lg md:text-xl font-medium opacity-80"
+                            >
+                              {companion}
+                            </span>
+                          ))}
+                          {localization === "translation" &&
+                            line.translation && (
+                              <span
+                                dir="auto"
+                                className="wf-lyrics-reading block mt-1 text-lg md:text-xl font-normal italic text-white/60"
+                              >
+                                {line.translation}
+                              </span>
+                            )}
+                        </button>
+                      </li>
+                      {beforeInterlude && (
+                        <InterludeRow
+                          progress={activeInterlude.progress}
+                          align={align}
+                        />
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-2xl leading-relaxed text-white/90 whitespace-pre-line pt-16 pb-[40vh] text-center">
+                {staticText ?? payload.content}
+              </p>
+            )}
+          </div>
         </div>
+        {follow.browsing && (
+          <LyricsResumeButton onClick={follow.backToLine} variant="immersive" />
+        )}
       </div>
     </div>
   );

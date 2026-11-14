@@ -1871,7 +1871,8 @@
       "fullscreen": "Tela cheia",
       "edit": "Editar a letra",
       "cycleLocalization": "Alternar a leitura adicional",
-      "searchAnyway": "Buscar mesmo assim"
+      "searchAnyway": "Buscar mesmo assim",
+      "backToPlayback": "Voltar à reprodução"
     },
     "localization": {
       "off": "Sem leitura adicional",

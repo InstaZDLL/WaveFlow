@@ -2483,6 +2483,31 @@
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
 }
+/* Browsing the lyrics away from the sung line (#1096): every line sharp
+   and legible, the sung one still the brightest. The fill comes back and
+   the shadow goes, as in the sharpening rules above. */
+:root[data-layout="fluid"] .fe-panel [data-lyrics-browsing] ul > li > button {
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+}
+/* High contrast already keeps every line at full opacity. */
+:root[data-layout="fluid"]:not([data-contrast="high"])
+  .fe-panel
+  [data-lyrics-browsing]
+  ul
+  > li
+  > button:not([class*="scale-[1.02]"]):not(:hover) {
+  opacity: 0.75 !important;
+}
+/* The button back to the sung line, in the skin's ink. */
+:root[data-layout="fluid"] [data-lyrics-resume] {
+  font-family: var(--fe-font);
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+}
+:root[data-layout="fluid"] [data-lyrics-resume]:hover {
+  background-color: color-mix(in srgb, var(--fe-accent) 85%, white) !important;
+}
 /* Past lines keep their fade; the word being sung takes the accent. */
 :root[data-layout="fluid"] .fe-panel ul > li > button [class*="text-pink-500"] {
   color: var(--fe-accent) !important;
@@ -2645,6 +2670,17 @@
   > button:focus-visible:not(:where([data-pointer-focus])) {
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
+}
+
+/* Browsing the lyrics away from the sung line (#1096): no blur. */
+:root[data-layout="fluid"]
+  [data-immersive]
+  [data-lyrics-browsing]
+  ul
+  > li
+  > button {
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
 }
 
 /* ── Track tables: a hairline under the header, rows parted by a

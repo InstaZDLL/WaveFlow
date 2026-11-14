@@ -1811,7 +1811,8 @@
       "fullscreen": "Vollbild",
       "edit": "Songtext bearbeiten",
       "cycleLocalization": "Zusatzzeile wechseln",
-      "searchAnyway": "Trotzdem suchen"
+      "searchAnyway": "Trotzdem suchen",
+      "backToPlayback": "Zurück zur Wiedergabe"
     },
     "localization": {
       "off": "Keine Zusatzzeile",
