@@ -112,6 +112,8 @@ enum ClipControl {
     Play,
     Pause,
     Toggle,
+    /// The clip closes: Stop ends the visit, and the track stops too.
+    Stop,
 }
 
 /// Hand `control` to an open clip. `false` when none is open, or the event
@@ -127,6 +129,29 @@ fn route_to_clip(app: &AppHandle, control: ClipControl) -> bool {
             false
         }
     }
+}
+
+/// Stop, for the OS media overlay: an open clip closes (a `clip:control`
+/// `stop`), and the track stops as it would without one.
+pub fn stop(app: &AppHandle) {
+    route_to_clip(app, ClipControl::Stop);
+    if let Some(engine) = app.try_state::<Arc<AudioEngine>>() {
+        let _ = engine.send(AudioCmd::Stop);
+    }
+}
+
+/// Previous past [`PREVIOUS_RESTART_THRESHOLD_MS`]: the track starts over.
+/// While a music video is open the track waits paused under it, and a seek
+/// alone would leave it there with the clip still playing: Previous means
+/// the music, so the track plays from its start and the clip gives way
+/// (the frontend closes it when the track starts). Shared by the frontend's
+/// command and the other surfaces.
+pub fn restart_current(engine: &AudioEngine) -> AppResult<()> {
+    engine.send(AudioCmd::Seek(0))?;
+    if CLIP_OPEN.load(Ordering::Acquire) {
+        engine.send(AudioCmd::Resume)?;
+    }
+    Ok(())
 }
 
 /// Pause, for a surface with a separate Pause button (the OS media
@@ -431,7 +456,7 @@ pub async fn next(app: &AppHandle, label: &str) -> Moved {
 pub async fn previous(app: &AppHandle, label: &str) -> Moved {
     let engine = app.state::<Arc<AudioEngine>>();
     if engine.shared().current_position_ms() > PREVIOUS_RESTART_THRESHOLD_MS {
-        let _ = engine.send(AudioCmd::Seek(0));
+        let _ = restart_current(&engine);
         return Moved::Restarted;
     }
     if let Some(moved) = try_podcast_advance(app, Direction::Previous, label).await {

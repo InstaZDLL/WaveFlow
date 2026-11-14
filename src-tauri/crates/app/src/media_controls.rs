@@ -418,10 +418,8 @@ fn handle_event(event: MediaControlEvent, app: AppHandle) {
         MediaControlEvent::Toggle => {
             crate::player_actions::toggle_play_pause(&app, "media_controls")
         }
-        MediaControlEvent::Stop => {
-            let engine = app.state::<Arc<AudioEngine>>();
-            let _ = engine.send(AudioCmd::Stop);
-        }
+        // An open music video closes with it (#1073).
+        MediaControlEvent::Stop => crate::player_actions::stop(&app),
         MediaControlEvent::Next => spawn_next(app),
         MediaControlEvent::Previous => spawn_previous(app),
         MediaControlEvent::SetPosition(MediaPosition(d)) => {
