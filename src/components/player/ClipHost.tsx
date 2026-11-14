@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { usePlayer } from "../../hooks/usePlayer";
 import {
+  clipState,
   closeClip,
   onClipExit,
   pauseClip,
@@ -73,10 +74,14 @@ export function ClipHost() {
     };
   });
 
-  const clipKey = clip ? `${clip.trackId}:${clip.localPath}` : null;
+  // Every opening is a session of its own (`clipPlayer`).
+  const clipKey = clip ? clip.session : null;
   const trackId = clip?.trackId ?? null;
-  // Whether the track was playing when the clip opened.
+  // Whether the track was playing when the clip opened: when one clip
+  // replaces another directly, the track was paused by the first, and what
+  // counts is what it was doing before that.
   const resumeTrack = useRef(false);
+  const previousKey = useRef<number | null>(null);
   // Whether the clip has seen the track stopped: only a start after that is
   // the user going back to the music, not the pause below racing its own
   // state change.
@@ -84,9 +89,11 @@ export function ClipHost() {
 
   // Opening: the track pauses for the clip.
   useEffect(() => {
+    const replaced = previousKey.current !== null;
+    previousKey.current = clipKey;
     if (clipKey === null) return;
     const { isPlaying: playing, togglePlayback: toggle } = live.current;
-    resumeTrack.current = playing;
+    resumeTrack.current = playing || (replaced && resumeTrack.current);
     sawStopped.current = !playing;
     if (playing) void toggle();
   }, [clipKey]);
@@ -130,7 +137,9 @@ export function ClipHost() {
           return;
         }
         await seekTrack(positionMs);
-        if (resume) await toggle();
+        // A clip opened during the seek is a new visit: resuming now would
+        // start the track under it.
+        if (resume && clipState().clip === null) await toggle();
       })();
     });
     return () => onClipExit(null);
@@ -154,6 +163,8 @@ export function ClipHost() {
     const unlisten = listen<ClipControl>("clip:control", ({ payload }) => {
       if (payload === "pause") pauseClip();
       else if (payload === "play") playClip();
+      // Stop ends the visit; the backend stops the track itself.
+      else if (payload === "stop") closeClip();
       else toggleClip();
     });
     return () => {

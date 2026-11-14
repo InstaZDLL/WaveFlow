@@ -7,6 +7,9 @@ import { usePlayer } from "../../hooks/usePlayer";
 import {
   attachClipVideo,
   clipState,
+  detachClipVideo,
+  markClipPositioned,
+  playClipElement,
   reportClipProgress,
   requestBackToAudio,
   useClipState,
@@ -30,11 +33,13 @@ const END_MARGIN_MS = 1000;
 export function ClipVideo({ className }: { className?: string }) {
   const clip = useClipState().clip;
   if (!clip) return null;
-  // One element per clip: a new clip (after one that failed, say) gets an
-  // element of its own, registered afresh.
+  // One element per session: every opening (the same clip again, or a
+  // new one after one that failed) gets an element of its own, and what
+  // an element reports is about its session only.
   return (
     <ClipElement
-      key={`${clip.trackId}:${clip.localPath}`}
+      key={clip.session}
+      session={clip.session}
       localPath={clip.localPath}
       className={className}
     />
@@ -42,9 +47,11 @@ export function ClipVideo({ className }: { className?: string }) {
 }
 
 function ClipElement({
+  session,
   localPath,
   className,
 }: {
+  session: number;
   localPath: string;
   className?: string;
 }) {
@@ -52,21 +59,18 @@ function ClipElement({
   const { volume } = usePlayer();
   const { failed: storeFailed } = useClipState();
   const ref = useRef<HTMLVideoElement>(null);
+  // Until its metadata loads and it is put at the clip's position, the
+  // element's time is 0 and says nothing about where the clip is.
+  const positioned = useRef(false);
 
   // Declared before `usePlayableVideo`, so its cleanup runs first: on Linux
   // the hook's own cleanup reloads the element, which puts it back at 0.
   useEffect(() => {
     const element = ref.current;
-    attachClipVideo(element);
-    return () => {
-      if (element) {
-        reportClipProgress({
-          positionMs: Math.round(element.currentTime * 1000),
-        });
-      }
-      attachClipVideo(null);
-    };
-  }, []);
+    if (!element) return;
+    attachClipVideo(session, element);
+    return () => detachClipVideo(session, element);
+  }, [session]);
 
   const playable = usePlayableVideo(ref, localPath, false);
   const failed = storeFailed || playable.failed;
@@ -94,10 +98,12 @@ function ClipElement({
       element.videoWidth > 0 && element.videoHeight > 0
         ? element.videoWidth / element.videoHeight
         : null;
-    reportClipProgress({ durationMs, positionMs: target, aspect });
-    // Autoplay with sound can be refused by the webview: the player bar's
-    // Play button starts it then.
-    if (!paused) void element.play().catch(() => undefined);
+    positioned.current = true;
+    markClipPositioned(session);
+    reportClipProgress(session, { durationMs, positionMs: target, aspect });
+    // Autoplay with sound can be refused by the webview: the store then
+    // says paused, and the player bar's Play button starts it.
+    if (!paused) playClipElement(session, element);
   };
 
   if (failed) {
@@ -122,17 +128,18 @@ function ClipElement({
       onContextMenu={(event) => event.preventDefault()}
       className={`bg-black object-contain ${className ?? ""}`}
       onLoadedMetadata={onLoadedMetadata}
-      onTimeUpdate={(event) =>
-        reportClipProgress({
+      onTimeUpdate={(event) => {
+        if (!positioned.current) return;
+        reportClipProgress(session, {
           positionMs: Math.round(event.currentTarget.currentTime * 1000),
-        })
-      }
-      onPlay={() => reportClipProgress({ paused: false })}
-      onPause={() => reportClipProgress({ paused: true })}
+        });
+      }}
+      onPlay={() => reportClipProgress(session, { paused: false })}
+      onPause={() => reportClipProgress(session, { paused: true })}
       // The end of the clip is the end of the visit: back to the cover,
       // the track paused at the clip's position.
       onEnded={() => requestBackToAudio("ended")}
-      onError={() => reportClipProgress({ failed: true })}
+      onError={() => reportClipProgress(session, { failed: true })}
     />
   );
 }

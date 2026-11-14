@@ -37,6 +37,7 @@ import { CanvasToggleButton } from "./CanvasToggleButton";
 import { CanvasPickerModal } from "../common/CanvasPickerModal";
 import { LINUX } from "../../hooks/usePlayableVideo";
 import { ClipStage } from "./ClipStage";
+import { useOpenClip } from "../../lib/clipPlayer";
 
 /** Below this width the dual-column layout collapses to a single column
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
@@ -146,6 +147,7 @@ export function ImmersiveView({
     startsInTheater ? true : null,
   );
   const theater = theaterOverride ?? theaterMode;
+  const clipShown = useOpenClip() !== null;
   const lyrics = useTrackLyrics();
 
   // Per-track Canvas (issue #442). Only a real library track can carry one
@@ -549,8 +551,10 @@ export function ImmersiveView({
         <div className="absolute inset-0 bg-black/65" />
       </div>
 
-      {/* Foreground */}
+      {/* Foreground. Inert while a music video covers it (#1073): out of
+          reach of Tab and of the pointer, so nothing unseen can be pressed. */}
       <div
+        inert={clipShown}
         className={`relative h-full flex flex-col text-white${FADE_IN}`}
         style={theaterZoom !== 1 ? { zoom: theaterZoom } : undefined}
       >

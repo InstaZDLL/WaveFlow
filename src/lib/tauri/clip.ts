@@ -41,4 +41,4 @@ export function playerSetClipOpen(open: boolean): Promise<void> {
 }
 
 /** Payload of the `clip:control` event. */
-export type ClipControl = "play" | "pause" | "toggle";
+export type ClipControl = "play" | "pause" | "toggle" | "stop";

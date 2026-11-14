@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Minimize2, Music, VolumeX } from "lucide-react";
 
@@ -18,6 +19,13 @@ export function ClipStage() {
   const { t } = useTranslation();
   const clip = useOpenClip();
   const { closeImmersive, outputMode } = usePlayer();
+  const firstButton = useRef<HTMLButtonElement>(null);
+  const session = clip?.session ?? null;
+  // The view under the clip turns inert, and whatever had the focus there
+  // loses it: it goes to the clip's first control instead.
+  useEffect(() => {
+    if (session !== null) firstButton.current?.focus({ preventScroll: true });
+  }, [session]);
   if (!clip) return null;
 
   const exclusive = outputMode === "exclusive" || outputMode === "dop";
@@ -37,6 +45,7 @@ export function ClipStage() {
       >
         <div className="flex items-center gap-2">
           <button
+            ref={firstButton}
             type="button"
             onClick={() => requestBackToAudio("user")}
             className="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2.5 text-sm font-medium backdrop-blur-sm transition-colors hover:bg-black/70"

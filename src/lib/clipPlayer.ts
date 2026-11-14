@@ -13,8 +13,17 @@ import { getPlayerPosition } from "../hooks/usePlayerPosition";
  * menu or the panel's switch opens it. The `<video>` element itself is
  * registered here by whichever surface shows it, so a move from the panel
  * to the immersive view carries the position across.
+ *
+ * **Every opening is a session of its own** (`OpenClip.session`). What an
+ * element reports, what an exit does after its awaits, which element the
+ * transport drives: each is tied to the session it belongs to, and a
+ * session that was replaced or closed is ignored. Without it, the clip
+ * being left wrote its position into the next one, a late exit resumed the
+ * track under a new clip, and opening a paused clip again did nothing.
  */
 export interface OpenClip {
+  /** A new number at every opening, the same clip again included. */
+  session: number;
   trackId: number;
   localPath: string;
   title: string;
@@ -47,7 +56,12 @@ const CLOSED: ClipState = {
 };
 
 let state: ClipState = CLOSED;
-let video: HTMLVideoElement | null = null;
+let lastSession = 0;
+/** The element showing the clip, and whether it has been put at the
+ *  clip's position yet: until its metadata loads, its `currentTime` is 0
+ *  and says nothing about where the clip is. */
+let video: { session: number; element: HTMLVideoElement } | null = null;
+let videoPositioned = false;
 const listeners = new Set<() => void>();
 
 function set(next: Partial<ClipState>) {
@@ -55,9 +69,23 @@ function set(next: Partial<ClipState>) {
   listeners.forEach((listener) => listener());
 }
 
-/** Show `clip`. A clip already open is replaced. */
-export function openClip(clip: OpenClip): void {
-  set({ ...CLOSED, clip, positionMs: clip.startMs, paused: false });
+/** Whether `session` is the clip on screen. */
+export function isCurrentClipSession(session: number): boolean {
+  return state.clip?.session === session;
+}
+
+/** Show a clip, as a new session. A clip already open is replaced, the same
+ *  one included: opening it again starts it again. */
+export function openClip(clip: Omit<OpenClip, "session">): void {
+  lastSession += 1;
+  video = null;
+  videoPositioned = false;
+  set({
+    ...CLOSED,
+    clip: { ...clip, session: lastSession },
+    positionMs: clip.startMs,
+    paused: false,
+  });
 }
 
 /**
@@ -86,6 +114,7 @@ export function openClipForTrack(
 export function closeClip(): void {
   if (state.clip === null) return;
   video = null;
+  videoPositioned = false;
   set(CLOSED);
 }
 
@@ -100,28 +129,64 @@ export function onClipExit(handler: ExitHandler | null): void {
   exitHandler = handler;
 }
 
+/** The clip's position: the element's once it has been put there, the
+ *  store's before (a switch back before the metadata loaded, or a format
+ *  that failed, keeps the position the clip was opened at). */
+function currentPositionMs(): number {
+  if (video && videoPositioned && isCurrentClipSession(video.session)) {
+    return Math.round(video.element.currentTime * 1000);
+  }
+  return state.positionMs;
+}
+
 /** Back to the track's audio, at the clip's position. */
 export function requestBackToAudio(exit: ClipExit = "user"): void {
   if (state.clip === null) return;
-  const positionMs = video
-    ? Math.round(video.currentTime * 1000)
-    : state.positionMs;
+  const positionMs = currentPositionMs();
   if (exitHandler) exitHandler(exit, positionMs);
   else closeClip();
 }
 
 /**
- * The surface showing the clip hands its `<video>` over (and `null` when it
- * stops showing it). The element is resumed at the clip's position and in
- * its play state, so a move between surfaces does not restart it.
+ * The surface showing the clip hands its `<video>` over, for `session`. The
+ * element is resumed at the clip's position and in its play state, so a
+ * move between surfaces does not restart it.
  */
-export function attachClipVideo(element: HTMLVideoElement | null): void {
-  video = element;
+export function attachClipVideo(
+  session: number,
+  element: HTMLVideoElement,
+): void {
+  if (!isCurrentClipSession(session)) return;
+  video = { session, element };
+  videoPositioned = false;
 }
 
-/** What the attached element reports, for the transport. */
-export function reportClipProgress(next: Partial<ClipState>): void {
-  if (state.clip === null) return;
+/** The surface lets go of its element. Its position is kept for the next
+ *  surface, when the element had reached it. */
+export function detachClipVideo(
+  session: number,
+  element: HTMLVideoElement,
+): void {
+  if (video?.element !== element) return;
+  if (videoPositioned && isCurrentClipSession(session)) {
+    set({ positionMs: Math.round(element.currentTime * 1000) });
+  }
+  video = null;
+  videoPositioned = false;
+}
+
+/** The element of `session` now stands at the clip's position. */
+export function markClipPositioned(session: number): void {
+  if (video?.session === session) videoPositioned = true;
+}
+
+/** What the element of `session` reports, for the transport. Ignored once
+ *  that session is no longer the clip on screen. */
+export function reportClipProgress(
+  session: number,
+  next: Partial<ClipState>,
+): void {
+  if (!isCurrentClipSession(session)) return;
   set(next);
 }
 
@@ -129,31 +194,40 @@ export function clipState(): ClipState {
   return state;
 }
 
+function element(): HTMLVideoElement | null {
+  return video && isCurrentClipSession(video.session) ? video.element : null;
+}
+
+/** Play the element, and say so in the store when the webview refuses
+ *  (autoplay with sound): the Play button then reads Play, not Pause. */
+export function playClipElement(session: number, target: HTMLVideoElement) {
+  void target.play().catch(() => reportClipProgress(session, { paused: true }));
+}
+
 export function toggleClip(): void {
-  if (!video) return;
-  if (video.paused) void video.play().catch(() => undefined);
-  else video.pause();
+  const target = element();
+  if (!target || !state.clip) return;
+  if (target.paused) playClipElement(state.clip.session, target);
+  else target.pause();
 }
 
 export function playClip(): void {
-  void video?.play().catch(() => undefined);
+  const target = element();
+  if (target && state.clip) playClipElement(state.clip.session, target);
 }
 
 export function pauseClip(): void {
-  video?.pause();
+  element()?.pause();
 }
 
 /** Seek the clip, in ms, inside its length. */
 export function seekClip(ms: number): void {
-  if (!video) return;
-  const duration = Number.isFinite(video.duration) ? video.duration : 0;
+  const target = element();
+  if (!target) return;
+  const duration = Number.isFinite(target.duration) ? target.duration : 0;
   const seconds = Math.max(0, ms / 1000);
-  video.currentTime = duration > 0 ? Math.min(seconds, duration) : seconds;
-  set({ positionMs: Math.round(video.currentTime * 1000) });
-}
-
-export function setClipVolume(volume01: number): void {
-  if (video) video.volume = Math.min(1, Math.max(0, volume01));
+  target.currentTime = duration > 0 ? Math.min(seconds, duration) : seconds;
+  set({ positionMs: Math.round(target.currentTime * 1000) });
 }
 
 function subscribe(listener: () => void) {

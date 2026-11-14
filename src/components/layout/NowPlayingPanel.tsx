@@ -510,6 +510,24 @@ export function NowPlayingPanel({
       )}
     </div>
   );
+  // A clip opened from the menu of another track than the one playing says
+  // whose it is: the cover's title would name the wrong song.
+  const foreignClip =
+    clipInPanel && clipState.clip?.trackId !== currentTrack?.id
+      ? clipState.clip
+      : null;
+  const clipIdentity = foreignClip ? (
+    <div className={`space-y-1 ${inset}`}>
+      <div className="text-xl font-bold leading-tight text-zinc-900 dark:text-white">
+        {foreignClip.title}
+      </div>
+      {foreignClip.artist && (
+        <div className="text-sm text-zinc-500 dark:text-zinc-400">
+          {foreignClip.artist}
+        </div>
+      )}
+    </div>
+  ) : null;
   // Switch between the track and its music video (#1073): the two
   // line up at the moment of the switch, in either direction.
   const clipSwitch = (clipOpen || trackClip) && (
@@ -687,7 +705,10 @@ export function NowPlayingPanel({
 
           {/* Track info — under the cover, unless a tall Canvas took it
                 over the clip above (or the embedded form, always). */}
-          {!identityOverCover && <div className={inset}>{trackIdentity}</div>}
+          {clipIdentity ??
+            (!identityOverCover && (
+              <div className={inset}>{trackIdentity}</div>
+            ))}
 
           {/* Embedded: where the track comes from, the two actions as
                 pills, and a glimpse of the lyrics that opens their tab. */}
@@ -938,6 +959,7 @@ export function NowPlayingPanel({
         <div className={embedded ? "space-y-6 pb-6" : "p-6 space-y-6"}>
           {clipFrame}
           {clipSwitch}
+          {clipIdentity}
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12 text-zinc-400">
