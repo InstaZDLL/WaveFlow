@@ -1068,7 +1068,8 @@
 /* The lyrics: Lora, no blur — ink does not blur; the sung line in the
    display face. */
 :root[data-skin="editorial"] .fe-panel ul > li > button {
-  filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
   opacity: 0.55;
 }
 :root[data-skin="editorial"]
@@ -1076,14 +1077,33 @@
   ul
   > li:has(> button[class*="scale-[1.02]"])
   + li
-  > button,
+  > button:not([class*="scale-[1.02]"]),
 :root[data-skin="editorial"]
   .fe-panel
   ul
   > li:has(+ li > button[class*="scale-[1.02]"])
-  > button {
-  filter: none;
+  > button:not([class*="scale-[1.02]"]) {
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
   opacity: 0.8;
+}
+/* The lines two away: the base's fade, not fluid's blur, which these
+   selectors outweigh the base rule for. */
+:root[data-skin="editorial"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  + li
+  > button:not([class*="scale-[1.02]"]),
+:root[data-skin="editorial"]
+  .fe-panel
+  ul
+  > li:has(+ li + li > button[class*="scale-[1.02]"])
+  > button:not([class*="scale-[1.02]"]) {
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+  opacity: 0.55;
 }
 :root[data-skin="editorial"]
   .fe-panel

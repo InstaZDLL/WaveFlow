@@ -796,20 +796,42 @@
   color: var(--fe-ink-2) !important;
   opacity: 0.72;
   filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 :root[data-skin="liquid"]
   .fe-panel
   ul
   > li:has(> button[class*="scale-[1.02]"])
   + li
-  > button,
+  > button:not([class*="scale-[1.02]"]),
 :root[data-skin="liquid"]
   .fe-panel
   ul
   > li:has(+ li > button[class*="scale-[1.02]"])
-  > button {
+  > button:not([class*="scale-[1.02]"]) {
   opacity: 0.9;
   filter: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+/* The lines two away: the base's fade, not fluid's blur, which these
+   selectors outweigh the base rule for. */
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  + li
+  > button:not([class*="scale-[1.02]"]),
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(+ li + li > button[class*="scale-[1.02]"])
+  > button:not([class*="scale-[1.02]"]) {
+  opacity: 0.72;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 :root[data-skin="liquid"]
   .fe-panel
@@ -819,6 +841,7 @@
   color: var(--fe-ink) !important;
   opacity: 1;
   filter: none;
+  -webkit-text-fill-color: currentColor;
   text-shadow: 0 0 24px color-mix(in srgb, var(--fe-glow) 70%, transparent);
 }
 /* The queue's playing row: the accent's edge and its light. */
@@ -1331,32 +1354,34 @@
 
 /* ── The immersive lyrics: depth by opacity, the blur a whisper ── */
 :root[data-skin="liquid"] [data-immersive] ul > li > button[class*="text-3xl"] {
-  filter: blur(0.5px);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 1px currentColor;
 }
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(> button[class*="scale-[1.04]"])
   + li
-  > button,
+  > button:not([class*="scale-[1.04]"]),
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(+ li > button[class*="scale-[1.04]"])
-  > button,
+  > button:not([class*="scale-[1.04]"]),
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(> button[class*="scale-[1.04]"])
   + li
   + li
-  > button,
+  > button:not([class*="scale-[1.04]"]),
 :root[data-skin="liquid"]
   [data-immersive]
   ul
   > li:has(+ li + li > button[class*="scale-[1.04]"])
-  > button {
-  filter: none;
+  > button:not([class*="scale-[1.04]"]) {
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
 }
 
 /* ── A pale ground under an artist's photo ─────────────────── */
@@ -1544,6 +1569,8 @@
     > li
     > button[class*="text-3xl"] {
     filter: none !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
   }
 }
 :root[data-skin="liquid"]:is(
@@ -1575,6 +1602,8 @@
   > li
   > button[class*="text-3xl"] {
   filter: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
 }
 
 /* The "What's new" panel: its scrim has no blur, since the page behind it may
