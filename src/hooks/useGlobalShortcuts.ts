@@ -132,7 +132,7 @@ async function dispatch(
     case "togglePlayback":
       // The music video's, while one is shown (#1073): the track waits
       // paused under it, and starting it would close the clip.
-      if (clipState().clip !== null) toggleClip();
+      if (clipState().clip !== null && !clipState().failed) toggleClip();
       else await player.togglePlayback();
       break;
     case "next":

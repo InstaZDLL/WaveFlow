@@ -113,7 +113,8 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={() => togglePlayback()}
-        disabled={disableTransport}
+        // A clip opened from a menu with nothing playing still has a Play.
+        disabled={!video && disableTransport}
         aria-label={
           isPlaying ? t("player.controls.pause") : t("player.controls.play")
         }

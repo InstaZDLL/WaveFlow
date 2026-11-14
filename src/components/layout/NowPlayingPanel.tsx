@@ -9,6 +9,7 @@ import {
   Clapperboard,
   Maximize2,
   Music,
+  VolumeX,
 } from "lucide-react";
 import { LyricsPreviewCard } from "./fluid/LyricsPreviewCard";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -98,6 +99,7 @@ export function NowPlayingPanel({
     isNowPlayingOpen,
     immersiveOpen,
     openImmersive,
+    outputMode,
   } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
@@ -474,6 +476,70 @@ export function NowPlayingPanel({
     </div>
   ) : null;
 
+  // The music video in place of the cover (#1073), and the switch under it.
+  // Outside the `currentTrack` branch: a clip opened from a track's menu
+  // with nothing playing has no current track, and still shows here.
+  const exclusiveOutput = outputMode === "exclusive" || outputMode === "dop";
+  const clipFrame = (
+    // The clip in place of the cover, in a frame of its own shape:
+    // a music video is landscape far more often than square.
+    <div
+      className={`relative mx-auto w-full overflow-hidden rounded-2xl bg-black ${embedded ? "fe-panel__hero" : "shadow-lg"}`}
+      style={{ aspectRatio: clipState.aspect ?? 16 / 9 }}
+    >
+      <ClipVideo className="h-full w-full" />
+      <button
+        type="button"
+        onClick={() => openImmersive("nowPlaying")}
+        aria-label={t("clip.expand")}
+        title={t("clip.expand")}
+        className="absolute end-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white/85 transition-colors hover:text-white"
+      >
+        <Maximize2 size={16} />
+      </button>
+      {/* The engine keeps an exclusive device while paused, so the
+          webview has no way to it: said here, where the clip plays. */}
+      {exclusiveOutput && !clipState.failed && (
+        <div
+          role="status"
+          className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-center text-[0.6875rem] text-white/90"
+        >
+          <VolumeX size={12} className="shrink-0" />
+          {t("clip.exclusiveNoSound")}
+        </div>
+      )}
+    </div>
+  );
+  // Switch between the track and its music video (#1073): the two
+  // line up at the moment of the switch, in either direction.
+  const clipSwitch = (clipOpen || trackClip) && (
+    <div className={inset}>
+      <button
+        type="button"
+        onClick={() => {
+          if (clipOpen) {
+            requestBackToAudio("user");
+          } else if (trackClip && currentTrack) {
+            openClipForTrack(
+              currentTrack,
+              trackClip.localPath,
+              currentTrack.id,
+            );
+          }
+        }}
+        aria-pressed={clipOpen}
+        className={
+          embedded
+            ? "fe-panel__pill w-full"
+            : "w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
+        }
+      >
+        {clipOpen ? <Music size={16} /> : <Clapperboard size={16} />}
+        {clipOpen ? t("clip.switchToAudio") : t("clip.switchToVideo")}
+      </button>
+    </div>
+  );
+
   const body = (
     <div
       className={
@@ -524,23 +590,7 @@ export function NowPlayingPanel({
                 width lets `aspect-ratio` derive the height, where a
                 `max-height` would just squash the box out of ratio. */}
           {clipInPanel ? (
-            // The clip in place of the cover, in a frame of its own shape:
-            // a music video is landscape far more often than square.
-            <div
-              className={`relative mx-auto w-full overflow-hidden rounded-2xl bg-black ${embedded ? "fe-panel__hero" : "shadow-lg"}`}
-              style={{ aspectRatio: clipState.aspect ?? 16 / 9 }}
-            >
-              <ClipVideo className="h-full w-full" />
-              <button
-                type="button"
-                onClick={() => openImmersive("nowPlaying")}
-                aria-label={t("clip.expand")}
-                title={t("clip.expand")}
-                className="absolute end-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white/85 transition-colors hover:text-white"
-              >
-                <Maximize2 size={16} />
-              </button>
-            </div>
+            clipFrame
           ) : (
             <div
               className={`relative mx-auto transition-[width,aspect-ratio] duration-500 ${canvasTall ? "" : "w-full"} ${embedded ? "fe-panel__hero" : ""}`}
@@ -633,35 +683,7 @@ export function NowPlayingPanel({
             </div>
           )}
 
-          {/* Switch between the track and its music video (#1073): the two
-                line up at the moment of the switch, in either direction. */}
-          {(clipOpen || trackClip) && (
-            <div className={inset}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (clipOpen) {
-                    requestBackToAudio("user");
-                  } else if (trackClip && currentTrack) {
-                    openClipForTrack(
-                      currentTrack,
-                      trackClip.localPath,
-                      currentTrack.id,
-                    );
-                  }
-                }}
-                aria-pressed={clipOpen}
-                className={
-                  embedded
-                    ? "fe-panel__pill w-full"
-                    : "w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
-                }
-              >
-                {clipOpen ? <Music size={16} /> : <Clapperboard size={16} />}
-                {clipOpen ? t("clip.switchToAudio") : t("clip.switchToVideo")}
-              </button>
-            </div>
-          )}
+          {clipSwitch}
 
           {/* Track info — under the cover, unless a tall Canvas took it
                 over the clip above (or the embedded form, always). */}
@@ -911,6 +933,11 @@ export function NowPlayingPanel({
               )}
             </div>
           )}
+        </div>
+      ) : clipInPanel ? (
+        <div className={embedded ? "space-y-6 pb-6" : "p-6 space-y-6"}>
+          {clipFrame}
+          {clipSwitch}
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12 text-zinc-400">

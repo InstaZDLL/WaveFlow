@@ -28,13 +28,33 @@ const END_MARGIN_MS = 1000;
  * state, so moving from one surface to the other carries both across.
  */
 export function ClipVideo({ className }: { className?: string }) {
+  const clip = useClipState().clip;
+  if (!clip) return null;
+  // One element per clip: a new clip (after one that failed, say) gets an
+  // element of its own, registered afresh.
+  return (
+    <ClipElement
+      key={`${clip.trackId}:${clip.localPath}`}
+      localPath={clip.localPath}
+      className={className}
+    />
+  );
+}
+
+function ClipElement({
+  localPath,
+  className,
+}: {
+  localPath: string;
+  className?: string;
+}) {
   const { t } = useTranslation();
   const { volume } = usePlayer();
-  const { clip, failed: storeFailed } = useClipState();
+  const { failed: storeFailed } = useClipState();
   const ref = useRef<HTMLVideoElement>(null);
-  const playable = usePlayableVideo(ref, clip?.localPath ?? "", false);
-  const failed = storeFailed || playable.failed;
 
+  // Declared before `usePlayableVideo`, so its cleanup runs first: on Linux
+  // the hook's own cleanup reloads the element, which puts it back at 0.
   useEffect(() => {
     const element = ref.current;
     attachClipVideo(element);
@@ -47,6 +67,9 @@ export function ClipVideo({ className }: { className?: string }) {
       attachClipVideo(null);
     };
   }, []);
+
+  const playable = usePlayableVideo(ref, localPath, false);
+  const failed = storeFailed || playable.failed;
 
   // The app's volume, followed while the clip plays: the player bar's
   // slider is the one the user reaches for.
@@ -77,7 +100,6 @@ export function ClipVideo({ className }: { className?: string }) {
     if (!paused) void element.play().catch(() => undefined);
   };
 
-  if (!clip) return null;
   if (failed) {
     return (
       <div
