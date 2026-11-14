@@ -1,6 +1,6 @@
 use super::{
-    next_stall_retry, stall_retry_delay, StormAction, StreamErrorStorm, STALL_RETRY_MAX,
-    STALL_RETRY_MIN,
+    next_stall_retry, stall_retry_delay, stream_error_class, StormAction, StreamErrorClass,
+    StreamErrorStorm, STALL_RETRY_MAX, STALL_RETRY_MIN,
 };
 use std::time::{Duration, Instant};
 
@@ -131,4 +131,60 @@ fn scattered_errors_never_make_a_storm() {
         let action = storm.on_error(t + Duration::from_millis(i * 100), false);
         assert!(!matches!(action, StormAction::Rebuild { .. }), "error {i}");
     }
+}
+
+#[test]
+fn an_xrun_is_recovered_and_a_lost_device_is_a_fault() {
+    assert_eq!(
+        stream_error_class(cpal::ErrorKind::Xrun),
+        StreamErrorClass::Recovered
+    );
+    assert_eq!(
+        stream_error_class(cpal::ErrorKind::DeviceChanged),
+        StreamErrorClass::PlaysOn
+    );
+    assert_eq!(
+        stream_error_class(cpal::ErrorKind::DeviceNotAvailable),
+        StreamErrorClass::Fault { device_gone: true }
+    );
+    assert_eq!(
+        stream_error_class(cpal::ErrorKind::BackendError),
+        StreamErrorClass::Fault { device_gone: false }
+    );
+}
+
+#[test]
+fn recovered_xruns_never_report_nor_rebuild() {
+    // A PipeWire quantum forced above the period: an xrun every other
+    // period, 24 a second, for a minute. The stream plays on through all
+    // of them (#1103).
+    let mut storm = StreamErrorStorm::default();
+    let t = Instant::now();
+    for i in 0..24 * 60 {
+        let action = storm.on_xrun(t + Duration::from_micros(i * 41_666));
+        assert_eq!(action, StormAction::Quiet, "xrun {i}");
+    }
+    // Nor do they eat the first report of a real fault.
+    assert_eq!(
+        storm.on_error(t + Duration::from_secs(61), false),
+        StormAction::Report { rebuild: false }
+    );
+}
+
+#[test]
+fn an_xrun_loop_that_never_recovers_rebuilds_once() {
+    let mut storm = StreamErrorStorm::default();
+    let t = Instant::now();
+    let rebuilds: Vec<usize> = (0..100_000)
+        .filter(|i| {
+            matches!(
+                storm.on_xrun(t + Duration::from_nanos(*i as u64 * 500)),
+                StormAction::Rebuild { .. }
+            )
+        })
+        .collect();
+    assert_eq!(
+        rebuilds,
+        vec![StreamErrorStorm::XRUN_THRESHOLD as usize - 1]
+    );
 }

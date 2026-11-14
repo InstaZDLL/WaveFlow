@@ -20,23 +20,23 @@ pub struct OutputDeviceInfo {
     pub is_default: bool,
 }
 
-/// `DeviceTrait::name()` was deprecated in cpal 0.17 in favour of
-/// `description()` + `id()`. On Windows, `description().name()` maps
-/// to `DEVPKEY_Device_DeviceDesc`, which is the *generic* class name
-/// (e.g. literally `"Speakers"`) shared by every endpoint of the same
-/// kind — so a system with three speaker-class outputs (onboard DAC,
-/// USB headset, Steam virtual sink) shows three indistinguishable
-/// `"Speakers"` rows. The disambiguated `DEVPKEY_Device_FriendlyName`
-/// (`"Speakers (Logitech PRO X Wireless Gaming Headset)"`) is
-/// surfaced by cpal in `description().extended()[0]` when it differs
-/// from DeviceDesc — we prefer it for display *and* for the value
-/// persisted in `profile_setting['audio.output_device']`, so device
-/// selection survives a restart even when several outputs share a
-/// class name.
+/// The name shown for a device, and on Windows and macOS the value
+/// persisted in `profile_setting['audio.output_device']`.
+///
+/// On Windows that has to be `DEVPKEY_Device_FriendlyName`
+/// (`"Speakers (Logitech PRO X Wireless Gaming Headset)"`), not
+/// `DEVPKEY_Device_DeviceDesc`, the *generic* class name (literally
+/// `"Speakers"`) shared by every endpoint of the same kind — three
+/// speaker-class outputs would otherwise be three indistinguishable rows,
+/// and a pin would not survive a restart. cpal 0.18 puts FriendlyName in
+/// `description().name()`; 0.17 put DeviceDesc there and FriendlyName
+/// first in `extended()`, which is why the first extended line wins. It
+/// still does: on ALSA that line is the hint's description, and the name
+/// a pin saved under 0.17 is unchanged.
 pub(super) fn device_display_name(device: &cpal::Device) -> Option<String> {
     let desc = device.description().ok()?;
-    if let Some(friendly) = desc.extended().first() {
-        return Some(friendly.clone());
+    if let Some(friendly) = desc.extended().next() {
+        return Some(friendly.to_owned());
     }
     Some(desc.name().to_string())
 }
@@ -46,7 +46,7 @@ pub(super) fn device_display_name(device: &cpal::Device) -> Option<String> {
 /// actually opened.
 ///
 /// On Linux that is the ALSA PCM id (`pipewire`, `hw:CARD=PCH,DEV=0`),
-/// which cpal 0.17 carries as the description's `driver`. The menu there
+/// which cpal carries as the description's `driver`. The menu there
 /// is built from ALSA's hint database and keys its rows on that id, so a
 /// pin is an id — while [`device_display_name`] answers with the hint's
 /// description ("PipeWire Sound Server"). Comparing the two meant a

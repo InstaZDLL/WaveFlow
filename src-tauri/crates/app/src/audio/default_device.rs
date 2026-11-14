@@ -2,9 +2,11 @@
 //!
 //! With no device pinned, the output opens whatever the system default
 //! is *at that moment* and the stream stays bound to that endpoint for
-//! its lifetime. Nothing used to subscribe to default-device changes —
-//! neither WaveFlow nor cpal 0.17, which exposes no notification API at
-//! all — so plugging in a headset moved the system's default and left
+//! its lifetime (cpal 0.18 can follow the default by itself, but
+//! `output::default_output_endpoint` opens the fixed endpoint instead).
+//! Nothing used to subscribe to default-device changes — neither
+//! WaveFlow nor cpal 0.17, which exposed no notification API at all — so
+//! plugging in a headset moved the system's default and left
 //! playback on the old speakers. After #612 the picker at least told
 //! the truth about which endpoint that was; "follow the OS default"
 //! still followed nothing.
