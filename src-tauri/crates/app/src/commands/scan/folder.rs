@@ -853,10 +853,13 @@ pub(crate) async fn scan_folder_inner(
                 // for context on why these queries still run on a
                 // hash-match (cover backfill, codec/key backfill,
                 // multi-artist normalisation).
+                // The track's own cover, whatever its album holds: the pass
+                // that fills it on a library older than #1100. Written even
+                // when the file and its folder hold none any more, so a
+                // folder cover deleted since does not linger, as on the
+                // changed-file branch below.
+                set_track_cover(&mut tx, existing_track_id, extracted.cover_art.as_ref()).await?;
                 if let Some(cover) = &extracted.cover_art {
-                    // The track's own cover, whatever its album holds: the
-                    // pass that fills it on a library older than #1100.
-                    set_track_cover(&mut tx, existing_track_id, Some(cover)).await?;
                     let row: Option<(Option<i64>, Option<i64>)> = sqlx::query_as(
                         "SELECT t.album_id, al.artwork_id
                            FROM track t

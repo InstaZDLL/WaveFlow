@@ -3072,3 +3072,24 @@ async fn the_next_scan_gives_an_existing_track_its_cover() {
         .await
         .is_some());
 }
+
+/// A deep rescan reads an unchanged file again: a loose track whose cover came
+/// from the folder's `cover.jpg` loses it once that file is deleted, rather
+/// than keeping a picture nothing on disk holds any more.
+#[tokio::test]
+async fn a_deleted_folder_cover_leaves_an_unchanged_track() {
+    let library = Library::new().await;
+    let loose = library.flac("loose.flac", &[("TITLE", "Loose")]);
+    let cover = library.path("cover.jpg");
+    std::fs::write(
+        &cover,
+        [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, b'J', b'F', b'I', b'F'],
+    )
+    .unwrap();
+    library.scan().await;
+    assert_eq!(library.covers(&loose).await.1.as_deref(), Some("jpg"));
+
+    std::fs::remove_file(&cover).unwrap();
+    library.deep_scan().await;
+    assert_eq!(library.covers(&loose).await.1, None);
+}
