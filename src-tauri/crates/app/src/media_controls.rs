@@ -38,7 +38,7 @@ use souvlaki::{
 };
 use tauri::{AppHandle, Manager};
 
-use crate::audio::{AudioCmd, AudioEngine, PlayerState};
+use crate::audio::{AudioEngine, PlayerState};
 
 /// How often the controls thread re-publishes the position while playing.
 ///
@@ -424,7 +424,7 @@ fn handle_event(event: MediaControlEvent, app: AppHandle) {
         MediaControlEvent::Previous => spawn_previous(app),
         MediaControlEvent::SetPosition(MediaPosition(d)) => {
             let engine = app.state::<Arc<AudioEngine>>();
-            let _ = engine.send(AudioCmd::Seek(d.as_millis() as u64));
+            let _ = engine.seek(d.as_millis() as u64);
         }
         MediaControlEvent::Seek(direction) => {
             seek_relative(&app, direction, 5_000);
@@ -441,12 +441,12 @@ fn handle_event(event: MediaControlEvent, app: AppHandle) {
 
 fn seek_relative(app: &AppHandle, direction: SeekDirection, delta_ms: u64) {
     let engine = app.state::<Arc<AudioEngine>>();
-    let cur = engine.shared().current_position_ms();
+    let cur = engine.position_ms();
     let new_ms = match direction {
         SeekDirection::Forward => cur.saturating_add(delta_ms),
         SeekDirection::Backward => cur.saturating_sub(delta_ms),
     };
-    let _ = engine.send(AudioCmd::Seek(new_ms));
+    let _ = engine.seek(new_ms);
 }
 
 /// Queue advance for the OS overlay.

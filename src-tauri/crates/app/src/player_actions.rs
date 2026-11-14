@@ -147,7 +147,7 @@ pub fn stop(app: &AppHandle) {
 /// (the frontend closes it when the track starts). Shared by the frontend's
 /// command and the other surfaces.
 pub fn restart_current(engine: &AudioEngine) -> AppResult<()> {
-    engine.send(AudioCmd::Seek(0))?;
+    engine.seek(0)?;
     if CLIP_OPEN.load(Ordering::Acquire) {
         engine.send(AudioCmd::Resume)?;
     }

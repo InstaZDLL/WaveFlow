@@ -20,7 +20,7 @@ use super::{
     songs,
 };
 use crate::{
-    audio::{engine::AudioCmd, next_track::edit_queue, state::PlayerState, AudioEngine},
+    audio::{next_track::edit_queue, state::PlayerState, AudioEngine},
     player_actions,
     queue::{self, RepeatMode},
     state::AppState,
@@ -580,7 +580,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 )
                 .await;
             }
-            let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
+            let _ = ctx.engine().seek(seconds_to_ms(seconds));
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
         }
@@ -599,7 +599,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                         )
                         .await;
                     }
-                    let _ = ctx.engine().send(AudioCmd::Seek(seconds_to_ms(seconds)));
+                    let _ = ctx.engine().seek(seconds_to_ms(seconds));
                     ctx.idle.notify(Subsystem::Player);
                     Ok(Response::new())
                 }
@@ -610,14 +610,14 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         Command::SeekCur { seconds, relative } => {
             let engine = ctx.engine();
             let target_ms = if relative {
-                let current = engine.shared().current_position_ms() as f64;
+                let current = engine.position_ms() as f64;
                 // `seconds` is signed here, so this is the one place the
                 // clamp has to happen after the addition.
                 (current + seconds * 1000.0).max(0.0) as u64
             } else {
                 seconds_to_ms(seconds)
             };
-            let _ = engine.send(AudioCmd::Seek(target_ms));
+            let _ = engine.seek(target_ms);
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
         }

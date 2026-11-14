@@ -136,7 +136,7 @@ pub async fn player_seek(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     ms: u64,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::Seek(ms))?;
+    engine.seek(ms)?;
     // Resync the OS overlay's progress bar. The decoder doesn't
     // transition state on a seek (Playing stays Playing), so the
     // automatic state-change hook wouldn't fire here.
