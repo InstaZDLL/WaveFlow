@@ -380,6 +380,20 @@ pub(crate) async fn scan_folder_inner(
     // the pictures back, with the same marker and retry budget.
     let cover_backfill = ForcedPass::load(pool, "cover_backfill", folder_id, is_network).await;
 
+    // Tags in a legacy code page (GBK, Big5, Shift_JIS) are read as such since
+    // a library already holds them as `Ò¹Çú`, and the fast path never reopens
+    // an unchanged file. One pass per folder re-reads the tracks whose stored
+    // text could be that (see `legacy_text`), and only those; one the scan now
+    // reads differently takes the rewrite branch like a changed file. The same
+    // marker and retry budget, and not on a share.
+    let legacy_text_backfill =
+        ForcedPass::load(pool, "legacy_text_backfill", folder_id, is_network).await;
+    let legacy_text_suspects = if legacy_text_backfill.pending {
+        super::legacy_text::suspects(pool, folder_id).await?
+    } else {
+        HashMap::new()
+    };
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     // A share whose folder lists empty while the library holds tracks from it
@@ -498,6 +512,7 @@ pub(crate) async fn scan_folder_inner(
                 };
                 if let Some((disk_size, disk_mtime_ms)) = current {
                     let needs_rg_backfill = rg_backfill.pending && rg_missing.contains(&path_str);
+                    let needs_legacy_text = legacy_text_suspects.contains_key(&path_str);
                     if disk_size == stored_size
                         && disk_mtime_ms == stored_mtime
                         && !needs_rg_backfill
@@ -506,6 +521,7 @@ pub(crate) async fn scan_folder_inner(
                         && !totals_backfill.pending
                         && !artist_backfill.pending
                         && !cover_backfill.pending
+                        && !needs_legacy_text
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -731,6 +747,7 @@ pub(crate) async fn scan_folder_inner(
     let mut totals_backfill_failed = walk_incomplete;
     let mut artist_backfill_failed = walk_incomplete;
     let mut cover_backfill_failed = walk_incomplete;
+    let mut legacy_text_backfill_failed = walk_incomplete;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -787,6 +804,8 @@ pub(crate) async fn scan_folder_inner(
                 totals_backfill_failed |= totals_backfill.pending;
                 artist_backfill_failed |= artist_backfill.pending;
                 cover_backfill_failed |= cover_backfill.pending;
+                legacy_text_backfill_failed |=
+                    legacy_text_suspects.contains_key(path.to_string_lossy().as_ref());
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -800,6 +819,8 @@ pub(crate) async fn scan_folder_inner(
                 totals_backfill_failed |= totals_backfill.pending;
                 artist_backfill_failed |= artist_backfill.pending;
                 cover_backfill_failed |= cover_backfill.pending;
+                legacy_text_backfill_failed |=
+                    legacy_text_suspects.contains_key(path.to_string_lossy().as_ref());
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -847,7 +868,12 @@ pub(crate) async fn scan_folder_inner(
             if let Some(id) = old_album_id {
                 previous_album_ids.insert(id);
             }
-            if mtime == extracted.modified_ms && hash == &extracted.hash {
+            // A track the legacy-code-page pass reads differently now is a
+            // changed one: its title, album and credits are rewritten.
+            let legacy_text_stale = legacy_text_suspects
+                .get(&extracted.abs_path)
+                .is_some_and(|stored| super::legacy_text::stale(stored, &extracted));
+            if mtime == extracted.modified_ms && hash == &extracted.hash && !legacy_text_stale {
                 // Track content hasn't changed — backfill paths only.
                 // See the historical comments at the top of this branch
                 // for context on why these queries still run on a
@@ -1722,6 +1748,14 @@ pub(crate) async fn scan_folder_inner(
         .await;
     cover_backfill
         .settle(pool, folder_id, summary.cancelled, cover_backfill_failed)
+        .await;
+    legacy_text_backfill
+        .settle(
+            pool,
+            folder_id,
+            summary.cancelled,
+            legacy_text_backfill_failed,
+        )
         .await;
 
     // The ReplayGain pass the same way. A file that failed extraction this

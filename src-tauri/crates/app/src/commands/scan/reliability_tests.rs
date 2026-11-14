@@ -3093,3 +3093,134 @@ async fn a_deleted_folder_cover_leaves_an_unchanged_track() {
     library.deep_scan().await;
     assert_eq!(library.covers(&loose).await.1, None);
 }
+
+/// A real MP3 whose ID3v2.3 tag declares Latin-1 (`0`) for these frames and
+/// holds the bytes given, as a tool on a Chinese Windows writes them.
+fn mp3_with_raw_latin1_frames(path: &Path, frames: &[(&str, &[u8])]) {
+    let mut body = Vec::new();
+    for (id, text) in frames {
+        body.extend_from_slice(id.as_bytes());
+        body.extend(((text.len() + 1) as u32).to_be_bytes());
+        body.extend([0, 0, 0]);
+        body.extend_from_slice(text);
+    }
+    let size = body.len();
+    let mut bytes = b"ID3".to_vec();
+    bytes.extend([3, 0, 0]);
+    bytes.extend([
+        ((size >> 21) & 0x7f) as u8,
+        ((size >> 14) & 0x7f) as u8,
+        ((size >> 7) & 0x7f) as u8,
+        (size & 0x7f) as u8,
+    ]);
+    bytes.extend(body);
+    // The fixture's own audio, past its empty 10-byte tag header.
+    bytes.extend_from_slice(&std::fs::read(fixture("silence.mp3")).unwrap()[10..]);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, bytes).unwrap();
+}
+
+fn gbk(text: &str) -> Vec<u8> {
+    encoding_rs::GBK.encode(text).0.into_owned()
+}
+
+impl Library {
+    /// `(title, album, artist names in order)` of the track at `path`.
+    async fn text_of(&self, path: &Path) -> (String, Option<String>, Vec<String>) {
+        let (title, album): (String, Option<String>) = sqlx::query_as(
+            "SELECT t.title, al.title FROM track t
+               LEFT JOIN album al ON al.id = t.album_id WHERE t.file_path = ?",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
+        let artists = sqlx::query_scalar(
+            "SELECT ar.name FROM track_artist ta
+               JOIN artist ar ON ar.id = ta.artist_id
+               JOIN track t ON t.id = ta.track_id
+              WHERE t.file_path = ? ORDER BY ta.position",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_all(&self.pool)
+        .await
+        .unwrap();
+        (title, album, artists)
+    }
+}
+
+/// A GBK tag a library holds as `Ò¹Çú` is read as 夜曲 by the next ordinary
+/// scan, once, with no deep rescan; a Western tag beside it is left alone.
+#[tokio::test]
+async fn the_next_scan_repairs_a_legacy_code_page_tag_already_stored() {
+    let library = Library::new().await;
+    let chinese = library.path("chinese.mp3");
+    mp3_with_raw_latin1_frames(
+        &chinese,
+        &[
+            ("TIT2", &gbk("夜曲")),
+            ("TPE1", &gbk("周杰伦")),
+            ("TALB", &gbk("十一月的萧邦")),
+        ],
+    );
+    let western = library.path("western.mp3");
+    mp3_with_raw_latin1_frames(
+        &western,
+        &[
+            ("TIT2", b"Caf\xe9"),
+            ("TPE1", b"Beyonc\xe9"),
+            ("TALB", b"Se\xf1or"),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(
+        library.text_of(&chinese).await,
+        (
+            "夜曲".into(),
+            Some("十一月的萧邦".into()),
+            vec!["周杰伦".into()]
+        ),
+        "a new file is read right the first time"
+    );
+
+    // What a library scanned by an older build holds, with no pass done yet.
+    for (from, to) in [
+        ("夜曲", "Ò¹Çú"),
+        ("十一月的萧邦", "Ê®Ò»ÔÂµÄÏô°î"),
+        ("周杰伦", "ÖÜ½ÜÂ×"),
+    ] {
+        for sql in [
+            "UPDATE track SET title = ? WHERE title = ?",
+            "UPDATE album SET title = ? WHERE title = ?",
+            "UPDATE artist SET name = ? WHERE name = ?",
+        ] {
+            sqlx::query(sql)
+                .bind(to)
+                .bind(from)
+                .execute(&library.pool)
+                .await
+                .unwrap();
+        }
+    }
+    library
+        .clear_setting("scan.legacy_text_backfill_done.1")
+        .await;
+    let western_before = library.text_of(&western).await;
+    assert_eq!(library.text_of(&chinese).await.0, "Ò¹Çú");
+
+    library.scan().await;
+    assert_eq!(
+        library.text_of(&chinese).await,
+        (
+            "夜曲".into(),
+            Some("十一月的萧邦".into()),
+            vec!["周杰伦".into()]
+        )
+    );
+    assert_eq!(library.text_of(&western).await, western_before);
+    assert_eq!(western_before.0, "Café");
+    assert!(library
+        .setting("scan.legacy_text_backfill_done.1")
+        .await
+        .is_some());
+}
