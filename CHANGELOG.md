@@ -1,5 +1,64 @@
 # Changelog
 
+## [2.1.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.0.2...v2.1.0) (2026-11-14)
+
+
+### Features
+
+* **clips:** play a track's music video from the file beside it ([5410fe5](https://github.com/InstaZDLL/WaveFlow/commit/5410fe549a098f8d2b9e098186a2cab47b4135b1))
+* **immersive:** stack on portrait windows from 600 px wide ([debe1f9](https://github.com/InstaZDLL/WaveFlow/commit/debe1f90208e72dd5efaedf61772120b01970fc2))
+* **immersive:** stack the panel below now-playing on a portrait window ([d0cc9b2](https://github.com/InstaZDLL/WaveFlow/commit/d0cc9b2d391ad5a445c1dc33e51fb7f32a3fa107))
+* **immersive:** stack the panel below now-playing on a portrait window ([98239df](https://github.com/InstaZDLL/WaveFlow/commit/98239dfff319beaf6230fb17ca23c65499e12cb4))
+* **lyrics:** let the user browse synced lyrics while they play ([7b10164](https://github.com/InstaZDLL/WaveFlow/commit/7b10164070c4c8e7ed539fb175ff39eafae5da3d))
+* **lyrics:** let the user browse synced lyrics while they play ([9b1678c](https://github.com/InstaZDLL/WaveFlow/commit/9b1678cd58a5bab6ce7b384f5420e2332548d163)), refs [#1096](https://github.com/InstaZDLL/WaveFlow/issues/1096)
+* **player:** look up a track's clip and route play and pause to it ([a93b56b](https://github.com/InstaZDLL/WaveFlow/commit/a93b56b5dcc45834d2e553c905a65006e51f1f5f))
+* **release:** fail the apt build when the signing key nears expiry ([6e94160](https://github.com/InstaZDLL/WaveFlow/commit/6e94160ce73ac552e27f19a915184a3b4a8e4097))
+* **release:** serve the apt repository from r2, signed by our own key ([ff1d21b](https://github.com/InstaZDLL/WaveFlow/commit/ff1d21be8b3413f9e06af5755cdb0a85d2e0e859))
+* **release:** serve the apt repository from r2, signed by our own key ([89ec373](https://github.com/InstaZDLL/WaveFlow/commit/89ec3730d837b6b00357ec28a5a596c02619cc17))
+* **scanner:** recognise a track's music video by its name ([5f53711](https://github.com/InstaZDLL/WaveFlow/commit/5f5371160e272a7ac6f31583f829d0b21e613fbd))
+* **ui:** add a clip button to the immersive view ([6705fb0](https://github.com/InstaZDLL/WaveFlow/commit/6705fb011fa47eacabfd94aa99254dd89817eada))
+* **ui:** play a music video in the now-playing panel with the player bar as its transport ([f48681a](https://github.com/InstaZDLL/WaveFlow/commit/f48681ab701646ec855eba55987a3f74aa81ef87))
+* **ui:** play a track's music video in the immersive view ([e271b9c](https://github.com/InstaZDLL/WaveFlow/commit/e271b9c43bdc77dbef709715fe6b5c01e1668bfc))
+
+
+### Bug Fixes
+
+* **artist:** show a chosen banner untouched and soften the automatic fanart less ([1768199](https://github.com/InstaZDLL/WaveFlow/commit/176819904bd6da6d9b575e65a41d498c5e700c8c))
+* **artist:** show a chosen banner untouched and soften the automatic fanart less ([62502a9](https://github.com/InstaZDLL/WaveFlow/commit/62502a97507d00088e9c2062444b25ec2984654e))
+* **library:** drop a track's cover when an unchanged file no longer has one ([9fa7942](https://github.com/InstaZDLL/WaveFlow/commit/9fa79426c13fc653f7d2a23e198112e593347cf0))
+* **library:** keep a track's own cover and name webp covers by their bytes ([4870086](https://github.com/InstaZDLL/WaveFlow/commit/4870086a64e2aafd7cb25ffec860099085f4cd70))
+* **library:** keep a track's own cover and name webp covers by their bytes ([71a07bc](https://github.com/InstaZDLL/WaveFlow/commit/71a07bc3eea3a3006f55562d26c4acc785557820)), refs [#1100](https://github.com/InstaZDLL/WaveFlow/issues/1100)
+* **lyrics:** blur inactive lines with text-shadow, not a filter ([b32953d](https://github.com/InstaZDLL/WaveFlow/commit/b32953de9b25851338f0a2a4fcdc7f67c7de03d4))
+* **lyrics:** count a sung line less than half shown as out of view ([7717d46](https://github.com/InstaZDLL/WaveFlow/commit/7717d466db0d6b4807ea156514aa91815d271a82))
+* **lyrics:** end the browsing for good when the track changes ([647d67c](https://github.com/InstaZDLL/WaveFlow/commit/647d67c963d0c39923d62be0ae90e4ccc0ac3d7e))
+* **lyrics:** keep both voices of a duet out of the neighbour line rules ([8b68721](https://github.com/InstaZDLL/WaveFlow/commit/8b687212a16859ec09f6d40482e3de6c09e89a05))
+* **player:** keep a seek and the clip's sound across an output rebuild on Linux ([cbf00ce](https://github.com/InstaZDLL/WaveFlow/commit/cbf00cec8cf5d3245537ef7e6ccc894f2c1a6b1f))
+* **player:** let previous and stop reach an open music video ([66cd1b1](https://github.com/InstaZDLL/WaveFlow/commit/66cd1b1993faa31518c659cca56644d52d052455))
+* **player:** move a parked session when the user seeks it ([d2975b0](https://github.com/InstaZDLL/WaveFlow/commit/d2975b089bd99ee3de79486e427a1e91c3decab3))
+* **player:** read the parked position for previous's restart rule ([29e0be7](https://github.com/InstaZDLL/WaveFlow/commit/29e0be7869611dc129867c7e50fc2d4f4dc44b51))
+* **player:** route mpd pause and stop through player actions ([2039505](https://github.com/InstaZDLL/WaveFlow/commit/2039505cd81cb913d6b1c7db7127a27257dea75c))
+* **player:** route mpd play to an open clip and order the clip flag writes ([5a5c694](https://github.com/InstaZDLL/WaveFlow/commit/5a5c694f67fa3b4c807a487dfb07bd14e8af216f))
+* **player:** start a parked track when previous restarts it under a clip ([d43c6f2](https://github.com/InstaZDLL/WaveFlow/commit/d43c6f2ad65b283efbcf1b83bc373169fe703645))
+* **release:** refuse an older tag under the real apt prefix ([0c84ba2](https://github.com/InstaZDLL/WaveFlow/commit/0c84ba268c2e66ca12dfd05d0773f607605a6db5))
+* **release:** report the fingerprint mismatch before exiting ([ccfdef6](https://github.com/InstaZDLL/WaveFlow/commit/ccfdef6aed84d126c523fda3522fb17d21dc818b))
+* **release:** restore a line continuation in the apt tag check ([0f400fb](https://github.com/InstaZDLL/WaveFlow/commit/0f400fbe3c76f854d515a3df51825cda0f5361eb))
+* **release:** restore the fingerprint mismatch message ([960ec15](https://github.com/InstaZDLL/WaveFlow/commit/960ec15de6f3c2dacfd3e8c7c4707106b8b5fd21))
+* **release:** validate the apt tag and prefix strictly, fail loudly on a download error ([30951c1](https://github.com/InstaZDLL/WaveFlow/commit/30951c195e7b134d199507d003087bbb20064530))
+* **scanner:** check a clip is a real video file before offering it ([5168684](https://github.com/InstaZDLL/WaveFlow/commit/5168684eca156b836d23ebb17be715d167b16d02))
+* **scanner:** honour a stop during the clip pass and match clips of an audio mp4 ([cd407f8](https://github.com/InstaZDLL/WaveFlow/commit/cd407f89e8764f6302be4726406a28c7fe9f3d99))
+* **scanner:** stop indexing a music video beside its song as a second track ([ce74938](https://github.com/InstaZDLL/WaveFlow/commit/ce749388f3cb608758ac92a4509208787d9cf440))
+* **ui:** count only a refused play of the element showing the clip ([63b0002](https://github.com/InstaZDLL/WaveFlow/commit/63b000290bb0f9805e03b07d9e83cb5dc7b8c5f0))
+* **ui:** give a music video the app's volume once it plays ([e01b150](https://github.com/InstaZDLL/WaveFlow/commit/e01b15045e4e38e8edb9fc78b9851e54c06115cd))
+* **ui:** give the panel to a clip of another track than the one playing ([489aa32](https://github.com/InstaZDLL/WaveFlow/commit/489aa32137ce6c2e2a3a534de19ad6f2d16b23c9))
+* **ui:** guard a late switch back to audio with a clip epoch ([3633e3e](https://github.com/InstaZDLL/WaveFlow/commit/3633e3e548030a97f75f5b8a14a493a5a5e1f4c7))
+* **ui:** keep a clip usable with no current track and across a failed clip ([225682d](https://github.com/InstaZDLL/WaveFlow/commit/225682d49ac60f989277458e62e2d173c4350a79))
+* **ui:** keep escape and focus on the clip layer and let the overlay pause a clip ([debf8af](https://github.com/InstaZDLL/WaveFlow/commit/debf8afc35501100a65240d91a240fc12b3d28b1))
+* **ui:** keep one video element for a music video across surfaces ([b99689f](https://github.com/InstaZDLL/WaveFlow/commit/b99689f6921d53b6d862304ed09642e6b5feeab9))
+* **ui:** keep the clip title readable and offer a way back from an unplayable clip ([32441ce](https://github.com/InstaZDLL/WaveFlow/commit/32441ceb4bdbaea768dbd9b6a595025b47e316c4))
+* **ui:** lower the clip flag when the main window loads ([4259851](https://github.com/InstaZDLL/WaveFlow/commit/4259851789f9165d34c4b2e075a68a463f18285e))
+* **ui:** place a context menu again when its height changes ([da5dc8b](https://github.com/InstaZDLL/WaveFlow/commit/da5dc8b715c60611ac5841f9eedc08276321d1c8))
+* **ui:** tie every clip update to the session it belongs to ([d898f77](https://github.com/InstaZDLL/WaveFlow/commit/d898f7710f1edbf32f521a3098b9db4cdf5cb8eb))
+
 ## [2.0.2](https://github.com/InstaZDLL/WaveFlow/compare/v2.0.1...v2.0.2) (2026-11-13)
 
 
