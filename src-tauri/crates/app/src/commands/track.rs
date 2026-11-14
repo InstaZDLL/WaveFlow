@@ -412,7 +412,7 @@ pub async fn search_tracks_advanced(
     sql.push_str(
         "LEFT JOIN album   al ON al.id = t.album_id\n\
          LEFT JOIN artist  ar ON ar.id = t.primary_artist\n\
-         LEFT JOIN artwork aw ON aw.id = al.artwork_id\n",
+         LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)\n",
     );
 
     // Bind values are pushed in the same order as their `?` placeholders

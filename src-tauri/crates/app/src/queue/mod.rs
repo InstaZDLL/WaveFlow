@@ -476,7 +476,7 @@ pub async fn list_queue(pool: &SqlitePool) -> AppResult<Vec<QueueTrack>> {
           JOIN track t       ON t.id = q.track_id
           LEFT JOIN album al  ON al.id = t.album_id
           LEFT JOIN artist ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          ORDER BY q.position
         "#,
     )
@@ -516,7 +516,7 @@ async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option
           JOIN track t       ON t.id = q.track_id
           LEFT JOIN album al  ON al.id = t.album_id
           LEFT JOIN artist ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE q.position = ?
          LIMIT 1
         "#,
@@ -755,7 +755,7 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
                        t.file_size
                   FROM track t
                   LEFT JOIN album al ON al.id = t.album_id
-                  LEFT JOIN artwork aw ON aw.id = al.artwork_id
+                  LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
                  WHERE t.id = ? AND t.is_available = 1
                 "#,
             )

@@ -32,8 +32,8 @@ pub use canonical::{
     reconcile_artist_mbids, split_artist_name, split_genres,
 };
 pub use extract::{
-    extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
-    extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
+    cover_extension, extension_for_mime, extract_artist_image, extract_compilation_flag,
+    extract_cover, extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
     find_artist_image_in_dir, hash_file, hash_file_full, hash_reader, is_scannable_audio,
     pick_folder_cover, rating_from_number, rating_from_popm, store_folder_cover,
     undecodable_stream, write_artist_image, ArtworkSource, ExtractedCover, ExtractedFile,
@@ -46,8 +46,8 @@ pub use upserts::{
     apply_network_covers, link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, network_cover_candidates, now_millis, realign_album_by_identity,
     reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    resolve_album_artist, upsert_album, upsert_album_with_artist_mbid, upsert_artist,
-    upsert_artist_list, upsert_artist_with_mbid, upsert_artwork, upsert_genre,
+    resolve_album_artist, set_track_cover, upsert_album, upsert_album_with_artist_mbid,
+    upsert_artist, upsert_artist_list, upsert_artist_with_mbid, upsert_artwork, upsert_genre,
     ArtistImageScanCache, NetworkCoverCandidate, SidecarStamp, UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 

@@ -42,6 +42,7 @@ async fn fixture_pool() -> SqlitePool {
                  library_id INTEGER NOT NULL,
                  title TEXT NOT NULL,
                  album_id INTEGER REFERENCES album(id),
+                 artwork_id INTEGER REFERENCES artwork(id),
                  primary_artist INTEGER REFERENCES artist(id),
                  duration_ms INTEGER NOT NULL DEFAULT 0,
                  track_number INTEGER, disc_number INTEGER, year INTEGER,
@@ -335,4 +336,38 @@ async fn a_percent_sign_is_not_a_wildcard() {
     seed(&pool).await;
     assert!(ids_for(&pool, "%").await.is_empty());
     assert!(ids_for(&pool, "_").await.is_empty());
+}
+
+/// The cover a track shows is its album's, and its own when the album has
+/// none or it has no album at all (#1100).
+#[tokio::test]
+async fn a_track_falls_back_on_its_own_cover() {
+    let pool = fixture_pool().await;
+    seed(&pool).await;
+    sqlx::raw_sql(
+        "INSERT INTO artwork (id, hash, format)
+             VALUES (1, 'album', 'jpg'), (2, 'own', 'webp');
+             -- Track 1: album cover and its own; the album's wins.
+             UPDATE album SET artwork_id = 1 WHERE id = 1;
+             UPDATE track SET artwork_id = 2 WHERE id = 1;
+             -- Track 2: an album with no cover, so its own.
+             UPDATE track SET artwork_id = 2 WHERE id = 2;
+             -- Track 3: no album at all.
+             UPDATE track SET album_id = NULL, artwork_id = 2 WHERE id = 3;",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let repo = SqliteTrackRepository::new(pool.clone());
+    let cover = |row: Option<TrackRow>| {
+        let row = row.unwrap();
+        (row.artwork_hash, row.artwork_format)
+    };
+    let own = (Some("own".to_string()), Some("webp".to_string()));
+    assert_eq!(
+        cover(repo.get(1).await.unwrap()),
+        (Some("album".to_string()), Some("jpg".to_string()))
+    );
+    assert_eq!(cover(repo.get(2).await.unwrap()), own);
+    assert_eq!(cover(repo.get(3).await.unwrap()), own);
 }

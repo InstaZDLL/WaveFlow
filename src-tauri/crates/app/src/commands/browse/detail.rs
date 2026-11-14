@@ -220,7 +220,7 @@ pub async fn get_album_detail(
           FROM ranked r
           JOIN track t ON t.id = r.id
           LEFT JOIN album al ON al.id = t.album_id
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE r.rn = 1
          ORDER BY t.disc_number, t.track_number
         "#,
@@ -679,7 +679,7 @@ pub(crate) fn detail_tracks_sql(join: &str, filter: &str) -> sqlx::AssertSqlSafe
           {join}
           LEFT JOIN album   al ON al.id = t.album_id
           LEFT JOIN artist  ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE {filter} AND t.is_available = 1
          ORDER BY ar.canonical_name COLLATE NAME,
                   al.canonical_title COLLATE NAME,

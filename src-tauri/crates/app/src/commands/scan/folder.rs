@@ -16,8 +16,8 @@ use waveflow_core::scanner::{
     artist_credit_names, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, realign_album_by_identity,
     reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    upsert_album_with_artist_mbid, upsert_artwork, ArtistImageScanCache, ExtractedFile,
-    UpsertCache,
+    set_track_cover, upsert_album_with_artist_mbid, upsert_artwork, ArtistImageScanCache,
+    ExtractedFile, UpsertCache,
 };
 
 use crate::{
@@ -374,6 +374,12 @@ pub(crate) async fn scan_folder_inner(
     // same marker and retry budget.
     let artist_backfill = ForcedPass::load(pool, "artist_backfill", folder_id, is_network).await;
 
+    // A track keeps its own cover since #1100 (`track.artwork_id`, what a
+    // file with no album shows), and every file of a library that predates
+    // it still matches on mtime and size: one forced pass per folder reads
+    // the pictures back, with the same marker and retry budget.
+    let cover_backfill = ForcedPass::load(pool, "cover_backfill", folder_id, is_network).await;
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     // A share whose folder lists empty while the library holds tracks from it
@@ -499,6 +505,7 @@ pub(crate) async fn scan_folder_inner(
                         && !genre_backfill.pending
                         && !totals_backfill.pending
                         && !artist_backfill.pending
+                        && !cover_backfill.pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -723,6 +730,7 @@ pub(crate) async fn scan_folder_inner(
     let mut genre_backfill_failed = walk_incomplete;
     let mut totals_backfill_failed = walk_incomplete;
     let mut artist_backfill_failed = walk_incomplete;
+    let mut cover_backfill_failed = walk_incomplete;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -778,6 +786,7 @@ pub(crate) async fn scan_folder_inner(
                 genre_backfill_failed |= genre_backfill.pending;
                 totals_backfill_failed |= totals_backfill.pending;
                 artist_backfill_failed |= artist_backfill.pending;
+                cover_backfill_failed |= cover_backfill.pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -790,6 +799,7 @@ pub(crate) async fn scan_folder_inner(
                 genre_backfill_failed |= genre_backfill.pending;
                 totals_backfill_failed |= totals_backfill.pending;
                 artist_backfill_failed |= artist_backfill.pending;
+                cover_backfill_failed |= cover_backfill.pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -844,6 +854,9 @@ pub(crate) async fn scan_folder_inner(
                 // hash-match (cover backfill, codec/key backfill,
                 // multi-artist normalisation).
                 if let Some(cover) = &extracted.cover_art {
+                    // The track's own cover, whatever its album holds: the
+                    // pass that fills it on a library older than #1100.
+                    set_track_cover(&mut tx, existing_track_id, Some(cover)).await?;
                     let row: Option<(Option<i64>, Option<i64>)> = sqlx::query_as(
                         "SELECT t.album_id, al.artwork_id
                            FROM track t
@@ -1267,6 +1280,10 @@ pub(crate) async fn scan_folder_inner(
                 .execute(&mut *tx)
                 .await?;
 
+                // The file was read whole: its picture is the track's cover,
+                // and none is no cover (#1100).
+                set_track_cover(&mut tx, existing_track_id, extracted.cover_art.as_ref()).await?;
+
                 // A year the file carries is the file's, even one equal to
                 // what the enrichment engine had filled: its provenance goes,
                 // as `link_genres` does for genres, so an undo of the album
@@ -1481,6 +1498,7 @@ pub(crate) async fn scan_folder_inner(
             .execute(&mut *tx)
             .await?;
             let track_id = insert.last_insert_rowid();
+            set_track_cover(&mut tx, track_id, extracted.cover_art.as_ref()).await?;
 
             for (position, aid) in artist_ids.iter().enumerate() {
                 sqlx::query(
@@ -1698,6 +1716,9 @@ pub(crate) async fn scan_folder_inner(
         .await;
     artist_backfill
         .settle(pool, folder_id, summary.cancelled, artist_backfill_failed)
+        .await;
+    cover_backfill
+        .settle(pool, folder_id, summary.cancelled, cover_backfill_failed)
         .await;
 
     // The ReplayGain pass the same way. A file that failed extraction this

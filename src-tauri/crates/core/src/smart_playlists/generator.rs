@@ -591,9 +591,9 @@ pub(super) async fn first_track_artwork_paths(
         .take(track_ids.len())
         .collect::<Vec<_>>()
         .join(",");
-    // Track artwork is reached through the album: `track.album_id`
-    // → `album.artwork_id` → `artwork.hash` + `artwork.format`. There's
-    // no direct `track.artwork_id` column.
+    // Track artwork is the album's (`track.album_id`
+    // → `album.artwork_id`), or the track's own `track.artwork_id` when its
+    // album has none, then `artwork.hash` + `artwork.format`.
     let sql = format!(
         r#"
         SELECT t.id          AS track_id,
@@ -601,7 +601,7 @@ pub(super) async fn first_track_artwork_paths(
                aw.format     AS format
           FROM track t
           LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE t.id IN ({placeholders})
            AND aw.hash IS NOT NULL
         "#

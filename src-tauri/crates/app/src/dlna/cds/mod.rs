@@ -415,7 +415,7 @@ macro_rules! track_select {
                     t.album_id
                FROM track t
                LEFT JOIN album al   ON al.id = t.album_id
-               LEFT JOIN artwork aw ON aw.id = al.artwork_id
+               LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
                LEFT JOIN artist ar  ON ar.id = t.primary_artist
              ",
             $tail

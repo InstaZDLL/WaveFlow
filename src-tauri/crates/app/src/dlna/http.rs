@@ -383,9 +383,10 @@ async fn serve_art(
 
 /// The extensions a stored cover can carry — what the scanner, the tag
 /// editor and the metadata downloads write — and so the only ones `/art`
-/// will serve. `bin` is the scanner's name for an embedded picture whose
-/// MIME type lofty could not map, most often a WebP tagged with an empty or
-/// non-standard type; Browse links to it like any other cover.
+/// will serve. `bin` is the name an embedded picture of a format the
+/// scanner cannot tell gets, and the one every WebP got before the scanner
+/// read the bytes (#1100): a library scanned back then still holds such
+/// rows, and Browse links to them like any other cover.
 const ART_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "bin"];
 
 /// Whether `name` is `<hex hash>.<image extension>`, the name of every cover

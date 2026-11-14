@@ -294,7 +294,7 @@ pub(crate) fn library_tracks_sql_where(extra_where: &str, order_clause: &str) ->
               FROM track t
               LEFT JOIN album   al ON al.id = t.album_id
               LEFT JOIN artist  ar ON ar.id = t.primary_artist
-              LEFT JOIN artwork aw ON aw.id = al.artwork_id
+              LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
              WHERE (? IS NULL OR t.library_id = ?)
                AND t.is_available = 1
             UNION ALL

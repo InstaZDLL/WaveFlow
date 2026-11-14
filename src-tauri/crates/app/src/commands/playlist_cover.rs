@@ -237,7 +237,7 @@ async fn top_track_artwork_paths(
           FROM playlist_track pt
           JOIN track t       ON t.id  = pt.track_id
           LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE pt.playlist_id = ?
            AND t.is_available = 1
            AND aw.hash IS NOT NULL

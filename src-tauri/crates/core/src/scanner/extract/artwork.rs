@@ -64,6 +64,10 @@ pub struct ExtractedCover {
 /// Pick a reasonable filename extension for lofty's MIME type enum. Unknown
 /// / exotic formats fall through to `"bin"` so the file is still written and
 /// the UI can decide what to do with it.
+///
+/// lofty has no variant for WebP (what a video thumbnail usually is), so it
+/// arrives as `Unknown("image/webp")`, and a picture can carry no MIME at all
+/// or a wrong one: prefer [`cover_extension`], which reads the bytes.
 pub fn extension_for_mime(mime: Option<&MimeType>) -> &'static str {
     match mime {
         Some(MimeType::Jpeg) => "jpg",
@@ -71,8 +75,20 @@ pub fn extension_for_mime(mime: Option<&MimeType>) -> &'static str {
         Some(MimeType::Gif) => "gif",
         Some(MimeType::Bmp) => "bmp",
         Some(MimeType::Tiff) => "tiff",
+        Some(MimeType::Unknown(name)) if name.eq_ignore_ascii_case("image/webp") => "webp",
         _ => "bin",
     }
+}
+
+/// The extension a picture is stored under: what its bytes are when they
+/// are a JPEG, a PNG or a WebP, else what its MIME type says. The tag's
+/// word comes second because it is the weaker evidence: a downloader that
+/// keeps a WebP thumbnail declares it `image/jpeg` as often as not, and the
+/// store, the thumbnailer and the webview each take the extension for the
+/// format.
+pub fn cover_extension(mime: Option<&MimeType>, bytes: &[u8]) -> &'static str {
+    crate::artwork::image_format::detect_image_format(bytes)
+        .unwrap_or_else(|| extension_for_mime(mime))
 }
 
 /// Extract the front cover from the given tag, or its first non-empty picture
@@ -99,7 +115,7 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
         return None;
     }
     let hash = blake3::hash(bytes).to_hex().to_string();
-    let format = extension_for_mime(picture.mime_type()).to_string();
+    let format = cover_extension(picture.mime_type(), bytes).to_string();
     let out_path = artwork_dir.join(format!("{}.{}", hash, format));
     if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, bytes) {
         tracing::warn!(path = %out_path.display(), error = %err, "failed to write artwork");

@@ -94,6 +94,14 @@ pub async fn update_track_cover(
     // could leave the row behind if the update failed.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, ext, ArtworkSource::Manual).await?;
+    // The track's own cover is what its file now carries. It is the whole
+    // cover of a loose track, which has no album to hold one, and the
+    // fallback of one whose album loses its cover later.
+    sqlx::query("UPDATE track SET artwork_id = ? WHERE id = ?")
+        .bind(artwork_id)
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await?;
     // Only guarded when a track actually belongs to an album: `album_id`
     // is legitimately `None` for a loose track, and that case must still
     // commit — the cover has already been written into the audio file
