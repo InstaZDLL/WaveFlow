@@ -668,6 +668,9 @@ pub(super) fn play_track(
                 // there and reaches `faded_ms` once the output has played
                 // what is queued.
                 shared.restart_clock(faded_ms, queued_samples(producer), false);
+                // What an output rebuild puts back is now this track, from
+                // where its clock stands (#1103).
+                shared.record_handed_off_load(&stream, faded_ms);
                 shared
                     .current_track_id
                     .store(stream.track_id, Ordering::Release);
@@ -740,6 +743,9 @@ pub(super) fn play_track(
                     // that just finished: the new one starts at 0 only
                     // once the output has played it.
                     shared.restart_clock(0, queued_samples(producer), true);
+                    // As at the end of a fade: a rebuild resumes this
+                    // track now, not the one the session started on (#1103).
+                    shared.record_handed_off_load(&stream, 0);
                     shared
                         .current_track_id
                         .store(stream.track_id, Ordering::Release);

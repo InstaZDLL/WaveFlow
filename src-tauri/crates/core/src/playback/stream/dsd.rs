@@ -75,6 +75,7 @@ impl ActiveStream {
                 duration_ms,
                 source_type,
                 source_id,
+                source_path: None,
                 // DoP is bit-exact — no gain stage runs on it at all.
                 replay_gain: crate::playback::replay_gain::TrackGain::default(),
                 src_sample_rate: 0,
@@ -124,6 +125,7 @@ impl ActiveStream {
             duration_ms,
             source_type,
             source_id,
+            source_path: None,
             replay_gain,
             src_sample_rate: 0,
             declared_sample_rate,

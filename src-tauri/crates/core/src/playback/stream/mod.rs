@@ -204,6 +204,11 @@ pub struct ActiveStream {
     pub duration_ms: u64,
     pub source_type: String,
     pub source_id: Option<i64>,
+    /// The path [`Self::open`] was given — a file or a share locator —
+    /// and `None` for a stream handed over as a [`MediaSource`]. Kept so a
+    /// stream the decoder switched to on its own (a gapless or crossfade
+    /// hand-off) can be described as a load again, path included.
+    pub source_path: Option<std::path::PathBuf>,
     /// What is known about this track's loudness — from its own tags
     /// when it has them, from our analysis otherwise. Kept as metadata
     /// rather than as a baked-in scalar so the pre-amp and clipping
@@ -433,6 +438,33 @@ impl ActiveStream {
         dsd_taps: usize,
         dop: bool,
     ) -> Result<Self, String> {
+        let mut stream = Self::open_path(
+            path,
+            track_id,
+            duration_ms,
+            source_type,
+            source_id,
+            replay_gain,
+            dsd_taps,
+            dop,
+        )?;
+        stream.source_path = Some(path.to_path_buf());
+        Ok(stream)
+    }
+
+    /// [`Self::open`] without recording the path, which every branch
+    /// below would otherwise have to repeat.
+    #[allow(clippy::too_many_arguments)]
+    fn open_path(
+        path: &Path,
+        track_id: i64,
+        duration_ms: u64,
+        source_type: String,
+        source_id: Option<i64>,
+        replay_gain: TrackGain,
+        dsd_taps: usize,
+        dop: bool,
+    ) -> Result<Self, String> {
         let ext = path
             .extension()
             .and_then(|s| s.to_str())
@@ -623,6 +655,7 @@ impl ActiveStream {
             duration_ms,
             source_type,
             source_id,
+            source_path: None,
             replay_gain,
             src_sample_rate: 0,
             declared_sample_rate,

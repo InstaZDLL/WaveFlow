@@ -74,6 +74,12 @@ impl ParkedSession {
 ///   never name a load that was superseded on the way in, and it covers
 ///   the auto-advance, whose `LoadAndPlay` goes straight down the channel
 ///   without passing through [`AudioEngine::send`];
+/// - it is written again when the decoder moves to the next track **on
+///   its own** — a gapless or crossfade hand-off, which receives no load
+///   at all ([`Self::handed_off`]). Missing that, a rebuild after a run of
+///   gapless tracks put back the track the run had started from, at the
+///   position it had been resumed at before, while the player bar named
+///   the one playing (#1103);
 /// - it is re-dispatched **with its own intent**, never a fresh one. An
 ///   intent already delivered is accepted again — the decoder drops what
 ///   is *older* than the newest it has seen, and this is not older — while
@@ -250,6 +256,46 @@ impl LastLoad {
             }),
             _ => None,
         }
+    }
+
+    /// The load the decoder is on after a gapless or crossfade hand-off
+    /// to `next`, which now plays from `start_ms` (#1103).
+    ///
+    /// A hand-off swaps in the stream `SetNextTrack` prepared, and only a
+    /// library track is ever prepared that way, so the result is always a
+    /// `Local` load: the stream carries everything that command did, path
+    /// included. `None` for a stream with no path to reopen.
+    ///
+    /// It keeps the **intent of the load it continues**. No command
+    /// arrived, so nothing newer than that intent has been delivered, and a
+    /// rebuild resuming it under that intent is accepted for the same
+    /// reason the original load would be — while a pick claimed since
+    /// still outranks it. It is also what pairs the live position with it:
+    /// [`resume_start_ms`] compares that intent and the track the decoder
+    /// has started, and the hand-off has just made `next` that track, with
+    /// its clock restarted at `start_ms`.
+    pub(crate) fn handed_off(
+        intent: LoadIntent,
+        next: &waveflow_core::playback::stream::ActiveStream,
+        start_ms: u64,
+    ) -> Option<Self> {
+        Some(Self {
+            intent,
+            track_id: next.track_id,
+            start_ms,
+            // As for any library track: the player bar reads them from
+            // the `track` row.
+            title: None,
+            artist: None,
+            artwork_url: None,
+            source: LastLoadSource::Local {
+                path: next.source_path.clone()?,
+                duration_ms: next.duration_ms,
+                source_type: next.source_type.clone(),
+                source_id: next.source_id,
+                replay_gain: next.replay_gain,
+            },
+        })
     }
 
     /// Rebuild the command that resumes this load at `start_ms`.
