@@ -77,10 +77,22 @@ function ClipElement({
 
   // The app's volume, followed while the clip plays: the player bar's
   // slider is the one the user reaches for.
+  const appVolume = Math.min(1, Math.max(0, volume / 100));
+  const appVolumeRef = useRef(appVolume);
   useEffect(() => {
-    if (ref.current)
-      ref.current.volume = Math.min(1, Math.max(0, volume / 100));
-  }, [volume]);
+    appVolumeRef.current = appVolume;
+    if (ref.current) ref.current.volume = appVolume;
+  }, [appVolume]);
+  // Set again once the webview has opened its audio stream. WebKitGTK's
+  // stream is restored by the sound server to the level it last had under
+  // the app's name (PipeWire remembers it per application), and the
+  // element takes that level over: a clip once left at 0 came back silent
+  // at every later launch, the slider at 100 or not.
+  const applyAppVolume = (element: HTMLVideoElement) => {
+    if (element.volume !== appVolumeRef.current) {
+      element.volume = appVolumeRef.current;
+    }
+  };
 
   const onLoadedMetadata = () => {
     const element = ref.current;
@@ -135,6 +147,7 @@ function ClipElement({
         });
       }}
       onPlay={() => reportClipProgress(session, { paused: false })}
+      onPlaying={(event) => applyAppVolume(event.currentTarget)}
       onPause={() => reportClipProgress(session, { paused: true })}
       // The end of the clip is the end of the visit: back to the cover,
       // the track paused at the clip's position.
