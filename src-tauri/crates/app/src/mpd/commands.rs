@@ -516,9 +516,9 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
 
         Command::Pause(want) => {
             match want {
-                Some(true) => {
-                    let _ = ctx.engine().send(AudioCmd::Pause);
-                }
+                // Through `player_actions` too: an open music video is what
+                // plays, and pausing the engine alone would leave it going.
+                Some(true) => player_actions::pause(&ctx.app),
                 // `pause 0` is an explicit resume; a bare `pause` toggles,
                 // which is what a remote's single play/pause button sends.
                 // Both go through `player_actions` so they start the resume
@@ -540,7 +540,8 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         }
 
         Command::Stop => {
-            let _ = ctx.engine().send(AudioCmd::Stop);
+            // Closes an open music video as well as stopping the track.
+            player_actions::stop(&ctx.app);
             ctx.idle.notify(Subsystem::Player);
             Ok(Response::new())
         }
