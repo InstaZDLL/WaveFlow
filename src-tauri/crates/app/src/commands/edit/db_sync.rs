@@ -5,7 +5,8 @@ use sqlx::SqlitePool;
 
 use waveflow_core::scanner::extra_tags::{stored_value, COMPOSER_KEY};
 use waveflow_core::scanner::{
-    canonical_name, split_artist_name, split_genres, upsert_album, upsert_artist, upsert_genre,
+    album_artist_mbid, artist_credit_parts, artist_credits, artist_mbids, canonical_name,
+    split_genres, upsert_album_with_artist_mbid, upsert_artist_with_mbid, upsert_genre,
 };
 
 use crate::error::AppResult;
@@ -17,7 +18,54 @@ use super::*;
 /// is keyed on `(canonical_title, artist_id)`), and `track_artist`
 /// needs the new track row state.
 pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResult<()> {
+    sync_db_spelled(pool, track_id, edit, &FileSpelling::default()).await
+}
+
+/// How the file spells its artist credit and its Album Artist, read before
+/// an edit that sets their MusicBrainz ids and leaves the names alone (the
+/// tag workshop's).
+///
+/// The ids decide which artist the track goes to (#1076). When that is an
+/// artist the library does not hold yet, it is created under the name the
+/// file gives it, as a scan of the file would create it: the names the
+/// database holds are those of the artist the track leaves, which on a
+/// library where two namesakes were merged is the other one's spelling.
+/// An artist the id finds keeps its own name. A field the file leaves
+/// empty falls back to the database's.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct FileSpelling {
+    pub artist: Option<String>,
+    /// The Album Artist the file groups by: its first value, as the
+    /// scanner reads it.
+    pub album_artist: Option<String>,
+    /// Every value of the file's Album Artist tag, `"; "`-joined: an id is
+    /// one artist's only when they name one, as the scanner counts them.
+    pub album_artist_values: Option<String>,
+}
+
+/// [`sync_db`], with the names the file spells (see [`FileSpelling`]).
+pub(crate) async fn sync_db_spelled(
+    pool: &SqlitePool,
+    track_id: i64,
+    edit: &TrackEdit,
+    spelled: &FileSpelling,
+) -> AppResult<()> {
     let mut tx = pool.begin().await?;
+    let file_artist = spelled
+        .artist
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let file_album_artist = spelled
+        .album_artist
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let file_album_artist_values = spelled
+        .album_artist_values
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
 
     // The album the track leaves, if it does: its year may have come
     // from this track.
@@ -26,28 +74,100 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         .fetch_optional(&mut *tx)
         .await?
         .flatten();
+    // Its lead artist, which keys that album when it has no Album Artist.
+    let old_primary: Option<i64> =
+        sqlx::query_scalar("SELECT primary_artist FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .flatten();
+
+    // The artist ids the tag workshop writes into the file, when it does:
+    // they decide the identity of the credit as a scan of the file would
+    // (#1076), the names unchanged or not.
+    let edited_ids: Option<Vec<String>> = edit
+        .musicbrainz
+        .artist_id
+        .as_deref()
+        .map(|v| artist_mbids([v]));
+    // The credit to resolve: the one typed, or the track's own when only
+    // its ids changed, as the file spells it when it says.
+    let credit: Option<String> = match (edit.artist.as_ref(), edited_ids.is_some()) {
+        (Some(raw), _) => Some(raw.clone()),
+        (None, true) if file_artist.is_some() => file_artist.map(str::to_owned),
+        (None, true) => {
+            sqlx::query_scalar(
+                "SELECT GROUP_CONCAT(name, '; ') FROM (
+                     SELECT ar.name FROM track_artist ta
+                       JOIN artist ar ON ar.id = ta.artist_id
+                      WHERE ta.track_id = ?
+                      ORDER BY ta.position)",
+            )
+            .bind(track_id)
+            .fetch_one(&mut *tx)
+            .await?
+        }
+        (None, false) => None,
+    };
 
     // Resolve the new artist list (and the new primary). When the
     // user didn't touch the artist field, leave the existing rows
     // alone — re-upserting the same names would no-op but the DELETE
     // + INSERT churn isn't free on a hot library.
-    let (artist_ids, primary_artist_id): (Option<Vec<i64>>, Option<i64>) =
-        if let Some(raw) = edit.artist.as_ref() {
-            let mut ids: Vec<i64> = Vec::new();
-            for name in split_artist_name(raw) {
-                if let Some(id) = upsert_artist(&mut tx, &name).await? {
-                    // First spelling wins when one credit lists an artist twice.
-                    if !ids.contains(&id) {
+    let (artist_ids, primary_artist_id): (Option<Vec<i64>>, Option<i64>) = if let Some(raw) =
+        credit.as_ref()
+    {
+        let mut ids: Vec<i64> = Vec::new();
+        let current: Vec<i64> =
+            sqlx::query_scalar("SELECT artist_id FROM track_artist WHERE track_id = ?")
+                .bind(track_id)
+                .fetch_all(&mut *tx)
+                .await?;
+        // The names the track is credited under now: one sent back as it
+        // is respells nothing, whichever row its id finds.
+        let current_names: Vec<String> = sqlx::query_scalar(
+            "SELECT ar.name FROM track_artist ta JOIN artist ar ON ar.id = ta.artist_id
+              WHERE ta.track_id = ?",
+        )
+        .bind(track_id)
+        .fetch_all(&mut *tx)
+        .await?;
+        // Edited ids pair with the names as the scanner pairs them; without
+        // them, each artist keeps the identity it has.
+        let names: Vec<(String, Option<String>)> = match edited_ids.as_ref() {
+            Some(mbids) => artist_credits(raw, mbids),
+            // Every name as written: two that differ by case only may be two
+            // artists the track already has under their ids (#1081), told
+            // apart by `kept_identity`; one that is the same artist twice
+            // is dropped below, once its row is found.
+            None => artist_credit_parts(raw)
+                .into_iter()
+                .map(|name| (name, None))
+                .collect(),
+        };
+        for (name, paired) in names {
+            let identity = match edited_ids {
+                Some(_) => paired,
+                None => kept_identity(&mut tx, &current, &name).await?,
+            };
+            if let Some(id) = upsert_artist_with_mbid(&mut tx, &name, identity.as_deref()).await? {
+                // First spelling wins when one credit lists an artist twice.
+                if !ids.contains(&id) {
+                    // Only a name the user changed respells: one read back
+                    // from the track, or sent unchanged, may have found a
+                    // namesake by its id, and would rename it.
+                    if edit.artist.is_some() && !current_names.contains(&name) {
                         respell(&mut tx, Respell::Artist, id, &name).await?;
-                        ids.push(id);
                     }
+                    ids.push(id);
                 }
             }
-            let primary = ids.first().copied();
-            (Some(ids), primary)
-        } else {
-            (None, None)
-        };
+        }
+        let primary = ids.first().copied();
+        (Some(ids), primary)
+    } else {
+        (None, None)
+    };
 
     // Resolve album similarly. Needs the (possibly new) primary
     // artist; falls back to the existing one when the user didn't
@@ -71,11 +191,12 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // file it now tags would put it in. The title is then the current
     // album's; a track in no album has nothing to regroup, and the
     // value lives in the file alone.
+    // An edited Album Artist id relinks it the same way.
+    let album_artist_edited =
+        edit.album_artist.is_some() || edit.musicbrainz.album_artist_id.is_some();
     let album_title: Option<String> = match edit.album.as_ref() {
         Some(title) => Some(title.trim().to_string()),
-        None if edit.album_artist.is_some() => {
-            current_album.as_ref().map(|(title, _, _)| title.clone())
-        }
+        None if album_artist_edited => current_album.as_ref().map(|(title, _, _)| title.clone()),
         None => None,
     };
     let new_album_id: Option<Option<i64>> = if let Some(title) = album_title {
@@ -131,6 +252,13 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                     named_album_artist,
                     carried_is_compilation && named_album_artist.is_none(),
                 ),
+                // An Album Artist id set alone: the name the file gives
+                // that artist, for a new one to be created under.
+                None if edit.musicbrainz.album_artist_id.is_some()
+                    && file_album_artist.is_some() =>
+                {
+                    (file_album_artist, carried_is_compilation)
+                }
                 None => (carried_album_artist.as_deref(), carried_is_compilation),
             };
             let track_path: String = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
@@ -140,10 +268,42 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.
-            let aid = upsert_album(
+            // The album artist the track is in now keeps its identity
+            // when the text still names it: "LISA" is found by its key
+            // alone, and that key is "LiSA"'s when both are in the library.
+            //
+            // An id the tag workshop writes for it decides instead, under
+            // the rule the scanner reads it by: only for an Album Artist the
+            // file names (or the edit does). A file with none gives a scan
+            // no id to read, so the stored text keeps the identity it has.
+            let names_album_artist = named_album_artist.is_some() || file_album_artist.is_some();
+            let album_artist_identity = match (album_artist, old_album_id) {
+                (Some(name), _)
+                    if edit.musicbrainz.album_artist_id.is_some() && names_album_artist =>
+                {
+                    // Every value the file holds counts, read back after the
+                    // write: an edit leaves the one it names, an undo every
+                    // value it put back (#1082), "Alpha" before "Beta",
+                    // which no scan gives one id to. Unread, the name.
+                    let names = file_album_artist_values.unwrap_or(name);
+                    album_artist_mbid(names, edit.musicbrainz.album_artist_id.as_deref())
+                }
+                (Some(name), Some(old)) => {
+                    let current: Vec<i64> = sqlx::query_scalar(
+                        "SELECT artist_id FROM album WHERE id = ? AND artist_id IS NOT NULL",
+                    )
+                    .bind(old)
+                    .fetch_all(&mut *tx)
+                    .await?;
+                    kept_identity(&mut tx, &current, name).await?
+                }
+                _ => None,
+            };
+            let aid = upsert_album_with_artist_mbid(
                 &mut tx,
                 &title,
                 album_artist,
+                album_artist_identity.as_deref(),
                 is_compilation,
                 aid,
                 edit.year,
@@ -159,7 +319,11 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                 // own `COALESCE` keeps the first spelling it saw, so
                 // without this "the beatles" typed over "The Beatles"
                 // reached the file and nothing on screen.
-                if let Some(name) = named_album_artist {
+                // A name sent unchanged respells nothing: with a new id it
+                // may have found a namesake, which it would rename.
+                let unchanged = current_album.as_ref().and_then(|(_, aa, _)| aa.as_deref())
+                    == named_album_artist;
+                if let Some(name) = named_album_artist.filter(|_| !unchanged) {
                     sqlx::query("UPDATE album SET album_artist = ? WHERE id = ?")
                         .bind(name)
                         .bind(id)
@@ -249,6 +413,16 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         q.execute(&mut *tx).await?;
     }
 
+    // A new lead artist on an album keyed on the old one, the album left
+    // alone: the track goes where a scan of the file would put it. An id
+    // alone can change the lead (#1076), so the album cannot wait for its
+    // title or Album Artist to be edited. An album with an Album Artist or
+    // a compilation flag does not follow its tracks' leads.
+    if new_album_id.is_none() && primary_artist_id.is_some() && primary_artist_id != old_primary {
+        waveflow_core::scanner::realign_album_by_identity(&mut tx, track_id, None, None, None)
+            .await?;
+    }
+
     // A track moved by its Album Artist alone into an album this edit
     // created takes the cover of the one it left: same title, same
     // record. The new row starts without artwork, and the file's embedded
@@ -258,7 +432,7 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // album keeps what it has. Never on a rename, where the album left is
     // another record — its cover, and a `manual` source no scan
     // overrides, would stick to the wrong album.
-    let moved_by_album_artist = edit.album.is_none() && edit.album_artist.is_some();
+    let moved_by_album_artist = edit.album.is_none() && album_artist_edited;
     if let (true, Some(Some(new_id)), Some(old_id)) =
         (moved_by_album_artist, new_album_id, old_album_id)
     {
@@ -372,6 +546,47 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     // via a code path in this function (it's exported for callers).
     let _ = canonical_name;
     Ok(())
+}
+
+/// The MusicBrainz id of one of `current` (artist ids) when `name` is a
+/// spelling of it: its key, without the `#<id>` suffix a second identity
+/// of a spelling carries, equals the name's.
+///
+/// An edit names an artist by text, and text finds the row on the plain
+/// key. For an artist the track already has under an id (#1076), that is
+/// a namesake's row: saving "LISA" over "LISA" would move the track to
+/// "LiSA" and `respell` would rename it. With the id, the artist is found
+/// as it was. Of two namesakes the track holds ("LiSA", "LISA", #1081),
+/// the one spelled as `name` is, with its id or without one: a row with no
+/// id spelled as `name` is found again by its plain key, and never under a
+/// namesake's id.
+async fn kept_identity(
+    conn: &mut sqlx::SqliteConnection,
+    current: &[i64],
+    name: &str,
+) -> AppResult<Option<String>> {
+    let wanted = canonical_name(name);
+    let mut first = None;
+    for id in current {
+        let row: Option<(String, String, Option<String>)> =
+            sqlx::query_as("SELECT canonical_name, name, mbid FROM artist WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&mut *conn)
+                .await?;
+        let Some((key, spelling, mbid)) = row else {
+            continue;
+        };
+        if key.split(" #").next() != Some(wanted.as_str()) {
+            continue;
+        }
+        if spelling == name {
+            return Ok(mbid);
+        }
+        if let Some(mbid) = mbid {
+            first.get_or_insert(mbid);
+        }
+    }
+    Ok(first)
 }
 
 /// Which entity an edit names, for [`respell`].

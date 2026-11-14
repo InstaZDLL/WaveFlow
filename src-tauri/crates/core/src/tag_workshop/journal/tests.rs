@@ -81,6 +81,7 @@ async fn a_written_file_keeps_its_old_values_and_its_hash() {
                 field: Field::Title,
                 old: Some("smells like teen spirit".into()),
                 new: "Smells Like Teen Spirit".into(),
+                old_values: Vec::new(),
             },
             // A field the file did not carry is recorded as absent, so
             // the undo removes it rather than writing an empty value.
@@ -88,6 +89,7 @@ async fn a_written_file_keeps_its_old_values_and_its_hash() {
                 field: Field::MbReleaseId,
                 old: None,
                 new: "9dce399d-3ec7-34a4-97d0-b4bac54e5f08".into(),
+                old_values: Vec::new(),
             },
         ]
     );
@@ -168,4 +170,46 @@ async fn a_track_removed_from_the_library_keeps_its_journal() {
     assert_eq!(files[0].track_id, None);
     assert_eq!(files[0].file_path, "/m/1.flac");
     assert_eq!(files[0].fields.len(), 2);
+}
+
+/// A field that held several values keeps them all, in order, beside the
+/// one text the preview showed (#1082); a field that held one keeps none.
+#[tokio::test]
+async fn every_old_value_of_a_field_is_kept() {
+    let pool = pool().await;
+    let mut conn = pool.acquire().await.unwrap();
+    let batch = create_batch(&mut conn, "Case fix", None, 10).await.unwrap();
+    let diffs = vec![
+        FieldDiff {
+            field: Field::Title,
+            old: "a".into(),
+            new: "A".into(),
+        },
+        FieldDiff {
+            field: Field::AlbumArtist,
+            old: "Alpha".into(),
+            new: "ALPHA".into(),
+        },
+    ];
+    let old_values = OldValues::from([
+        (Field::AlbumArtist, vec!["Alpha".into(), "Beta".into()]),
+        (Field::Title, vec!["a".into()]),
+        // Not rewritten by the batch: nothing to keep.
+        (Field::Composer, vec!["x".into(), "y".into()]),
+    ]);
+    journal_file_with_values(&mut conn, batch, Some(1), "/m/1.flac", &diffs, &old_values)
+        .await
+        .unwrap();
+
+    let files = batch_files(&mut conn, batch).await.unwrap();
+    let fields = &files[0].fields;
+    assert_eq!(fields.len(), 2);
+    let album_artist = fields
+        .iter()
+        .find(|f| f.field == Field::AlbumArtist)
+        .unwrap();
+    assert_eq!(album_artist.old.as_deref(), Some("Alpha"));
+    assert_eq!(album_artist.old_values, ["Alpha", "Beta"]);
+    let title = fields.iter().find(|f| f.field == Field::Title).unwrap();
+    assert!(title.old_values.is_empty(), "one value says it all");
 }

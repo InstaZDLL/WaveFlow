@@ -19,7 +19,9 @@ mod artist_images;
 mod folder_covers;
 mod play_events;
 
-pub use album_artist::{merge_implicit_compilations, repoint_fallback_album_artist};
+pub use album_artist::{
+    merge_implicit_compilations, realign_album_by_identity, repoint_fallback_album_artist,
+};
 pub use artist_images::{
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images, ArtistImageScanCache,
 };
@@ -44,7 +46,9 @@ pub use play_events::reattach_orphaned_play_events;
 /// compilation / album-artist backfill logic that must run per track.
 #[derive(Default)]
 pub struct UpsertCache {
-    artists: HashMap<String, i64>,
+    /// By canonical name and the MusicBrainz id the file gave, if any: the
+    /// same spelling under two ids is two artists (#1076).
+    artists: HashMap<(String, Option<String>), i64>,
     genres: HashMap<String, i64>,
 }
 
@@ -56,18 +60,55 @@ impl UpsertCache {
         conn: &mut sqlx::SqliteConnection,
         raw_name: &str,
     ) -> CoreResult<Option<i64>> {
+        self.artist_with_mbid(conn, raw_name, None).await
+    }
+
+    /// Cached [`upsert_artist_with_mbid`].
+    pub async fn artist_with_mbid(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw_name: &str,
+        mbid: Option<&str>,
+    ) -> CoreResult<Option<i64>> {
         let canon = canonical_name(raw_name.trim());
         if canon.is_empty() {
             return Ok(None);
         }
-        if let Some(&id) = self.artists.get(&canon) {
+        let key = (canon, mbid.map(str::to_owned));
+        if let Some(&id) = self.artists.get(&key) {
             return Ok(Some(id));
         }
-        let id = upsert_artist(conn, raw_name).await?;
+        let id = upsert_artist_with_mbid(conn, raw_name, mbid).await?;
         if let Some(id) = id {
-            self.artists.insert(canon, id);
+            self.artists.insert(key, id);
         }
         Ok(id)
+    }
+
+    /// The artists a credit names, each under the MusicBrainz id the file
+    /// gives it (see [`artist_credits`]), in credit order. With no ids it
+    /// is [`Self::artist_list`].
+    pub async fn artist_credit_list(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw: &Option<String>,
+        mbids: &[String],
+    ) -> CoreResult<Vec<i64>> {
+        let Some(raw) = raw else {
+            return Ok(Vec::new());
+        };
+        let mut ids = Vec::new();
+        for (name, mbid) in artist_credits(raw, mbids) {
+            if let Some(id) = self
+                .artist_with_mbid(&mut *conn, &name, mbid.as_deref())
+                .await?
+            {
+                if !ids.contains(&id) {
+                    ids.push(id);
+                }
+            }
+        }
+        Ok(ids)
     }
 
     /// Cached equivalent of [`upsert_artist_list`] — splits the raw
@@ -143,7 +184,9 @@ pub fn now_millis() -> i64 {
 // build (which skips this whole `upserts` module) can still consume it
 // from the always-compiled `extract` module. Re-exported here for
 // backwards source compatibility with existing imports.
-pub use super::canonical::{canonical_name, split_artist_name};
+pub use super::canonical::{
+    artist_credit_names, artist_credits, canonical_name, split_artist_name,
+};
 use super::extract::ArtworkSource;
 
 /// Upsert an artwork row keyed on its content hash. Existing rows are
@@ -180,6 +223,37 @@ pub async fn upsert_artist(
     conn: &mut sqlx::SqliteConnection,
     raw_name: &str,
 ) -> CoreResult<Option<i64>> {
+    upsert_artist_with_mbid(conn, raw_name, None).await
+}
+
+/// The `artist` row for a name, told apart from a namesake by the
+/// MusicBrainz id the file carries (#1076).
+///
+/// The grouping key stays [`canonical_name`], which ignores case, so
+/// "taylor swift" and "Taylor Swift" are one artist. Two files whose tags
+/// carry *different* ids are two artists even when that key is equal ("LiSA"
+/// and "LISA"), which the key alone cannot say. Without an id the key
+/// decides, as before.
+///
+/// With an id, in this order:
+///
+/// 1. the row that already holds this id is the artist;
+/// 2. the row on the plain key, if it holds no id yet and is spelled the
+///    same, takes the id (how a library scanned before ids were read gets
+///    them). Spelled differently it might be the namesake, and is left
+///    alone;
+/// 3. a new row otherwise. The plain key belongs to the first artist seen
+///    (`UNIQUE (canonical_name)` stays: a parent table is never rebuilt),
+///    so a second identity under it is keyed `"<key> #<id>"`: `#` is
+///    stripped from every real key, so it cannot meet another artist's.
+///
+/// The name of an existing row is never rewritten here: the first spelling
+/// seen stays, whichever file the scan reaches last.
+pub async fn upsert_artist_with_mbid(
+    conn: &mut sqlx::SqliteConnection,
+    raw_name: &str,
+    mbid: Option<&str>,
+) -> CoreResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);
@@ -189,24 +263,55 @@ pub async fn upsert_artist(
         return Ok(None);
     }
 
-    let existing: Option<i64> =
-        sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ?")
-            .bind(&canon)
+    let mbid = mbid.map(str::trim).filter(|m| !m.is_empty());
+    let mut key = canon.clone();
+    if let Some(mbid) = mbid {
+        let holder: Option<i64> = sqlx::query_scalar("SELECT id FROM artist WHERE mbid = ?")
+            .bind(mbid)
             .fetch_optional(&mut *conn)
             .await?;
-    if let Some(id) = existing {
-        return Ok(Some(id));
+        if holder.is_some() {
+            return Ok(holder);
+        }
+        let plain: Option<(i64, String, Option<String>)> =
+            sqlx::query_as("SELECT id, name, mbid FROM artist WHERE canonical_name = ?")
+                .bind(&canon)
+                .fetch_optional(&mut *conn)
+                .await?;
+        match plain {
+            Some((id, stored, None)) if stored == name => {
+                sqlx::query("UPDATE artist SET mbid = ? WHERE id = ? AND mbid IS NULL")
+                    .bind(mbid)
+                    .bind(id)
+                    .execute(&mut *conn)
+                    .await?;
+                return Ok(Some(id));
+            }
+            Some(_) => key = format!("{canon} #{mbid}"),
+            None => {}
+        }
+    } else {
+        let existing: Option<i64> =
+            sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ?")
+                .bind(&canon)
+                .fetch_optional(&mut *conn)
+                .await?;
+        if let Some(id) = existing {
+            return Ok(Some(id));
+        }
     }
 
     // `pinyin` travels with `canonical_name`, always: the rule is that
     // wherever one is written the other is too, which is why they sit in
     // the same module (#579).
-    let result = sqlx::query("INSERT INTO artist (name, canonical_name, pinyin) VALUES (?, ?, ?)")
-        .bind(name)
-        .bind(&canon)
-        .bind(super::canonical::pinyin_blob(name).unwrap_or_default())
-        .execute(&mut *conn)
-        .await?;
+    let result =
+        sqlx::query("INSERT INTO artist (name, canonical_name, pinyin, mbid) VALUES (?, ?, ?, ?)")
+            .bind(name)
+            .bind(&key)
+            .bind(super::canonical::pinyin_blob(name).unwrap_or_default())
+            .bind(mbid)
+            .execute(&mut *conn)
+            .await?;
     Ok(Some(result.last_insert_rowid()))
 }
 
@@ -226,13 +331,14 @@ pub async fn upsert_artist(
 pub async fn resolve_album_artist(
     conn: &mut sqlx::SqliteConnection,
     album_artist: Option<&str>,
+    album_artist_mbid: Option<&str>,
     is_compilation: bool,
     track_primary_artist_id: Option<i64>,
 ) -> CoreResult<(Option<i64>, Option<String>)> {
     if let Some(name) = album_artist {
         let name = name.trim();
         if !name.is_empty() {
-            let id = upsert_artist(conn, name).await?;
+            let id = upsert_artist_with_mbid(conn, name, album_artist_mbid).await?;
             return Ok((id, Some(name.to_string())));
         }
     }
@@ -252,6 +358,33 @@ pub async fn upsert_album(
     year: Option<i64>,
     track_path: &str,
 ) -> CoreResult<Option<i64>> {
+    upsert_album_with_artist_mbid(
+        conn,
+        title,
+        album_artist_text,
+        None,
+        is_compilation,
+        track_primary_artist_id,
+        year,
+        track_path,
+    )
+    .await
+}
+
+/// [`upsert_album`] for a file that gives its Album Artist a MusicBrainz id
+/// (see [`upsert_artist_with_mbid`]): the album is keyed on that artist, so
+/// "LISA"'s record does not land on "LiSA"'s.
+#[allow(clippy::too_many_arguments)]
+pub async fn upsert_album_with_artist_mbid(
+    conn: &mut sqlx::SqliteConnection,
+    title: &str,
+    album_artist_text: Option<&str>,
+    album_artist_mbid: Option<&str>,
+    is_compilation: bool,
+    track_primary_artist_id: Option<i64>,
+    year: Option<i64>,
+    track_path: &str,
+) -> CoreResult<Option<i64>> {
     let title = title.trim();
     if title.is_empty() {
         return Ok(None);
@@ -264,6 +397,7 @@ pub async fn upsert_album(
     let (artist_id, album_artist_display) = resolve_album_artist(
         conn,
         album_artist_text,
+        album_artist_mbid,
         is_compilation,
         track_primary_artist_id,
     )

@@ -14,6 +14,7 @@ const FALLBACK: WindowChromeState = {
   draw: "none",
   supported: false,
   options: ["system"],
+  app_needs_xwayland: false,
 };
 
 const CHROMES: readonly WindowChrome[] = ["system", "adwaita", "app"];
@@ -53,6 +54,7 @@ function readCached(): WindowChromeState {
       // round-trip before it lists anything.
       const state = {
         options: ["system"],
+        app_needs_xwayland: false,
         ...parsed,
       } as WindowChromeState;
       // Validate rather than trust: this is page-writable storage, and a
@@ -67,7 +69,8 @@ function readCached(): WindowChromeState {
         drawOk &&
         isChrome(state.chrome) &&
         optionsOk &&
-        typeof state.supported === "boolean"
+        typeof state.supported === "boolean" &&
+        typeof state.app_needs_xwayland === "boolean"
       ) {
         return state;
       }

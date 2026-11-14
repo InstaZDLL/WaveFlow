@@ -274,8 +274,23 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
     // under the same key cannot outlive the one the user replaced.
     if let Some(aa) = edit.album_artist.as_ref() {
         tag.remove_key(ItemKey::AlbumArtist);
-        if !aa.trim().is_empty() {
-            tag.insert_text(ItemKey::AlbumArtist, aa.trim().to_string());
+        match edit.album_artist_values.as_deref() {
+            // An undo putting back several values (#1082): one item each,
+            // the first first, which is the one the scanner groups by, and
+            // each as the file held it, untrimmed: what was there goes back.
+            Some(values) if values.len() > 1 => {
+                for value in values {
+                    tag.push(lofty::tag::TagItem::new(
+                        ItemKey::AlbumArtist,
+                        lofty::tag::ItemValue::Text(value.clone()),
+                    ));
+                }
+            }
+            _ => {
+                if !aa.trim().is_empty() {
+                    tag.insert_text(ItemKey::AlbumArtist, aa.trim().to_string());
+                }
+            }
         }
     }
     if let Some(c) = edit.composer.as_ref() {
@@ -825,4 +840,128 @@ pub(super) fn write_tags_to_file(
     edit: &TrackEdit,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     patch_file(path, &TagPatch::Fields(edit))
+}
+
+/// Write `edit` as the properties dialog and the batch editor do, and give
+/// back the edit as written, for `sync_db` to mirror.
+///
+/// An edit that rewrites the artist credit and names no artist ids first
+/// weighs the ids the file carries against the new names
+/// ([`reconcile_artist_mbids`](waveflow_core::scanner::reconcile_artist_mbids)):
+/// one left on a name it no longer belongs to would send the track back to
+/// that artist on its next scan (#1076). The Album Artist the same way: a
+/// new name that is another artist (not a spelling fix) removes the file's
+/// Album Artist id, which would otherwise put the track back on the old
+/// artist's album. Only this file's ids change, and only for the field
+/// edited; an artist in the library keeps its id, still right for its
+/// other tracks.
+pub(crate) fn write_edit(
+    path: &std::path::Path,
+    edit: &TrackEdit,
+) -> Result<TrackEdit, Box<dyn std::error::Error + Send + Sync>> {
+    let mut edit = edit.clone();
+    let rewrites_artist = edit.artist.is_some() && edit.musicbrainz.artist_id.is_none();
+    let rewrites_album_artist =
+        edit.album_artist.is_some() && edit.musicbrainz.album_artist_id.is_none();
+    if rewrites_artist || rewrites_album_artist {
+        if let Some(file) = file_credits(path) {
+            if let (true, Some(credit)) = (rewrites_artist, edit.artist.as_deref()) {
+                if let Some(ids) = waveflow_core::scanner::reconcile_artist_mbids(
+                    &file.artist,
+                    &file.artist_ids,
+                    credit,
+                ) {
+                    edit.musicbrainz.artist_id = Some(ids.join("; "));
+                }
+            }
+            if let (true, Some(name)) = (rewrites_album_artist, edit.album_artist.as_deref()) {
+                let renamed = waveflow_core::scanner::canonical_name(name)
+                    != waveflow_core::scanner::canonical_name(&file.album_artist);
+                if !file.album_artist_ids.is_empty() && renamed {
+                    edit.musicbrainz.album_artist_id = Some(String::new());
+                }
+            }
+        }
+    }
+    write_tags_to_file(path, &edit)?;
+    Ok(edit)
+}
+
+/// The artist credit and the Album Artist a file carries, with their
+/// MusicBrainz ids, read as the scanner reads them.
+#[derive(Debug, Default)]
+pub(crate) struct FileCredits {
+    pub artist: String,
+    pub artist_ids: Vec<String>,
+    /// Every Album Artist value, `"; "`-joined.
+    pub album_artist: String,
+    /// Every Album Artist value, in the file's order: what the tag workshop
+    /// journals when it replaces them, for an undo to write back (#1082).
+    pub album_artist_list: Vec<String>,
+    pub album_artist_ids: Vec<String>,
+}
+
+/// [`FileCredits`] of `path`; a DSF's from its ID3 tag, which the tag
+/// workshop writes ids into as well. `None` when the file cannot be read,
+/// in which case it carries no ids anything could read either.
+pub(crate) fn file_credits(path: &std::path::Path) -> Option<FileCredits> {
+    use lofty::file::TaggedFileExt;
+    use lofty::tag::ItemKey;
+
+    let is_dsf = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("dsf"));
+    if is_dsf {
+        return dsf_credits(path);
+    }
+    let tagged = waveflow_core::scanner::extract::read_tagged_file(path).ok()?;
+    let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) else {
+        return Some(FileCredits::default());
+    };
+    let (artist, artist_ids) = waveflow_core::scanner::extract_artist_credit(tag);
+    let album_artist_list: Vec<String> = tag
+        .get_strings(ItemKey::AlbumArtist)
+        .map(str::to_owned)
+        .collect();
+    Some(FileCredits {
+        artist: artist.unwrap_or_default(),
+        artist_ids,
+        album_artist: album_artist_list.join("; "),
+        album_artist_list,
+        album_artist_ids: waveflow_core::scanner::artist_mbids(
+            tag.get_strings(ItemKey::MusicBrainzReleaseArtistId),
+        ),
+    })
+}
+
+fn dsf_credits(path: &std::path::Path) -> Option<FileCredits> {
+    use id3::TagLike;
+    use std::io::{Seek, SeekFrom};
+
+    let mut file = std::fs::File::open(path).ok()?;
+    let layout = waveflow_core::tagio::read_dsf_layout(&mut file).ok()??;
+    if layout.metadata_offset == 0 {
+        return Some(FileCredits::default());
+    }
+    file.seek(SeekFrom::Start(layout.metadata_offset)).ok()?;
+    let tag = match waveflow_core::tagio::chapter_nesting::read_id3_tag(&mut file) {
+        Ok(tag) => tag,
+        Err(err) if matches!(err.kind, id3::ErrorKind::NoTag) => {
+            return Some(FileCredits::default())
+        }
+        Err(_) => return None,
+    };
+    let ids = |slot| {
+        read_musicbrainz_id3(&tag, slot)
+            .map(|v| waveflow_core::scanner::artist_mbids([v.as_str()]))
+            .unwrap_or_default()
+    };
+    Some(FileCredits {
+        artist: waveflow_core::audio_format::dsd::metadata::id3_artists(&tag).unwrap_or_default(),
+        artist_ids: ids(ARTIST),
+        album_artist: tag.album_artist().unwrap_or_default().to_owned(),
+        album_artist_list: tag.album_artist().map(str::to_owned).into_iter().collect(),
+        album_artist_ids: ids(ALBUM_ARTIST),
+    })
 }

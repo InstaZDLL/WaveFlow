@@ -3098,7 +3098,8 @@
           "label": "WaveFlow",
           "hint": "由 WaveFlow 繪製，視窗按鈕落在它自己的橫列裡。"
         }
-      }
+      },
+      "needsXwayland": "在此 Wayland 工作階段中，合成器一律會繪製視窗邊框，WaveFlow 無法以自己的標題列取代。請啟用 XWayland 以使用此選項。"
     },
     "canvasCache": {
       "cacheLabel": "在本機儲存 Canvas",

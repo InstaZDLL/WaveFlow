@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration, slug "installers" (second signing request
+  of a Windows release): the NSIS setup, and the MSI when there is one (the
+  beta channel ships NSIS only, hence min-matches="0"). Both already hold the
+  exe signed by the first request. Paste into the SignPath project under the
+  slug "installers"; keep it in step with docs/RELEASING.md.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="*-setup.exe" product-name="WaveFlow" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+    <msi-file path="*.msi" min-matches="0">
+      <authenticode-sign />
+    </msi-file>
+  </zip-file>
+</artifact-configuration>

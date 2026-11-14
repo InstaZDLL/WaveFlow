@@ -13,10 +13,11 @@ use tauri::Emitter;
 
 use waveflow_core::repository::{album::AlbumRepository, sqlite::SqliteAlbumRepository};
 use waveflow_core::scanner::{
-    link_va_artist_image, maybe_link_artist_images, merge_implicit_compilations, now_millis,
+    artist_credit_names, link_va_artist_image, maybe_link_artist_images,
+    merge_implicit_compilations, now_millis, realign_album_by_identity,
     reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, UpsertCache,
+    upsert_album_with_artist_mbid, upsert_artwork, ArtistImageScanCache, ExtractedFile,
+    UpsertCache,
 };
 
 use crate::{
@@ -952,8 +953,9 @@ pub(crate) async fn scan_folder_inner(
                 }
 
                 let mut multi_artist_renormalised = false;
+                let mut credit_identity_moved = false;
                 if let Some(raw) = &extracted.artist {
-                    let splits = split_artist_name(raw);
+                    let splits = artist_credit_names(raw, &extracted.artist_mbids);
                     let current_count: i64 =
                         sqlx::query_scalar("SELECT COUNT(*) FROM track_artist WHERE track_id = ?")
                             .bind(existing_track_id)
@@ -978,14 +980,32 @@ pub(crate) async fn scan_folder_inner(
                                     .collect::<Vec<_>>(),
                                 &splits,
                             ));
-                    if !user_split && current_count as usize != splits.len() {
+                    // On a deep rescan, a file that names its artists by
+                    // MusicBrainz id is held to them (#1076): this is how a
+                    // library scanned before the ids were read, whose "LiSA"
+                    // and "LISA" were one artist, comes apart. It also gives
+                    // a row that holds no id yet the one its file carries,
+                    // whether or not the credit then moves.
+                    let identity_moved = if deep && !extracted.artist_mbids.is_empty() {
+                        let wanted = upsert_cache
+                            .artist_credit_list(&mut tx, &extracted.artist, &extracted.artist_mbids)
+                            .await?;
+                        let stored: Vec<i64> = sqlx::query_scalar(
+                            "SELECT artist_id FROM track_artist
+                              WHERE track_id = ? ORDER BY position",
+                        )
+                        .bind(existing_track_id)
+                        .fetch_all(&mut *tx)
+                        .await?;
+                        wanted != stored
+                    } else {
+                        false
+                    };
+                    if !user_split && (current_count as usize != splits.len() || identity_moved) {
                         multi_artist_renormalised = true;
-                        let mut ids = Vec::new();
-                        for name in splits {
-                            if let Some(id) = upsert_artist(&mut tx, &name).await? {
-                                ids.push(id);
-                            }
-                        }
+                        let ids = upsert_cache
+                            .artist_credit_list(&mut tx, &extracted.artist, &extracted.artist_mbids)
+                            .await?;
                         sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
                             .bind(existing_track_id)
                             .execute(&mut *tx)
@@ -1011,16 +1031,22 @@ pub(crate) async fn scan_folder_inner(
                             .bind(existing_track_id)
                             .execute(&mut *tx)
                             .await?;
+                        // A track that changed artist by identity is realigned
+                        // below, with its Album Artist: its album may hold the
+                        // other artist's tracks, and must not move whole.
                         if let Some(first_id) = ids.first().copied() {
-                            repoint_fallback_album_artist(
-                                &mut tx,
-                                existing_track_id,
-                                previous_primary,
-                                first_id,
-                            )
-                            .await?;
+                            if !identity_moved {
+                                repoint_fallback_album_artist(
+                                    &mut tx,
+                                    existing_track_id,
+                                    previous_primary,
+                                    first_id,
+                                )
+                                .await?;
+                            }
                         }
                     }
+                    credit_identity_moved = identity_moved;
                     // Backfill local artist images AFTER the optional
                     // track_artist rebuild — otherwise newly created
                     // artist IDs (when current_count != splits.len())
@@ -1040,6 +1066,7 @@ pub(crate) async fn scan_folder_inner(
                         &mut tx,
                         Some(raw),
                         &current_ids,
+                        &extracted.artist_mbids,
                         track_path,
                         artwork_dir,
                         &mut artist_image_cache,
@@ -1048,6 +1075,32 @@ pub(crate) async fn scan_folder_inner(
                     timings
                         .link_us
                         .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
+                }
+
+                // The album a fresh scan would build, on a deep rescan of a
+                // file that names its artists by id (#1076): an older scan
+                // keyed one album on the merged artist, whether it came from
+                // the track's lead or from an explicit Album Artist.
+                if deep && (credit_identity_moved || extracted.album_artist_mbid.is_some()) {
+                    // The track's own picture, for an album it lands in
+                    // without one: the old album's may be the other
+                    // artist's record.
+                    let own_cover = match &extracted.cover_art {
+                        Some(cover) => Some((
+                            upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source)
+                                .await?,
+                            cover.source.as_str(),
+                        )),
+                        None => None,
+                    };
+                    realign_album_by_identity(
+                        &mut tx,
+                        existing_track_id,
+                        extracted.album_artist.as_deref(),
+                        extracted.album_artist_mbid.as_deref(),
+                        own_cover,
+                    )
+                    .await?;
                 }
 
                 // Phase 4.d.0.3: emit a sync op ONLY when the skip
@@ -1095,14 +1148,16 @@ pub(crate) async fn scan_folder_inner(
                 let tagged = extracted
                     .artist
                     .as_deref()
-                    .map(split_artist_name)
+                    .map(|raw| artist_credit_names(raw, &extracted.artist_mbids))
                     .unwrap_or_default();
                 let names: Vec<String> = stored.iter().map(|(_, name)| name.clone()).collect();
                 let user_split = is_split_of(&names, &tagged);
                 let artist_ids = if user_split {
                     stored.iter().map(|(id, _)| *id).collect()
                 } else {
-                    upsert_cache.artist_list(&mut tx, &extracted.artist).await?
+                    upsert_cache
+                        .artist_credit_list(&mut tx, &extracted.artist, &extracted.artist_mbids)
+                        .await?
                 };
                 let artist_id = artist_ids.first().copied();
                 let album_key_artist = if user_split {
@@ -1118,10 +1173,11 @@ pub(crate) async fn scan_folder_inner(
                 };
                 let album_id = match &extracted.album {
                     Some(a) => {
-                        upsert_album(
+                        upsert_album_with_artist_mbid(
                             &mut tx,
                             a,
                             extracted.album_artist.as_deref(),
+                            extracted.album_artist_mbid.as_deref(),
                             extracted.is_compilation,
                             album_key_artist,
                             extracted.year,
@@ -1138,6 +1194,7 @@ pub(crate) async fn scan_folder_inner(
                     &mut tx,
                     extracted.artist.as_deref(),
                     &artist_ids,
+                    &extracted.artist_mbids,
                     Path::new(&extracted.abs_path),
                     artwork_dir,
                     &mut artist_image_cache,
@@ -1325,14 +1382,17 @@ pub(crate) async fn scan_folder_inner(
             }
         } else {
             // Brand-new track — insert with all related upserts.
-            let artist_ids = upsert_cache.artist_list(&mut tx, &extracted.artist).await?;
+            let artist_ids = upsert_cache
+                .artist_credit_list(&mut tx, &extracted.artist, &extracted.artist_mbids)
+                .await?;
             let artist_id = artist_ids.first().copied();
             let album_id = match &extracted.album {
                 Some(a) => {
-                    upsert_album(
+                    upsert_album_with_artist_mbid(
                         &mut tx,
                         a,
                         extracted.album_artist.as_deref(),
+                        extracted.album_artist_mbid.as_deref(),
                         extracted.is_compilation,
                         artist_id,
                         extracted.year,
@@ -1362,6 +1422,7 @@ pub(crate) async fn scan_folder_inner(
                 &mut tx,
                 extracted.artist.as_deref(),
                 &artist_ids,
+                &extracted.artist_mbids,
                 Path::new(&extracted.abs_path),
                 artwork_dir,
                 &mut artist_image_cache,
@@ -1801,7 +1862,7 @@ async fn emit_track_insert_from_extracted(
     // split, matching the server's `track_artist.position`
     // semantic.
     let artists: Vec<String> = match &extracted.artist {
-        Some(s) => split_artist_name(s),
+        Some(s) => artist_credit_names(s, &extracted.artist_mbids),
         None => Vec::new(),
     };
     let wire = crate::sync::track_emit::TrackInsertWire {

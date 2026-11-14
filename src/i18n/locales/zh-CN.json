@@ -3098,7 +3098,8 @@
           "label": "WaveFlow",
           "hint": "由 WaveFlow 绘制，窗口按钮位于应用自己的标题栏中。"
         }
-      }
+      },
+      "needsXwayland": "在此 Wayland 会话中，合成器始终会绘制窗口边框，WaveFlow 无法用自己的标题栏取代它。请启用 XWayland 以使用此选项。"
     },
     "canvasCache": {
       "cacheLabel": "在本地保存 Canvas",

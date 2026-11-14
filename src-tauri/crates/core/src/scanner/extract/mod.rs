@@ -254,6 +254,9 @@ pub struct ExtractedFile {
     /// correctly tagged `Song.mp3` as untitled.
     pub title_from_filename: bool,
     pub artist: Option<String>,
+    /// The MusicBrainz id the file gives each of `artist`'s names, in the
+    /// tag's order (see [`super::canonical::artist_credits`] for how they pair).
+    pub artist_mbids: Vec<String>,
     pub album: Option<String>,
     /// Raw Album Artist text from the source tag (`TPE2` / `aART` /
     /// `ALBUMARTIST` / `Album Artist`). Used as the album-grouping
@@ -261,6 +264,8 @@ pub struct ExtractedFile {
     /// their per-track Artist tags differ (featurings, lead-vocal
     /// rotations on K-pop EPs, etc.).
     pub album_artist: Option<String>,
+    /// The MusicBrainz id of `album_artist`, when the tag names exactly one.
+    pub album_artist_mbid: Option<String>,
     /// `TCMP` (ID3v2) / `cpil` (MP4) / `COMPILATION` (Vorbis / APE)
     /// flag. When `true` the scanner uses a synthetic "Various
     /// Artists" album artist so a true compilation merges its tracks
@@ -557,11 +562,49 @@ pub fn extract_album_artist(tag: &Tag) -> Option<String> {
 /// `Accessor::artist`, which is the first one only. lofty already turns a
 /// multi-value `TPE1`, repeated Vorbis `ARTIST` comments and several `©ART`
 /// into one item each, and maps `ARTISTS` from whichever frame or atom the
-/// container keeps it in.
+/// container keeps it in. Two names that differ by case only stay two when
+/// the tag gives each its own MusicBrainz id ([`extract_artist_credit`]).
 pub fn extract_artists(tag: &Tag) -> Option<String> {
-    super::canonical::artist_credit(
+    extract_artist_credit(tag).0
+}
+
+/// The credit the tag gives a track and the MusicBrainz artist ids that go
+/// with it (`MUSICBRAINZ_ARTISTID`, `TXXX:MusicBrainz Artist Id`, the MP4
+/// atom of the same name): the identity that tells two artists of one
+/// spelling apart (#1076). The ids are those of
+/// [`super::canonical::artist_mbids`], aligned with the credit's names when
+/// they pair with the names as written: a credit "LiSA; LISA" with two ids
+/// is two artists (#1081, [`super::canonical::artist_credit_with_ids`]).
+pub fn extract_artist_credit(tag: &Tag) -> (Option<String>, Vec<String>) {
+    super::canonical::artist_credit_with_ids(
         tag.get_strings(ItemKey::TrackArtists),
         tag.get_strings(ItemKey::TrackArtist),
+        &extract_artist_mbids(tag),
+    )
+}
+
+/// The MusicBrainz artist ids the tag carries for the track's artists, as
+/// they are written: see [`extract_artist_credit`] for the ones that go with
+/// the credit.
+pub fn extract_artist_mbids(tag: &Tag) -> Vec<String> {
+    super::canonical::artist_mbids(tag.get_strings(ItemKey::MusicBrainzArtistId))
+}
+
+/// The MusicBrainz id of the Album Artist, when the tag names exactly one
+/// id *and* the Album Artist is one name: an id for "Alpha; Beta" would
+/// be Alpha's, not the pair's. See [`super::canonical::album_artist_mbid`].
+///
+/// Every value of the Album Artist tag is counted, not the first one
+/// [`extract_album_artist`] groups by: two Vorbis `ALBUMARTIST` comments,
+/// "Alpha" and "Beta", are two names, and one id says nothing of whose.
+pub fn extract_album_artist_mbid(tag: &Tag) -> Option<String> {
+    let names: Vec<&str> = tag
+        .get_strings(ItemKey::AlbumArtist)
+        .flat_map(|v| v.split('\0'))
+        .collect();
+    super::canonical::album_artist_mbid(
+        &names.join("; "),
+        tag.get_strings(ItemKey::MusicBrainzReleaseArtistId),
     )
 }
 

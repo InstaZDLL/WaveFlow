@@ -1,0 +1,14 @@
+-- Every value a field held before a tag workshop batch rewrote it, when it
+-- held several (#1082).
+--
+-- `old_value` keeps one text per field, which is all the table and the
+-- preview show. A file can carry the Album Artist twice (two Vorbis
+-- `ALBUMARTIST` comments, a multi-value `TPE2`): the write replaces both
+-- with the one name asked for, and an undo that put back `old_value` alone
+-- would lose the second. `old_values` is a JSON array of every value, in
+-- the file's order, and NULL when the field held at most one, in which case
+-- `old_value` says it all.
+--
+-- Only ALTER TABLE ... ADD COLUMN, as for every journal change: the rows
+-- already written keep NULL, and undo them as before.
+ALTER TABLE tag_workshop_field ADD COLUMN old_values TEXT;

@@ -93,6 +93,14 @@ pub struct TrackEdit {
     /// credits. It decides which album the track is grouped into, so a
     /// change moves the track (see [`sync_db`]). Empty clears it.
     pub album_artist: Option<String>,
+    /// Every Album Artist value to write, in order, in place of the one
+    /// `album_artist` names, when there are several. Only the tag
+    /// workshop's undo sets it, to put back a file's values as they were
+    /// (#1082): it is never read from the frontend, and every other write
+    /// replaces the field with one name. Read only when `album_artist` is
+    /// set, which then holds the first of them.
+    #[serde(skip)]
+    pub album_artist_values: Option<Vec<String>>,
     /// The composer (`TCOM` / `COMPOSER` / `©wrt`), stored in `track_tag`
     /// under [`COMPOSER_KEY`] — the row the scanner fills from the same
     /// frame. Empty clears it.
@@ -284,20 +292,20 @@ pub async fn update_track_tags(
     // The stamp is checked again here, as close to the write as it gets:
     // the pause above can take its time, and a tagger saving during it
     // is exactly the case being guarded.
-    {
+    // The edit as written: artist ids the new credit leaves stale removed
+    // (#1076), so the database mirrors the file.
+    let edit = {
         let path = path.clone();
-        let edit = edit.clone();
         let file_stamp = file_stamp.clone();
-        tokio::task::spawn_blocking(move || -> AppResult<()> {
+        tokio::task::spawn_blocking(move || -> AppResult<TrackEdit> {
             if let Some(opened_at) = &file_stamp {
                 ensure_unchanged(&path, opened_at)?;
             }
-            write_tags_to_file(&path, &edit)
-                .map_err(|e| AppError::Other(format!("tag write failed: {e}")))
+            write_edit(&path, &edit).map_err(|e| AppError::Other(format!("tag write failed: {e}")))
         })
         .await
-        .map_err(|e| AppError::Other(format!("tag write join: {e}")))??;
-    }
+        .map_err(|e| AppError::Other(format!("tag write join: {e}")))??
+    };
 
     // 3b. The file has changed on disk; recompute its hash so the
     //     scanner's (mtime, size, hash) fast path keeps matching and
@@ -408,13 +416,14 @@ pub async fn update_tracks_batch(
         }
         let path = std::path::PathBuf::from(&row.file_path);
 
+        // Per track: the artist ids each file keeps depend on its own credit.
         let written = {
             let path = path.clone();
             let edit = edit.clone();
-            tokio::task::spawn_blocking(move || write_tags_to_file(&path, &edit)).await
+            tokio::task::spawn_blocking(move || write_edit(&path, &edit)).await
         };
-        match written {
-            Ok(Ok(())) => {}
+        let track_edit = match written {
+            Ok(Ok(written)) => written,
             Ok(Err(err)) => {
                 summary
                     .errors
@@ -427,7 +436,7 @@ pub async fn update_tracks_batch(
                     .push((*track_id, format!("tag write join: {err}")));
                 continue;
             }
-        }
+        };
 
         // Rehash the file before the DB sync so the new hash lands
         // alongside the metadata update. Batch mode: record the
@@ -442,7 +451,7 @@ pub async fn update_tracks_batch(
             continue;
         }
 
-        if let Err(err) = sync_db(&pool, *track_id, &edit).await {
+        if let Err(err) = sync_db(&pool, *track_id, &track_edit).await {
             summary
                 .errors
                 .push((*track_id, format!("db sync failed: {err}")));

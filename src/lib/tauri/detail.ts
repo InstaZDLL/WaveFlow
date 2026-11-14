@@ -193,6 +193,9 @@ export interface DeezerArtistEnrichment {
   background_url: string | null;
   /** Locally-cached wide fanart backing the artist hero (issue #482). */
   background_path: string | null;
+  /** `background_path` is the banner the user chose, not TheAudioDB's
+   *  automatic fanart. The hero shows a chosen banner crisp (#1094). */
+  has_custom_background: boolean;
   /** The artist's **own** image — an `artist.jpg` sidecar the scanner
    *  linked, or one the user picked — from `artist.artwork_id`.
    *  It outranks `picture_path`: prefer it wherever both are available,

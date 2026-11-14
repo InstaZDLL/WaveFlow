@@ -292,7 +292,9 @@
     box-shadow 420ms var(--fe-ease);
 }
 :root[data-layout="fluid"] .fe-tile-hover:hover .fe-tile,
-:root[data-layout="fluid"] .fe-tile-hover:focus-visible .fe-tile {
+:root[data-layout="fluid"]
+  .fe-tile-hover:focus-visible:not(:where([data-pointer-focus]))
+  .fe-tile {
   transform: translateY(-3px);
   box-shadow:
     0 1px 0 var(--fe-edge-strong) inset,
@@ -535,7 +537,8 @@
   text-align: start;
   color: #f3f1ec;
 }
-:root[data-layout="fluid"] .fe-spectrum__radio:focus-visible {
+:root[data-layout="fluid"]
+  .fe-spectrum__radio:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--fe-accent);
   outline-offset: -3px;
 }
@@ -623,10 +626,13 @@
   transition: opacity 180ms var(--fe-ease);
 }
 :root[data-layout="fluid"] .fe-progress:hover .fe-progress__thumb,
-:root[data-layout="fluid"] .fe-progress:focus-visible .fe-progress__thumb {
+:root[data-layout="fluid"]
+  .fe-progress:focus-visible:not(:where([data-pointer-focus]))
+  .fe-progress__thumb {
   opacity: 1;
 }
-:root[data-layout="fluid"] .fe-progress:focus-visible {
+:root[data-layout="fluid"]
+  .fe-progress:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--fe-accent);
   outline-offset: -2px;
   border-radius: 0.25rem;
@@ -725,11 +731,14 @@
   transition: opacity 180ms var(--fe-ease);
 }
 :root[data-layout="fluid"] .fe-horizon__track:hover .fe-horizon__thumb,
-:root[data-layout="fluid"] .fe-horizon__track:focus-visible .fe-horizon__thumb,
+:root[data-layout="fluid"]
+  .fe-horizon__track:focus-visible:not(:where([data-pointer-focus]))
+  .fe-horizon__thumb,
 :root[data-layout="fluid"] .fe-horizon__track[data-seeking] .fe-horizon__thumb {
   opacity: 1;
 }
-:root[data-layout="fluid"] .fe-horizon__track:focus-visible {
+:root[data-layout="fluid"]
+  .fe-horizon__track:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--fe-accent);
   outline-offset: 2px;
   border-radius: 0.25rem;
@@ -841,7 +850,8 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
-:root[data-layout="fluid"] .fe-tuner__station:focus-visible {
+:root[data-layout="fluid"]
+  .fe-tuner__station:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--fe-accent);
   outline-offset: -3px;
 }
@@ -922,7 +932,8 @@
 :root[data-layout="fluid"] .fe-tuner__cta:disabled {
   opacity: 0.6;
 }
-:root[data-layout="fluid"] .fe-tuner__cta:focus-visible {
+:root[data-layout="fluid"]
+  .fe-tuner__cta:focus-visible:not(:where([data-pointer-focus])) {
   outline: 2px solid var(--fe-accent);
   outline-offset: 2px;
 }
@@ -2463,7 +2474,11 @@
   text-shadow: 0 0 1.4px currentColor;
 }
 :root[data-layout="fluid"] .fe-panel ul > li > button:hover,
-:root[data-layout="fluid"] .fe-panel ul > li > button:focus-visible {
+:root[data-layout="fluid"]
+  .fe-panel
+  ul
+  > li
+  > button:focus-visible:not(:where([data-pointer-focus])) {
   opacity: 1;
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
@@ -2623,7 +2638,11 @@
   text-shadow: 0 0 1.6px currentColor;
 }
 :root[data-layout="fluid"] [data-immersive] ul > li > button:hover,
-:root[data-layout="fluid"] [data-immersive] ul > li > button:focus-visible {
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li
+  > button:focus-visible:not(:where([data-pointer-focus])) {
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
 }
@@ -2659,7 +2678,9 @@
   color: var(--fe-ink-2);
 }
 :root[data-layout="fluid"] [role="menu"] [role="menuitem"]:hover,
-:root[data-layout="fluid"] [role="menu"] [role="menuitem"]:focus-visible {
+:root[data-layout="fluid"]
+  [role="menu"]
+  [role="menuitem"]:focus-visible:not(:where([data-pointer-focus])) {
   background-color: var(--fe-tone-2) !important;
   color: var(--fe-ink);
 }
@@ -2774,7 +2795,9 @@
     transition: none;
   }
   :root[data-layout="fluid"] .fe-tile-hover:hover .fe-tile,
-  :root[data-layout="fluid"] .fe-tile-hover:focus-visible .fe-tile,
+  :root[data-layout="fluid"]
+    .fe-tile-hover:focus-visible:not(:where([data-pointer-focus]))
+    .fe-tile,
   :root[data-layout="fluid"] .fe-press:active,
   :root[data-layout="fluid"] .fe-cta:hover,
   :root[data-layout="fluid"] .fe-cta:active,

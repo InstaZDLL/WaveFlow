@@ -105,6 +105,15 @@ Word-synced lyrics with romanization and translations, the track's Canvas clip o
 
 Download the package for your system from the [latest release](https://github.com/InstaZDLL/WaveFlow/releases/latest). Every release page lists the one-liner for your package manager (AUR, COPR, apt, winget) and the standalone installers for Windows, macOS and Linux. Installed builds update themselves, and a beta channel can be switched on in Settings.
 
+On Debian and Ubuntu, add the signed APT repository once, then `sudo apt install wave-flow` keeps it current:
+
+```sh
+sudo install -d -m 0755 /etc/apt/keyrings
+sudo curl -fsSL https://download.waveflow.app/apt/waveflow.gpg -o /etc/apt/keyrings/waveflow.gpg
+echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] https://download.waveflow.app/apt stable main" | sudo tee /etc/apt/sources.list.d/waveflow.list
+sudo apt update && sudo apt install wave-flow
+```
+
 On macOS, one command downloads the latest release, checks it and installs it into `/Applications`:
 
 ```sh

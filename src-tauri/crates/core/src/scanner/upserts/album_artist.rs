@@ -405,5 +405,167 @@ pub async fn repoint_fallback_album_artist(
     Ok(true)
 }
 
+/// Put a track whose artists are known by MusicBrainz id (#1076) in the
+/// album a fresh scan of its file would build, when the stored one is keyed
+/// on another artist.
+///
+/// A library scanned before ids were read keyed on one merged artist both
+/// "LiSA"'s and "LISA"'s records: on her own lead when there is no Album
+/// Artist, on the Album Artist when there is one. The target artist is the
+/// one [`resolve_album_artist`](super::resolve_album_artist) gives for
+/// `album_artist` (the file's, with its id) or, without one, the track's
+/// primary artist as stored now.
+///
+/// - An album that already holds `(canonical_title, target)` takes the
+///   track, and the Album Artist text when it has none, as a scan would
+///   give it.
+/// - A track alone in its album re-keys it in place, keeping the row and
+///   its cover, and takes the Album Artist text the file spells: the
+///   stored one is the merged artist's.
+/// - Otherwise only this track moves, into an album created as a scan
+///   would create it: the album may hold tracks of the other artist, and
+///   moving it whole would carry them along.
+///
+/// An album the track lands in without a cover takes `own_cover` (the
+/// artwork id and source of the picture the track's file embeds, when the
+/// caller read one), as a scan would give it, else the cover of the album
+/// left: a merged album's cover may be the other artist's record.
+///
+/// A compilation is left alone, as its flag is sticky, and so is an album
+/// whose Album Artist the caller does not name (or names where the album
+/// has none): that is a different album, not a different identity.
+///
+/// Returns whether the track's album changed.
+pub async fn realign_album_by_identity(
+    conn: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    album_artist: Option<&str>,
+    album_artist_mbid: Option<&str>,
+    own_cover: Option<(i64, &str)>,
+) -> CoreResult<bool> {
+    type Current = (
+        i64,
+        String,
+        String,
+        Option<i64>,
+        Option<String>,
+        Option<i64>,
+        String,
+        Option<i64>,
+        i64,
+    );
+    let current: Option<Current> = sqlx::query_as(
+        "SELECT al.id, al.title, al.canonical_title, al.year, al.album_artist, al.artist_id,
+                t.file_path, t.primary_artist,
+                (SELECT COUNT(*) FROM track o WHERE o.album_id = al.id AND o.id <> t.id)
+           FROM track t
+           JOIN album al ON al.id = t.album_id
+          WHERE t.id = ? AND al.is_compilation = 0",
+    )
+    .bind(track_id)
+    .fetch_optional(&mut *conn)
+    .await?;
+    let Some((album, title, canonical, year, stored_text, keyed_on, path, primary, others)) =
+        current
+    else {
+        return Ok(false);
+    };
+    let album_artist = album_artist.map(str::trim).filter(|s| !s.is_empty());
+    if stored_text.is_some() != album_artist.is_some() {
+        return Ok(false);
+    }
+    let (Some(target), _) =
+        super::resolve_album_artist(conn, album_artist, album_artist_mbid, false, primary).await?
+    else {
+        return Ok(false);
+    };
+    if keyed_on == Some(target) {
+        return Ok(false);
+    }
+    let existing: Option<i64> =
+        sqlx::query_scalar("SELECT id FROM album WHERE canonical_title = ? AND artist_id = ?")
+            .bind(&canonical)
+            .bind(target)
+            .fetch_optional(&mut *conn)
+            .await?;
+    let destination = match existing {
+        Some(id) => {
+            if album_artist.is_some() {
+                sqlx::query(
+                    "UPDATE album SET album_artist = COALESCE(album_artist, ?) WHERE id = ?",
+                )
+                .bind(album_artist)
+                .bind(id)
+                .execute(&mut *conn)
+                .await?;
+            }
+            id
+        }
+        None if others == 0 => {
+            sqlx::query(
+                "UPDATE album SET artist_id = ?, album_artist = COALESCE(?, album_artist)
+                  WHERE id = ?",
+            )
+            .bind(target)
+            .bind(album_artist)
+            .bind(album)
+            .execute(&mut *conn)
+            .await?;
+            return Ok(true);
+        }
+        None => {
+            let Some(id) = super::upsert_album_with_artist_mbid(
+                conn,
+                &title,
+                album_artist,
+                album_artist_mbid,
+                false,
+                primary,
+                year,
+                &path,
+            )
+            .await?
+            else {
+                return Ok(false);
+            };
+            id
+        }
+    };
+    if destination == album {
+        return Ok(false);
+    }
+    sqlx::query("UPDATE track SET album_id = ? WHERE id = ?")
+        .bind(destination)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    match own_cover {
+        Some((artwork, source)) => {
+            sqlx::query(
+                "UPDATE album SET artwork_id = ?, artwork_source = ?
+                  WHERE id = ? AND artwork_id IS NULL",
+            )
+            .bind(artwork)
+            .bind(source)
+            .bind(destination)
+            .execute(&mut *conn)
+            .await?;
+        }
+        None => {
+            sqlx::query(
+                "UPDATE album
+                    SET artwork_id = (SELECT artwork_id FROM album WHERE id = ?1),
+                        artwork_source = (SELECT artwork_source FROM album WHERE id = ?1)
+                  WHERE id = ?2 AND artwork_id IS NULL",
+            )
+            .bind(album)
+            .bind(destination)
+            .execute(&mut *conn)
+            .await?;
+        }
+    }
+    Ok(true)
+}
+
 #[cfg(test)]
 mod tests;

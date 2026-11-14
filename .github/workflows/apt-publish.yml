@@ -1,21 +1,29 @@
-name: APT (Buildkite Packages)
+name: APT repository (R2)
 
-# Runs after the Release workflow has published artefacts to GitHub.
-# Downloads the freshly-uploaded `.deb` from the release and uploads it
-# to the Buildkite Packages registry `instazdll/waveflow`, which serves
-# the apt repo that Debian/Ubuntu users add via:
+# Rebuilds the whole APT repository from the .deb of the three newest
+# stable releases and serves it from the R2 bucket behind
+# download.waveflow.app, signed with the project's own GPG key.
+# Stateless: nothing is read back from the bucket, so a run is also the
+# repair for a broken one.
 #
-#   curl -fsSL https://packages.buildkite.com/instazdll/waveflow/gpgkey \
-#     | sudo gpg --dearmor -o /etc/apt/keyrings/waveflow.gpg
-#   echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] \
-#     https://packages.buildkite.com/instazdll/waveflow/any/ any main" \
+# Debian / Ubuntu users add it with:
+#
+#   sudo install -d -m 0755 /etc/apt/keyrings
+#   sudo curl -fsSL https://download.waveflow.app/apt/waveflow.gpg \
+#     -o /etc/apt/keyrings/waveflow.gpg
+#   echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] https://download.waveflow.app/apt stable main" \
 #     | sudo tee /etc/apt/sources.list.d/waveflow.list
-#   sudo apt update && sudo apt install waveflow
+#   sudo apt update && sudo apt install wave-flow
 #
-# Required repository secret:
-#   BUILDKITE_PACKAGES_TOKEN — API access token (scopes: read_packages,
-#                              write_packages) for the InstaZDLL org,
-#                              created at buildkite.com/user/api-access-tokens.
+# Layout, key and rotation: docs/RELEASING.md#apt-repository.
+#
+# Required repository secrets:
+#   APT_GPG_PRIVATE_KEY, APT_GPG_PASSPHRASE   the repository signing key
+#   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET
+#                                             as the "Mirror to R2" job
+#
+# `prefix` is the folder in the bucket: `apt` for the real repository,
+# `apt-test` for a rehearsal that touches nothing users read.
 
 on:
   release:
@@ -23,91 +31,230 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Tag to publish, e.g. v1.1.0"
+        description: "Stable tag the repository is built up to, e.g. v2.0.2"
         required: true
+        type: string
+      prefix:
+        description: "Bucket folder: apt (real) or apt-test (rehearsal)"
+        required: false
+        default: apt
         type: string
 
 permissions:
   contents: read
 
 concurrency:
-  # Group on the resolved tag so two manual dispatches for different
-  # tags can run in parallel — `github.ref` would collapse them all
-  # under `refs/heads/main` when triggered via `workflow_dispatch`.
-  group: apt-${{ github.event.inputs.tag_name || github.event.release.tag_name }}
+  # One run at a time per prefix: two runs rebuilding the same tree would
+  # interleave their uploads.
+  group: apt-publish-${{ github.event.inputs.prefix || 'apt' }}
   cancel-in-progress: false
 
 env:
-  REGISTRY_URL: https://api.buildkite.com/v2/packages/organizations/instazdll/registries/waveflow/packages
-  # The Linux job in release.yml emits the .deb under this naming
-  # pattern (matches what Tauri's bundler produces): exactly one file
-  # per release, so a glob is safe.
-  DEB_PATTERN: "WaveFlow_*_linux-x86_64.deb"
+  # The domain compiled into the app and served by the bucket.
+  R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL || 'https://download.waveflow.app' }}
+  # Full fingerprint of the signing key. A key replaced by mistake must
+  # fail the job, not publish under another identity.
+  APT_GPG_EXPECTED_FPR: 4B92C10AD8200F3370BBAB2ED00B159309D12EA1
+  # How many stable releases the repository keeps.
+  KEEP_RELEASES: 3
 
 jobs:
   publish:
+    name: Build and publish
+    # Stable releases only: betas stay on the in-app channel.
+    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      prefix: ${{ steps.resolve.outputs.prefix }}
     steps:
-      - name: Resolve tag
+      - name: Resolve tag and prefix
+        id: resolve
         shell: bash
         env:
           MANUAL_TAG: ${{ github.event.inputs.tag_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_PREFIX: ${{ github.event.inputs.prefix }}
         run: |
           TAG="${MANUAL_TAG:-$RELEASE_TAG}"
+          PREFIX="${INPUT_PREFIX:-apt}"
           if [ -z "$TAG" ]; then
             echo "::error::No tag resolved (event=${GITHUB_EVENT_NAME:-?})"
             exit 1
           fi
+          if [[ "$TAG" == *-* ]]; then
+            echo "::error::$TAG is a pre-release: the APT repository is stable only"
+            exit 1
+          fi
+          # Strict, before anything is written to GITHUB_ENV: a tag with a
+          # newline must not be able to add variables to later steps.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag is not a stable vX.Y.Z tag"
+            exit 1
+          fi
+          if ! [[ "$PREFIX" =~ ^apt(-[a-z0-9-]+)?$ ]]; then
+            echo "::error::prefix '$PREFIX' must be apt or apt-<name>"
+            exit 1
+          fi
           echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
-          echo "Publishing $TAG to Buildkite Packages"
+          echo "PREFIX=$PREFIX" >> "$GITHUB_ENV"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
+          echo "Building the repository up to $TAG under $PREFIX/"
 
-      - name: Download .deb from GitHub Release
+      - name: Checkout the release scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: |
+            scripts/release
+          persist-credentials: false
+
+      - name: Check the R2 configuration
+        shell: bash
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          # shellcheck source=/dev/null
+          source scripts/release/r2-common.sh
+          state=$(r2_check)
+          if [ "$state" != "configured" ]; then
+            echo "::error::R2 secrets are $state, nothing to publish to"
+            exit 1
+          fi
+
+      - name: Install the tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends apt-utils gnupg
+
+      - name: Download the .deb of the newest stable releases
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          mkdir -p dist
-          # `gh release download` writes the asset(s) to the current
-          # working dir; --pattern restricts to the .deb only so we
-          # don't also pull MSIs / DMGs / AppImages we don't need.
-          gh release download "$TAG_NAME" \
-            --pattern "$DEB_PATTERN" \
-            --dir dist
-          ls -lh dist
-          # Sanity: exactly one .deb expected.
-          count=$(find dist -name "*.deb" | wc -l)
-          if [ "$count" -ne 1 ]; then
-            echo "::error::Expected 1 .deb in release $TAG_NAME, found $count"
+          mkdir -p debs
+          # The newest stable releases up to and including the requested
+          # tag: a rebuild for an older tag is a rebuild of that moment.
+          mapfile -t TAGS < <(gh release list --exclude-pre-releases --exclude-drafts \
+            --limit 50 --json tagName --jq '.[].tagName' |
+            awk -v t="$TAG_NAME" '$0 == t { on = 1 } on')
+          if [ "${TAGS[0]:-}" != "$TAG_NAME" ]; then
+            echo "::error::$TAG_NAME is not a published stable release"
             exit 1
           fi
+          # The real repository only moves forward: rebuilding it for an
+          # older tag would drop every newer release from the pool. A
+          # rewind is a rehearsal (apt-test), never apt/.
+          newest=$(gh release list --exclude-pre-releases --exclude-drafts \
+            --limit 1 --json tagName --jq ".[0].tagName")
+          if [ "$PREFIX" = "apt" ] && [ "$TAG_NAME" != "$newest" ]; then
+            echo "::error::$TAG_NAME is not the newest stable release ($newest): publishing it under apt/ would remove newer versions"
+            exit 1
+          fi
+          kept=0
+          for t in "${TAGS[@]}"; do
+            [ "$kept" -lt "$KEEP_RELEASES" ] || break
+            # Ask for the asset first: only its absence means "no .deb".
+            # A failed listing or download (5xx, rate limit) stops the job
+            # rather than quietly dropping that version from the pool.
+            assets=$(gh release view "$t" --json assets --jq '.assets[].name')
+            if grep -Eq '^WaveFlow_.*_linux-x86_64\.deb$' <<<"$assets"; then
+              gh release download "$t" --pattern "WaveFlow_*_linux-x86_64.deb" --dir debs
+              kept=$((kept + 1))
+            elif [ "$t" = "$TAG_NAME" ]; then
+              echo "::error::$t has no .deb"
+              exit 1
+            else
+              echo "::warning::$t has no .deb, skipped"
+            fi
+          done
+          ls -l debs
 
-      - name: Upload to Buildkite Packages
+      - name: Import the signing key
+        id: key
         shell: bash
         env:
-          TOKEN: ${{ secrets.BUILDKITE_PACKAGES_TOKEN }}
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
         run: |
-          DEB=$(find dist -name "*.deb" | head -1)
-          echo "Uploading $DEB to $REGISTRY_URL"
-          # We capture the HTTP code and validate it manually (rather
-          # than using curl's `-f`) so the response body is still read
-          # on error — surfacing Buildkite's diagnostic JSON in the
-          # workflow log. `-sS` keeps output minimal but surfaces
-          # transport-level errors.
-          http_code=$(curl -sS -w "%{http_code}" -o response.json \
-            -X POST "$REGISTRY_URL" \
-            -H "Authorization: Bearer $TOKEN" \
-            -F "file=@$DEB")
-          echo "HTTP $http_code"
-          cat response.json || true
-          echo
-          # Accept 2xx (201 Created for new, 200 OK for replace). Anything
-          # else is a failure — most commonly 401 (bad token) or 409
-          # (package version already exists, which means release.yml ran
-          # twice on the same tag and the second run should bail).
-          case "$http_code" in
-            2*) echo "Upload OK" ;;
-            *)  echo "::error::Upload failed (HTTP $http_code)"; exit 1 ;;
-          esac
+          umask 077
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -p "$GNUPGHOME"
+          printf '%s' "$APT_GPG_PASSPHRASE" > "$RUNNER_TEMP/apt-pass"
+          printf '%s\n' "$APT_GPG_PRIVATE_KEY" |
+            gpg --batch --pinentry-mode loopback \
+              --passphrase-file "$RUNNER_TEMP/apt-pass" --import 2>/dev/null
+          # The primary key's full fingerprint (the first fpr after sec).
+          FPR=$(gpg --batch --with-colons --list-secret-keys |
+            awk -F: '$1 == "sec" { s = 1 } s && $1 == "fpr" { print $10; exit }')
+          echo "Signing key fingerprint: $FPR"
+          if [ "$FPR" != "$APT_GPG_EXPECTED_FPR" ]; then
+            echo "::error::signing key is $FPR, expected $APT_GPG_EXPECTED_FPR"
+            exit 1
+          fi
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+          echo "APT_GPG_KEY_FPR=$FPR" >> "$GITHUB_ENV"
+          echo "APT_GPG_PASSPHRASE_FILE=$RUNNER_TEMP/apt-pass" >> "$GITHUB_ENV"
+
+      - name: Build the repository
+        shell: bash
+        run: bash scripts/release/build-apt-repo.sh debs repo
+
+      - name: Upload to R2
+        shell: bash
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          bash scripts/release/publish-apt-r2.sh repo "$PREFIX"
+          find repo -type f | sort | sed "s#^repo/#$PREFIX/#"
+
+      - name: Remove the signing material
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/gnupg" "$RUNNER_TEMP/apt-pass"
+
+  # What a user does, on the distributions we support, through the public
+  # domain: add the repository with signed-by, update, install, compare
+  # the installed version with the tag.
+  verify:
+    name: Install on ${{ matrix.image }}
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["debian:stable", "ubuntu:22.04", "ubuntu:24.04"]
+    container:
+      image: ${{ matrix.image }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      EXPECTED_VERSION: ${{ needs.publish.outputs.version }}
+      PREFIX: ${{ needs.publish.outputs.prefix }}
+    steps:
+      - name: Add the repository and install
+        shell: bash
+        run: |
+          set -euxo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl
+          install -d -m 0755 /etc/apt/keyrings
+          curl -fsSL "$R2_PUBLIC_URL/$PREFIX/waveflow.gpg" -o /etc/apt/keyrings/waveflow.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] $R2_PUBLIC_URL/$PREFIX stable main" \
+            > /etc/apt/sources.list.d/waveflow.list
+          # No-Cache: the edge may still hold the index of a previous run.
+          apt-get -o Acquire::http::No-Cache=true update
+          apt-get install -y wave-flow
+          installed=$(dpkg-query -W -f='${Version}' wave-flow)
+          echo "Installed wave-flow $installed (expected $EXPECTED_VERSION)"
+          [ "$installed" = "$EXPECTED_VERSION" ]

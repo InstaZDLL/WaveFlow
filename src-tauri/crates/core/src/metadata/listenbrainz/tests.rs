@@ -3,6 +3,7 @@ use super::*;
 fn listen() -> Listen<'static> {
     Listen {
         artist: "Artist",
+        artist_names: &[],
         track: "Track",
         release: Some("Album"),
         duration_ms: Some(200_000),
@@ -137,4 +138,29 @@ async fn an_oversized_error_body_still_classifies_by_status() {
         ),
         "{error:?}"
     );
+}
+
+/// A credit of several artists names the primary one as `artist_name` and
+/// lists them all in `additional_info.artist_names`; a single artist adds
+/// nothing (#1075).
+#[test]
+fn a_credit_of_several_artists_is_listed_beside_the_primary_one() {
+    let credit = vec!["Giga".to_string(), "TeddyLoid".to_string()];
+    let mut l = listen();
+    l.artist = "Giga";
+    l.artist_names = &credit;
+    let body = submit_body(ListenType::Single, &l);
+    let meta = &body["payload"][0]["track_metadata"];
+    assert_eq!(meta["artist_name"], "Giga");
+    assert_eq!(
+        meta["additional_info"]["artist_names"],
+        serde_json::json!(["Giga", "TeddyLoid"])
+    );
+
+    let one = vec!["Giga".to_string()];
+    l.artist_names = &one;
+    let body = submit_body(ListenType::Single, &l);
+    assert!(body["payload"][0]["track_metadata"]["additional_info"]
+        .get("artist_names")
+        .is_none());
 }

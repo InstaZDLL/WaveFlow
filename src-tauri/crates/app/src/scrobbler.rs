@@ -210,6 +210,7 @@ async fn run_listenbrainz(app: &AppHandle) -> Result<(), String> {
     for item in pending {
         let listen = Listen {
             artist: &item.artist_name,
+            artist_names: &item.artist_names,
             track: &item.title,
             release: item.album_title.as_deref(),
             duration_ms: item.duration_s.map(|s| s * 1000),
@@ -257,12 +258,57 @@ struct PendingScrobble {
     id: i64,
     track_id: i64,
     title: String,
+    /// The primary artist (`track_artist.position` 0): the one name both
+    /// services take as "the artist". A track's whole credit joined into
+    /// one string made Last.fm create an artist named "A, B".
     artist_name: String,
+    /// Every credited artist, in credit order (the primary one first).
+    /// ListenBrainz takes the list in `additional_info.artist_names`.
+    artist_names: Vec<String>,
     album_title: Option<String>,
     track_number: Option<i64>,
     duration_s: Option<i64>,
     played_at_unix_s: i64,
     retry_count: i64,
+}
+
+/// Separates the artists inside the one column [`fetch_due`] reads them
+/// from. The ASCII unit separator: no name carries it, unlike `", "` or
+/// `"; "`, which a band name can.
+const ARTIST_SEPARATOR: char = '\u{1f}';
+
+/// The credited artists out of a [`ARTIST_SEPARATOR`]-joined column, in
+/// credit order, trimmed, without empty names.
+fn split_artist_names(joined: Option<&str>) -> Vec<String> {
+    joined
+        .into_iter()
+        .flat_map(|j| j.split(ARTIST_SEPARATOR))
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+/// Every artist of `track_id`, in credit order: the primary one (the one
+/// the services take as "the artist") first. Empty when the track has
+/// none.
+pub async fn artists_of_track(pool: &SqlitePool, track_id: i64) -> Vec<String> {
+    let joined: Option<String> = sqlx::query_scalar(
+        "SELECT GROUP_CONCAT(name, char(31)) FROM (
+             SELECT ar.name FROM track_artist ta
+               JOIN artist ar ON ar.id = ta.artist_id
+              WHERE ta.track_id = ?
+              ORDER BY ta.position
+         )",
+    )
+    .bind(track_id)
+    .fetch_one(pool)
+    .await
+    .unwrap_or_else(|e| {
+        tracing::warn!(?e, track_id, "artists of track lookup failed");
+        None
+    });
+    split_artist_names(joined.as_deref())
 }
 
 /// Result of [`fetch_due`]: the rows ready to scrobble plus the ids of
@@ -294,12 +340,12 @@ async fn fetch_due(pool: &SqlitePool, provider: &str) -> Result<FetchedDue, sqlx
         r#"
         SELECT q.id, q.track_id,
                t.title,
-               (SELECT GROUP_CONCAT(name, ', ') FROM (
+               (SELECT GROUP_CONCAT(name, char(31)) FROM (
                    SELECT ar.name FROM track_artist ta
                    JOIN artist ar ON ar.id = ta.artist_id
                    WHERE ta.track_id = t.id
                    ORDER BY ta.position
-               )) AS artist_name,
+               )) AS artist_names,
                al.title AS album_title,
                t.track_number,
                t.duration_ms,
@@ -325,22 +371,21 @@ async fn fetch_due(pool: &SqlitePool, provider: &str) -> Result<FetchedDue, sqlx
     let mut poison_ids = Vec::new();
     for row in rows {
         let (id, track_id, title, artist, album, track_no, duration_ms, played_at_ms, retry) = row;
-        // Both providers require an artist; if the joined GROUP_CONCAT
-        // yielded nothing the row is unfixable — collect its id so
-        // the caller can DELETE it, otherwise we'd re-select the same
-        // poison row every tick and keep dropping it client-side.
-        let artist_name = match artist.map(|s| s.trim().to_string()) {
-            Some(s) if !s.is_empty() => s,
-            _ => {
-                poison_ids.push(id);
-                continue;
-            }
+        // Both providers require an artist; if the track has no credited
+        // artist the row is unfixable — collect its id so the caller can
+        // DELETE it, otherwise we'd re-select the same poison row every
+        // tick and keep dropping it client-side.
+        let artist_names = split_artist_names(artist.as_deref());
+        let Some(artist_name) = artist_names.first().cloned() else {
+            poison_ids.push(id);
+            continue;
         };
         pending.push(PendingScrobble {
             id,
             track_id,
             title,
             artist_name,
+            artist_names,
             album_title: album.filter(|s| !s.is_empty()),
             track_number: track_no.filter(|n| *n > 0),
             duration_s: if duration_ms > 0 {
@@ -489,3 +534,6 @@ pub async fn handle_invalid_session(app: &AppHandle, pool: &SqlitePool) {
     tracing::warn!("Last.fm session invalidated; dropped credentials and pending scrobbles");
     let _ = app.emit(EVENT_REAUTH_REQUIRED, ());
 }
+
+#[cfg(test)]
+mod tests;

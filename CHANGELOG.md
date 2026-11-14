@@ -1,5 +1,63 @@
 # Changelog
 
+## [2.0.2](https://github.com/InstaZDLL/WaveFlow/compare/v2.0.1...v2.0.2) (2026-11-13)
+
+
+### Features
+
+* **release:** sign the windows binaries through signpath ([5a2c0fd](https://github.com/InstaZDLL/WaveFlow/commit/5a2c0fd7d58b6aff35729c7980a939f6196bebcf))
+* **release:** sign the windows binaries through signpath ([9be8cca](https://github.com/InstaZDLL/WaveFlow/commit/9be8cca2e9177b9c78e8100706fb3c531ff8a730))
+* **release:** verify the updater signature and the cli before signing windows ([ab0cf8f](https://github.com/InstaZDLL/WaveFlow/commit/ab0cf8f7b01a43d624cd599da8de9eb57060d1f9))
+
+
+### Bug Fixes
+
+* **edit:** count every album artist the file holds before giving their id to one ([7ef7dea](https://github.com/InstaZDLL/WaveFlow/commit/7ef7dea857bc9db37538427f6303f8708a772cd7))
+* **edit:** drop a stale album artist id and count every album artist ([892b33a](https://github.com/InstaZDLL/WaveFlow/commit/892b33a8d8d0033f42b4127485f5c80314ec6b5c))
+* **edit:** drop artist ids a re-credited track no longer matches ([3f4d6cb](https://github.com/InstaZDLL/WaveFlow/commit/3f4d6cbd37061d3cee2f8d255da4567f2bf88b3d))
+* **edit:** find a namesake without an id by its own spelling ([e73c0f2](https://github.com/InstaZDLL/WaveFlow/commit/e73c0f24b70af0f5a82674cdac1ab52700598ac3))
+* **edit:** keep an artist's musicbrainz identity through a tag edit ([39b3dc8](https://github.com/InstaZDLL/WaveFlow/commit/39b3dc8881158014cea1685e95840094a282e388))
+* **edit:** respell an artist only when its name changed ([2af9122](https://github.com/InstaZDLL/WaveFlow/commit/2af9122537713cfca6b2854678511458f0df931e))
+* **edit:** weigh a dsf's artist ids against a new credit too ([562ff53](https://github.com/InstaZDLL/WaveFlow/commit/562ff5309db993f093d8475245944cb7668cc64e))
+* **lyrics:** animate only a word's colour as the sung word moves on ([7bcef84](https://github.com/InstaZDLL/WaveFlow/commit/7bcef84f428a654bd22eeef0ad34fb4d06da46b5))
+* **lyrics:** animate only a word's colour as the sung word moves on ([fd3f428](https://github.com/InstaZDLL/WaveFlow/commit/fd3f4286fe8f9729d8a4222428267e306e7c577a))
+* **release:** compare the exe version segment by segment and require valid under release ([aca7c6c](https://github.com/InstaZDLL/WaveFlow/commit/aca7c6cbf70b5a9facc249497ddec465291f10b0))
+* **release:** refuse a half signed windows release and any unreadable signature ([1008cc6](https://github.com/InstaZDLL/WaveFlow/commit/1008cc68bb5cc18ab64a94d9a0f7c4576d68a0f1))
+* **scanner:** follow review on artist identity ([98715f2](https://github.com/InstaZDLL/WaveFlow/commit/98715f242f4bc983bd088ebee8ad4cbc06aa1fe7))
+* **scanner:** give a realigned album its own cover and spelling ([2a6cf76](https://github.com/InstaZDLL/WaveFlow/commit/2a6cf76fece79f8d1ac67db52bce972520dd985a))
+* **scanner:** keep two namesakes credited on one track apart by their ids ([298a2ab](https://github.com/InstaZDLL/WaveFlow/commit/298a2ab50f897febffe4cc72e03094c1c93808df))
+* **scanner:** keep two namesakes credited on one track apart by their ids ([f0806a7](https://github.com/InstaZDLL/WaveFlow/commit/f0806a7ba97bfba21273604a98ff8f577db1d034)), refs [#1081](https://github.com/InstaZDLL/WaveFlow/issues/1081)
+* **scanner:** leave ambiguous namesakes and their sidecar image alone ([6ab0062](https://github.com/InstaZDLL/WaveFlow/commit/6ab00622606f36e64404bf46b06b21f9e9acb4e3))
+* **scanner:** realign an album by identity, album artist included ([28ec5fb](https://github.com/InstaZDLL/WaveFlow/commit/28ec5fb327f50b47021140da1ac54d411bd696a9))
+* **scanner:** refuse a malformed artist id instead of shifting the others ([af954e1](https://github.com/InstaZDLL/WaveFlow/commit/af954e1e2a221a32780eb5e3967532f585f71208))
+* **scanner:** skip namesakes before marking their sidecar search as tried ([7a07622](https://github.com/InstaZDLL/WaveFlow/commit/7a076225ece98bcdfc281dc06f025032f25be3a0))
+* **scanner:** tell artists of one spelling apart by their musicbrainz id ([673d2cd](https://github.com/InstaZDLL/WaveFlow/commit/673d2cdd2a007ac90aba5eaa04e1b76e9d51a518))
+* **scanner:** tell artists of one spelling apart by their musicbrainz id ([fcbc052](https://github.com/InstaZDLL/WaveFlow/commit/fcbc0528964047bea5a17e49bad9ea11b6d6deb0)), refs [#1076](https://github.com/InstaZDLL/WaveFlow/issues/1076)
+* **scanner:** tell namesakes apart when the dialog shows another spelling ([17ff230](https://github.com/InstaZDLL/WaveFlow/commit/17ff2308fa8137133e9854ec49f38f64a9ea92c7))
+* **scrobbler:** send the primary artist, not the joined credit ([9b42f6f](https://github.com/InstaZDLL/WaveFlow/commit/9b42f6f3037fe29325c40ec428e2e39ed08f1bea))
+* **scrobbler:** send the primary artist, not the joined credit ([ed08ff4](https://github.com/InstaZDLL/WaveFlow/commit/ed08ff43929bb010366587b9eeb848acc47f0286)), refs [#1075](https://github.com/InstaZDLL/WaveFlow/issues/1075)
+* **tag-workshop:** apply an album artist id only where the file names one ([0b44230](https://github.com/InstaZDLL/WaveFlow/commit/0b4423022b703daa749c62b8c5d0fdda3948e8e2))
+* **tag-workshop:** carry the artist ids a new name implies in the batch ([6288c5c](https://github.com/InstaZDLL/WaveFlow/commit/6288c5c85cd07cd6d3dc0a4341916dae4543755d))
+* **tag-workshop:** drop an ambiguous album artist id, check implied ids ([4157b9f](https://github.com/InstaZDLL/WaveFlow/commit/4157b9f6ac7fc0f54e6a9e34ed0b3aa169a31c52))
+* **tag-workshop:** name a new artist as the file spells it ([e854c8b](https://github.com/InstaZDLL/WaveFlow/commit/e854c8b3e1ceb0a35a3c9f4935ecced65be5d532))
+* **tag-workshop:** put back every album artist value on undo ([677c2e7](https://github.com/InstaZDLL/WaveFlow/commit/677c2e7869d9de2835f67fe9fd052c7495c3bebc))
+* **tag-workshop:** put back every album artist value on undo ([8eeb68c](https://github.com/InstaZDLL/WaveFlow/commit/8eeb68cdd93feba3d25f9808bf0c7bd6b69f2a42)), refs [#1082](https://github.com/InstaZDLL/WaveFlow/issues/1082)
+* **tag-workshop:** put every album artist back as journaled, through the undo own edit ([ca77eb8](https://github.com/InstaZDLL/WaveFlow/commit/ca77eb87e190f24a2406efeeb939997e6353da1a))
+* **tag-workshop:** refuse a file whose album artists cannot be read before the write ([0d1837e](https://github.com/InstaZDLL/WaveFlow/commit/0d1837ec29c3c60478dbdba251944ca1e44831c7))
+* **ui:** keep a round button round while it holds focus ([da2e6ca](https://github.com/InstaZDLL/WaveFlow/commit/da2e6ca7500a352823ac8dca6f25a7b2632d1e30))
+* **ui:** keep a round button round while it holds focus ([c9e9626](https://github.com/InstaZDLL/WaveFlow/commit/c9e9626c4d6fda10abfdce4e06f991b9f58027fe)), refs [#1086](https://github.com/InstaZDLL/WaveFlow/issues/1086)
+* **ui:** no skin focus light on a control the pointer focused ([d62ae0d](https://github.com/InstaZDLL/WaveFlow/commit/d62ae0d5bc398ea616f6f137c7d3205dc40f9231)), refs [#1086](https://github.com/InstaZDLL/WaveFlow/issues/1086)
+* **window:** do not offer the app frame where the wayland compositor draws it ([5da5cb0](https://github.com/InstaZDLL/WaveFlow/commit/5da5cb03a5a805d2f253c40114cf4b00d8723414))
+* **window:** do not offer the app frame where the wayland compositor draws it ([7027b3b](https://github.com/InstaZDLL/WaveFlow/commit/7027b3b270a982be0aaa169e666310152ee4e01b)), refs [#1089](https://github.com/InstaZDLL/WaveFlow/issues/1089)
+* **window:** hide the gnome style too where the compositor draws the frame ([84793d4](https://github.com/InstaZDLL/WaveFlow/commit/84793d46f5e57dc84ec9973ae5a4f7463ab1a767))
+* **window:** let the drawn title bar minimise and maximise the window ([07fa40c](https://github.com/InstaZDLL/WaveFlow/commit/07fa40cf340fdf1a52592a52ae71444d5a7bdaa8)), refs [#1086](https://github.com/InstaZDLL/WaveFlow/issues/1086)
+* **window:** point the compositor note at the xwayland switch instead of a second one ([7956775](https://github.com/InstaZDLL/WaveFlow/commit/7956775bddba4490fddd495816bf35df55a61ab2))
+
+
+### Miscellaneous Chores
+
+* release 2.0.2 ([6c3c08a](https://github.com/InstaZDLL/WaveFlow/commit/6c3c08a8560c9d9de544bca41e9f0cc74c243790))
+
 ## [2.0.1](https://github.com/InstaZDLL/WaveFlow/compare/v2.0.0...v2.0.1) (2026-11-10)
 
 

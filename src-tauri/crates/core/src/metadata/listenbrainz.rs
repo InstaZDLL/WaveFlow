@@ -30,7 +30,14 @@ const CLIENT_NAME: &str = "WaveFlow";
 /// One listen, as the API wants it.
 #[derive(Debug, Clone)]
 pub struct Listen<'a> {
+    /// The primary artist: `artist_name`, the single credit the service
+    /// matches on.
     pub artist: &'a str,
+    /// Every credited artist, the primary one first. Sent as
+    /// `additional_info.artist_names` when there is more than the primary
+    /// one, so the service can credit them all without the name it matches
+    /// on becoming a joined string.
+    pub artist_names: &'a [String],
     pub track: &'a str,
     pub release: Option<&'a str>,
     pub duration_ms: Option<i64>,
@@ -230,6 +237,10 @@ pub fn submit_body(kind: ListenType, listen: &Listen<'_>) -> Value {
     }
     if let Some(n) = listen.track_number.filter(|n| *n > 0) {
         additional.insert("tracknumber".into(), json!(n));
+    }
+
+    if listen.artist_names.len() > 1 {
+        additional.insert("artist_names".into(), json!(listen.artist_names));
     }
 
     let mut metadata = serde_json::Map::new();

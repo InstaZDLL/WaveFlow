@@ -1,0 +1,339 @@
+name: Build and sign the Windows bundles
+description: >-
+  Builds the Windows executable, the NSIS setup and (on stable releases) the
+  MSI, and signs them through SignPath with two signing requests: the
+  executable and the NSIS uninstaller first, the installers second. Leaves the
+  finished files where `prepare-assets.py windows` expects them, with an
+  updater signature computed on the signed setup.
+
+# Used by release.yml (from the workflow's own commit, see the sparse checkout
+# there) and by windows-signing-check.yml. It builds and signs and publishes
+# nothing; the caller decides what happens to the files.
+#
+# Why two requests: SignPath signs a PE file or an MSI, but cannot sign what
+# sits inside an NSIS installer. So the executable is signed first, then
+# bundled as it is (`--no-binary-patching`, otherwise the bundler rewrites it
+# and the signature breaks), and the finished installers are signed second.
+# The NSIS uninstaller is the one piece that goes into the setup from the
+# bundler's own hands: a signCommand (scripts/release/nsis-uninstaller-dispatch.mjs)
+# exports it during a first bundle pass, it rides along in the first request,
+# and a second pass embeds the signed copy.
+#
+# Nothing the updater verifies may be computed before the last signature: the
+# `.sig` the bundler writes covers unsigned bytes, so it is deleted and
+# recomputed on the signed setup, bound to the app version.
+
+inputs:
+  version:
+    description: The release version without the leading v, e.g. 2.0.0 or 2.0.0-beta.1
+    required: true
+  is-prerelease:
+    description: '"true" on the beta channel (NSIS only, WiX rejects a non-numeric pre-release)'
+    required: true
+  tauri-signing-private-key:
+    description: Updater (minisign) private key
+    required: true
+  tauri-signing-private-key-password:
+    description: Passphrase of the updater key
+    required: true
+  signpath-api-token:
+    description: SignPath API token (secret SIGNPATH_API_TOKEN)
+    required: false
+  signpath-organization-id:
+    description: SignPath organization id (variable SIGNPATH_ORGANIZATION_ID)
+    required: false
+  signpath-project-slug:
+    description: SignPath project slug (variable SIGNPATH_PROJECT_SLUG)
+    required: false
+  signpath-signing-policy-slug:
+    description: SignPath signing policy slug, test-signing or release-signing (variable SIGNPATH_SIGNING_POLICY_SLUG)
+    required: false
+  wait-timeout-seconds:
+    description: How long one signing request may wait for its manual approval
+    required: false
+    default: "9000"
+
+runs:
+  using: composite
+  steps:
+    - name: Require the SignPath configuration
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.signpath-api-token }}
+        ORG: ${{ inputs.signpath-organization-id }}
+        PROJECT: ${{ inputs.signpath-project-slug }}
+        POLICY: ${{ inputs.signpath-signing-policy-slug }}
+      # A Windows release is signed or it is not published: with anything
+      # missing the job stops here, before the build, instead of shipping
+      # an unsigned installer for Smart App Control to block.
+      run: |
+        missing=""
+        [ -n "$TOKEN" ] || missing="$missing secret SIGNPATH_API_TOKEN"
+        [ -n "$ORG" ] || missing="$missing variable SIGNPATH_ORGANIZATION_ID"
+        [ -n "$PROJECT" ] || missing="$missing variable SIGNPATH_PROJECT_SLUG"
+        [ -n "$POLICY" ] || missing="$missing variable SIGNPATH_SIGNING_POLICY_SLUG"
+        if [ -n "$missing" ]; then
+          echo "::error::Windows signing is not configured, missing:$missing (see docs/RELEASING.md, SignPath)"
+          exit 1
+        fi
+        echo "SignPath policy: $POLICY"
+
+    - name: Require a Tauri CLI that can bundle without patching the executable
+      shell: bash
+      # `tauri bundle --no-binary-patching` (CLI 2.12.0) is what keeps the
+      # signed executable intact. A tag from a branch that pins an older CLI
+      # would otherwise fail halfway, after the build; say so first.
+      run: |
+        if ! bun run tauri bundle --help 2>&1 | grep -q -- '--no-binary-patching'; then
+          echo "::error::this tag's @tauri-apps/cli ($(bun run tauri --version 2>&1 | tail -1)) has no 'tauri bundle --no-binary-patching' (needs 2.12.0 or newer): update it on the branch before releasing Windows from it"
+          exit 1
+        fi
+
+    - name: Build the executable (no bundle)
+      shell: bash
+      # `bun run tauri` goes through scripts/tauri.mjs, which adds the
+      # --config path the workspace layout needs. No signCommand anywhere:
+      # the executable leaves here unsigned and comes back from SignPath.
+      run: bun run tauri build --no-bundle
+
+    - name: Export the NSIS uninstaller (first bundle pass)
+      shell: pwsh
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.tauri-signing-private-key }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.tauri-signing-private-key-password }}
+        ACTION_PATH: ${{ github.action_path }}
+      # The bundle itself is thrown away; only the uninstaller the bundler
+      # hands to the signCommand is kept. `--no-sign` is not an option here
+      # because it skips the signCommand too.
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $root = [IO.Path]::GetFullPath((Join-Path $env:ACTION_PATH '../../..')) -replace '\\', '/'
+        $work = ((Join-Path $env:GITHUB_WORKSPACE 'signing/uninstaller') -replace '\\', '/')
+        New-Item -ItemType Directory -Force $work | Out-Null
+        $cfg = @{ bundle = @{ windows = @{ signCommand = @{
+          cmd = 'node'
+          args = @("$root/scripts/release/nsis-uninstaller-dispatch.mjs", 'export', $work, '%1')
+        } } } } | ConvertTo-Json -Depth 8
+        New-Item -ItemType Directory -Force signing | Out-Null
+        Set-Content -Path signing/export.json -Value $cfg -Encoding utf8NoBOM
+        bun run tauri bundle --bundles nsis --no-binary-patching --config signing/export.json
+        if ($LASTEXITCODE -ne 0) { throw "tauri bundle (export pass) failed with $LASTEXITCODE" }
+        Remove-Item -Recurse -Force src-tauri/target/release/bundle
+        if (Test-Path "$work/uninstaller.exe") {
+          Write-Host "[sign] uninstaller exported, sha256 $((Get-Content "$work/uninstaller.sha256").Trim())"
+        } else {
+          Write-Host "::warning::the NSIS uninstaller could not be exported, it will ship unsigned (an error under release-signing)"
+        }
+
+    - name: Stage the first signing request (executable and uninstaller)
+      id: stage-app
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        New-Item -ItemType Directory -Force signing/app | Out-Null
+        Copy-Item src-tauri/target/release/waveflow.exe signing/app/waveflow.exe
+        if (Test-Path signing/uninstaller/uninstaller.exe) {
+          Copy-Item signing/uninstaller/uninstaller.exe signing/app/uninstaller.exe
+        }
+        # SignPath refuses a file whose product name or version differs from
+        # the configuration, so the version it is told is the one the file
+        # carries; the build must still agree with the tag on the numeric part.
+        $pv = (Get-Item signing/app/waveflow.exe).VersionInfo.ProductVersion
+        # Numeric segments compared one by one, so 1.9.80 is not 1.9.8; a
+        # pre-release or build suffix on either side is ignored, and a
+        # fourth segment is fine when it is zero (2.0.1 is 2.0.1.0).
+        $want = (($env:RELEASE_VERSION -split '[-+]')[0]).Split('.')
+        $have = (($pv -split '[-+]')[0]).Split('.')
+        $same = $pv -and $have.Count -ge $want.Count
+        for ($i = 0; $same -and $i -lt $have.Count; $i++) {
+          $expected = if ($i -lt $want.Count) { $want[$i] } else { '0' }
+          if ($have[$i] -ne $expected) { $same = $false }
+        }
+        if (-not $same) {
+          throw "waveflow.exe carries product version '$pv', expected $env:RELEASE_VERSION"
+        }
+        "version=$pv" >> $env:GITHUB_OUTPUT
+        Get-ChildItem signing/app | Format-Table Name, Length
+      env:
+        RELEASE_VERSION: ${{ inputs.version }}
+
+    - name: Upload the unsigned executable
+      id: upload-app
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: windows-app-unsigned
+        overwrite: true
+        path: signing/app
+        retention-days: 1
+        if-no-files-found: error
+
+    - name: Sign the executable and the uninstaller (SignPath request 1 of 2)
+      id: sign-app
+      uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+      with:
+        api-token: ${{ inputs.signpath-api-token }}
+        organization-id: ${{ inputs.signpath-organization-id }}
+        project-slug: ${{ inputs.signpath-project-slug }}
+        signing-policy-slug: ${{ inputs.signpath-signing-policy-slug }}
+        artifact-configuration-slug: app
+        github-artifact-id: ${{ steps.upload-app.outputs.artifact-id }}
+        parameters: |
+          version: "${{ steps.stage-app.outputs.version }}"
+        wait-for-completion: true
+        wait-for-completion-timeout-in-seconds: ${{ inputs.wait-timeout-seconds }}
+        output-artifact-directory: signing/app-signed
+
+    - name: Put the signed executable back and bundle it untouched (second bundle pass)
+      shell: pwsh
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.tauri-signing-private-key }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.tauri-signing-private-key-password }}
+        ACTION_PATH: ${{ github.action_path }}
+        IS_PRERELEASE: ${{ inputs.is-prerelease }}
+        POLICY: ${{ inputs.signpath-signing-policy-slug }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        function Assert-Signed($path) {
+          $sig = Get-AuthenticodeSignature -LiteralPath $path
+          # A signature Windows can read: Valid, or UnknownError (the chain
+          # of the test certificate is not trusted). HashMismatch, NotTrusted,
+          # Incompatible and the rest are not signatures worth shipping. The
+          # release policy's certificate must chain to a trusted root.
+          $accepted = if ($env:POLICY -eq 'release-signing') { @('Valid') } else { @('Valid', 'UnknownError') }
+          if ($sig.Status -notin $accepted -or -not $sig.SignerCertificate) {
+            throw "$path carries no usable Authenticode signature ($($sig.Status))"
+          }
+          Write-Host "[sign] $([IO.Path]::GetFileName($path)): $($sig.Status), $($sig.SignerCertificate.Subject)"
+        }
+        Assert-Signed signing/app-signed/waveflow.exe
+        Copy-Item -Force signing/app-signed/waveflow.exe src-tauri/target/release/waveflow.exe
+
+        $work = ((Join-Path $env:GITHUB_WORKSPACE 'signing/uninstaller') -replace '\\', '/')
+        $exported = Test-Path "$work/uninstaller.exe"
+        if ($exported) {
+          Assert-Signed signing/app-signed/uninstaller.exe
+          New-Item -ItemType Directory -Force "$work/signed" | Out-Null
+          Copy-Item -Force signing/app-signed/uninstaller.exe "$work/signed/uninstaller.exe"
+        }
+
+        $root = [IO.Path]::GetFullPath((Join-Path $env:ACTION_PATH '../../..')) -replace '\\', '/'
+        $cfg = @{ bundle = @{ windows = @{ signCommand = @{
+          cmd = 'node'
+          args = @("$root/scripts/release/nsis-uninstaller-dispatch.mjs", 'replace', $work, '%1')
+        } } } } | ConvertTo-Json -Depth 8
+        Set-Content -Path signing/replace.json -Value $cfg -Encoding utf8NoBOM
+
+        # NSIS only on a beta: WiX/MSI rejects a non-numeric pre-release
+        # version, and NSIS is the updater's payload anyway.
+        $bundles = if ($env:IS_PRERELEASE -eq 'true') { 'nsis' } else { 'nsis,msi' }
+        bun run tauri bundle --bundles $bundles --no-binary-patching --config signing/replace.json
+        if ($LASTEXITCODE -ne 0) { throw "tauri bundle (second pass) failed with $LASTEXITCODE" }
+
+        # Said whether or not it was exported. Under the test policy the
+        # uninstaller may ship unsigned, loudly; under the release policy it
+        # may not: a release is never half signed.
+        $result = if (Test-Path "$work/result.txt") { (Get-Content "$work/result.txt" -Raw).Trim() }
+                  elseif ($exported) { 'unsigned: the bundler never offered it' }
+                  else { 'unsigned: it could not be exported' }
+        if ($result -ne 'signed') {
+          if ($env:POLICY -eq 'release-signing') { throw "the NSIS uninstaller would ship unsigned ($result)" }
+          Write-Host "::warning::the NSIS uninstaller ships unsigned ($result)"
+        }
+
+        # The version `tauri bundle` bound into the updater signature, kept
+        # for the signature recomputed after the last SignPath request:
+        # requireSignedVersion refuses a payload that does not name it.
+        $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+        if (-not $setup) { throw 'no NSIS setup produced' }
+        $sigFile = "$($setup.FullName).sig"
+        if (-not (Test-Path $sigFile)) { throw "no updater signature next to $($setup.Name)" }
+        $comment = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String((Get-Content $sigFile -Raw).Trim())).Split("`n")[2]
+        if ($comment -notmatch 'version:(\S+)') { throw "the updater signature names no version: $comment" }
+        "SIGNED_APP_VERSION=$($Matches[1])" >> $env:GITHUB_ENV
+        # Computed on unsigned bytes: it must not survive.
+        Remove-Item -Force $sigFile
+
+    - name: Stage the second signing request (installers)
+      id: stage-installers
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        New-Item -ItemType Directory -Force signing/installers | Out-Null
+        $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+        Copy-Item $setup.FullName signing/installers/
+        $msi = Get-ChildItem src-tauri/target/release/bundle/msi/*.msi -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($msi) { Copy-Item $msi.FullName signing/installers/ }
+        "version=$((Get-Item $setup.FullName).VersionInfo.ProductVersion)" >> $env:GITHUB_OUTPUT
+        Get-ChildItem signing/installers | Format-Table Name, Length
+
+    - name: Upload the unsigned installers
+      id: upload-installers
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: windows-installers-unsigned
+        overwrite: true
+        path: signing/installers
+        retention-days: 1
+        if-no-files-found: error
+
+    - name: Sign the installers (SignPath request 2 of 2)
+      id: sign-installers
+      uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+      with:
+        api-token: ${{ inputs.signpath-api-token }}
+        organization-id: ${{ inputs.signpath-organization-id }}
+        project-slug: ${{ inputs.signpath-project-slug }}
+        signing-policy-slug: ${{ inputs.signpath-signing-policy-slug }}
+        artifact-configuration-slug: installers
+        github-artifact-id: ${{ steps.upload-installers.outputs.artifact-id }}
+        parameters: |
+          version: "${{ steps.stage-installers.outputs.version }}"
+        wait-for-completion: true
+        wait-for-completion-timeout-in-seconds: ${{ inputs.wait-timeout-seconds }}
+        output-artifact-directory: signing/installers-signed
+
+    - name: Put the signed installers back, re-sign for the updater and verify
+      shell: pwsh
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.tauri-signing-private-key }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.tauri-signing-private-key-password }}
+        POLICY: ${{ inputs.signpath-signing-policy-slug }}
+        RELEASE_VERSION: ${{ inputs.version }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $bundle = 'src-tauri/target/release/bundle'
+        foreach ($pair in @(@('*-setup.exe', 'nsis'), @('*.msi', 'msi'))) {
+          foreach ($f in Get-ChildItem "signing/installers-signed/$($pair[0])" -ErrorAction SilentlyContinue) {
+            Copy-Item -Force $f.FullName "$bundle/$($pair[1])/$($f.Name)"
+          }
+        }
+
+        $setup = Get-ChildItem "$bundle/nsis/*-setup.exe" | Select-Object -First 1
+        # The updater signature, on the signed bytes and bound to the
+        # version, before anything is derived from the setup.
+        bun run tauri signer sign --app-version $env:SIGNED_APP_VERSION $setup.FullName
+        if ($LASTEXITCODE -ne 0) { throw "tauri signer sign failed with $LASTEXITCODE" }
+        if (-not (Test-Path "$($setup.FullName).sig")) { throw 'the updater signature was not written' }
+        # What the updater will do with it: the app's public key, the signed
+        # setup, and the version the manifest will announce.
+        $root = [IO.Path]::GetFullPath((Join-Path $env:ACTION_PATH '../../..'))
+        node "$root/scripts/release/verify-updater-signature.mjs" $setup.FullName "$($setup.FullName).sig" src-tauri/crates/app/tauri.conf.json $env:RELEASE_VERSION
+        if ($LASTEXITCODE -ne 0) { throw 'the updater signature does not verify' }
+
+        # Signed or not signed, loudly. With the test policy the chain is not
+        # trusted, so a signature is all that can be asked; the release policy
+        # must produce one Windows accepts.
+        $files = @($setup.FullName, (Resolve-Path src-tauri/target/release/waveflow.exe).Path)
+        $msi = Get-ChildItem "$bundle/msi/*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($msi) { $files += $msi.FullName }
+        $bad = @()
+        foreach ($f in $files) {
+          $sig = Get-AuthenticodeSignature -LiteralPath $f
+          $subject = if ($sig.SignerCertificate) { $sig.SignerCertificate.Subject } else { '-' }
+          $thumb = if ($sig.SignerCertificate) { $sig.SignerCertificate.Thumbprint } else { '-' }
+          Write-Host "[verify] $([IO.Path]::GetFileName($f)): $($sig.Status) | $subject | $thumb"
+          if ($sig.Status -notin 'Valid', 'UnknownError' -or -not $sig.SignerCertificate) { $bad += "$f has no usable signature ($($sig.Status))" }
+          elseif ($env:POLICY -eq 'release-signing' -and $sig.Status -ne 'Valid') { $bad += "$f is signed but Windows does not accept it ($($sig.Status))" }
+        }
+        if ($bad.Count -gt 0) { throw ($bad -join '; ') }

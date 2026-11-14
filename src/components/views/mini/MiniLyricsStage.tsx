@@ -217,7 +217,10 @@ export function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                                   the box — a parent's opacity applies to
                                   its whole subtree, so dimming the box
                                   would dim the sung overlay with it and
-                                  no fill could ever read as brighter. */}
+                                  no fill could ever read as brighter.
+                                  In one step: an animated opacity shakes
+                                  the whole line on WebKit
+                                  (`LYRICS_WORD_TRANSITION`). */}
                                   <span
                                     style={{
                                       opacity:
@@ -226,7 +229,6 @@ export function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                                           : isActiveWord
                                             ? 0.5
                                             : 0.45,
-                                      transition: "opacity 150ms ease",
                                     }}
                                   >
                                     {word.text}

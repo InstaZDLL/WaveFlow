@@ -3172,7 +3172,8 @@
           "label": "WaveFlow",
           "hint": "La disegna WaveFlow, e i pulsanti della finestra stanno nella sua barra."
         }
-      }
+      },
+      "needsXwayland": "In questa sessione Wayland il compositor disegna sempre la cornice della finestra, quindi WaveFlow non può sostituirla con una barra propria. Attiva XWayland per avere questa scelta."
     },
     "canvasCache": {
       "cacheLabel": "Salva i Canvas in locale",

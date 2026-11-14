@@ -993,6 +993,13 @@ html.mini-player-window #root {
  * from the active theme's accent so the indicator harmonises with the
  * rest of the focus / hover states (was hardcoded `#10b981` which left
  * non-emerald presets with a mismatched green ring). */
+/* No `border-radius` here (#1086): the rule is unlayered, so a radius set
+ * on focus beat Tailwind's `rounded-full`, which lives in a layer, and a
+ * round play button turned into a rounded square while it held focus.
+ * It did so with the outline taken off too — a clicked button marked
+ * `data-pointer-focus` is still `:focus-visible` after a key or a window
+ * restored — so the square showed up with no ring at all. The outline
+ * follows the control's own corners; focus never changes its shape. */
 :where(
   button,
   a,
@@ -1005,7 +1012,6 @@ html.mini-player-window #root {
 ):focus-visible {
   outline: 2px solid var(--accent-500);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 /* No ring on what the mouse focused (#866), whatever key comes next.
@@ -1016,7 +1022,14 @@ html.mini-player-window #root {
  * `lib/inputModality.ts` marks an element focused by a pointer; keyboard
  * focus (Tab, arrows) is unmarked and keeps its ring. Unlayered, so it
  * also takes off Tailwind's `focus-visible:ring-*`, which lives in a
- * layer. High contrast keeps every ring (its own rule is more specific). */
+ * layer. High contrast keeps every ring (its own rule is more specific).
+ *
+ * This rule cannot take a skin's own focus light off: that is a
+ * `box-shadow` laid over the control's resting one, more specific than
+ * this. So each skin's focus rule carries the guard itself (#1086),
+ * `:focus-visible:not(:where([data-pointer-focus]))` — `:where()` so its
+ * specificity, and the cascade between a skin's rules, do not change. A
+ * text field is left out: clicked, it is where the typing goes. */
 [data-pointer-focus]:focus-visible {
   outline: none;
   --tw-ring-shadow: 0 0 #0000;

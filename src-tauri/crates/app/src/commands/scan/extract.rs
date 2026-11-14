@@ -11,10 +11,10 @@ use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::ItemKey;
 
 use waveflow_core::scanner::{
-    extract_album_artist, extract_artists, extract_compilation_flag, extract_cover,
-    extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
-    file_type_label, hash_file, hash_reader, split_genres, ExtractedCover, ExtractedFile,
-    ReplayGainTags,
+    extract_album_artist, extract_album_artist_mbid, extract_artist_credit,
+    extract_compilation_flag, extract_cover, extract_folder_cover, extract_musical_key,
+    extract_rating, extract_replay_gain, file_type_label, hash_file, hash_reader, split_genres,
+    ExtractedCover, ExtractedFile, ReplayGainTags,
 };
 
 use crate::error::AppResult;
@@ -78,6 +78,7 @@ fn extract_dsd_file(
         hash,
         title,
         artist: meta.artist,
+        artist_mbids: Vec::new(),
         album: meta.album,
         // The Album Artist is read (`TPE2` in a DSF, or in a DFF's ID3
         // chunk), because the tag editor writes it there and a scan that
@@ -85,6 +86,7 @@ fn extract_dsd_file(
         // compilation flag still is not: the reader does not surface it,
         // and the album grouping falls back as it always has.
         album_artist: meta.album_artist,
+        album_artist_mbid: None,
         is_compilation: false,
         // The id3 crate hands TCON back whole: an ID3v2.4 multi-value
         // frame keeps its NUL separators, which `split_genres` splits.
@@ -268,8 +270,10 @@ fn untagged_file(
             .unwrap_or("Unknown")
             .to_string(),
         artist: None,
+        artist_mbids: Vec::new(),
         album: None,
         album_artist: None,
+        album_artist_mbid: None,
         is_compilation: false,
         genres: Vec::new(),
         year: None,
@@ -543,6 +547,17 @@ fn from_tagged(
     let codec = file_type_label(tagged.file_type());
 
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
+    // The identity a file gives its artists, which tells two of one
+    // spelling apart (#1076).
+    // The credit comes with its ids aligned: two namesakes the ids tell
+    // apart stay two names (#1081).
+    let (artist_credit, artist_mbids, album_artist_mbid) = match tag {
+        Some(tag) => {
+            let (credit, ids) = extract_artist_credit(tag);
+            (credit, ids, extract_album_artist_mbid(tag))
+        }
+        None => (None, Vec::new(), None),
+    };
     let (
         title,
         artist,
@@ -562,7 +577,7 @@ fn from_tagged(
     ) = match tag {
         Some(tag) => (
             tag.title().map(|s| s.into_owned()),
-            extract_artists(tag),
+            artist_credit,
             tag.album().map(|s| s.into_owned()),
             extract_album_artist(tag),
             extract_compilation_flag(tag),
@@ -631,8 +646,10 @@ fn from_tagged(
         hash,
         title,
         artist,
+        artist_mbids,
         album,
         album_artist,
+        album_artist_mbid,
         is_compilation,
         genres,
         year,

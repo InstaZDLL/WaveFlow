@@ -20,7 +20,15 @@ import { WindowFramePreview } from "./settingsPreviews";
  */
 export function WindowChromeCard() {
   const { t } = useTranslation();
-  const { chrome, supported, options, ready, busy, choose } = useWindowChrome();
+  const {
+    chrome,
+    supported,
+    options,
+    app_needs_xwayland: needsXwayland,
+    ready,
+    busy,
+    choose,
+  } = useWindowChrome();
 
   if (!ready || !supported) return null;
 
@@ -57,6 +65,14 @@ export function WindowChromeCard() {
           preview: <WindowFramePreview kind={id} />,
         }))}
       />
+
+      {needsXwayland ? (
+        // The XWayland switch is the card right below, so this only says
+        // why `app` is missing and where the way back is.
+        <p className="text-xs settings-description mt-3">
+          {t("settings.windowChrome.needsXwayland")}
+        </p>
+      ) : null}
     </section>
   );
 }

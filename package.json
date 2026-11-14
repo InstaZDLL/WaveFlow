@@ -1,7 +1,7 @@
 {
   "name": "waveflow",
   "private": true,
-  "version": "2.0.1",
+  "version": "2.0.2",
   "type": "module",
   "license": "GPL-3.0-only",
   "packageManager": "bun@1.4.4",

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration, slug "app" (first signing request of a
+  Windows release): the application executable, and the NSIS uninstaller
+  when the workflow exported one. Paste into the SignPath project under the
+  slug "app"; keep it in step with docs/RELEASING.md.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="waveflow.exe" product-name="WaveFlow" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+    <!-- Absent when the uninstaller could not be exported; the NSIS
+         installer metadata (product name WaveFlow) is set by the bundler. -->
+    <pe-file path="uninstaller.exe" min-matches="0" product-name="WaveFlow">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
