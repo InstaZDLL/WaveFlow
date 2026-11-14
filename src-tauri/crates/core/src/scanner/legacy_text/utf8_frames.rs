@@ -109,7 +109,8 @@ pub struct Patched<R> {
 }
 
 impl<R: Read + Seek> Patched<R> {
-    pub fn new(mut inner: R, offsets: Vec<u64>) -> io::Result<Self> {
+    pub fn new(mut inner: R, mut offsets: Vec<u64>) -> io::Result<Self> {
+        offsets.sort_unstable();
         let position = inner.stream_position()?;
         Ok(Self {
             inner,
@@ -122,13 +123,13 @@ impl<R: Read + Seek> Patched<R> {
 impl<R: Read + Seek> Read for Patched<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let n = self.inner.read(buf)?;
-        for offset in &self.offsets {
-            if let Some(i) = offset
-                .checked_sub(self.position)
-                .filter(|i| (*i as usize) < n)
-            {
-                buf[i as usize] = 0;
-            }
+        // The offsets are in file order, so only those inside the bytes just
+        // read are visited: a tag of a million bad frames read a few bytes
+        // at a time must not cost a pass over all of them per read.
+        let end = self.position + n as u64;
+        let first = self.offsets.partition_point(|o| *o < self.position);
+        for offset in self.offsets[first..].iter().take_while(|o| **o < end) {
+            buf[(offset - self.position) as usize] = 0;
         }
         self.position += n as u64;
         Ok(n)

@@ -388,7 +388,7 @@ pub(crate) async fn scan_folder_inner(
     // marker and retry budget, and not on a share.
     let legacy_text_backfill =
         ForcedPass::load(pool, "legacy_text_backfill", folder_id, is_network).await;
-    let legacy_text_suspects = if legacy_text_backfill.pending {
+    let mut legacy_text_suspects = if legacy_text_backfill.pending {
         super::legacy_text::suspects(pool, folder_id).await?
     } else {
         HashMap::new()
@@ -640,6 +640,12 @@ pub(crate) async fn scan_folder_inner(
                 Ok(moved) => {
                     for file in moved {
                         existing_meta.remove(&file.old_path);
+                        // The code page pass knows the track by the path it
+                        // had: it follows the file, or the unchanged branch
+                        // would keep the misread text under the new one.
+                        if let Some(stored) = legacy_text_suspects.remove(&file.old_path) {
+                            legacy_text_suspects.insert(file.new_path.clone(), stored);
+                        }
                         existing_probe.insert(
                             file.new_path,
                             (
@@ -932,13 +938,6 @@ pub(crate) async fn scan_folder_inner(
                             codec               = COALESCE(codec, ?),
                             musical_key         = COALESCE(musical_key, ?),
                             rating              = COALESCE(?, rating),
-                            title_from_filename = ?,
-                            rg_track_gain_db    = ?,
-                            rg_track_peak       = ?,
-                            rg_album_gain_db    = ?,
-                            rg_album_peak       = ?,
-                            track_total         = ?,
-                            disc_total          = ?,
                             is_available        = 1
                       WHERE id = ?",
                 )
@@ -955,6 +954,27 @@ pub(crate) async fn scan_folder_inner(
                 // The same rule as the rewriting branch: a file with no
                 // rating leaves the stored one alone.
                 .bind(extracted.rating.filter(|_| deep && !is_network).map(i64::from))
+                .bind(existing_track_id)
+                .execute(&mut *tx)
+                .await?;
+
+                // What the tag says, assigned below, is read from a tag: a
+                // reader that refused it said nothing, and the empty fields
+                // must not clear the stored gains, totals and genres of a
+                // file that has not changed (the code page pass reaches
+                // this branch for such files too).
+                if !extracted.tag_refused {
+                    sqlx::query(
+                    "UPDATE track
+                        SET title_from_filename = ?,
+                            rg_track_gain_db    = ?,
+                            rg_track_peak       = ?,
+                            rg_album_gain_db    = ?,
+                            rg_album_peak       = ?,
+                            track_total         = ?,
+                            disc_total          = ?
+                      WHERE id = ?",
+                )
                 // The one backfill site for the flag, and the only one
                 // that can reach a library scanned before the column
                 // existed. Those rows took the `NOT NULL DEFAULT 0` of
@@ -985,6 +1005,7 @@ pub(crate) async fn scan_folder_inner(
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
+                }
 
                 // Genres too can be stale on an unchanged file: a library
                 // scanned before #729 holds one genre per track, the first
@@ -999,7 +1020,7 @@ pub(crate) async fn scan_folder_inner(
                         .await?;
                 wanted_genres.sort_unstable();
                 stored_genres.sort_unstable();
-                if wanted_genres != stored_genres {
+                if !extracted.tag_refused && wanted_genres != stored_genres {
                     link_genres(&mut tx, existing_track_id, &wanted_genres).await?;
                 }
 

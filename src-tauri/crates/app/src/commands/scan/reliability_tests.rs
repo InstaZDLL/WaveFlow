@@ -3288,6 +3288,25 @@ fn frame_refs<'a>(frames: &'a [(&'static str, Vec<u8>)]) -> Vec<(&'static str, &
         .collect()
 }
 
+/// A file renamed before the pass ran is found again by its bytes; the pass
+/// follows it to its new path rather than keep its misread text there.
+#[tokio::test]
+async fn the_pass_repairs_a_track_whose_file_moved() {
+    let library = Library::new().await;
+    let old = library.path("chinese.mp3");
+    mp3_with_raw_latin1_frames(&old, &frame_refs(&gbk_frames()));
+    library.scan().await;
+    let id = library.id(&old).await;
+    library.store_misread(MISREAD).await;
+
+    let new = library.path("Moved/chinese.mp3");
+    std::fs::create_dir_all(new.parent().unwrap()).unwrap();
+    std::fs::rename(&old, &new).unwrap();
+    library.scan().await;
+    assert_eq!(library.track_path(id).await, new.to_string_lossy());
+    assert_eq!(library.text_of(&new).await.0, "夜曲");
+}
+
 /// A track marked unavailable whose file comes back unchanged is taken up
 /// again by the unchanged branch; the pass repairs it there like the others.
 #[tokio::test]
@@ -3368,17 +3387,30 @@ async fn the_pass_leaves_a_track_whose_tag_is_refused() {
         "listed by its file name"
     );
 
-    // A text the library holds from elsewhere (an older build, the editor).
-    sqlx::query("UPDATE track SET title = 'Café', title_from_filename = 0")
-        .execute(&library.pool)
-        .await
-        .unwrap();
+    // What the library holds from elsewhere (an older build, the editor).
+    for sql in [
+        "UPDATE track SET title = 'Café', title_from_filename = 0,
+                          rg_track_gain_db = -6.5, track_total = 12",
+        "INSERT INTO genre (id, name, canonical_name) VALUES (90, 'Pop', 'pop')",
+        "INSERT INTO track_genre (track_id, genre_id) SELECT id, 90 FROM track",
+    ] {
+        sqlx::query(sql).execute(&library.pool).await.unwrap();
+    }
     library
         .clear_setting("scan.legacy_text_backfill_done.1")
         .await;
 
     library.scan().await;
     assert_eq!(library.text_of(&path).await.0, "Café");
+    let kept: (bool, Option<f64>, Option<i64>, i64) = sqlx::query_as(
+        "SELECT title_from_filename, rg_track_gain_db, track_total,
+                (SELECT COUNT(*) FROM track_genre WHERE genre_id = 90)
+           FROM track",
+    )
+    .fetch_one(&library.pool)
+    .await
+    .unwrap();
+    assert_eq!(kept, (false, Some(-6.5), Some(12), 1), "nothing cleared");
     assert!(library
         .setting("scan.legacy_text_backfill_done.1")
         .await

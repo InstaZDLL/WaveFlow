@@ -385,3 +385,27 @@ fn a_grouped_utf8_frame_is_not_patched() {
     bytes[10 + 9] |= 0x40;
     assert!(read_tagged_from(&mut Cursor::new(bytes), None).is_err());
 }
+
+#[test]
+fn the_patched_reader_zeroes_its_offsets_whatever_the_reads() {
+    use std::io::{Read, Seek, SeekFrom};
+    let bytes = vec![0xffu8; 100];
+    // Out of order on purpose: the reader sorts them.
+    let mut patched = utf8_frames::Patched::new(Cursor::new(bytes), vec![99, 5, 50, 0, 6]).unwrap();
+    let mut seen = Vec::new();
+    let mut chunk = [0u8; 7];
+    loop {
+        let n = patched.read(&mut chunk).unwrap();
+        if n == 0 {
+            break;
+        }
+        seen.extend_from_slice(&chunk[..n]);
+    }
+    let zeroes: Vec<usize> = (0..seen.len()).filter(|i| seen[*i] == 0).collect();
+    assert_eq!(zeroes, vec![0, 5, 6, 50, 99]);
+
+    patched.seek(SeekFrom::Start(48)).unwrap();
+    let mut three = [0u8; 3];
+    patched.read_exact(&mut three).unwrap();
+    assert_eq!(three, [0xff, 0xff, 0]);
+}
