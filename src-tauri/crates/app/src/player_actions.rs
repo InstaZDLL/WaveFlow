@@ -455,7 +455,7 @@ pub async fn next(app: &AppHandle, label: &str) -> Moved {
 /// Go back, applying the [`PREVIOUS_RESTART_THRESHOLD_MS`] rule.
 pub async fn previous(app: &AppHandle, label: &str) -> Moved {
     let engine = app.state::<Arc<AudioEngine>>();
-    if engine.shared().current_position_ms() > PREVIOUS_RESTART_THRESHOLD_MS {
+    if engine.position_ms() > PREVIOUS_RESTART_THRESHOLD_MS {
         let _ = restart_current(&engine);
         return Moved::Restarted;
     }

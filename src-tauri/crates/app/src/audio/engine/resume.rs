@@ -592,7 +592,9 @@ impl AudioEngine {
     /// Where the user is in what they are listening to: the parked
     /// session's position while one is held, the decoder's otherwise. A
     /// relative seek (the OS overlay's skip, MPD's `seekcur +5`) starts
-    /// from here, so two of them in a row add up on a parked session too.
+    /// from here, so two of them in a row add up on a parked session too,
+    /// and so does Previous's choice between restarting the track and
+    /// stepping back.
     pub fn position_ms(&self) -> u64 {
         let parked = self.parked_resume.lock().ok().and_then(|guard| {
             guard
