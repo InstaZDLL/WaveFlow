@@ -493,7 +493,7 @@ async fn top_tracks_for_window(
           FROM play_event pe
           JOIN track t       ON t.id = pe.track_id
           LEFT JOIN album al ON al.id = t.album_id
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE pe.played_at >= ?1 AND pe.played_at < ?2
          GROUP BY t.id
          ORDER BY plays DESC, listened_ms DESC

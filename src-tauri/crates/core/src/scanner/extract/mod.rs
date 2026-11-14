@@ -22,8 +22,8 @@ pub use artist_images::{
     write_artist_image, ArtistImageDirCache, DirImageCandidate,
 };
 pub use artwork::{
-    extension_for_mime, extract_cover, extract_folder_cover, pick_folder_cover, store_folder_cover,
-    ArtworkSource, ExtractedCover, FOLDER_COVER_EXTENSIONS,
+    cover_extension, extension_for_mime, extract_cover, extract_folder_cover, pick_folder_cover,
+    store_folder_cover, ArtworkSource, ExtractedCover, FOLDER_COVER_EXTENSIONS,
 };
 pub use probe::{
     decoder_channels, decoder_channels_from, decoder_decides, probe_playable_source,

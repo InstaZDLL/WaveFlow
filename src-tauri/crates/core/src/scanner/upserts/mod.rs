@@ -199,11 +199,25 @@ pub async fn upsert_artwork(
     format: &str,
     source: ArtworkSource,
 ) -> CoreResult<i64> {
-    let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
-        .bind(hash)
-        .fetch_optional(&mut *conn)
-        .await?;
-    if let Some(id) = existing {
+    let existing: Option<(i64, String)> =
+        sqlx::query_as("SELECT id, format FROM artwork WHERE hash = ?")
+            .bind(hash)
+            .fetch_optional(&mut *conn)
+            .await?;
+    if let Some((id, stored)) = existing {
+        // A WebP cover used to be stored as `<hash>.bin`, a name no
+        // consumer could type. The caller has just written the same bytes
+        // under their real extension (the file is content-addressed, so the
+        // name is the only thing that differs), and the row follows it.
+        // Only from `bin`: any other stored format is a file that exists
+        // under that name, and the caller's word does not outrank it.
+        if stored == "bin" && format != "bin" {
+            sqlx::query("UPDATE artwork SET format = ? WHERE id = ?")
+                .bind(format)
+                .bind(id)
+                .execute(&mut *conn)
+                .await?;
+        }
         return Ok(id);
     }
 
@@ -217,6 +231,29 @@ pub async fn upsert_artwork(
             .execute(&mut *conn)
             .await?;
     Ok(result.last_insert_rowid())
+}
+
+/// Record the picture a track carries as its own cover (`track.artwork_id`),
+/// or clear it when the file carries none. The cover an album shows is the
+/// album's; this one is what a track falls back on when its album has none
+/// or it has no album at all (#1100). `None` is passed only by a caller that
+/// has just read the file whole: a read that found no picture says the file
+/// has none, a read that did not happen says nothing.
+pub async fn set_track_cover(
+    conn: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    cover: Option<&super::extract::ExtractedCover>,
+) -> CoreResult<()> {
+    let artwork_id = match cover {
+        Some(cover) => Some(upsert_artwork(conn, &cover.hash, &cover.format, cover.source).await?),
+        None => None,
+    };
+    sqlx::query("UPDATE track SET artwork_id = ?1 WHERE id = ?2 AND artwork_id IS NOT ?1")
+        .bind(artwork_id)
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    Ok(())
 }
 
 pub async fn upsert_artist(
@@ -537,3 +574,6 @@ pub async fn upsert_genre(
         .await?;
     Ok(Some(result.last_insert_rowid()))
 }
+
+#[cfg(test)]
+mod tests;

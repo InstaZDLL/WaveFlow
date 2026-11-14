@@ -125,7 +125,7 @@ pub async fn list_recent_plays(
           JOIN track t        ON t.id = pe.track_id
           LEFT JOIN album al  ON al.id = t.album_id
           LEFT JOIN artist ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE (? IS NULL OR t.library_id = ?)
            AND t.is_available = 1
            AND (pe.completed = 1 OR pe.listened_ms >= 15000)
@@ -270,7 +270,7 @@ pub async fn list_play_history(
           FROM play_event pe
           JOIN track t        ON t.id = pe.track_id
           LEFT JOIN album al  ON al.id = t.album_id
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE t.is_available = 1
            AND (?1 IS NULL OR pe.played_at < ?1)
            AND (?2 IS NULL OR pe.played_at >= ?2)

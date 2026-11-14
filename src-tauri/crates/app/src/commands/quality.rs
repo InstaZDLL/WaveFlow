@@ -213,7 +213,7 @@ async fn read_page(
         "FROM ({VERDICTS_FROM}) q
          JOIN track t ON t.id = q.id
          LEFT JOIN album al ON al.id = t.album_id
-         LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
         WHERE (? IS NULL OR q.verdict = ?)
           AND {format_sql}"
     );

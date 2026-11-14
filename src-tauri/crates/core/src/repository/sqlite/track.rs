@@ -62,7 +62,7 @@ const FROM_TRACK_BASE: &str = r#"
 FROM track t
 LEFT JOIN album   al ON al.id = t.album_id
 LEFT JOIN artist  ar ON ar.id = t.primary_artist
-LEFT JOIN artwork aw ON aw.id = al.artwork_id
+LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
 "#;
 
 /// Map a [`TrackSort`] to a whitelisted `ORDER BY` clause — never
@@ -141,7 +141,7 @@ impl TrackRepository for SqliteTrackRepository {
              JOIN track   t  ON t.id  = pt.track_id \
              LEFT JOIN album   al ON al.id = t.album_id \
              LEFT JOIN artist  ar ON ar.id = t.primary_artist \
-             LEFT JOIN artwork aw ON aw.id = al.artwork_id \
+             LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id) \
              WHERE pt.playlist_id = ? AND t.is_available = 1 \
              ORDER BY pt.position ASC"
         );
@@ -159,7 +159,7 @@ impl TrackRepository for SqliteTrackRepository {
              JOIN track   t  ON t.id  = lt.track_id \
              LEFT JOIN album   al ON al.id = t.album_id \
              LEFT JOIN artist  ar ON ar.id = t.primary_artist \
-             LEFT JOIN artwork aw ON aw.id = al.artwork_id \
+             LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id) \
              WHERE t.is_available = 1 \
              ORDER BY lt.liked_at DESC"
         );
@@ -183,7 +183,7 @@ impl TrackRepository for SqliteTrackRepository {
                      JOIN track   t  ON t.id  = fts.rowid \
                      LEFT JOIN album   al ON al.id = t.album_id \
                      LEFT JOIN artist  ar ON ar.id = t.primary_artist \
-                     LEFT JOIN artwork aw ON aw.id = al.artwork_id \
+                     LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id) \
                      WHERE track_fts MATCH ? AND t.is_available = 1 \
                      ORDER BY rank \
                      LIMIT ?"

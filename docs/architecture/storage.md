@@ -127,6 +127,8 @@ This gives stats a coherent split, worth knowing before writing a new query: **a
 
 Provenance is a property of the **link**, not of the bytes, so `album.artwork_source` carries it. Every site that writes `album.artwork_id` writes it too — the scanner, the tag editor, Deezer enrichment, manual upload, and the sidecar pass. `artwork.source` stays as a rough origin label for the bytes; do not read it to decide what may be overwritten.
 
+`track.artwork_id` (#1100, `20261114120000_track_artwork.sql`) is the track's own picture, the fallback of every track query when its album has no cover or it has no album: `COALESCE(album.artwork_id, track.artwork_id)`. It carries no provenance of its own (it is only ever written from the file's tag or its folder), and nothing prunes profile `artwork` rows, so no sweep has to count it. `artwork.format` is `bin` on a WebP stored before that change; `upsert_artwork` corrects it from `bin` only.
+
 `artist` deliberately has no such column: its guard is `artwork_id IS NULL` ([`link_local_artist_image`](../../src-tauri/crates/core/src/scanner/upserts/artist_images.rs)), which never consults a source.
 
 > **Never `DROP TABLE` a parent in a migration.** Widening `artwork`'s uniqueness to `(hash, source)` was the other candidate fix and needs the create-copy-drop-rename rebuild. The profile pool opens connections with `foreign_keys = ON`, and SQLite's `DROP TABLE` performs an implicit `DELETE` that **fires foreign-key actions** — verified against a real database, inside a transaction and out: rebuilding `artwork` blanks `album.artwork_id` and `artist.artwork_id` across the whole library, and `PRAGMA foreign_keys` cannot be toggled from inside the transaction sqlx wraps migrations in. Prefer `ALTER TABLE … ADD COLUMN`.

@@ -184,7 +184,7 @@ pub(super) const FOLDER_CHILDREN_SQL: &str = r#"
              aw.format                  AS artwork_format
         FROM track t
         LEFT JOIN album   al ON al.id = t.album_id
-        LEFT JOIN artwork aw ON aw.id = al.artwork_id
+        LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
        WHERE (? IS NULL OR t.library_id = ?)
          AND t.is_available = 1
          AND t.file_path >= ?

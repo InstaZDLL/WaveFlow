@@ -167,7 +167,7 @@ async fn stats_top_tracks_inner(
           FROM play_event pe
           JOIN track t       ON t.id = pe.track_id
           LEFT JOIN album al ON al.id = t.album_id
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
          WHERE (?1 IS NULL OR pe.played_at >= ?1)
          GROUP BY t.id
          ORDER BY plays DESC, listened_ms DESC

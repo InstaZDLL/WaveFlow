@@ -2975,3 +2975,121 @@ async fn a_workshop_spelling_fix_beside_a_second_album_artist_drops_the_id() {
         .unwrap();
     assert_eq!(held, 0);
 }
+
+// ─── A track's own cover (#1100) ─────────────────────────────────────────
+
+/// The head of a WebP file, what a video thumbnail kept by a downloader is.
+const WEBP_HEAD: &[u8] = b"RIFF\x24\x00\x00\x00WEBPVP8 ";
+
+impl Library {
+    /// A FLAC with these comments and a WebP front cover.
+    fn flac_with_webp_cover(&self, relative: &str, comments: &[(&str, &str)]) -> PathBuf {
+        use lofty::ogg::OggPictureStorage;
+        use lofty::picture::{MimeType, Picture, PictureType};
+        let path = self.path(relative);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::copy(fixture("silence.flac"), &path).unwrap();
+        let mut tag = VorbisComments::default();
+        for (key, value) in comments {
+            tag.push((*key).to_string(), (*value).to_string());
+        }
+        let picture = Picture::unchecked(WEBP_HEAD.to_vec())
+            .pic_type(PictureType::CoverFront)
+            .mime_type(MimeType::Unknown("image/webp".into()))
+            .build();
+        tag.insert_picture(picture, None).expect("picture");
+        tag.save_to_path(&path, WriteOptions::default())
+            .expect("write comments");
+        path
+    }
+
+    /// `(album id, own cover's format, the album's cover's format)`.
+    async fn covers(&self, path: &Path) -> (Option<i64>, Option<String>, Option<String>) {
+        sqlx::query_as(
+            "SELECT t.album_id, own.format, al_art.format
+               FROM track t
+               LEFT JOIN artwork own    ON own.id = t.artwork_id
+               LEFT JOIN album al       ON al.id = t.album_id
+               LEFT JOIN artwork al_art ON al_art.id = al.artwork_id
+              WHERE t.file_path = ?",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+/// A file with no album tag has no album to hold its picture, so the picture
+/// was lost whatever it was. It is the track's own now, under the name its
+/// bytes say (`webp`, not `bin`), and an album that has one keeps its own.
+#[tokio::test]
+async fn a_track_with_no_album_keeps_its_embedded_cover() {
+    let library = Library::new().await;
+    let loose = library.flac_with_webp_cover("loose.flac", &[("TITLE", "Loose")]);
+    let filed = library.flac_with_webp_cover(
+        "filed.flac",
+        &[("TITLE", "Filed"), ("ALBUM", "Album"), ("ARTIST", "Artist")],
+    );
+    library.scan().await;
+
+    let (album, own, album_cover) = library.covers(&loose).await;
+    assert_eq!(album, None);
+    assert_eq!(own.as_deref(), Some("webp"));
+    assert_eq!(album_cover, None);
+
+    let (album, own, album_cover) = library.covers(&filed).await;
+    assert!(album.is_some());
+    assert_eq!(own.as_deref(), Some("webp"));
+    assert_eq!(album_cover.as_deref(), Some("webp"));
+}
+
+/// A library older than the column has files that still match on mtime and
+/// size: the forced pass reads their pictures back on the next ordinary
+/// scan, once, without a deep rescan.
+#[tokio::test]
+async fn the_next_scan_gives_an_existing_track_its_cover() {
+    let library = Library::new().await;
+    let loose = library.flac_with_webp_cover("loose.flac", &[("TITLE", "Loose")]);
+    library.scan().await;
+    assert!(library
+        .setting("scan.cover_backfill_done.1")
+        .await
+        .is_some());
+
+    // What the migration leaves: no own cover, and no pass done yet.
+    sqlx::query("UPDATE track SET artwork_id = NULL")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    library.clear_setting("scan.cover_backfill_done.1").await;
+    assert_eq!(library.covers(&loose).await.1, None);
+
+    library.scan().await;
+    assert_eq!(library.covers(&loose).await.1.as_deref(), Some("webp"));
+    assert!(library
+        .setting("scan.cover_backfill_done.1")
+        .await
+        .is_some());
+}
+
+/// A deep rescan reads an unchanged file again: a loose track whose cover came
+/// from the folder's `cover.jpg` loses it once that file is deleted, rather
+/// than keeping a picture nothing on disk holds any more.
+#[tokio::test]
+async fn a_deleted_folder_cover_leaves_an_unchanged_track() {
+    let library = Library::new().await;
+    let loose = library.flac("loose.flac", &[("TITLE", "Loose")]);
+    let cover = library.path("cover.jpg");
+    std::fs::write(
+        &cover,
+        [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, b'J', b'F', b'I', b'F'],
+    )
+    .unwrap();
+    library.scan().await;
+    assert_eq!(library.covers(&loose).await.1.as_deref(), Some("jpg"));
+
+    std::fs::remove_file(&cover).unwrap();
+    library.deep_scan().await;
+    assert_eq!(library.covers(&loose).await.1, None);
+}
