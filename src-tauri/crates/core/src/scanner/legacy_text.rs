@@ -97,7 +97,14 @@ pub fn repair_tag(tag: &mut Tag) {
             _ => None,
         };
         match repaired {
-            Some(text) => tag.push_unchecked(TagItem::new(item.key(), ItemValue::Text(text))),
+            Some(text) => {
+                // The language and the description are part of what a comment or
+                // a lyrics item is: only its text was wrong.
+                let mut repaired = TagItem::new(item.key(), ItemValue::Text(text));
+                repaired.set_lang(*item.lang());
+                repaired.set_description(item.description().to_owned());
+                tag.push_unchecked(repaired);
+            }
             None => tag.push_unchecked(item),
         }
     }
@@ -167,6 +174,7 @@ fn cjk_text(text: &str) -> bool {
             || matches!(u32::from(c),
                 0x2010..=0x203B      // general punctuation a CJK title uses
                 | 0x3000..=0x30FF    // CJK punctuation, hiragana, katakana
+                | 0x3130..=0x318F    // hangul compatibility jamo (ㅋㅋ)
                 | 0x31F0..=0x31FF
                 | 0x3400..=0x4DBF    // ideographs, extension A
                 | 0x4E00..=0x9FFF

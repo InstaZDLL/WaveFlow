@@ -67,12 +67,12 @@ pub fn invalid_utf8_frames<R: Read + Seek>(reader: &mut R) -> io::Result<Vec<u64
         let Some(end) = start.checked_add(length).filter(|end| *end <= body.len()) else {
             break;
         };
-        // v2.4: 0x0c compression/encryption, 0x02 unsynchronisation, 0x01 a
+        // v2.4: 0x40 grouping (a byte before the encoding), 0x0c compression/encryption, 0x02 unsynchronisation, 0x01 a
         // data-length indicator. v2.3: 0xc0 compression/encryption, 0x20
         // grouping. In all of them the byte after the header is not the
         // encoding.
         let plain = if version == 4 {
-            flags[1] & 0x0f == 0
+            flags[1] & 0x4f == 0
         } else {
             flags[1] & 0xe0 == 0
         };

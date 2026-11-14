@@ -344,3 +344,44 @@ fn an_unsynchronised_tag_is_not_guessed_at() {
     bytes[5] |= 0x80;
     assert!(read_tagged_from(&mut Cursor::new(bytes), None).is_err());
 }
+
+/// Compatibility jamo are hangul too: a title of "ㅋㅋ" must not rule out
+/// EUC-KR for the tag it is in.
+#[test]
+fn compatibility_jamo_are_text_a_korean_title_is_made_of() {
+    assert!(cjk_text("ㅋㅋ 사랑해요"));
+    assert!(decode_clean(EUC_KR, &encode(EUC_KR, "ㅋㅋ")).is_some_and(|text| cjk_text(&text)));
+}
+
+/// A repaired comment keeps its language and its description: they are what
+/// tells one comment from another.
+#[test]
+fn a_repaired_item_keeps_its_language_and_description() {
+    use lofty::tag::{ItemKey, ItemValue, TagItem, TagType};
+    let mut tag = Tag::new(TagType::Id3v2);
+    let text = |bytes: &[u8]| -> String { bytes.iter().map(|&b| char::from(b)).collect() };
+    tag.insert_text(ItemKey::TrackTitle, text(&encode(GBK, TITLE)));
+    tag.insert_text(ItemKey::TrackArtist, text(&encode(GBK, "周杰伦")));
+    let mut comment = TagItem::new(
+        ItemKey::Comment,
+        ItemValue::Text(text(&encode(GBK, "好听"))),
+    );
+    comment.set_description("note".to_string());
+    tag.push_unchecked(comment);
+
+    repair_tag(&mut tag);
+
+    let item = tag.get(ItemKey::Comment).expect("the comment");
+    assert_eq!(item.value(), &ItemValue::Text("好听".to_string()));
+    assert_eq!(item.description(), "note");
+}
+
+/// v2.4 frame flags: a grouped frame has a byte before the encoding, which
+/// the walk does not follow, so it is left to be refused as before.
+#[test]
+fn a_grouped_utf8_frame_is_not_patched() {
+    let mut bytes = id3v2(4, &[("TIT2", 3, &encode(GBK, TITLE))]);
+    // Frame flags are the two bytes after the size: set the grouping bit.
+    bytes[10 + 9] |= 0x40;
+    assert!(read_tagged_from(&mut Cursor::new(bytes), None).is_err());
+}

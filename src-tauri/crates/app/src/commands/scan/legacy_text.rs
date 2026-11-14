@@ -8,9 +8,10 @@
 //! for the tracks that can need it and no others.
 //!
 //! **Which tracks**: those whose stored title, album, artist or album artist
-//! is only Latin-1 characters with at least one above ASCII, which is what a
-//! mis-read code page looks like and what "Café" looks like too. Those files
-//! (a few in a Western library, most of a Chinese one) are read again, and
+//! is only Latin-1 characters with at least one above ASCII (what a mis-read
+//! code page looks like, and "Café" too), and those listed by their file name
+//! because lofty once refused their tag. Those files (a few in a Western
+//! library, most of a Chinese one) are read again, and
 //! one whose text the scanner now reads differently goes through the rewrite
 //! branch of the scan as a changed file would: the title, the album and the
 //! credits it names are relinked. The others keep their rows untouched.
@@ -44,14 +45,19 @@ pub(super) async fn suspects(
          SELECT t.file_path, ar.name
            FROM track t JOIN album al ON al.id = t.album_id
                         JOIN artist ar ON ar.id = al.artist_id
-          WHERE t.folder_id = ?1 AND t.is_available = 1",
+          WHERE t.folder_id = ?1 AND t.is_available = 1
+         UNION ALL
+         SELECT t.file_path, ''
+           FROM track t
+          WHERE t.folder_id = ?1 AND t.is_available = 1 AND t.title_from_filename = 1",
     )
     .bind(folder_id)
     .fetch_all(pool)
     .await?;
     let mut suspects: HashMap<String, Vec<String>> = HashMap::new();
     for (path, text) in rows {
-        if waveflow_core::scanner::legacy_text::is_candidate(&text) {
+        // The empty text stands for a track listed by its file name.
+        if text.is_empty() || waveflow_core::scanner::legacy_text::is_candidate(&text) {
             suspects.entry(path).or_default().push(text);
         }
     }
@@ -68,7 +74,13 @@ pub(super) fn stale(stored: &[String], extracted: &ExtractedFile) -> bool {
         extracted.artist.as_deref(),
         extracted.album_artist.as_deref(),
     ];
-    stored
-        .iter()
-        .any(|text| !read.iter().flatten().any(|now| now.contains(text.as_str())))
+    stored.iter().any(|text| {
+        if text.is_empty() {
+            // Listed by its file name because lofty refused its tag: now
+            // that the tag reads, the track gets its own title.
+            !extracted.title_from_filename
+        } else {
+            !read.iter().flatten().any(|now| now.contains(text.as_str()))
+        }
+    })
 }

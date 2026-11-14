@@ -3189,14 +3189,18 @@ async fn the_next_scan_repairs_a_legacy_code_page_tag_already_stored() {
         ("十一月的萧邦", "Ê®Ò»ÔÂµÄÏô°î"),
         ("周杰伦", "ÖÜ½ÜÂ×"),
     ] {
+        // The keys the old build computed from the text it had, so that the
+        // scan does not find these rows again by the right spelling.
+        let key = waveflow_core::scanner::canonical_name(to);
         for sql in [
-            "UPDATE track SET title = ? WHERE title = ?",
-            "UPDATE album SET title = ? WHERE title = ?",
-            "UPDATE artist SET name = ? WHERE name = ?",
+            "UPDATE track SET title = ?1 WHERE title = ?2 AND ?3 = ?3",
+            "UPDATE album SET title = ?1, canonical_title = ?3 WHERE title = ?2",
+            "UPDATE artist SET name = ?1, canonical_name = ?3 WHERE name = ?2",
         ] {
             sqlx::query(sql)
                 .bind(to)
                 .bind(from)
+                .bind(&key)
                 .execute(&library.pool)
                 .await
                 .unwrap();
@@ -3223,4 +3227,40 @@ async fn the_next_scan_repairs_a_legacy_code_page_tag_already_stored() {
         .setting("scan.legacy_text_backfill_done.1")
         .await
         .is_some());
+}
+
+/// A file lofty refused over a frame declaring UTF-8 falsely was listed by its
+/// file name; it reads now, and the pass gives that track its tag.
+#[tokio::test]
+async fn the_next_scan_gives_a_track_listed_by_its_file_name_its_tag() {
+    let library = Library::new().await;
+    let path = library.path("01.mp3");
+    mp3_with_raw_latin1_frames(&path, &[("TIT2", &gbk("夜曲")), ("TPE1", &gbk("周杰伦"))]);
+    // The declaration of UTF-8 (`3`) over GBK bytes, which lofty refuses.
+    let mut bytes = std::fs::read(&path).unwrap();
+    for frame in [b"TIT2", b"TPE1"] {
+        let at = bytes.windows(4).position(|w| w == frame).unwrap();
+        bytes[at + 10] = 3;
+    }
+    std::fs::write(&path, bytes).unwrap();
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "夜曲");
+
+    // What the library held when this file was listed by its name.
+    sqlx::query("UPDATE track SET title = '01', title_from_filename = 1")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM track_artist")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    library
+        .clear_setting("scan.legacy_text_backfill_done.1")
+        .await;
+
+    library.scan().await;
+    let (title, _, artists) = library.text_of(&path).await;
+    assert_eq!(title, "夜曲");
+    assert_eq!(artists, vec!["周杰伦".to_string()]);
 }
