@@ -15,8 +15,11 @@ interface ImmersiveSidePanelProps {
   activeTab: ImmersiveTab;
   onTabChange: (tab: ImmersiveTab) => void;
   /** The view's floating top-right buttons, which sit over this panel's
-   *  top line; measured to know how much of that line is free. */
-  buttonBarRef: RefObject<HTMLDivElement | null>;
+   *  top line when it is docked beside now-playing; measured to know how
+   *  much of that line is free. Absent when the panel is docked below
+   *  (portrait window): nothing floats over it then, and the tabs have
+   *  the whole line. */
+  buttonBarRef?: RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -76,7 +79,7 @@ export function ImmersiveSidePanel({
   useLayoutEffect(() => {
     const header = headerRef.current;
     const pill = pillMeasureRef.current;
-    const bar = buttonBarRef.current;
+    const bar = buttonBarRef?.current ?? null;
     if (!header || !pill) return;
 
     const measure = () => {
@@ -154,13 +157,15 @@ export function ImmersiveSidePanel({
   return (
     <div className="h-full flex flex-col text-white">
       {/* `pt-6` matches the view's bar (`py-6`) and the 42px row matches
-          its buttons, so tabs on that line centre on it. Chrome in the
-          theater view: hidden with the buttons while idle. */}
+          its buttons, so tabs on that line centre on it. Docked below,
+          there is no bar to line up with: the tabs sit just under the
+          panel's border. Chrome in the theater view: hidden with the
+          buttons while idle. */}
       <div
         ref={headerRef}
         data-theater-chrome
         className={`relative shrink-0 px-6 pb-4 ${
-          layout === "stacked" ? "pt-24" : "pt-6"
+          layout === "stacked" ? "pt-24" : buttonBarRef ? "pt-6" : "pt-4"
         }`}
       >
         {/* Hidden copy of the pill: its width, whatever is shown. */}

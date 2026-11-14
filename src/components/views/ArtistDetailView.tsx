@@ -194,10 +194,18 @@ export function ArtistDetailView({
   // component never has to know whether the source is a remote CDN
   // URL or an `asset://` path.
   const [pictureSrc, setPictureSrc] = useState<string | null>(null);
-  // Wide TheAudioDB fanart backing the hero (issue #482). Separate from
-  // `pictureSrc` because the two tiers are treated very differently: a
-  // fanart is shown nearly crisp, the square photo heavily blurred.
-  const [fanartSrc, setFanartSrc] = useState<string | null>(null);
+  // Wide image backing the hero (issue #482). Separate from `pictureSrc`
+  // because the tiers are treated very differently: a banner the user
+  // chose is shown crisp, TheAudioDB's automatic fanart barely softened,
+  // the square photo heavily blurred (#1094). The source and whether it
+  // was chosen are one state: `get_artist_detail` and the enrichment both
+  // write it, and two states would let one answer's flag meet the other's
+  // image.
+  const [fanart, setFanart] = useState<{
+    src: string;
+    chosen: boolean;
+  } | null>(null);
+  const fanartSrc = fanart?.src ?? null;
   // `heroResolved` gates the first paint: the preference defaults to ON
   // and is read asynchronously, so rendering before it lands would flash
   // a hero at users who turned it off.
@@ -231,7 +239,7 @@ export function ArtistDetailView({
     (async () => {
       setIsLoading(true);
       setPictureSrc(null);
-      setFanartSrc(null);
+      setFanart(null);
       setFansCount(null);
       setBioShort(null);
       setBioFull(null);
@@ -263,8 +271,14 @@ export function ArtistDetailView({
         if (seeded) setPictureSrc(seeded);
         // Served straight from the metadata cache, so the hero paints on
         // the first frame when the artist was enriched before.
-        setFanartSrc(
-          resolveRemoteImage(detail.background_path, detail.background_url),
+        const seededFanart = resolveRemoteImage(
+          detail.background_path,
+          detail.background_url,
+        );
+        setFanart(
+          seededFanart
+            ? { src: seededFanart, chosen: detail.has_custom_background }
+            : null,
         );
         if (detail.fans_count != null) setFansCount(detail.fans_count);
         if (detail.bio_short) setBioShort(detail.bio_short);
@@ -361,10 +375,10 @@ export function ArtistDetailView({
           "full",
         );
         if (resolved && !hasLocalArtistImage) setPictureSrc(resolved);
-        const fanart = resolveRemoteImage(e.background_path, e.background_url);
+        const wide = resolveRemoteImage(e.background_path, e.background_url);
         // Only ever *set* — a refresh that comes back empty (offline,
         // TheAudioDB down) must not blank a hero the cache already gave us.
-        if (fanart) setFanartSrc(fanart);
+        if (wide) setFanart({ src: wide, chosen: e.has_custom_background });
         if (e.fans_count != null) setFansCount(e.fans_count);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
@@ -464,7 +478,12 @@ export function ArtistDetailView({
         }
       >
         {heroSrc && (
-          <ArtistHeroBackdrop src={heroSrc} isFanart={fanartSrc != null} />
+          <ArtistHeroBackdrop
+            src={heroSrc}
+            tier={
+              fanart == null ? "photo" : fanart.chosen ? "chosen" : "fanart"
+            }
+          />
         )}
         {/* Change the backdrop (issue #693). In the hero's own corner
             rather than in the "⋯" menu: it acts on the image behind it,
