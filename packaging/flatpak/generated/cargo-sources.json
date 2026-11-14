@@ -431,6 +431,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/audio_thread_priority/audio_thread_priority-0.35.1.crate",
+        "sha256": "7b1b4a0adbf971420cca66a75361a1190f34a6762d66361e5cde03dda35d1ed3",
+        "dest": "cargo/vendor/audio_thread_priority-0.35.1"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"7b1b4a0adbf971420cca66a75361a1190f34a6762d66361e5cde03dda35d1ed3\", \"files\": {}}",
+        "dest": "cargo/vendor/audio_thread_priority-0.35.1",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/audioadapter/audioadapter-5.0.0.crate",
         "sha256": "d1292ef9edf681b7426ed089004b021a42896492f58bd0c909ad44e5faec9ac4",
         "dest": "cargo/vendor/audioadapter-5.0.0"
@@ -4326,6 +4339,19 @@
         "type": "inline",
         "contents": "{\"package\": \"f3d0581a75c45969c63afd2bb87b1d8b25cfcc556c7a918cf9bb13b0fe8d2381\", \"files\": {}}",
         "dest": "cargo/vendor/mac_address-1.2.1",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/mach2/mach2-0.4.3.crate",
+        "sha256": "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44",
+        "dest": "cargo/vendor/mach2-0.4.3"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44\", \"files\": {}}",
+        "dest": "cargo/vendor/mach2-0.4.3",
         "dest-filename": ".cargo-checksum.json"
     },
     {
