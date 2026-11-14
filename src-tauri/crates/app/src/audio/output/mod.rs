@@ -894,7 +894,8 @@ impl StreamErrorStorm {
         }
     }
 
-    /// `device_gone`: the error is `DeviceNotAvailable`.
+    /// `device_gone`: the stream cannot play on and only a rebuild brings
+    /// it back — the device went away, or the stream was invalidated.
     fn on_error(&mut self, now: std::time::Instant, device_gone: bool) -> StormAction {
         self.total = self.total.saturating_add(1);
         match self.window_start {
@@ -944,7 +945,11 @@ enum StreamErrorClass {
     /// rerouted by the OS, or real-time scheduling refused.
     PlaysOn,
     /// Something went wrong with the stream; `device_gone` when the
-    /// device itself went away.
+    /// stream is over and only a rebuild brings the output back: the
+    /// device went away, or the stream was invalidated — cpal 0.18 on
+    /// macOS pauses the stream itself and says `StreamInvalidated` when
+    /// another app changes the device's sample rate, and WASAPI says it
+    /// for `AUDCLNT_E_RESOURCES_INVALIDATED`.
     Fault { device_gone: bool },
 }
 
@@ -954,7 +959,9 @@ fn stream_error_class(kind: cpal::ErrorKind) -> StreamErrorClass {
         cpal::ErrorKind::DeviceChanged | cpal::ErrorKind::RealtimeDenied => {
             StreamErrorClass::PlaysOn
         }
-        cpal::ErrorKind::DeviceNotAvailable => StreamErrorClass::Fault { device_gone: true },
+        cpal::ErrorKind::DeviceNotAvailable | cpal::ErrorKind::StreamInvalidated => {
+            StreamErrorClass::Fault { device_gone: true }
+        }
         _ => StreamErrorClass::Fault { device_gone: false },
     }
 }
