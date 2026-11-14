@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { usePlayer } from "../../hooks/usePlayer";
 import {
-  clipState,
+  clipEpoch,
   closeClip,
   onClipExit,
   pauseClip,
@@ -112,6 +112,8 @@ export function ClipHost() {
     if (trackId === null) return;
     onClipExit((exit: ClipExit, positionMs: number) => {
       closeClip();
+      // Any opening or closing after this point is another visit.
+      const epoch = clipEpoch();
       const {
         isPlaying: playing,
         togglePlayback: toggle,
@@ -137,9 +139,10 @@ export function ClipHost() {
           return;
         }
         await seekTrack(positionMs);
-        // A clip opened during the seek is a new visit: resuming now would
-        // start the track under it.
-        if (resume && clipState().clip === null) await toggle();
+        // A clip opened during the seek (and maybe closed again) is a new
+        // visit: resuming for this one would start the track under it, or
+        // after it.
+        if (resume && clipEpoch() === epoch) await toggle();
       })();
     });
     return () => onClipExit(null);

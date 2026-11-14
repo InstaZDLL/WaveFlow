@@ -57,6 +57,8 @@ const CLOSED: ClipState = {
 
 let state: ClipState = CLOSED;
 let lastSession = 0;
+/** Moves at every opening and every closing, never back. */
+let epoch = 0;
 /** The element showing the clip, and whether it has been put at the
  *  clip's position yet: until its metadata loads, its `currentTime` is 0
  *  and says nothing about where the clip is. */
@@ -78,6 +80,7 @@ export function isCurrentClipSession(session: number): boolean {
  *  one included: opening it again starts it again. */
 export function openClip(clip: Omit<OpenClip, "session">): void {
   lastSession += 1;
+  epoch += 1;
   video = null;
   videoPositioned = false;
   set({
@@ -113,9 +116,20 @@ export function openClipForTrack(
  *  [`requestBackToAudio`] for that. */
 export function closeClip(): void {
   if (state.clip === null) return;
+  epoch += 1;
   video = null;
   videoPositioned = false;
   set(CLOSED);
+}
+
+/**
+ * A counter that moves at every opening and every closing of a clip. Work
+ * that awaits on behalf of a clip captures it before and compares it after:
+ * any change means another visit started (and maybe ended) meanwhile, which
+ * a check of "is a clip open now" would miss when it has ended too.
+ */
+export function clipEpoch(): number {
+  return epoch;
 }
 
 /** How the clip is being left, for `ClipHost`. */
