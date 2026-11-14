@@ -5004,5 +5004,16 @@
       "downloadFailed": "Falha no servidor",
       "forgetPosition": "Reproduzir {{title}} desde o início"
     }
+  },
+  "clip": {
+    "play": "Reproduzir o videoclipe",
+    "label": "Videoclipe de {{title}}",
+    "unplayableTitle": "Este videoclipe não pode ser reproduzido aqui",
+    "unplayableBody": "O leitor de vídeo deste sistema não suporta o formato deste vídeo. A faixa fica em pausa onde estava.",
+    "exclusiveNoSound": "Sem som para o videoclipe com a saída exclusiva: desative-a para o ouvir.",
+    "switchToVideo": "Mudar para o vídeo",
+    "switchToAudio": "Mudar para o áudio",
+    "expand": "Ampliar o vídeo",
+    "shrink": "Reduzir o vídeo"
   }
 }

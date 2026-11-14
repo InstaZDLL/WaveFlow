@@ -61,7 +61,7 @@ pub fn is_fragmented<R: Read + Seek>(file: &mut R) -> std::io::Result<bool> {
 /// The box at `pos`: its type, where its body starts and where it ends,
 /// or `None` when no whole header fits before `end` or the box claims to
 /// run past it.
-fn next_header<R: Read + Seek>(
+pub(crate) fn next_header<R: Read + Seek>(
     file: &mut R,
     pos: u64,
     end: u64,

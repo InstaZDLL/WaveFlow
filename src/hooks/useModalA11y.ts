@@ -142,6 +142,10 @@ function getFocusable(root: HTMLElement): HTMLElement[] {
   const nodes = Array.from(root.querySelectorAll<HTMLElement>(SELECTOR)).filter(
     (el) => {
       if (el.hasAttribute("aria-hidden")) return false;
+      // Under an `inert` layer (what a dialog covers with a layer of its
+      // own, such as the immersive view under a music video): the browser
+      // refuses it focus, and the trap must not count on it.
+      if (el.closest("[inert]")) return false;
       // `offsetParent` is null for `display: none` ancestors. Cheaper
       // than `getComputedStyle` in a tab-trap loop.
       return el.offsetParent !== null || el === document.activeElement;

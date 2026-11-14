@@ -4858,5 +4858,16 @@
       "downloadFailed": "Gagal di server",
       "forgetPosition": "Putar {{title}} dari awal"
     }
+  },
+  "clip": {
+    "play": "Putar klip",
+    "label": "Klip {{title}}",
+    "unplayableTitle": "Klip ini tidak dapat diputar di sini",
+    "unplayableBody": "Pemutar video sistem ini tidak mendukung format video ini. Lagu tetap dijeda di posisinya.",
+    "exclusiveNoSound": "Klip tidak bersuara saat output eksklusif aktif: matikan untuk mendengarnya.",
+    "switchToVideo": "Beralih ke video",
+    "switchToAudio": "Beralih ke audio",
+    "expand": "Perbesar video",
+    "shrink": "Perkecil video"
   }
 }

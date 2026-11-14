@@ -5003,5 +5003,16 @@
       "downloadFailed": "Échec sur le serveur",
       "forgetPosition": "Reprendre {{title}} du début"
     }
+  },
+  "clip": {
+    "play": "Lire le clip",
+    "label": "Clip de {{title}}",
+    "unplayableTitle": "Ce clip ne peut pas être lu ici",
+    "unplayableBody": "Le format de cette vidéo n'est pas pris en charge par le lecteur vidéo de ce système. La piste reste en pause à sa position.",
+    "exclusiveNoSound": "Pas de son pour le clip en sortie exclusive : désactivez-la pour l'entendre.",
+    "switchToVideo": "Passer à la vidéo",
+    "switchToAudio": "Passer à l'audio",
+    "expand": "Agrandir la vidéo",
+    "shrink": "Réduire la vidéo"
   }
 }

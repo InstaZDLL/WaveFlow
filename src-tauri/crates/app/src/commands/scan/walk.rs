@@ -163,5 +163,20 @@ pub(super) fn collect_scannable_files_with(
             walk.files.push(entry.path().to_path_buf());
         }
     }
+    // A music video beside its song is that song's clip, not a second
+    // track (#1073): `mp4` is an audio extension, and the test above takes
+    // it on sight. Only an `.mp4` named like another file is opened.
+    // Each candidate is a file opened, which a stop must not wait out; and a
+    // stopped filter returns no list, since a half-filtered one would be
+    // taken for the folder's contents like any other.
+    let clips = waveflow_core::scanner::clips::drop_clips(&mut walk.files, |path| {
+        !should_stop() && waveflow_core::scanner::clips::file_has_video_track(path)
+    });
+    if should_stop() {
+        return Ok(None);
+    }
+    if clips > 0 {
+        tracing::debug!(clips, "music videos left out of the walk as clips");
+    }
     Ok(Some(walk))
 }

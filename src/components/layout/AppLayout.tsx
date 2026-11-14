@@ -38,6 +38,7 @@ import { NowPlayingPanel } from "./NowPlayingPanel";
 import { LyricsPanel } from "./LyricsPanel";
 import { NowPlayingChevronTab } from "./NowPlayingChevronTab";
 import { FluidSidePanel } from "./fluid/FluidSidePanel";
+import { ClipHost } from "../player/ClipHost";
 import { useSkin } from "../../hooks/useSkin";
 import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
@@ -1197,6 +1198,11 @@ export function AppLayout() {
             content up instead of covering the last row of a list, and
             it renders nothing at all when nothing is running. */}
           <TaskStatusBar />
+
+          {/* A track's music video (#1073): what it asks of the track —
+            pausing it, lining positions up, where the clip shows — once
+            for the window. Renders nothing. */}
+          <ClipHost />
 
           {/* Bottom Player Bar */}
           <PlayerBar onNavigateToArtist={navigateToArtist} />

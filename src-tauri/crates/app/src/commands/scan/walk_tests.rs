@@ -32,6 +32,64 @@ fn our_own_media_is_not_indexed_as_music() {
     assert!(!names.contains(&"cover.mp4".to_string()), "{names:?}");
 }
 
+/// An ISO-BMFF file with one track of `handler` / `codec`, enough for
+/// `has_video_track` to judge.
+fn mp4_with(handler: &[u8; 4], codec: &[u8; 4]) -> Vec<u8> {
+    fn boxed(kind: &[u8; 4], body: &[u8]) -> Vec<u8> {
+        let mut out = ((body.len() + 8) as u32).to_be_bytes().to_vec();
+        out.extend_from_slice(kind);
+        out.extend_from_slice(body);
+        out
+    }
+    let mut hdlr = vec![0u8; 8];
+    hdlr.extend_from_slice(handler);
+    hdlr.extend_from_slice(&[0u8; 12]);
+    let mut stsd = vec![0, 0, 0, 0, 0, 0, 0, 1];
+    stsd.extend(boxed(codec, &[0u8; 16]));
+    let minf = boxed(b"minf", &boxed(b"stbl", &boxed(b"stsd", &stsd)));
+    let mut mdia = boxed(b"hdlr", &hdlr);
+    mdia.extend(minf);
+    let moov = boxed(b"moov", &boxed(b"trak", &boxed(b"mdia", &mdia)));
+    let mut out = boxed(b"ftyp", b"isom\0\0\0\0");
+    out.extend(moov);
+    out
+}
+
+/// #1073: a music video beside its song is the song's clip and leaves the
+/// walk; an audio `.mp4` of the same name, and a video with no song, stay.
+#[test]
+fn a_music_video_beside_its_song_is_not_a_second_track() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let put = |name: &str, bytes: &[u8]| {
+        let path = root.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, bytes).unwrap();
+    };
+    put("A/Song.flac", b"x");
+    put("A/Song.mp4", &mp4_with(b"vide", b"avc1"));
+    put("A/Clips/Song.mp4", &mp4_with(b"vide", b"avc1"));
+    put("B/Track.flac", b"x");
+    put("B/Track.mp4", &mp4_with(b"soun", b"mp4a"));
+    put("C/Lone.mp4", &mp4_with(b"vide", b"avc1"));
+
+    let found = collect_scannable_files(root);
+    let mut names: Vec<String> = found
+        .iter()
+        .map(|p| {
+            p.strip_prefix(root)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+    names.sort();
+    assert_eq!(
+        names,
+        ["A/Song.flac", "B/Track.flac", "B/Track.mp4", "C/Lone.mp4"]
+    );
+}
+
 /// A library folder the user happens to have named `.waveflow` is
 /// still their library. Pruning the root would leave them with an
 /// empty library and nothing on screen to explain it.

@@ -469,6 +469,8 @@ pub fn run() {
             commands::motion_artwork::set_album_motion_artwork_from_file,
             commands::motion_artwork::clear_album_motion_artwork,
             commands::motion_artwork::has_manual_album_motion_artwork,
+            commands::clip::get_track_clip,
+            commands::clip::player_set_clip_open,
             commands::canvas::get_track_canvas,
             commands::canvas::set_track_canvas_from_file,
             commands::canvas::clear_track_canvas,

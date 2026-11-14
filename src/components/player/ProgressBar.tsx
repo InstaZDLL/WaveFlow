@@ -15,6 +15,10 @@ import { isRadioTrack } from "../../lib/playerSources";
 import { LiveStatus } from "./LiveStatus";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
+import { seekClip, useClipState } from "../../lib/clipPlayer";
+
+const NO_LOOP: AbLoopSnapshot = { a_ms: null, b_ms: null };
+const NO_SEEKING = () => {};
 
 /* A wave of wavelength 24 units across a 1000-unit box: the Fluid
    skin's progress. The SVG stretches to the bar; the amplitude is pinned
@@ -52,15 +56,28 @@ interface ProgressBarProps {
 export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
   const { t } = useTranslation();
   const clipId = useId();
-  const { durationMs, seek, setSeeking, currentTrack } = usePlayer();
-  const positionMs = usePlayerPosition();
+  const {
+    durationMs: trackDurationMs,
+    seek: seekTrack,
+    setSeeking: setTrackSeeking,
+    currentTrack,
+  } = usePlayer();
+  const trackPositionMs = usePlayerPosition();
+  // While a music video is shown (#1073), the bar is the clip's: its time,
+  // its length, a seek inside it. The track waits paused underneath.
+  const clipState = useClipState();
+  const video = clipState.clip !== null && !clipState.failed;
+  const durationMs = video ? clipState.durationMs : trackDurationMs;
+  const positionMs = video ? clipState.positionMs : trackPositionMs;
+  const seek = video ? seekClip : seekTrack;
+  const setSeeking = video ? NO_SEEKING : setTrackSeeking;
   const [dragMs, setDragMs] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   // A-B loop endpoints — hydrated on mount + kept in sync via the
   // backend's `player:ab-loop` event so the markers render the same
   // values the decoder is enforcing.
-  const [abLoop, setAbLoop] = useState<AbLoopSnapshot>({
+  const [trackAbLoop, setAbLoop] = useState<AbLoopSnapshot>({
     a_ms: null,
     b_ms: null,
   });
@@ -80,7 +97,9 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
     };
   }, []);
 
-  const hasTrack = currentTrack != null && durationMs > 0;
+  // The A-B loop is the track's: not drawn over the clip's timeline.
+  const abLoop = video ? NO_LOOP : trackAbLoop;
+  const hasTrack = (video || currentTrack != null) && durationMs > 0;
   // Anything with a known length is scrubbable: local files, and now remote
   // tracks too (their HTTP source seeks via range requests). Live radio has
   // duration 0, so `hasTrack` already keeps it non-seekable.
@@ -181,7 +200,7 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
   // timestamps are meaningless — the row says where the listener stands
   // against the live edge instead. Placed after all hooks so the Rules of
   // Hooks hold.
-  if (isRadioTrack(currentTrack)) {
+  if (!video && isRadioTrack(currentTrack)) {
     return <LiveStatus compact={variant !== "bar"} />;
   }
 

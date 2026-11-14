@@ -4858,5 +4858,16 @@
       "downloadFailed": "서버 다운로드 실패",
       "forgetPosition": "{{title}} 처음부터 재생"
     }
+  },
+  "clip": {
+    "play": "뮤직비디오 재생",
+    "label": "{{title}} 뮤직비디오",
+    "unplayableTitle": "이 뮤직비디오는 여기서 재생할 수 없습니다",
+    "unplayableBody": "이 시스템의 비디오 플레이어가 이 동영상 형식을 지원하지 않습니다. 트랙은 그 위치에서 일시 정지된 상태로 유지됩니다.",
+    "exclusiveNoSound": "독점 출력 중에는 뮤직비디오 소리가 나지 않습니다. 들으려면 독점 출력을 끄세요.",
+    "switchToVideo": "비디오로 전환",
+    "switchToAudio": "오디오로 전환",
+    "expand": "비디오 크게 보기",
+    "shrink": "비디오 작게 보기"
   }
 }

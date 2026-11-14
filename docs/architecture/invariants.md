@@ -81,6 +81,8 @@ They're `async` and await rather than spawn: sync callers (souvlaki, tray, taskb
 
 Both funnel into `resume_last`, which holds a one-at-a-time guard (`AudioEngine::begin_resume`, released on every exit path). Two Play events landing together would otherwise each read `Idle`, each await the database, and the second would restart the track the first had just started.
 
+While a [music video](../features/ui.md#music-videos) is open, `play_and_wait` (and so `play`), `toggle_play_pause` and `player_actions::pause` (the overlay's separate Pause) hand the press to the clip as a `clip:control` event instead of driving the engine: the frontend raises the flag with `player_set_clip_open`. A new surface with a play or pause control goes through these three for that reason too, or its Pause would start the track under a playing video.
+
 ---
 
 ## Database

@@ -74,24 +74,33 @@ export function ContextMenu({
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Use the untransformed layout size — `getBoundingClientRect()`
-    // returns the post-transform box, and the motion.div below mounts
-    // at `scale: 0.96`, so the rect would be ~4 % smaller than the
-    // settled menu and the flip would misfire near the viewport edges.
-    const menuWidth = el.offsetWidth;
-    const menuHeight = el.offsetHeight;
-    const vh = window.innerHeight;
-    // Opens toward the reading direction's end: right of the pointer,
-    // or left of it in a right-to-left language.
-    const left = leftAtPoint(point.x, menuWidth, MENU_HORIZONTAL_MARGIN);
-    let top = point.y;
-    if (top + menuHeight + MENU_VERTICAL_MARGIN > vh) {
-      top = Math.max(
-        MENU_VERTICAL_MARGIN,
-        vh - menuHeight - MENU_VERTICAL_MARGIN,
-      );
-    }
-    setPos({ top, left, position: "fixed", width });
+    const place = () => {
+      // Use the untransformed layout size — `getBoundingClientRect()`
+      // returns the post-transform box, and the motion.div below mounts
+      // at `scale: 0.96`, so the rect would be ~4 % smaller than the
+      // settled menu and the flip would misfire near the viewport edges.
+      const menuWidth = el.offsetWidth;
+      const menuHeight = el.offsetHeight;
+      const vh = window.innerHeight;
+      // Opens toward the reading direction's end: right of the pointer,
+      // or left of it in a right-to-left language.
+      const left = leftAtPoint(point.x, menuWidth, MENU_HORIZONTAL_MARGIN);
+      let top = point.y;
+      if (top + menuHeight + MENU_VERTICAL_MARGIN > vh) {
+        top = Math.max(
+          MENU_VERTICAL_MARGIN,
+          vh - menuHeight - MENU_VERTICAL_MARGIN,
+        );
+      }
+      setPos({ top, left, position: "fixed", width });
+    };
+    place();
+    // An item can arrive after the menu opened (a track's music video,
+    // found once the disk has answered): placed with its first height, a
+    // menu near the bottom of the window would push its last items off it.
+    const observer = new ResizeObserver(place);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [point.x, point.y, width]);
 
   // Focus management. A menu opened from the keyboard is useless if the

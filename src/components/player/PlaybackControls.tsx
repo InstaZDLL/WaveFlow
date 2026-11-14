@@ -12,13 +12,14 @@ import {
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { detachedQueueOf, isRadioTrack } from "../../lib/playerSources";
+import { toggleClip, useClipState } from "../../lib/clipPlayer";
 
 export function PlaybackControls() {
   const { t } = useTranslation();
   const {
-    isPlaying,
+    isPlaying: trackPlaying,
     playbackState,
-    togglePlayback,
+    togglePlayback: toggleTrack,
     isShuffled,
     shuffleMode,
     cycleShuffleMode,
@@ -29,7 +30,15 @@ export function PlaybackControls() {
     currentTrack,
   } = usePlayer();
 
-  const isLoading = playbackState === "loading";
+  // While a music video is shown (#1073), Play and Pause are the clip's;
+  // the queue's Previous and Next still move the queue, and the clip gives
+  // way to the track they start.
+  const clip = useClipState();
+  const video = clip.clip !== null && !clip.failed;
+  const isPlaying = video ? !clip.paused : trackPlaying;
+  const togglePlayback = video ? toggleClip : toggleTrack;
+
+  const isLoading = !video && playbackState === "loading";
   const disableTransport = !currentTrack && playbackState === "idle";
   // Web Radio is a single-stream source — there's no queue cursor to
   // advance, so Previous / Next / Shuffle / Repeat would either be a
@@ -104,7 +113,8 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={() => togglePlayback()}
-        disabled={disableTransport}
+        // A clip opened from a menu with nothing playing still has a Play.
+        disabled={!video && disableTransport}
         aria-label={
           isPlaying ? t("player.controls.pause") : t("player.controls.play")
         }
