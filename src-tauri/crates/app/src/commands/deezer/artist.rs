@@ -43,6 +43,12 @@ pub struct DeezerArtistEnrichment {
     /// artist hero; `None` means the artist has no wide image and the
     /// frontend falls back to blurring the square photo.
     pub background_path: Option<String>,
+    /// `true` when `background_path` is the banner the user chose (#693)
+    /// rather than TheAudioDB's automatic fanart. The hero paints the two
+    /// differently (a chosen banner is shown crisp, #1094), so the answer
+    /// has to travel with the path: this enrichment lands after
+    /// `get_artist_detail` and replaces what it painted.
+    pub has_custom_background: bool,
     /// The artist's **own** image — an `artist.jpg` sidecar the scanner
     /// linked, or a picture the user set by hand — resolved from
     /// `artist.artwork_id` in the profile artwork dir.
@@ -72,6 +78,7 @@ impl DeezerArtistEnrichment {
             bio_full: None,
             background_url: None,
             background_path: None,
+            has_custom_background: false,
             artwork_path: None,
             artwork_path_1x: None,
             artwork_path_2x: None,
@@ -254,6 +261,7 @@ async fn enrich_artist_deezer_inner(
     ) {
         enrichment.background_path = Some(path);
         enrichment.background_url = None;
+        enrichment.has_custom_background = true;
     }
 
     // 8. Link the discovered deezer_id back onto the local artist, so the
@@ -380,6 +388,7 @@ async fn enrich_artist_named(
                     bio_full,
                     background_url,
                     background_path,
+                    has_custom_background: false,
                     // Filled by the by-id path, which is the only one
                     // with a local row to read an image from.
                     artwork_path: None,
@@ -575,6 +584,7 @@ async fn enrich_artist_named(
         bio_full,
         background_url,
         background_path,
+        has_custom_background: false,
         artwork_path: None,
         artwork_path_1x: None,
         artwork_path_2x: None,
