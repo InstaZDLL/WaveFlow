@@ -1072,6 +1072,12 @@ where
                     // The erroring handle is still parked in the engine's
                     // `self.output`, so the rebuild can self-resolve its device.
                     schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
+                    // That request is dropped while the rebuild gate settles,
+                    // and since cpal 0.18 a lost ALSA device says so once and
+                    // stops, where 0.17 looped on `POLLERR` into a storm. The
+                    // output thread also drops the dead stream and asks until
+                    // a rebuild replaces it; the gate collapses the overlap.
+                    let _ = stall_tx.try_send(());
                 }
             }
             StormAction::Rebuild { errors } => {
