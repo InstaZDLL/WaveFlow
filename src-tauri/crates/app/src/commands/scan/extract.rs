@@ -49,7 +49,10 @@ fn extract_dsd_file(
         "dff" => parse_dff(&mut file).map_err(|e| format!("dff parse: {e}"))?,
         _ => return Err(format!("unexpected DSD ext: {ext}")),
     };
-    let meta = read_metadata(&mut file, layout.container).unwrap_or_default();
+    let (meta, tag_refused) = match read_metadata(&mut file, layout.container) {
+        Ok(meta) => (meta, false),
+        Err(_) => (Default::default(), true),
+    };
 
     // `is_none`, not "is empty": a tag holding an empty string is a
     // different fault, and `trim(title) = ''` already finds that one.
@@ -72,6 +75,7 @@ fn extract_dsd_file(
 
     Ok(ExtractedFile {
         title_from_filename,
+        tag_refused,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,
@@ -260,6 +264,7 @@ fn untagged_file(
 ) -> ExtractedFile {
     ExtractedFile {
         title_from_filename: true,
+        tag_refused: true,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,
@@ -640,6 +645,7 @@ fn from_tagged(
 
     ExtractedFile {
         title_from_filename,
+        tag_refused: false,
         abs_path: path.to_string_lossy().to_string(),
         size,
         modified_ms,

@@ -7,6 +7,7 @@ pub use waveflow_core::scanner::canonical_name;
 mod artist_images;
 mod extract;
 mod folder;
+mod legacy_text;
 mod moved;
 mod progress;
 mod walk;

@@ -3093,3 +3093,326 @@ async fn a_deleted_folder_cover_leaves_an_unchanged_track() {
     library.deep_scan().await;
     assert_eq!(library.covers(&loose).await.1, None);
 }
+
+/// A real MP3 whose ID3v2.3 tag declares Latin-1 (`0`) for these frames and
+/// holds the bytes given, as a tool on a Chinese Windows writes them.
+fn mp3_with_raw_latin1_frames(path: &Path, frames: &[(&str, &[u8])]) {
+    let mut body = Vec::new();
+    for (id, text) in frames {
+        body.extend_from_slice(id.as_bytes());
+        body.extend(((text.len() + 1) as u32).to_be_bytes());
+        body.extend([0, 0, 0]);
+        body.extend_from_slice(text);
+    }
+    let size = body.len();
+    let mut bytes = b"ID3".to_vec();
+    bytes.extend([3, 0, 0]);
+    bytes.extend([
+        ((size >> 21) & 0x7f) as u8,
+        ((size >> 14) & 0x7f) as u8,
+        ((size >> 7) & 0x7f) as u8,
+        (size & 0x7f) as u8,
+    ]);
+    bytes.extend(body);
+    // The fixture's own audio, past its empty 10-byte tag header.
+    bytes.extend_from_slice(&std::fs::read(fixture("silence.mp3")).unwrap()[10..]);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, bytes).unwrap();
+}
+
+fn gbk(text: &str) -> Vec<u8> {
+    encoding_rs::GBK.encode(text).0.into_owned()
+}
+
+/// The GBK texts of the tests below, as an older build stored them.
+const MISREAD: &[(&str, &str)] = &[
+    ("夜曲", "Ò¹Çú"),
+    ("十一月的萧邦", "Ê®Ò»ÔÂµÄÏô°î"),
+    ("周杰伦", "ÖÜ½ÜÂ×"),
+];
+
+impl Library {
+    /// What a library scanned by an older build holds: each text of
+    /// `misread` stored as it was read then, and the pass not done yet.
+    async fn store_misread(&self, misread: &[(&str, &str)]) {
+        for (from, to) in misread {
+            // The keys the old build computed from the text it had, so that
+            // the scan does not find these rows again by the right spelling.
+            let key = waveflow_core::scanner::canonical_name(to);
+            for sql in [
+                "UPDATE track SET title = ?1 WHERE title = ?2 AND ?3 = ?3",
+                "UPDATE album SET title = ?1, canonical_title = ?3 WHERE title = ?2",
+                "UPDATE artist SET name = ?1, canonical_name = ?3 WHERE name = ?2",
+            ] {
+                sqlx::query(sql)
+                    .bind(to)
+                    .bind(from)
+                    .bind(&key)
+                    .execute(&self.pool)
+                    .await
+                    .unwrap();
+            }
+        }
+        self.clear_setting("scan.legacy_text_backfill_done.1").await;
+    }
+
+    /// `(title, album, artist names in order)` of the track at `path`.
+    async fn text_of(&self, path: &Path) -> (String, Option<String>, Vec<String>) {
+        let (title, album): (String, Option<String>) = sqlx::query_as(
+            "SELECT t.title, al.title FROM track t
+               LEFT JOIN album al ON al.id = t.album_id WHERE t.file_path = ?",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
+        let artists = sqlx::query_scalar(
+            "SELECT ar.name FROM track_artist ta
+               JOIN artist ar ON ar.id = ta.artist_id
+               JOIN track t ON t.id = ta.track_id
+              WHERE t.file_path = ? ORDER BY ta.position",
+        )
+        .bind(path.to_string_lossy().to_string())
+        .fetch_all(&self.pool)
+        .await
+        .unwrap();
+        (title, album, artists)
+    }
+}
+
+/// A GBK tag a library holds as `Ò¹Çú` is read as 夜曲 by the next ordinary
+/// scan, once, with no deep rescan; a Western tag beside it is left alone.
+#[tokio::test]
+async fn the_next_scan_repairs_a_legacy_code_page_tag_already_stored() {
+    let library = Library::new().await;
+    let chinese = library.path("chinese.mp3");
+    mp3_with_raw_latin1_frames(
+        &chinese,
+        &[
+            ("TIT2", &gbk("夜曲")),
+            ("TPE1", &gbk("周杰伦")),
+            ("TALB", &gbk("十一月的萧邦")),
+        ],
+    );
+    let western = library.path("western.mp3");
+    mp3_with_raw_latin1_frames(
+        &western,
+        &[
+            ("TIT2", b"Caf\xe9"),
+            ("TPE1", b"Beyonc\xe9"),
+            ("TALB", b"Se\xf1or"),
+        ],
+    );
+    library.scan().await;
+    assert_eq!(
+        library.text_of(&chinese).await,
+        (
+            "夜曲".into(),
+            Some("十一月的萧邦".into()),
+            vec!["周杰伦".into()]
+        ),
+        "a new file is read right the first time"
+    );
+
+    // What a library scanned by an older build holds, with no pass done yet.
+    library.store_misread(MISREAD).await;
+    let western_before = library.text_of(&western).await;
+    assert_eq!(library.text_of(&chinese).await.0, "Ò¹Çú");
+
+    library.scan().await;
+    assert_eq!(
+        library.text_of(&chinese).await,
+        (
+            "夜曲".into(),
+            Some("十一月的萧邦".into()),
+            vec!["周杰伦".into()]
+        )
+    );
+    assert_eq!(library.text_of(&western).await, western_before);
+    assert_eq!(western_before.0, "Café");
+    assert!(library
+        .setting("scan.legacy_text_backfill_done.1")
+        .await
+        .is_some());
+}
+
+/// A file lofty refused over a frame declaring UTF-8 falsely was listed by its
+/// file name; it reads now, and the pass gives that track its tag.
+#[tokio::test]
+async fn the_next_scan_gives_a_track_listed_by_its_file_name_its_tag() {
+    let library = Library::new().await;
+    let path = library.path("01.mp3");
+    mp3_with_raw_latin1_frames(&path, &[("TIT2", &gbk("夜曲")), ("TPE1", &gbk("周杰伦"))]);
+    // The declaration of UTF-8 (`3`) over GBK bytes, which lofty refuses.
+    let mut bytes = std::fs::read(&path).unwrap();
+    for frame in [b"TIT2", b"TPE1"] {
+        let at = bytes.windows(4).position(|w| w == frame).unwrap();
+        bytes[at + 10] = 3;
+    }
+    std::fs::write(&path, bytes).unwrap();
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "夜曲");
+
+    // What the library held when this file was listed by its name.
+    sqlx::query("UPDATE track SET title = '01', title_from_filename = 1")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM track_artist")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    library
+        .clear_setting("scan.legacy_text_backfill_done.1")
+        .await;
+
+    library.scan().await;
+    let (title, _, artists) = library.text_of(&path).await;
+    assert_eq!(title, "夜曲");
+    assert_eq!(artists, vec!["周杰伦".to_string()]);
+}
+
+/// The tag of the tests below: three GBK fields, as many as the guess needs.
+fn gbk_frames() -> Vec<(&'static str, Vec<u8>)> {
+    vec![
+        ("TIT2", gbk("夜曲")),
+        ("TPE1", gbk("周杰伦")),
+        ("TALB", gbk("十一月的萧邦")),
+    ]
+}
+
+fn frame_refs<'a>(frames: &'a [(&'static str, Vec<u8>)]) -> Vec<(&'static str, &'a [u8])> {
+    frames
+        .iter()
+        .map(|(id, text)| (*id, text.as_slice()))
+        .collect()
+}
+
+/// A file renamed before the pass ran is found again by its bytes; the pass
+/// follows it to its new path rather than keep its misread text there.
+#[tokio::test]
+async fn the_pass_repairs_a_track_whose_file_moved() {
+    let library = Library::new().await;
+    let old = library.path("chinese.mp3");
+    mp3_with_raw_latin1_frames(&old, &frame_refs(&gbk_frames()));
+    library.scan().await;
+    let id = library.id(&old).await;
+    library.store_misread(MISREAD).await;
+
+    let new = library.path("Moved/chinese.mp3");
+    std::fs::create_dir_all(new.parent().unwrap()).unwrap();
+    std::fs::rename(&old, &new).unwrap();
+    library.scan().await;
+    assert_eq!(library.track_path(id).await, new.to_string_lossy());
+    assert_eq!(library.text_of(&new).await.0, "夜曲");
+}
+
+/// A track marked unavailable whose file comes back unchanged is taken up
+/// again by the unchanged branch; the pass repairs it there like the others.
+#[tokio::test]
+async fn the_pass_repairs_a_track_whose_file_comes_back() {
+    let library = Library::new().await;
+    let path = library.path("chinese.mp3");
+    mp3_with_raw_latin1_frames(&path, &frame_refs(&gbk_frames()));
+    library.scan().await;
+    library.store_misread(MISREAD).await;
+    sqlx::query("UPDATE track SET is_available = 0")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "夜曲");
+    let available: i64 = sqlx::query_scalar("SELECT is_available FROM track")
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    assert_eq!(available, 1);
+}
+
+/// A file rewritten only to repair its text keeps the rating stored for it:
+/// as for any unchanged file, the file's own moves it on a deep rescan alone.
+#[tokio::test]
+async fn the_pass_keeps_the_stored_rating() {
+    let library = Library::new().await;
+    let path = library.path("chinese.mp3");
+    let mut frames = gbk_frames();
+    // An empty e-mail, then the rating byte (the helper's encoding byte is
+    // the e-mail's terminator).
+    frames.push(("POPM", vec![128]));
+    mp3_with_raw_latin1_frames(&path, &frame_refs(&frames));
+    library.scan().await;
+    let rating = || async {
+        sqlx::query_scalar::<_, Option<i64>>("SELECT rating FROM track")
+            .fetch_one(&library.pool)
+            .await
+            .unwrap()
+    };
+    let read = rating().await;
+    assert!(
+        read.is_some_and(|r| r != 255),
+        "the file's rating: {read:?}"
+    );
+    sqlx::query("UPDATE track SET rating = 255")
+        .execute(&library.pool)
+        .await
+        .unwrap();
+    library.store_misread(MISREAD).await;
+
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "夜曲");
+    assert_eq!(rating().await, Some(255));
+}
+
+/// A tag the reader refuses says nothing about the text stored for its
+/// track: the row stays as it is, and the pass stays pending.
+#[tokio::test]
+async fn the_pass_leaves_a_track_whose_tag_is_refused() {
+    let library = Library::new().await;
+    let path = library.path("01.mp3");
+    mp3_with_raw_latin1_frames(&path, &frame_refs(&gbk_frames()));
+    // UTF-8 declared over GBK in a tag flagged unsynchronised, which the
+    // second chance does not walk: the reader refuses it.
+    let mut bytes = std::fs::read(&path).unwrap();
+    bytes[5] = 0x80;
+    for frame in [b"TIT2", b"TPE1", b"TALB"] {
+        let at = bytes.windows(4).position(|w| w == frame).unwrap();
+        bytes[at + 10] = 3;
+    }
+    std::fs::write(&path, bytes).unwrap();
+    library.scan().await;
+    assert_eq!(
+        library.text_of(&path).await.0,
+        "01",
+        "listed by its file name"
+    );
+
+    // What the library holds from elsewhere (an older build, the editor).
+    for sql in [
+        "UPDATE track SET title = 'Café', title_from_filename = 0,
+                          rg_track_gain_db = -6.5, track_total = 12",
+        "INSERT INTO genre (id, name, canonical_name) VALUES (90, 'Pop', 'pop')",
+        "INSERT INTO track_genre (track_id, genre_id) SELECT id, 90 FROM track",
+    ] {
+        sqlx::query(sql).execute(&library.pool).await.unwrap();
+    }
+    library
+        .clear_setting("scan.legacy_text_backfill_done.1")
+        .await;
+
+    library.scan().await;
+    assert_eq!(library.text_of(&path).await.0, "Café");
+    let kept: (bool, Option<f64>, Option<i64>, i64) = sqlx::query_as(
+        "SELECT title_from_filename, rg_track_gain_db, track_total,
+                (SELECT COUNT(*) FROM track_genre WHERE genre_id = 90)
+           FROM track",
+    )
+    .fetch_one(&library.pool)
+    .await
+    .unwrap();
+    assert_eq!(kept, (false, Some(-6.5), Some(12), 1), "nothing cleared");
+    assert!(library
+        .setting("scan.legacy_text_backfill_done.1")
+        .await
+        .is_none());
+}

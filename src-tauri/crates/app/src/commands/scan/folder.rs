@@ -380,6 +380,20 @@ pub(crate) async fn scan_folder_inner(
     // the pictures back, with the same marker and retry budget.
     let cover_backfill = ForcedPass::load(pool, "cover_backfill", folder_id, is_network).await;
 
+    // Tags in a legacy code page (GBK, Big5, Shift_JIS) are read as such since
+    // a library already holds them as `Ò¹Çú`, and the fast path never reopens
+    // an unchanged file. One pass per folder re-reads the tracks whose stored
+    // text could be that (see `legacy_text`), and only those; one the scan now
+    // reads differently takes the rewrite branch like a changed file. The same
+    // marker and retry budget, and not on a share.
+    let legacy_text_backfill =
+        ForcedPass::load(pool, "legacy_text_backfill", folder_id, is_network).await;
+    let mut legacy_text_suspects = if legacy_text_backfill.pending {
+        super::legacy_text::suspects(pool, folder_id).await?
+    } else {
+        HashMap::new()
+    };
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     // A share whose folder lists empty while the library holds tracks from it
@@ -498,6 +512,7 @@ pub(crate) async fn scan_folder_inner(
                 };
                 if let Some((disk_size, disk_mtime_ms)) = current {
                     let needs_rg_backfill = rg_backfill.pending && rg_missing.contains(&path_str);
+                    let needs_legacy_text = legacy_text_suspects.contains_key(&path_str);
                     if disk_size == stored_size
                         && disk_mtime_ms == stored_mtime
                         && !needs_rg_backfill
@@ -506,6 +521,7 @@ pub(crate) async fn scan_folder_inner(
                         && !totals_backfill.pending
                         && !artist_backfill.pending
                         && !cover_backfill.pending
+                        && !needs_legacy_text
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -624,6 +640,12 @@ pub(crate) async fn scan_folder_inner(
                 Ok(moved) => {
                     for file in moved {
                         existing_meta.remove(&file.old_path);
+                        // The code page pass knows the track by the path it
+                        // had: it follows the file, or the unchanged branch
+                        // would keep the misread text under the new one.
+                        if let Some(stored) = legacy_text_suspects.remove(&file.old_path) {
+                            legacy_text_suspects.insert(file.new_path.clone(), stored);
+                        }
                         existing_probe.insert(
                             file.new_path,
                             (
@@ -731,6 +753,7 @@ pub(crate) async fn scan_folder_inner(
     let mut totals_backfill_failed = walk_incomplete;
     let mut artist_backfill_failed = walk_incomplete;
     let mut cover_backfill_failed = walk_incomplete;
+    let mut legacy_text_backfill_failed = walk_incomplete;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -787,6 +810,8 @@ pub(crate) async fn scan_folder_inner(
                 totals_backfill_failed |= totals_backfill.pending;
                 artist_backfill_failed |= artist_backfill.pending;
                 cover_backfill_failed |= cover_backfill.pending;
+                legacy_text_backfill_failed |=
+                    legacy_text_suspects.contains_key(path.to_string_lossy().as_ref());
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -800,6 +825,8 @@ pub(crate) async fn scan_folder_inner(
                 totals_backfill_failed |= totals_backfill.pending;
                 artist_backfill_failed |= artist_backfill.pending;
                 cover_backfill_failed |= cover_backfill.pending;
+                legacy_text_backfill_failed |=
+                    legacy_text_suspects.contains_key(path.to_string_lossy().as_ref());
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -847,7 +874,21 @@ pub(crate) async fn scan_folder_inner(
             if let Some(id) = old_album_id {
                 previous_album_ids.insert(id);
             }
-            if mtime == extracted.modified_ms && hash == &extracted.hash {
+            // A track the legacy-code-page pass reads differently now is a
+            // changed one: its title, album and credits are rewritten. Not
+            // when the reader refused the tag: the file's text is still in
+            // it, unread, and taking the empty fields for its answer would
+            // swap the stored title for the file name and drop the album.
+            // The track keeps its row and the pass stays pending.
+            let legacy_text_suspect = legacy_text_suspects.get(&extracted.abs_path);
+            if legacy_text_suspect.is_some() && extracted.tag_refused {
+                legacy_text_backfill_failed = true;
+            }
+            let legacy_text_stale = !extracted.tag_refused
+                && legacy_text_suspect
+                    .is_some_and(|stored| super::legacy_text::stale(stored, &extracted));
+            let unchanged_file = mtime == extracted.modified_ms && hash == &extracted.hash;
+            if unchanged_file && !legacy_text_stale {
                 // Track content hasn't changed — backfill paths only.
                 // See the historical comments at the top of this branch
                 // for context on why these queries still run on a
@@ -897,13 +938,6 @@ pub(crate) async fn scan_folder_inner(
                             codec               = COALESCE(codec, ?),
                             musical_key         = COALESCE(musical_key, ?),
                             rating              = COALESCE(?, rating),
-                            title_from_filename = ?,
-                            rg_track_gain_db    = ?,
-                            rg_track_peak       = ?,
-                            rg_album_gain_db    = ?,
-                            rg_album_peak       = ?,
-                            track_total         = ?,
-                            disc_total          = ?,
                             is_available        = 1
                       WHERE id = ?",
                 )
@@ -920,6 +954,27 @@ pub(crate) async fn scan_folder_inner(
                 // The same rule as the rewriting branch: a file with no
                 // rating leaves the stored one alone.
                 .bind(extracted.rating.filter(|_| deep && !is_network).map(i64::from))
+                .bind(existing_track_id)
+                .execute(&mut *tx)
+                .await?;
+
+                // What the tag says, assigned below, is read from a tag: a
+                // reader that refused it said nothing, and the empty fields
+                // must not clear the stored gains, totals and genres of a
+                // file that has not changed (the code page pass reaches
+                // this branch for such files too).
+                if !extracted.tag_refused {
+                    sqlx::query(
+                    "UPDATE track
+                        SET title_from_filename = ?,
+                            rg_track_gain_db    = ?,
+                            rg_track_peak       = ?,
+                            rg_album_gain_db    = ?,
+                            rg_album_peak       = ?,
+                            track_total         = ?,
+                            disc_total          = ?
+                      WHERE id = ?",
+                )
                 // The one backfill site for the flag, and the only one
                 // that can reach a library scanned before the column
                 // existed. Those rows took the `NOT NULL DEFAULT 0` of
@@ -950,6 +1005,7 @@ pub(crate) async fn scan_folder_inner(
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
+                }
 
                 // Genres too can be stale on an unchanged file: a library
                 // scanned before #729 holds one genre per track, the first
@@ -964,7 +1020,7 @@ pub(crate) async fn scan_folder_inner(
                         .await?;
                 wanted_genres.sort_unstable();
                 stored_genres.sort_unstable();
-                if wanted_genres != stored_genres {
+                if !extracted.tag_refused && wanted_genres != stored_genres {
                     link_genres(&mut tx, existing_track_id, &wanted_genres).await?;
                 }
 
@@ -1240,6 +1296,9 @@ pub(crate) async fn scan_folder_inner(
                         -- A rating set in WaveFlow on a share's track lives
                         -- here alone, since the file cannot be written: the
                         -- file changing on the share must not take it away.
+                        -- Nor a file that did not change at all, rewritten
+                        -- only to repair its text: as in the unchanged
+                        -- branch, its rating moves on a deep rescan alone.
                         rating = CASE WHEN ? THEN COALESCE(rating, ?) ELSE COALESCE(?, rating) END,
                         rg_track_gain_db = ?, rg_track_peak = ?,
                         rg_album_gain_db = ?, rg_album_peak = ?,
@@ -1271,7 +1330,7 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
-                .bind(is_network)
+                .bind(is_network || (unchanged_file && !deep))
                 .bind(extracted.rating.map(|r| r as i64))
                 .bind(extracted.rating.map(|r| r as i64))
                 .bind(extracted.replay_gain.track_gain_db)
@@ -1722,6 +1781,14 @@ pub(crate) async fn scan_folder_inner(
         .await;
     cover_backfill
         .settle(pool, folder_id, summary.cancelled, cover_backfill_failed)
+        .await;
+    legacy_text_backfill
+        .settle(
+            pool,
+            folder_id,
+            summary.cancelled,
+            legacy_text_backfill_failed,
+        )
         .await;
 
     // The ReplayGain pass the same way. A file that failed extraction this

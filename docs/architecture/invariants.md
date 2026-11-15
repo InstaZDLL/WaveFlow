@@ -204,6 +204,16 @@ The check is bounded like what it guards. One check reads 1 GiB at the most, whe
 
 The price of counting: an uppercase "CHAP" written four times into a free-form frame, behind a frame no parser is sure to finish, is refused like the real thing.
 
+### A tag is read through `read_tagged_file`, which repairs a legacy code page
+
+A tag that declares Latin-1 over bytes a CJK system code page wrote reaches lofty as mojibake (`Ò¹Çú` for 夜曲), and lofty drops a Vorbis field whose bytes are not UTF-8. The repair lives in [`read_tagged_file` / `read_tagged_from`](../../src-tauri/crates/core/src/scanner/extract/mod.rs) ([`scanner::legacy_text`](../../src-tauri/crates/core/src/scanner/legacy_text.rs)), so a reader that calls `lofty::read_from_path` for text it shows would show a different title from the scan. Read text through them.
+
+- **Latin-1 is the one encoding nothing can prove wrong**, so a text is converted only when it passes every test of the module (a multi-byte CJK encoding, no replacement character, the whole tag's fields together, a code-page look rather than a Western word) and is otherwise left as lofty read it. A new test for a Western spelling goes in `legacy_text/tests.rs`.
+- **The guess is over the whole tag**, never one field: a title alone is too short.
+- **The repair is before the multi-artist split**: `"; "` is the same byte in every one of these encodings, but a credit split first would be cut inside a character.
+
+Deep dive: [library § tags in a legacy code page](../features/library.md).
+
 ---
 
 ## Audio
