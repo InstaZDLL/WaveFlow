@@ -163,7 +163,7 @@ ape-decoder = "=0.3.2"
 # no build script. Pinned exactly: `audio_format::aac` reads its public
 # layout tables, and the measurements behind adopting it are of this
 # release (see that module).
-rusty_aac = "=2.0.1"
+rusty_aac = "=2.0.2"
 
 # Resampling for playback (`playback` feature).
 rubato = { version = "5.0", optional = true }
