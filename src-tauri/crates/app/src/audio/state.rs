@@ -204,6 +204,11 @@ pub struct SharedPlayback {
     /// Written by the decoder thread at `LoadAndPlay` time, read by
     /// the shutdown hook so it can persist the resume point.
     pub current_track_id: AtomicI64,
+    /// Whether `current_track_id` ran to its end on its own (#1109): set
+    /// with [`PlayerState::Ended`], kept through the `Idle` a `Stop` puts
+    /// it on, cleared by any other state. A finished track has no
+    /// position worth resuming — see [`Self::resume_point`].
+    track_finished: AtomicBool,
     /// When `true`, the cpal output callback writes silence instead of
     /// draining the SPSC ring — making pause audibly instant even when
     /// the decoder has ~1 s of pre-buffered samples. The decoder
@@ -452,6 +457,7 @@ impl SharedPlayback {
             clock_lead_in: AtomicU64::new(0),
             lead_in_is_previous_track: AtomicBool::new(false),
             current_track_id: AtomicI64::new(0),
+            track_finished: AtomicBool::new(false),
             paused_output: AtomicBool::new(false),
             drain_silent: AtomicBool::new(false),
             normalize_enabled: AtomicBool::new(false),
@@ -709,7 +715,55 @@ impl SharedPlayback {
     }
 
     pub fn set_state(&self, state: PlayerState) {
+        // Before the state, so a reader that sees `Ended` sees the track
+        // as finished too.
+        match state {
+            PlayerState::Ended => self.track_finished.store(true, Ordering::Release),
+            // A `Stop` on an ended track lands here, and the track is no
+            // less finished for it. Every way out of `Idle` passes through
+            // one of the states below.
+            PlayerState::Idle => {}
+            PlayerState::Loading | PlayerState::Playing | PlayerState::Paused => {
+                self.track_finished.store(false, Ordering::Release)
+            }
+        }
         self.state.store(state as u8, Ordering::Release);
+    }
+
+    /// The library track that ran to its end on its own and has not been
+    /// replaced since, or `None` (#1109).
+    ///
+    /// Play reads this before the stored resume point: that point is
+    /// written every ten seconds, so right after a track ends it names
+    /// wherever the last write landed, anywhere in the track's last ten
+    /// seconds, and resuming it replayed that stretch and stopped again.
+    pub fn finished_track_id(&self) -> Option<i64> {
+        let track_id = self.current_track_id.load(Ordering::Acquire);
+        (track_id > 0 && self.track_finished.load(Ordering::Acquire)).then_some(track_id)
+    }
+
+    /// The resume point to persist: the library track the decoder is on and
+    /// where it is in it, or `None` when it is on no library track (radio and
+    /// the remote queue use negative ids, nothing loaded is `0`).
+    ///
+    /// A track that ran to its end is saved at `0` (#1109), said outright
+    /// rather than left to `queue::resume_position`. That one starts a
+    /// point in the last two seconds of the duration on record over, and
+    /// the end the decoder reached is only that close to it when the two
+    /// agree: a file whose stored duration runs past its decodable end (an
+    /// estimated length) would come back a few seconds before its end,
+    /// play them, and stop.
+    pub fn resume_point(&self) -> Option<(i64, u64)> {
+        let track_id = self.current_track_id.load(Ordering::Acquire);
+        if track_id <= 0 {
+            return None;
+        }
+        let position_ms = if self.finished_track_id().is_some() {
+            0
+        } else {
+            self.current_position_ms()
+        };
+        Some((track_id, position_ms))
     }
 
     /// Claim the dispatch for `intent`, publishing the claim in the same

@@ -242,7 +242,9 @@ pub fn toggle_play_pause(app: &AppHandle, label: &str) {
     }
 }
 
-/// Load the persisted last track at its saved position and play it.
+/// Load the persisted last track at its saved position and play it — or,
+/// when the track the engine is on ran to its end, that track from its
+/// start ([`queue::resume_target`]).
 ///
 /// Behind both the in-app Play button from idle
 /// (`commands::player::player_resume_last`) and [`toggle_play_pause`].
@@ -307,7 +309,11 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     // One lock for both: two awaits could straddle a profile switch and
     // pair one profile's resume point with the other's id.
     let (pool, profile_id) = state.require_profile_snapshot().await?;
-    let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
+    // A track that ran to its end starts over, whatever the stored point
+    // says (#1109). Its id is this profile's: a profile switch clears the
+    // engine's track before it swaps the pool.
+    let finished = engine.shared().finished_track_id();
+    let Some((track, position_ms)) = queue::resume_target(&pool, finished).await? else {
         return Err(AppError::Other("no resume point available".into()));
     };
     let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;

@@ -12,17 +12,12 @@ use crate::state::AppState;
 /// when there is nothing to come back to.
 ///
 /// Radio and the remote queue use negative sentinels and nothing loaded is
-/// `0`; neither has a `track` row for [`queue::restore_state`] to find.
+/// `0`; neither has a `track` row for [`queue::restore_state`] to find. A
+/// track that ran to its end is named at `0` — see
+/// [`crate::audio::state::SharedPlayback::resume_point`].
 pub(super) fn current_resume_point(app: &AppHandle) -> Option<(i64, u64)> {
     let engine = app.try_state::<Arc<AudioEngine>>()?;
-    let track_id = engine
-        .shared()
-        .current_track_id
-        .load(std::sync::atomic::Ordering::Acquire);
-    if track_id <= 0 {
-        return None;
-    }
-    Some((track_id, engine.shared().current_position_ms()))
+    engine.shared().resume_point()
 }
 
 /// Persist where playback is, so the next launch can offer it back.

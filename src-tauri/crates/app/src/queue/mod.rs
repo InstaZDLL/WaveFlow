@@ -721,6 +721,42 @@ pub(crate) fn resume_position(position_ms: u64, duration_ms: u64) -> u64 {
     }
 }
 
+/// A library track by id, if it is still in the library and available.
+async fn available_track(pool: &SqlitePool, track_id: i64) -> AppResult<Option<QueueTrack>> {
+    sqlx::query_as::<_, QueueTrack>(
+        r#"
+        SELECT t.id, t.file_path, t.duration_ms, t.title,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
+               al.title AS album_title,
+               t.album_id,
+               aw.hash AS artwork_hash,
+               aw.format AS artwork_format,
+               t.bitrate, t.sample_rate, t.channels,
+               t.bit_depth, t.codec,
+               t.file_size
+          FROM track t
+          LEFT JOIN album al ON al.id = t.album_id
+          LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
+         WHERE t.id = ? AND t.is_available = 1
+        "#,
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(Into::into)
+}
+
 /// Startup restore: return the track + position the UI should show at
 /// mount, without starting playback. Priority:
 ///
@@ -731,38 +767,7 @@ pub(crate) fn resume_position(position_ms: u64, duration_ms: u64) -> u64 {
 pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u64)>> {
     if let Some(last_id) = read_setting_i64(pool, "player.last_track_id").await? {
         if last_id > 0 {
-            let row = sqlx::query_as::<_, QueueTrack>(
-                r#"
-                SELECT t.id, t.file_path, t.duration_ms, t.title,
-                       t.primary_artist AS artist_id,
-                       (SELECT GROUP_CONCAT(name, ', ') FROM (
-                          SELECT ar2.name FROM track_artist ta2
-                          JOIN artist ar2 ON ar2.id = ta2.artist_id
-                          WHERE ta2.track_id = t.id
-                          ORDER BY ta2.position
-                       )) AS artist_name,
-                       (SELECT GROUP_CONCAT(id, ',') FROM (
-                          SELECT ta2.artist_id AS id FROM track_artist ta2
-                          WHERE ta2.track_id = t.id
-                          ORDER BY ta2.position
-                       )) AS artist_ids,
-                       al.title AS album_title,
-                       t.album_id,
-                       aw.hash AS artwork_hash,
-                       aw.format AS artwork_format,
-                       t.bitrate, t.sample_rate, t.channels,
-                       t.bit_depth, t.codec,
-                       t.file_size
-                  FROM track t
-                  LEFT JOIN album al ON al.id = t.album_id
-                  LEFT JOIN artwork aw ON aw.id = COALESCE(al.artwork_id, t.artwork_id)
-                 WHERE t.id = ? AND t.is_available = 1
-                "#,
-            )
-            .bind(last_id)
-            .fetch_optional(pool)
-            .await?;
-            if let Some(track) = row {
+            if let Some(track) = available_track(pool, last_id).await? {
                 let pos = read_setting_i64(pool, "player.last_position_ms")
                     .await?
                     .unwrap_or(0)
@@ -776,6 +781,29 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
         Some(t) => Ok(Some((t, 0))),
         None => Ok(None),
     }
+}
+
+/// What Play starts on a player with nothing loaded: the track that ran to
+/// its end, from the start, when the engine names one; the stored resume
+/// point ([`restore_state`]) otherwise (#1109).
+///
+/// The engine is asked first because the stored point lags it. It is
+/// written every ten seconds while a track plays, so right after a track
+/// ends it names wherever the last write landed — anywhere in the last ten
+/// seconds, or the track before for one shorter than that — and resuming
+/// it played that stretch again and stopped, one press of Play after
+/// another. A finished track that has left the library since falls back to
+/// the stored point like any other.
+pub async fn resume_target(
+    pool: &SqlitePool,
+    finished_track_id: Option<i64>,
+) -> AppResult<Option<(QueueTrack, u64)>> {
+    if let Some(track_id) = finished_track_id {
+        if let Some(track) = available_track(pool, track_id).await? {
+            return Ok(Some((track, 0)));
+        }
+    }
+    restore_state(pool).await
 }
 
 /// Persist the last-playing track id + position so the next app
@@ -807,6 +835,9 @@ mod tests;
 
 #[cfg(test)]
 mod step_tests;
+
+#[cfg(test)]
+mod resume_tests;
 
 #[cfg(test)]
 mod fill_queue_tests;
