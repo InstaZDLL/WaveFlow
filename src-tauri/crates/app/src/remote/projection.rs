@@ -42,7 +42,7 @@ use waveflow_core::metadata::name_match::normalize_name;
 use crate::{
     error::AppResult,
     remote::{
-        dto::{SongItem, SyncChange, SyncSnapshot},
+        dto::{ClipField, SongItem, SyncChange, SyncSnapshot},
         mutation::{is_reserved_for_placeholders, PLACEHOLDER_GLOB},
     },
 };
@@ -240,13 +240,24 @@ pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot
 /// `COALESCE(excluded.…, …)` on every optional column: a later sighting
 /// of the same track from a sparser source must not blank fields an
 /// earlier, richer one filled in.
+///
+/// The clip is the one exception, because its `null` is an answer: a source
+/// that leaves the key out keeps what is stored, and a `null` clears a clip
+/// the server no longer has ([`ClipField`]).
 pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResult<()> {
+    // `has_clip` NULL is "the server said nothing", which the upsert below
+    // reads as "keep what is stored".
+    let (clip_flag, clip) = match &song.clip {
+        ClipField::Unsaid => (None, None),
+        ClipField::None => (Some(false), None),
+        ClipField::Some(clip) => (Some(true), Some(clip)),
+    };
     sqlx::query(
         "INSERT INTO remote_track
             (remote_id, title, artist, artist_id, album, album_id, duration_ms, track_no, disc_no,
              year, genre, suffix, bitrate, size, artwork_hash, library_id, full_hash, cached_at,
-             sort_artist, sort_album)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             sort_artist, sort_album, has_clip, clip_format, clip_byte_size)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(remote_id) DO UPDATE SET
             -- A later cache pass for a bare id binds an empty title; keep the
             -- existing one rather than blanking a row we already labelled.
@@ -271,7 +282,15 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
             -- from: a sparser later sighting must not blank a key any more
             -- than it blanks the title it came from.
             sort_artist  = COALESCE(excluded.sort_artist, sort_artist),
-            sort_album   = COALESCE(excluded.sort_album, sort_album)",
+            sort_album   = COALESCE(excluded.sort_album, sort_album),
+            -- Not a COALESCE per column: a `null` clip is an answer that
+            -- clears the format and size with the flag. Only a sighting that
+            -- says nothing (`has_clip` bound NULL) keeps all three.
+            has_clip       = COALESCE(excluded.has_clip, has_clip),
+            clip_format    = CASE WHEN excluded.has_clip IS NULL THEN clip_format
+                                  ELSE excluded.clip_format END,
+            clip_byte_size = CASE WHEN excluded.has_clip IS NULL THEN clip_byte_size
+                                  ELSE excluded.clip_byte_size END",
     )
     .bind(&song.id)
     // An untitled row is still better than no row: the playlist keeps
@@ -301,6 +320,9 @@ pub async fn cache_song(conn: &mut SqliteConnection, song: &SongItem) -> AppResu
     // string and stay consistent that way.
     .bind(song.artist.as_deref().map(normalize_name))
     .bind(song.album.as_deref().map(normalize_name))
+    .bind(clip_flag)
+    .bind(clip.and_then(|clip| clip.format.as_deref()))
+    .bind(clip.and_then(|clip| clip.byte_size))
     .execute(&mut *conn)
     .await?;
     Ok(())
