@@ -2,7 +2,7 @@ import { type LibraryArtistRow } from "../../../lib/tauri/browse";
 import { useRemoteArtworkSrc } from "../../../hooks/useRemoteArtworkSrc";
 import { resolveArtwork } from "../../../lib/tauri/artwork";
 import { FadeInImage } from "../../common/FadeInImage";
-import { type Translator } from "./libraryTypes";
+import type { Translator } from "../../../lib/translator";
 import { type Playlist } from "../../../lib/tauri/playlist";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAlbumArtistContextMenu } from "../../../hooks/useAlbumArtistContextMenu";

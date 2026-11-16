@@ -1,6 +1,6 @@
 import { useBlockedTrackIds } from "../../../lib/networkTracks";
 import { type LibraryTrackRow } from "../../../lib/tauri/browse";
-import { type TracksView, type Translator } from "./libraryTypes";
+import { type TracksView } from "./libraryTypes";
 import {
   listPlaylistsContainingTrack,
   type Playlist,
@@ -48,6 +48,7 @@ import { AlbumLink } from "../../common/AlbumLink";
 import { StarRating } from "../../common/StarRating";
 import { Check, Download, FolderDown, Heart, Pencil, Plus } from "lucide-react";
 import { AddToPlaylistPopover } from "./AddToPlaylistPopover";
+import type { Translator } from "../../../lib/translator";
 
 interface TrackTableProps {
   tracks: LibraryTrackRow[];

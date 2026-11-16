@@ -48,6 +48,7 @@ import {
   openView,
   takeLyricsEditorRequest,
 } from "../../lib/discovery";
+import type { Translator } from "../../lib/translator";
 
 /**
  * Spotify-style right-edge panel showing the currently-playing track's
@@ -790,7 +791,7 @@ function EmptyState({ icon, text }: { icon?: React.ReactNode; text: string }) {
 
 function sourceLabel(
   payload: LyricsPayload,
-  t: (key: string) => string,
+  t: Translator,
   pluginNames: Record<string, string>,
 ): string {
   switch (payload.source) {

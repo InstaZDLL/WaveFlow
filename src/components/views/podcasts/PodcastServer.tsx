@@ -26,6 +26,7 @@ import {
 } from "../../../lib/tauri/podcastServer";
 import { formatDate, formatDateTime, formatLength } from "./format";
 import { PodcastSubscribeForm } from "./PodcastSubscribeForm";
+import type { Translator } from "../../../lib/translator";
 
 /** What a row of a server's channel can ask for. */
 export interface ServerEpisodeActions {
@@ -42,7 +43,7 @@ export interface ServerPlayerState {
 }
 
 function title(
-  t: (key: string) => string,
+  t: Translator,
   value: string,
   fallback: "podcasts.untitledChannel" | "podcasts.untitledEpisode",
 ) {

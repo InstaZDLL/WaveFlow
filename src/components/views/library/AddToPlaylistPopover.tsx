@@ -1,5 +1,5 @@
 import { type Playlist } from "../../../lib/tauri/playlist";
-import { type Translator } from "./libraryTypes";
+import type { Translator } from "../../../lib/translator";
 import { useLayoutEffect, useRef, useState } from "react";
 import { resolvePlaylistColor } from "../../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../../lib/PlaylistIcon";

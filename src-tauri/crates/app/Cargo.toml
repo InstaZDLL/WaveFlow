@@ -214,8 +214,8 @@ fast_image_resize = "6"
 # today, future families). default-features disabled because we don't
 # rasterise text or embedded raster — the SVGs are pure shapes/gradients,
 # which trims ~2 MB of font + image-codec deps from the bundle.
-resvg = { version = "0.49", default-features = false }
-usvg = { version = "0.49", default-features = false }
+resvg = { version = "0.50", default-features = false }
+usvg = { version = "0.50", default-features = false }
 tiny-skia = "0.12"
 anyhow = "1"
 
@@ -362,7 +362,7 @@ gtk = "0.18"
 # without it. Windows only: on Linux the feature does nothing without
 # D-Bus, and macOS's render thread is CoreAudio's.
 cpal = { version = "0.18", features = ["realtime"] }
-wasapi = "0.26"
+wasapi = "0.27"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_System_Com",

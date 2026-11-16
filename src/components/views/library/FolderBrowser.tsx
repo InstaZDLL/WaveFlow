@@ -4,7 +4,7 @@ import {
   type FolderNode,
 } from "../../../lib/tauri/browse";
 import { openTagWorkshop } from "../../../lib/tagWorkshop";
-import { type Translator } from "./libraryTypes";
+import type { Translator } from "../../../lib/translator";
 import { type Playlist } from "../../../lib/tauri/playlist";
 import { useEffect, useMemo, useState } from "react";
 import {

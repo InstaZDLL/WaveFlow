@@ -17,9 +17,7 @@ import {
 } from "../../lib/deviceCapabilities";
 import { isHiRes } from "../../lib/hiRes";
 import { endCornerOrigin } from "../../lib/direction";
-
-/** Translator, narrowed to what this file uses. */
-type Translator = (key: string, options?: Record<string, unknown>) => string;
+import type { Translator } from "../../lib/translator";
 
 /** Which question the answer came from, in words (#593). */
 const SOURCE_KEY: Record<DeviceCapabilities["source"], string> = {
