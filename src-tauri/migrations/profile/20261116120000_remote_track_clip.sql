@@ -32,4 +32,9 @@ ALTER TABLE remote_track ADD COLUMN clip_byte_size INTEGER;
 -- version arrived would never be offered. Clearing the stamps makes every
 -- album stale once; the next walk re-fetches it and fills the columns, and
 -- it is incremental again afterwards (as in 20260826180000).
+--
+-- That reaches every track on an album. A single that belongs to none is not
+-- walked, and the sweep does not fetch a track it already holds; for those,
+-- `mirror::to_fetch` reads a held row again while its `has_clip` is NULL and
+-- another row shows the server sends the field, which happens once.
 UPDATE remote_album SET mirrored_at = NULL;
