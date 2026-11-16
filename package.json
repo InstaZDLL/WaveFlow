@@ -34,7 +34,7 @@
     "@tauri-apps/plugin-notification": "^2.8.1",
     "@tauri-apps/plugin-opener": "^2.7.3",
     "@tauri-apps/plugin-updater": "^2.14.1",
-    "framer-motion": "^14.13.0",
+    "framer-motion": "^14.14.0",
     "i18next": "^27.1.1",
     "i18next-browser-languagedetector": "^8.3.0",
     "lucide-react": "^1.72.0",
