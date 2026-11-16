@@ -23,6 +23,7 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
+import type { Translator } from "../../lib/translator";
 
 interface LikedViewProps {
   onNavigateToAlbum: (albumId: number) => void;
@@ -373,7 +374,7 @@ function LikedTrackList({
 }
 
 interface LikedSkeletonProps {
-  t: (key: string, options?: Record<string, unknown>) => string;
+  t: Translator;
 }
 
 function LikedSkeleton({ t }: LikedSkeletonProps) {

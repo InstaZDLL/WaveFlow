@@ -7,9 +7,7 @@ import {
 import { splitArtist } from "../../../lib/tauri/artistOverrides";
 import { useProfileSetting } from "../../../hooks/useProfileSetting";
 import { useProfile } from "../../../hooks/useProfile";
-
-/** See the note in `TrackTableHeader`. */
-type Translator = (key: string, options?: Record<string, unknown>) => string;
+import type { Translator } from "../../../lib/translator";
 
 const DISMISSED_KEY = "inventory.dismissed_phantoms";
 const DISMISSED_EVENT = "waveflow:inventory-dismissed-phantoms-changed";

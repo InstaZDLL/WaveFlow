@@ -8,17 +8,12 @@ import {
   type ColumnLayout,
 } from "../../../lib/trackColumns";
 import { interfaceIsRtl } from "../../../lib/direction";
+import type { Translator } from "../../../lib/translator";
 
 /** How much one arrow key moves a column edge. `Shift` multiplies it,
  *  which is the convention every slider in the app already uses. */
 const KEY_STEP = 8;
 const KEY_STEP_LARGE = 48;
-
-/** The narrow slice of `t` this file needs. Mirrors the alias in
- *  `libraryTypes.ts`, the one `TrackTable` takes, which is where this
- *  header is rendered from: importing i18next's `TFunction` instead makes
- *  the prop incompatible with the `t` the caller already has. */
-type Translator = (key: string, options?: Record<string, unknown>) => string;
 
 export interface TrackSort {
   orderBy: string;

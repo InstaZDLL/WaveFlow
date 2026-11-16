@@ -1,5 +1,5 @@
 import { type GenreRow } from "../../../lib/tauri/browse";
-import { type Translator } from "./libraryTypes";
+import type { Translator } from "../../../lib/translator";
 import { Artwork } from "../../common/Artwork";
 import { Tags } from "lucide-react";
 

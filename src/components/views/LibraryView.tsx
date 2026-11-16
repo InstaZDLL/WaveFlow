@@ -108,7 +108,7 @@ import {
 import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import { BatchTagEditModal } from "../common/BatchTagEditModal";
 import { playerAddToQueue, playerPlayNext } from "../../lib/tauri/player";
-import { type TracksView, type Translator } from "./library/libraryTypes";
+import { type TracksView } from "./library/libraryTypes";
 import { toLocalTrack } from "./library/toLocalTrack";
 
 import {
@@ -125,6 +125,7 @@ import {
   TrackTable,
   YearList,
 } from "./library/tabs";
+import type { Translator } from "../../lib/translator";
 
 interface LibraryViewProps {
   activeTab: LibraryTab;

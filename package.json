@@ -35,13 +35,13 @@
     "@tauri-apps/plugin-opener": "^2.7.3",
     "@tauri-apps/plugin-updater": "^2.14.1",
     "framer-motion": "^14.13.0",
-    "i18next": "^26.7.2",
+    "i18next": "^27.1.1",
     "i18next-browser-languagedetector": "^8.3.0",
     "lucide-react": "^1.72.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-i18next": "^17.1.13",
+    "react-i18next": "^18.0.1",
     "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
