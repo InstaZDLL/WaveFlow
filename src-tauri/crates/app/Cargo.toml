@@ -163,7 +163,7 @@ symphonia = { version = "0.6", default-features = false, features = [
     # lofty for the actual tag read, so this is purely for probe accuracy).
     "all-meta",
 ] }
-cpal = "0.17"
+cpal = "0.18"
 rtrb = "0.4"
 crossbeam-channel = "0.5"
 # FFT for the spectrum visualizer. realfft is a thin wrapper over
@@ -330,7 +330,7 @@ tokio = { version = "1", features = ["test-util"] }
 # Also lets us silence ALSA's noisy stderr probe warnings around cpal
 # enumeration.
 [target.'cfg(target_os = "linux")'.dependencies]
-alsa = "0.10"
+alsa = "0.11"
 libc = "0.2"
 # `org.freedesktop.ReserveDevice1`, the protocol that asks PipeWire /
 # PulseAudio to let go of a card so the DoP path can open it as `hw:`
@@ -356,6 +356,12 @@ gtk = "0.18"
 # event-handle APIs from the exclusive-mode output thread without
 # going through `wasapi`'s less ergonomic wrappers.
 [target.'cfg(target_os = "windows")'.dependencies]
+# cpal 0.17 raised its WASAPI render thread to time-critical on its own;
+# 0.18 does it only under `realtime` (MMCSS, falling back to
+# time-critical), and leaves the shared output at normal priority
+# without it. Windows only: on Linux the feature does nothing without
+# D-Bus, and macOS's render thread is CoreAudio's.
+cpal = { version = "0.18", features = ["realtime"] }
 wasapi = "0.26"
 windows = { version = "0.62", features = [
     "Win32_Foundation",

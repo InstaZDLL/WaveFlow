@@ -19,7 +19,7 @@
 //! it only reads from `rtrb::Consumer` and mutates atomics in
 //! [`SharedPlayback`].
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
@@ -507,12 +507,14 @@ fn output_thread_main(
     // Kept here as well as in the error callback so the receiver never
     // disconnects while the thread waits on it.
     let (stall_tx, stall_rx) = bounded::<()>(1);
+    let notices = Arc::new(StreamNotices::default());
     let (stream, opened_device, format) = match build_stream(
         shared.clone(),
         consumer,
         app.clone(),
         device_name,
         stall_tx.clone(),
+        notices.clone(),
     ) {
         Ok(pair) => pair,
         Err(err) => {
@@ -541,14 +543,19 @@ fn output_thread_main(
 
     // Park until the engine says shutdown. The Stream runs its callback
     // on its own (WASAPI-managed) thread on Windows, so we just need to
-    // keep the Stream alive here.
+    // keep the Stream alive here — and log, now and then, what the error
+    // callback only noted (`StreamNotices`).
     let opened_at = std::time::Instant::now();
-    let stalled = crossbeam_channel::select! {
-        recv(shutdown_rx) -> _ => false,
-        recv(stall_rx) -> _ => true,
+    let stalled = loop {
+        crossbeam_channel::select! {
+            recv(shutdown_rx) -> _ => break false,
+            recv(stall_rx) -> _ => break true,
+            default(XRUN_LOG_EVERY) => notices.log(),
+        }
     };
     drop(stream);
     drop(stall_tx);
+    notices.log();
     if stalled {
         retry_stalled_output(&app, &shutdown_rx, opened_at.elapsed());
     } else if opened_at.elapsed() >= STALL_HOLD {
@@ -557,6 +564,54 @@ fn output_thread_main(
         STALL_STREAK.store(0, Ordering::Relaxed);
     }
     tracing::debug!("audio output thread exiting");
+}
+
+/// How often the output thread logs the notices the error callback noted.
+const XRUN_LOG_EVERY: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// What a stream's error callback notes for the output thread to log.
+///
+/// That callback runs on the audio thread on ALSA and WASAPI, where nothing
+/// is logged: it counts, the output thread writes the line. An error that
+/// pauses playback is the exception, logged once where it happens, as the
+/// storm allows.
+#[derive(Default)]
+pub(super) struct StreamNotices {
+    /// Underruns cpal recovered from.
+    xruns: AtomicU64,
+    /// The device changed under a stream that plays on.
+    device_changed: AtomicU64,
+    /// The OS refused the callback thread a real-time priority.
+    realtime_denied: AtomicU64,
+    /// The stream was invalidated; the output thread rebuilds it.
+    invalidated: AtomicBool,
+}
+
+impl StreamNotices {
+    /// One line for each kind noted since the last call, if any.
+    fn log(&self) {
+        let xruns = self.xruns.swap(0, Ordering::Relaxed);
+        if xruns > 0 {
+            tracing::info!(
+                count = xruns,
+                "audio output underran; cpal recovered the stream"
+            );
+        }
+        let changed = self.device_changed.swap(0, Ordering::Relaxed);
+        if changed > 0 {
+            tracing::info!(count = changed, "audio device changed; the stream plays on");
+        }
+        let denied = self.realtime_denied.swap(0, Ordering::Relaxed);
+        if denied > 0 {
+            tracing::info!(
+                count = denied,
+                "audio callback denied a real-time priority; the stream plays on"
+            );
+        }
+        if self.invalidated.swap(false, Ordering::Relaxed) {
+            tracing::warn!("cpal stream invalidated; dropping it and rebuilding the output");
+        }
+    }
 }
 
 /// Consecutive streams that got stuck soon after they opened. Process
@@ -637,8 +692,37 @@ fn build_stream(
     app: AppHandle,
     device_name: Option<String>,
     stall_tx: Sender<()>,
+    notices: Arc<StreamNotices>,
 ) -> AppResult<(Stream, Option<String>, StreamFormat)> {
-    silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name, stall_tx))
+    silence_alsa_stderr(|| {
+        build_stream_inner(shared, consumer, app, device_name, stall_tx, notices)
+    })
+}
+
+/// The device the OS default output is right now, as a fixed endpoint.
+///
+/// Since cpal 0.18 the handle `default_output_device` returns on Windows
+/// and macOS follows the system default by itself: a stream built on it
+/// reroutes when the default moves and reports the move as an error
+/// (`StreamInvalidated` on WASAPI, `DeviceChanged` on CoreAudio). Moving
+/// to a new default is the engine's job (#627) — it reopens with the
+/// user's settings and keeps playing — so the stream is built on the
+/// enumerated endpoint with the same id instead, as cpal 0.17 did. ALSA's
+/// default is the `default` PCM either way.
+fn default_output_endpoint(host: &cpal::Host) -> AppResult<cpal::Device> {
+    let default = host
+        .default_output_device()
+        .ok_or_else(|| AppError::Audio("no default audio output device".into()))?;
+    #[cfg(not(target_os = "linux"))]
+    if let (Ok(id), Ok(devices)) = (default.id(), host.output_devices()) {
+        if let Some(endpoint) = devices
+            .into_iter()
+            .find(|d| d.id().is_ok_and(|other| other == id))
+        {
+            return Ok(endpoint);
+        }
+    }
+    Ok(default)
 }
 
 fn build_stream_inner(
@@ -647,6 +731,7 @@ fn build_stream_inner(
     app: AppHandle,
     device_name: Option<String>,
     stall_tx: Sender<()>,
+    notices: Arc<StreamNotices>,
 ) -> AppResult<(Stream, Option<String>, StreamFormat)> {
     let host = cpal::default_host();
     // If a specific device was requested, look it up by name. If the
@@ -671,14 +756,11 @@ fn build_stream_inner(
                         device = %name,
                         "requested output device not found, falling back to default"
                     );
-                    host.default_output_device()
-                        .ok_or_else(|| AppError::Audio("no default audio output device".into()))?
+                    default_output_endpoint(&host)?
                 }
             }
         }
-        None => host
-            .default_output_device()
-            .ok_or_else(|| AppError::Audio("no default audio output device".into()))?,
+        None => default_output_endpoint(&host)?,
     };
 
     // Read the name off the device we ended up with, not the one we
@@ -697,10 +779,17 @@ fn build_stream_inner(
     let sample_rate = default_cfg.sample_rate();
     let config: StreamConfig = default_cfg.into();
 
+    // cpal 0.18 ranks the integer formats by width when a device has no
+    // `F32` (`I32` > `I24` > `I16`), so a raw `hw:` PCM now opens at its
+    // widest format rather than at 16 bits.
+    let open = (consumer, shared, app, stall_tx, notices);
     let stream = match sample_format {
-        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app, stall_tx),
-        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app, stall_tx),
-        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app, stall_tx),
+        SampleFormat::F32 => open_stream::<f32>(&device, config, open),
+        SampleFormat::F64 => open_stream::<f64>(&device, config, open),
+        SampleFormat::I32 => open_stream::<i32>(&device, config, open),
+        SampleFormat::I24 => open_stream::<cpal::I24>(&device, config, open),
+        SampleFormat::I16 => open_stream::<i16>(&device, config, open),
+        SampleFormat::U16 => open_stream::<u16>(&device, config, open),
         other => Err(AppError::Audio(format!(
             "unsupported sample format: {other:?}"
         ))),
@@ -749,6 +838,10 @@ impl StreamFormat {
         shared.output_layout.store(layout, Ordering::Release);
         shared.set_sample_format(match self.sample_format {
             SampleFormat::F32 => super::state::OutputSampleFormat::F32,
+            SampleFormat::I32 => super::state::OutputSampleFormat::S32,
+            // cpal's `I24` is 24 bits in a 32-bit container
+            // (`SampleFormat::sample_size` is 4), on every backend.
+            SampleFormat::I24 => super::state::OutputSampleFormat::S24In32,
             SampleFormat::I16 => super::state::OutputSampleFormat::S16,
             SampleFormat::U16 => super::state::OutputSampleFormat::U16,
             _ => super::state::OutputSampleFormat::Unknown,
@@ -792,6 +885,10 @@ struct StreamErrorStorm {
     window_start: Option<std::time::Instant>,
     in_window: u32,
     total: u32,
+    /// Xruns are counted apart: cpal recovers from each one, so they make
+    /// a storm only at a rate no recovering stream can reach.
+    xrun_window_start: Option<std::time::Instant>,
+    xruns_in_window: u32,
 }
 
 impl StreamErrorStorm {
@@ -804,8 +901,40 @@ impl StreamErrorStorm {
     /// turned down for the same reason as the request before it.
     const RETRY: std::time::Duration =
         super::engine::REBUILD_SETTLE_WINDOW.saturating_add(std::time::Duration::from_secs(1));
+    /// Xruns within [`Self::WINDOW`] that make a storm. A stream that
+    /// recovers underruns at most once a period — a few hundred a second
+    /// at the smallest periods, 24 a second measured under a PipeWire
+    /// quantum forced to twice the period — while a backend that fails to
+    /// recover loops millions of times a second.
+    const XRUN_THRESHOLD: u32 = 1000;
 
-    /// `device_gone`: the error is `DeviceNotAvailable`.
+    /// An xrun cpal has already recovered from (`ErrorKind::Xrun`): it is
+    /// never reported — the stream plays on — and asks for a rebuild only
+    /// when xruns come faster than any recovering stream produces them.
+    fn on_xrun(&mut self, now: std::time::Instant) -> StormAction {
+        match self.xrun_window_start {
+            Some(start) if now.duration_since(start) < Self::WINDOW => {
+                self.xruns_in_window = self.xruns_in_window.saturating_add(1);
+            }
+            _ => {
+                self.xrun_window_start = Some(now);
+                self.xruns_in_window = 1;
+            }
+        }
+        let due = self
+            .last_rebuild
+            .map_or(true, |last| now.duration_since(last) >= Self::RETRY);
+        if self.xruns_in_window < Self::XRUN_THRESHOLD || !due {
+            return StormAction::Quiet;
+        }
+        self.last_rebuild = Some(now);
+        StormAction::Rebuild {
+            errors: self.xruns_in_window,
+        }
+    }
+
+    /// `device_gone`: the stream cannot play on and only a rebuild brings
+    /// it back — the device went away, or the stream was invalidated.
     fn on_error(&mut self, now: std::time::Instant, device_gone: bool) -> StormAction {
         self.total = self.total.saturating_add(1);
         match self.window_start {
@@ -846,16 +975,59 @@ impl StreamErrorStorm {
     }
 }
 
+/// What one error from a cpal stream says about the stream.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StreamErrorClass {
+    /// An underrun cpal has already recovered from; the stream plays on.
+    Recovered,
+    /// A notice that leaves the stream playing: a default-device stream
+    /// rerouted by the OS, or real-time scheduling refused.
+    PlaysOn,
+    /// The stream is over but the device is still there: cpal 0.18 on
+    /// macOS pauses the stream itself and says `StreamInvalidated` when
+    /// another app changes the device's sample rate, and WASAPI says it
+    /// for `AUDCLNT_E_RESOURCES_INVALIDATED`. Nothing more will come from
+    /// such a stream, so a single one has to lead to a rebuild.
+    Invalidated,
+    /// Something went wrong with the stream; `device_gone` when the
+    /// device itself went away.
+    Fault { device_gone: bool },
+}
+
+fn stream_error_class(kind: cpal::ErrorKind) -> StreamErrorClass {
+    match kind {
+        cpal::ErrorKind::Xrun => StreamErrorClass::Recovered,
+        cpal::ErrorKind::DeviceChanged | cpal::ErrorKind::RealtimeDenied => {
+            StreamErrorClass::PlaysOn
+        }
+        cpal::ErrorKind::StreamInvalidated => StreamErrorClass::Invalidated,
+        cpal::ErrorKind::DeviceNotAvailable => StreamErrorClass::Fault { device_gone: true },
+        _ => StreamErrorClass::Fault { device_gone: false },
+    }
+}
+
+/// The largest sample that converts to `I24` without overflow:
+/// `(2^23 - 1) / 2^23`, exact in an `f32`.
+const I24_CEILING: f32 = 8_388_607.0 / 8_388_608.0;
+
+/// What a stream's two callbacks own: the ring's consumer and the shared
+/// state for the data callback; the app handle, the stall signal and the
+/// notices the output thread logs ([`StreamNotices`]) for the error callback.
+type StreamParts = (
+    Consumer<f32>,
+    Arc<SharedPlayback>,
+    AppHandle,
+    Sender<()>,
+    Arc<StreamNotices>,
+);
+
 /// Generic stream builder parameterized by the device's native sample
 /// format. We always decode into `f32` internally and let cpal convert
 /// to whatever the device wants at the last second via `FromSample`.
 fn open_stream<T>(
     device: &cpal::Device,
-    config: &StreamConfig,
-    mut consumer: Consumer<f32>,
-    shared: Arc<SharedPlayback>,
-    app: AppHandle,
-    stall_tx: Sender<()>,
+    config: StreamConfig,
+    (mut consumer, shared, app, stall_tx, notices): StreamParts,
 ) -> AppResult<Stream>
 where
     T: cpal::SizedSample + cpal::FromSample<f32> + Send + 'static,
@@ -880,12 +1052,59 @@ where
     // and turns a storm into a stall signal: the output thread drops the
     // stream — which stops the loop, where silencing it alone did not —
     // and rebuilds on a backoff ([`retry_stalled_output`]).
+    //
+    // Not every error is a fault. Since cpal 0.18 an underrun arrives as
+    // `ErrorKind::Xrun` *after* cpal has recovered from it: its ALSA loop
+    // re-prepares the PCM and plays on (a failed re-prepare is reported
+    // as an error of its own). PipeWire underruns whenever it reshapes its
+    // graph — another app opening a stream, a quantum change — and 0.17
+    // answered each one with a `POLLERR` loop that only the storm's
+    // rebuild ended, a 1-2 s cut every time (#1103). An xrun is therefore
+    // only counted and makes a storm only at a rate no recovering stream
+    // reaches ([`StreamErrorStorm::on_xrun`]). On ALSA and WASAPI this
+    // closure runs on the audio thread: what does not pause playback is
+    // noted in `notices` and logged by the output thread.
     let err_shared = shared.clone();
     let err_app = app.clone();
+    // The conversion to `I24` does not saturate: +1.0 becomes 2^23, one
+    // past the format's largest value, which the 24 bits of an `S24LE`
+    // word read as -2^23 — a full-scale click on every positive peak.
+    // `i16` and `i32` saturate in the cast, and floats are written as is.
+    let bound_i24 = T::FORMAT == SampleFormat::I24;
     let mut storm = StreamErrorStorm::default();
-    let err_fn = move |err: cpal::StreamError| {
-        let device_gone = matches!(err, cpal::StreamError::DeviceNotAvailable);
-        match storm.on_error(std::time::Instant::now(), device_gone) {
+    let err_fn = move |err: cpal::Error| {
+        let now = std::time::Instant::now();
+        let action = match stream_error_class(err.kind()) {
+            StreamErrorClass::Recovered => {
+                notices.xruns.fetch_add(1, Ordering::Relaxed);
+                storm.on_xrun(now)
+            }
+            StreamErrorClass::PlaysOn => {
+                let count = if err.kind() == cpal::ErrorKind::RealtimeDenied {
+                    &notices.realtime_denied
+                } else {
+                    &notices.device_changed
+                };
+                count.fetch_add(1, Ordering::Relaxed);
+                StormAction::Quiet
+            }
+            // Handed to the output thread like a storm, rather than to the
+            // device-loss rebuild: that one is dropped when the rebuild gate
+            // is settling, and an invalidated stream says nothing again,
+            // while the output thread drops the stream and asks until a
+            // rebuild replaces it. The device is still there, so nothing is
+            // reported to the user and the rebuild resumes playback.
+            StreamErrorClass::Invalidated => {
+                // Once per stream: the output thread logs it as it drops the
+                // stream.
+                if !notices.invalidated.swap(true, Ordering::Relaxed) {
+                    let _ = stall_tx.try_send(());
+                }
+                StormAction::Quiet
+            }
+            StreamErrorClass::Fault { device_gone } => storm.on_error(now, device_gone),
+        };
+        match action {
             StormAction::Report { rebuild } => {
                 tracing::warn!(?err, "cpal stream error");
                 notify_device_lost(&err_app, &err_shared, format!("audio device error: {err}"));
@@ -893,6 +1112,12 @@ where
                     // The erroring handle is still parked in the engine's
                     // `self.output`, so the rebuild can self-resolve its device.
                     schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
+                    // That request is dropped while the rebuild gate settles,
+                    // and since cpal 0.18 a lost ALSA device says so once and
+                    // stops, where 0.17 looped on `POLLERR` into a storm. The
+                    // output thread also drops the dead stream and asks until
+                    // a rebuild replaces it; the gate collapses the overlap.
+                    let _ = stall_tx.try_send(());
                 }
             }
             StormAction::Rebuild { errors } => {
@@ -961,7 +1186,12 @@ where
                         }
                         Err(_) => 0.0,
                     };
-                    *slot = T::from_sample(sample * volume * norm_gain);
+                    let value = sample * volume * norm_gain;
+                    *slot = T::from_sample(if bound_i24 {
+                        value.min(I24_CEILING)
+                    } else {
+                        value
+                    });
                 }
 
                 if written > 0 {
