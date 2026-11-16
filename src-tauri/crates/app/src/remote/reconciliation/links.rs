@@ -401,7 +401,18 @@ pub async fn linked_local_file(
     .bind(remote_track_id)
     .fetch_optional(pool)
     .await?;
-    Ok(path.map(PathBuf::from).filter(|path| path.is_file()))
+    let Some(path) = path.map(PathBuf::from) else {
+        return Ok(None);
+    };
+    // Off the runtime, like the clip lookup that follows: the folder can be
+    // on a spun-down drive.
+    let exists = tokio::task::spawn_blocking({
+        let path = path.clone();
+        move || path.is_file()
+    })
+    .await
+    .unwrap_or(false);
+    Ok(exists.then_some(path))
 }
 
 pub async fn preferred_local_playback(
