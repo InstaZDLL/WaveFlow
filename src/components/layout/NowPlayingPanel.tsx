@@ -42,6 +42,7 @@ import { CanvasToggleButton } from "../player/CanvasToggleButton";
 import { ClipVideo } from "../player/ClipVideo";
 import { useTrackClip } from "../../hooks/useTrackClip";
 import {
+  isClipOfTrack,
   openClipForTrack,
   requestBackToAudio,
   useClipState,
@@ -423,7 +424,9 @@ export function NowPlayingPanel({
   // The track's music video (#1073). It plays here, in place of the cover,
   // unless the immersive view is open, which shows it enlarged instead
   // (`ClipHost` keeps one surface at a time).
-  const trackClip = useTrackClip(currentTrack);
+  // A server track the mirror knows nothing about is asked of the server
+  // here, once per track that comes up.
+  const trackClip = useTrackClip(currentTrack, true);
   const clipState = useClipState();
   const clipOpen = clipState.clip !== null;
   const clipInPanel = clipOpen && !immersiveOpen;
@@ -513,7 +516,9 @@ export function NowPlayingPanel({
   // A clip opened from the menu of another track than the one playing says
   // whose it is, and shows on its own (see the body below).
   const foreignClip =
-    clipInPanel && clipState.clip?.trackId !== currentTrack?.id
+    clipInPanel &&
+    clipState.clip !== null &&
+    !isClipOfTrack(clipState.clip, currentTrack)
       ? clipState.clip
       : null;
   const clipIdentity = foreignClip ? (
@@ -538,11 +543,7 @@ export function NowPlayingPanel({
           if (clipOpen) {
             requestBackToAudio("user");
           } else if (trackClip && currentTrack) {
-            openClipForTrack(
-              currentTrack,
-              trackClip.localPath,
-              currentTrack.id,
-            );
+            openClipForTrack(currentTrack, trackClip, currentTrack);
           }
         }}
         aria-pressed={clipOpen}

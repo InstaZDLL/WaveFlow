@@ -13,6 +13,13 @@
 //! its own, ranges included. This module is [`super::canvas`]'s shape with one
 //! difference, the expiry.
 //!
+//! ## Offered from the mirror, minted when it opens
+//!
+//! Whether a track has a clip is read from the mirror ([`known`],
+//! [`on_server`]), so offering one costs no request; the ticket is minted when
+//! the clip opens, and again to renew it. A track reconciled with a local file
+//! plays the clip beside that file first (`commands::clip`).
+//!
 //! ## The expiry travels with the URL
 //!
 //! A Canvas plays for a few seconds and is minted again with the next track. A
@@ -39,6 +46,7 @@
 //! this build cannot read), so it is reported rather than read as "no clip".
 
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 
 use crate::{
     error::{AppError, AppResult},
@@ -62,6 +70,46 @@ struct ClipTicketResponse {
     /// Relative, e.g. `/api/v2/clip-stream/<ticket>`.
     url: String,
     expires_at: i64,
+}
+
+/// What the mirror knows of `remote_track_id`'s clip: `Some(true)` when the
+/// server named one, `Some(false)` when it said `null`, and `None` when it said
+/// nothing (a server older than the field, a row not read again since this
+/// version) or the track is not mirrored at all.
+pub async fn known(pool: &SqlitePool, remote_track_id: &str) -> AppResult<Option<bool>> {
+    let has_clip: Option<Option<i64>> =
+        sqlx::query_scalar("SELECT has_clip FROM remote_track WHERE remote_id = ?")
+            .bind(remote_track_id)
+            .fetch_optional(pool)
+            .await?;
+    Ok(has_clip.flatten().map(|flag| flag == 1))
+}
+
+/// Whether the server has a clip for `remote_track_id`, to offer it.
+///
+/// Read from the mirror, so a menu asks nothing of the network. When the
+/// mirror knows nothing and `probe` is set, the server is asked: the mint
+/// answers the question a missing `has_clip` leaves open, and the ticket is
+/// thrown away, since the one that plays is minted when the clip opens. The
+/// now-playing track probes, a menu does not: one request per track that
+/// starts is the price of a row the mirror has not read again, one per menu
+/// opened would not be.
+///
+/// Offline, a server clip cannot play, so it is not offered.
+pub async fn on_server(
+    state: &AppState,
+    pool: &SqlitePool,
+    remote_track_id: &str,
+    probe: bool,
+) -> AppResult<bool> {
+    if crate::offline::is_offline() {
+        return Ok(false);
+    }
+    match known(pool, remote_track_id).await? {
+        Some(has_clip) => Ok(has_clip),
+        None if probe => Ok(ticket(state, remote_track_id).await?.is_some()),
+        None => Ok(false),
+    }
 }
 
 /// A ticket for the clip of the server track `remote_track_id`, or `None` when

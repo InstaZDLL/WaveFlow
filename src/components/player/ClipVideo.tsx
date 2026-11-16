@@ -13,12 +13,26 @@ import {
   playClipElement,
   reportClipProgress,
   requestBackToAudio,
+  unmarkClipPositioned,
   useClipState,
+  type ClipFailure,
 } from "../../lib/clipPlayer";
+import { playServerClip } from "../../lib/clipServerSource";
+import type { ClipSource } from "../../lib/tauri/clip";
 
 /** Stop the clip this far before its end when the track's position would
  *  put it past it, so switching late in a song still shows a frame. */
 const END_MARGIN_MS = 1000;
+
+/** What the panel says in place of a clip that cannot play. */
+const FAILURE_TEXT: Record<ClipFailure, { title: string; body: string }> = {
+  unplayable: { title: "clip.unplayableTitle", body: "clip.unplayableBody" },
+  gone: { title: "clip.goneTitle", body: "clip.goneBody" },
+  unreachable: {
+    title: "clip.unreachableTitle",
+    body: "clip.unreachableBody",
+  },
+};
 
 /** The app's volume, 0–1, kept by the surface showing the clip. */
 let appVolume = 1;
@@ -41,7 +55,7 @@ function release(element: HTMLVideoElement) {
   element.load();
 }
 
-function sessionElement(session: number, localPath: string): HTMLVideoElement {
+function sessionElement(session: number, source: ClipSource): HTMLVideoElement {
   if (owned?.session === session) return owned.element;
   if (owned) release(owned.element);
   const element = document.createElement("video");
@@ -101,14 +115,25 @@ function sessionElement(session: number, localPath: string): HTMLVideoElement {
   // The end of the clip is the end of the visit: back to the cover, the
   // track paused at the clip's position.
   element.addEventListener("ended", () => requestBackToAudio("ended"));
-  element.addEventListener("error", () =>
-    reportClipProgress(session, { failed: true }),
-  );
+  // A new source (a server clip's renewed ticket) is loading: until its
+  // metadata loads, the element's time is 0 again.
+  element.addEventListener("emptied", () => {
+    positioned = false;
+    unmarkClipPositioned(session, element);
+  });
 
-  void playableVideoSrc(localPath, false).then((src) => {
+  if (source.kind === "server") {
+    // Its errors are the ticket's business first (`clipServerSource`).
+    playServerClip(session, element, source.remoteTrackId);
+    return element;
+  }
+  element.addEventListener("error", () =>
+    reportClipProgress(session, { failed: "unplayable" }),
+  );
+  void playableVideoSrc(source.localPath, false).then((src) => {
     if (owned?.element !== element) return;
     if (src) element.src = src;
-    else reportClipProgress(session, { failed: true });
+    else reportClipProgress(session, { failed: "unplayable" });
   });
   return element;
 }
@@ -133,7 +158,7 @@ export function ClipVideo({ className }: { className?: string }) {
     <ClipSlot
       key={clip.session}
       session={clip.session}
-      localPath={clip.localPath}
+      source={clip.source}
       className={className}
     />
   );
@@ -141,11 +166,12 @@ export function ClipVideo({ className }: { className?: string }) {
 
 function ClipSlot({
   session,
-  localPath,
+  source,
   className,
 }: {
   session: number;
-  localPath: string;
+  /** The session's, fixed for its length. */
+  source: ClipSource;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -159,7 +185,7 @@ function ClipSlot({
   useLayoutEffect(() => {
     const host = slot.current;
     if (!host) return;
-    const element = sessionElement(session, localPath);
+    const element = sessionElement(session, source);
     host.appendChild(element);
     attachClipVideo(session, element);
     // A webview that paused it anyway (a surface that mounted later than
@@ -183,7 +209,7 @@ function ClipSlot({
         }
       }, 0);
     };
-  }, [session, localPath, failed]);
+  }, [session, source, failed]);
 
   // The app's volume, followed while the clip plays: the player bar's
   // slider is the one the user reaches for.
@@ -199,8 +225,8 @@ function ClipSlot({
         className={`flex flex-col items-center justify-center gap-2 bg-black p-4 text-center text-white ${className ?? ""}`}
       >
         <TriangleAlert size={28} className="text-amber-400" />
-        <p className="text-sm font-semibold">{t("clip.unplayableTitle")}</p>
-        <p className="text-xs text-white/70">{t("clip.unplayableBody")}</p>
+        <p className="text-sm font-semibold">{t(FAILURE_TEXT[failed].title)}</p>
+        <p className="text-xs text-white/70">{t(FAILURE_TEXT[failed].body)}</p>
       </div>
     );
   }

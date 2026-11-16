@@ -162,7 +162,7 @@ export function TrackContextMenu({
           icon={<Clapperboard size={14} />}
           label={t("clip.play")}
           onSelect={closeAfter(() => {
-            openClipForTrack(track, clip.localPath, currentTrack?.id ?? null);
+            openClipForTrack(track, clip, currentTrack);
             // The clip shows in the now-playing panel, enlarged from there.
             openRightPanel("nowPlaying");
           })}

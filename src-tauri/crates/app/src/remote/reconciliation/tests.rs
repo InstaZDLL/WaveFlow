@@ -550,6 +550,65 @@ async fn playback_uses_only_confirmed_available_local_first_links() {
 }
 
 #[tokio::test]
+async fn the_clip_looks_beside_a_confirmed_local_file_whatever_the_sound_prefers() {
+    let pool = pool().await;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("local.flac");
+    fs::write(&path, b"same bytes").unwrap();
+    insert_local(&pool, 1, &path, "Local").await;
+    insert_remote(&pool, "remote-1", b"same bytes", "Remote").await;
+    assert!(linked_local_file(&pool, "remote-1")
+        .await
+        .unwrap()
+        .is_none());
+    assert_eq!(discover(&pool).await.unwrap().auto_linked, 1);
+
+    assert_eq!(
+        linked_local_file(&pool, "remote-1").await.unwrap(),
+        Some(path.clone())
+    );
+    // The sound from the server, the clip still from the disk.
+    set_playback_preference(&pool, 1, "server_first")
+        .await
+        .unwrap();
+    assert_eq!(
+        linked_local_file(&pool, "remote-1").await.unwrap(),
+        Some(path.clone())
+    );
+
+    // A guess, an unavailable row or a file gone: nothing to look beside.
+    sqlx::query("UPDATE remote_track_link SET status = 'stale' WHERE local_track_id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(linked_local_file(&pool, "remote-1")
+        .await
+        .unwrap()
+        .is_none());
+    sqlx::query("UPDATE remote_track_link SET status = 'confirmed' WHERE local_track_id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE track SET is_available = 0 WHERE id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(linked_local_file(&pool, "remote-1")
+        .await
+        .unwrap()
+        .is_none());
+    sqlx::query("UPDATE track SET is_available = 1 WHERE id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    fs::remove_file(&path).unwrap();
+    assert!(linked_local_file(&pool, "remote-1")
+        .await
+        .unwrap()
+        .is_none());
+}
+
+#[tokio::test]
 async fn local_playlist_conversion_blocks_until_every_track_is_linked() {
     let pool = pool().await;
     let dir = tempfile::tempdir().unwrap();

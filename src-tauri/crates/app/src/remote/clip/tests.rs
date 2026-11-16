@@ -197,3 +197,56 @@ async fn an_identifier_stays_one_segment_and_a_dot_segment_asks_nobody() {
         ["POST /api/v2/tracks/a%2Fb/clip-ticket"]
     );
 }
+
+async fn mirror() -> SqlitePool {
+    let options = sqlx::sqlite::SqliteConnectOptions::new().in_memory(true);
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+    pool
+}
+
+#[tokio::test]
+async fn the_mirror_answers_yes_no_or_nothing_known() {
+    let pool = mirror().await;
+    for (id, has_clip) in [("yes", Some(1)), ("no", Some(0)), ("unsaid", None)] {
+        sqlx::query(
+            "INSERT INTO remote_track (remote_id, title, cached_at, has_clip) VALUES (?, ?, 0, ?)",
+        )
+        .bind(id)
+        .bind(id)
+        .bind(has_clip)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    assert_eq!(known(&pool, "yes").await.unwrap(), Some(true));
+    assert_eq!(known(&pool, "no").await.unwrap(), Some(false));
+    // The server never said, and a track the mirror does not hold: both are
+    // a question the mirror cannot answer, not a "no".
+    assert_eq!(known(&pool, "unsaid").await.unwrap(), None);
+    assert_eq!(known(&pool, "absent").await.unwrap(), None);
+}
+
+#[test]
+fn the_frontend_tells_a_local_clip_from_a_server_one_by_its_kind() {
+    use crate::commands::clip::{RemoteTrackClip, TrackClip};
+    let local = RemoteTrackClip::Local(TrackClip {
+        local_path: "/music/Song.mp4".into(),
+        origin: waveflow_core::scanner::clips::ClipOrigin::Sibling,
+    });
+    assert_eq!(
+        serde_json::to_value(&local).unwrap(),
+        serde_json::json!({"kind": "local", "localPath": "/music/Song.mp4", "origin": "sibling"})
+    );
+    assert_eq!(
+        serde_json::to_value(RemoteTrackClip::Server).unwrap(),
+        serde_json::json!({"kind": "server"})
+    );
+}

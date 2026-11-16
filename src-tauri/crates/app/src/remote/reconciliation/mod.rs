@@ -23,7 +23,7 @@ mod playlists;
 
 pub(in crate::remote) use links::link_exact;
 pub use links::{
-    confirm_exact, copy_favorite, copy_rating, linked_remote_track, links,
+    confirm_exact, copy_favorite, copy_rating, linked_local_file, linked_remote_track, links,
     preferred_local_playback, reject_exact, remove_link, set_playback_preference,
 };
 pub use playlists::{convert_playlist, preview_playlist_conversion};

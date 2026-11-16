@@ -29,9 +29,9 @@ pub struct TrackClip {
     pub origin: ClipOrigin,
 }
 
-/// `track_id`'s clip, or `None`. A track on a network share or from the
-/// server has none in this version: the webview reads neither a share
-/// locator nor a server stream as a local file.
+/// `track_id`'s clip, or `None`. A track on a network share has none in this
+/// version: the webview reads no share locator as a local file. A server
+/// track asks `get_remote_track_clip`.
 #[tauri::command]
 pub async fn get_track_clip(
     app: AppHandle,
@@ -46,8 +46,13 @@ pub async fn get_track_clip(
     let Some((file_path,)) = row else {
         return Ok(None);
     };
+    Ok(local_clip(&app, file_path).await)
+}
+
+/// The clip beside the local file `file_path`, made readable by the webview.
+async fn local_clip(app: &AppHandle, file_path: String) -> Option<TrackClip> {
     if waveflow_core::network_locator::is_locator(&file_path) {
-        return Ok(None);
+        return None;
     }
     // A directory listing or two and a few header reads: off the runtime,
     // since the folder can be a spun-down drive.
@@ -57,19 +62,55 @@ pub async fn get_track_clip(
             tracing::warn!(?err, "clip lookup task failed");
             None
         });
-    let Some((path, origin)) = found else {
-        return Ok(None);
-    };
+    let (path, origin) = found?;
     // The file alone, not its folder: the static asset scope names the
     // app's own directories, and an album folder has no reason to become
     // readable by the webview as a whole.
-    if let Err(err) = tauri::Manager::asset_protocol_scope(&app).allow_file(&path) {
+    if let Err(err) = tauri::Manager::asset_protocol_scope(app).allow_file(&path) {
         tracing::warn!(%err, "could not allow a clip in the asset scope");
     }
-    Ok(Some(TrackClip {
+    Some(TrackClip {
         local_path: path.to_string_lossy().into_owned(),
         origin,
-    }))
+    })
+}
+
+/// Where a server track's clip plays from (RFC-029 decision 9).
+#[cfg(feature = "sync_v2")]
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum RemoteTrackClip {
+    /// The clip beside the local file the track was reconciled with: played
+    /// from the disk like any local clip.
+    Local(TrackClip),
+    /// The server's: played through a ticket minted when it opens
+    /// ([`crate::remote::clip::ticket`]), since a ticket lasts an hour and an
+    /// offer can wait longer than that.
+    Server,
+}
+
+/// `remote_track_id`'s clip, or `None`. A track reconciled with a local file
+/// plays the clip beside that file when it has one; otherwise the server's
+/// is offered when it has one ([`crate::remote::clip::on_server`]), asking
+/// the server only when the mirror knows nothing and `probe` is set.
+#[cfg(feature = "sync_v2")]
+#[tauri::command]
+pub async fn get_remote_track_clip(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    remote_track_id: String,
+    probe: bool,
+) -> AppResult<Option<RemoteTrackClip>> {
+    let pool = state.require_profile_pool().await?;
+    if let Some(path) =
+        crate::remote::reconciliation::linked_local_file(&pool, &remote_track_id).await?
+    {
+        if let Some(clip) = local_clip(&app, path.to_string_lossy().into_owned()).await {
+            return Ok(Some(RemoteTrackClip::Local(clip)));
+        }
+    }
+    let on_server = crate::remote::clip::on_server(&state, &pool, &remote_track_id, probe).await?;
+    Ok(on_server.then_some(RemoteTrackClip::Server))
 }
 
 /// The frontend opened or closed a clip. While one is open, a play / pause
