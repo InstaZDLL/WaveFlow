@@ -31,7 +31,7 @@ use serde::Deserialize;
 
 use crate::{
     error::{AppError, AppResult},
-    remote::client::{FailureKind, RemoteClient},
+    remote::client::{is_relative, FailureKind, RemoteClient},
     state::AppState,
 };
 
@@ -86,15 +86,6 @@ pub async fn ticket_url(state: &AppState, remote_track_id: &str) -> AppResult<Op
     Ok(Some(absolute(&client, &response.url)?))
 }
 
-/// Whether the server sent a path we may append to our own base.
-///
-/// Its own function so the test exercises the rule production uses rather
-/// than a copy of it: a predicate restated in a test is one that can drift
-/// from the code while staying green.
-fn is_relative(path: &str) -> bool {
-    path.starts_with('/') && !path.starts_with("//")
-}
-
 /// Prepend our own base to the server's relative path, refusing anything
 /// that is not one.
 fn absolute(client: &RemoteClient<'_>, relative: &str) -> AppResult<String> {
@@ -105,6 +96,3 @@ fn absolute(client: &RemoteClient<'_>, relative: &str) -> AppResult<String> {
     }
     Ok(format!("{}{}", client.base_url(), relative))
 }
-
-#[cfg(test)]
-mod tests;
