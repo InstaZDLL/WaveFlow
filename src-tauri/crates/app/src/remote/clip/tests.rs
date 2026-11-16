@@ -139,6 +139,29 @@ async fn a_server_out_of_reach_is_an_error_and_not_a_missing_clip() {
 }
 
 #[tokio::test]
+async fn only_a_404_is_no_clip_and_a_broken_answer_is_an_error() {
+    // Both are permanent failures to the client, and neither says the track
+    // has no clip: a player told `None` would end the visit over a server
+    // that broke its contract.
+    let (base, _) = server(&[
+        (
+            "POST /api/v2/tracks/t1/clip-ticket",
+            200,
+            r#"{"ticket":"sealed"}"#,
+        ),
+        (
+            "POST /api/v2/tracks/t2/clip-ticket",
+            400,
+            r#"{"code":"bad_request","message":"no"}"#,
+        ),
+    ])
+    .await;
+    let client = client_for(&base);
+    assert!(mint(&client, "t1").await.is_err());
+    assert!(mint(&client, "t2").await.is_err());
+}
+
+#[tokio::test]
 async fn an_absolute_answer_is_refused_rather_than_followed() {
     let (base, _) = server(&[
         (

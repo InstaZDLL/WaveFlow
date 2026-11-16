@@ -32,15 +32,17 @@
 //! ## No clip is not an error, a server out of reach is
 //!
 //! The server answers 404 for every refusal — no track, somebody else's, no
-//! clip, a clip deleted since the scan — and that resolves to `None`: the clip
-//! is not there to play. A transient failure is an error, so a player that
-//! asks again later is not told the clip is gone for good.
+//! clip, a clip deleted since the scan — and that status alone resolves to
+//! `None`: the clip is not there to play. Any other failure is an error: a
+//! transient one, so a player that asks again later is not told the clip is
+//! gone for good, and a reply that breaks the contract (another 4xx, a body
+//! this build cannot read), so it is reported rather than read as "no clip".
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{AppError, AppResult},
-    remote::client::{is_relative, segment, FailureKind, RemoteClient},
+    remote::client::{is_relative, segment, RemoteClient},
     state::AppState,
 };
 
@@ -98,10 +100,12 @@ pub(crate) async fn mint(
         .await
     {
         Ok(response) => response,
-        // 404, the server's answer to every refusal, arrives as permanent, and
-        // so does a reply this build cannot read: either way there is no clip
-        // to play, and asking again changes nothing.
-        Err(failure) if failure.kind == FailureKind::Permanent => return Ok(None),
+        // 404 is the server's answer to every refusal: there is no clip to
+        // play, and the player ends the visit on it. Only that status means
+        // so. Everything else is an error: a transient failure, but also the
+        // other permanent ones (another 4xx, or a 200 whose body this build
+        // cannot read), which break the contract rather than say "no clip".
+        Err(failure) if failure.status == Some(404) => return Ok(None),
         Err(failure) => {
             return Err(AppError::Other(format!("clip ticket: {}", failure.message)));
         }
