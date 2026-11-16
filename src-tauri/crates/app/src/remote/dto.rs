@@ -92,6 +92,61 @@ pub struct SongItem {
     /// digest — see the migration for why.
     #[serde(default)]
     pub full_hash: Option<String>,
+    /// The track's music video, as the server describes it (its RFC-029
+    /// decision 8). See [`ClipField`] for why an absent key and a `null` are
+    /// two different answers.
+    #[serde(default, deserialize_with = "clip_field")]
+    pub clip: ClipField,
+}
+
+/// What a track says about its music video.
+///
+/// Three answers, not two, because the field is newer than the protocol: a
+/// server that has not heard of clips, or a sparse source, leaves the key out,
+/// and that must not erase what an earlier sighting said. Only an explicit
+/// `null` means "no clip".
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum ClipField {
+    /// The key was absent, or held something this build cannot read:
+    /// nothing is known.
+    #[default]
+    Unsaid,
+    /// `"clip": null`: the track has no clip, or no longer has one.
+    None,
+    /// The track has a clip.
+    Some(ClipSummary),
+}
+
+/// `{"format": "mp4", "byte_size": 182734112}`.
+///
+/// Both members are optional here although the server always sends them: the
+/// object's presence is the fact that matters, and a member this build cannot
+/// read must not fail the page the track arrived in.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ClipSummary {
+    /// `mp4`, `m4v`, `mov`, `webm` or `mkv`, as the server names it.
+    pub format: Option<String>,
+    pub byte_size: Option<i64>,
+}
+
+/// Reads `clip` leniently: an object is a clip whatever its members hold, a
+/// `null` is none, and anything else is left [`ClipField::Unsaid`] rather than
+/// failing the whole song — the same leniency every optional field here has.
+fn clip_field<'de, D>(deserializer: D) -> Result<ClipField, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(match serde_json::Value::deserialize(deserializer)? {
+        serde_json::Value::Null => ClipField::None,
+        serde_json::Value::Object(members) => ClipField::Some(ClipSummary {
+            format: members
+                .get("format")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned),
+            byte_size: members.get("byte_size").and_then(serde_json::Value::as_i64),
+        }),
+        _ => ClipField::Unsaid,
+    })
 }
 
 #[derive(Debug, Clone, Deserialize)]

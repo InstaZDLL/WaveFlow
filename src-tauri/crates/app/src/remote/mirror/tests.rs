@@ -578,3 +578,109 @@ async fn an_empty_library_answer_deletes_nothing() {
             .unwrap();
     assert_eq!(rows, vec![("lib-1".to_string(), Some(7))]);
 }
+
+/// A held row with what the server said of its clip.
+async fn held_track(pool: &SqlitePool, id: &str, has_clip: Option<bool>) {
+    sqlx::query(
+        "INSERT INTO remote_track (remote_id, title, duration_ms, cached_at, has_clip)
+             VALUES (?, ?, 0, 1, ?)",
+    )
+    .bind(id)
+    .bind(id)
+    .bind(has_clip)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+async fn sorted_to_fetch(pool: &SqlitePool, seen: &[&str]) -> Vec<String> {
+    let seen: HashSet<String> = seen.iter().map(|id| (*id).to_owned()).collect();
+    let mut ids = to_fetch(pool, &seen).await.unwrap();
+    ids.sort();
+    ids
+}
+
+#[tokio::test]
+async fn a_held_single_is_read_again_once_for_its_clip_and_only_from_a_server_that_says_it() {
+    let pool = pool().await;
+    // Cached before this build read `clip`: a single on no album, which the
+    // walk never reaches and the sweep holds.
+    held_track(&pool, "single", None).await;
+
+    // Nothing shows the server sends the field (an older server): the single
+    // is not fetched again, at this sweep or any other.
+    assert_eq!(
+        sorted_to_fetch(&pool, &["single", "new"]).await,
+        ["new"],
+        "only the track not held at all is fetched"
+    );
+    let in_catalogue: i64 =
+        sqlx::query_scalar("SELECT in_catalogue FROM remote_track WHERE remote_id = 'single'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(in_catalogue, 1, "the held row is still flagged as listed");
+
+    // The walk has filled another row: the server says it, so the single is
+    // read once. A row the server already answered is not, and neither is a
+    // NULL row the sweep did not list.
+    held_track(&pool, "told", Some(false)).await;
+    held_track(&pool, "unlisted", None).await;
+    assert_eq!(
+        sorted_to_fetch(&pool, &["single", "told", "new"]).await,
+        ["new", "single"]
+    );
+
+    // Once read, it said something, and it leaves the set.
+    sqlx::query("UPDATE remote_track SET has_clip = 1 WHERE remote_id = 'single'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(sorted_to_fetch(&pool, &["single", "told"]).await.is_empty());
+}
+
+/// Without it, an album walked before the upgrade would never be fetched
+/// again while its count stays the same, and a clip already on the server
+/// would never be offered for its tracks.
+#[tokio::test]
+async fn the_clip_migration_makes_every_walked_album_stale() {
+    const CLIP_MIGRATION: i64 = 20261116120000;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect(":memory:")
+        .await
+        .unwrap();
+    // Every migration before the one under test, from the real list.
+    let migrator = sqlx::migrate!("../../migrations/profile");
+    for migration in migrator.iter().filter(|m| m.version < CLIP_MIGRATION) {
+        sqlx::raw_sql(migration.sql.clone())
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+
+    let listed = album("al-1", 5);
+    upsert(&pool, &listed).await;
+    sqlx::query("UPDATE remote_album SET mirrored_at = 1 WHERE remote_id = 'al-1'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        album_is_fresh(&pool, &listed).await.unwrap(),
+        "the album is walked and unchanged before the upgrade"
+    );
+
+    let clip = migrator
+        .iter()
+        .find(|m| m.version == CLIP_MIGRATION)
+        .expect("the clip migration is in the list");
+    sqlx::raw_sql(clip.sql.clone())
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    assert!(
+        !album_is_fresh(&pool, &listed).await.unwrap(),
+        "the upgrade must send it back through the walk"
+    );
+}

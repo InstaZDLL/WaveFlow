@@ -59,6 +59,9 @@
 //! - [`stream`] — minting a playback ticket, and the transcode
 //!   preference that decides what the URL asks the server for.
 //!
+//! - [`clip`] — minting a ticket for a track's music video, handed on with
+//!   its expiry, since a clip can stay open longer than its ticket lasts.
+//!
 //! - [`download`] — keeping a track's original bytes in a managed folder
 //!   the scanner never sees. Still a *remote* track: no `track` row.
 //!
@@ -116,6 +119,7 @@ pub mod binding;
 pub mod canvas;
 pub mod catalogue;
 pub mod client;
+pub mod clip;
 pub mod download;
 pub mod drain;
 pub mod dto;

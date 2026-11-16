@@ -377,6 +377,30 @@ export function remoteTrackCanvas(trackId: string): Promise<string | null> {
   return invoke<string | null>("remote_track_canvas", { trackId });
 }
 
+/** A ticket for a server track's music video. Mirrors
+ *  `remote::clip::ClipTicket` (camelCase). */
+export interface RemoteClipTicket {
+  /** Absolute: the bound server's base, then its `/api/v2/clip-stream/…`. */
+  url: string;
+  /** When the ticket stops opening the clip, Unix epoch milliseconds. */
+  expiresAt: number;
+}
+
+/**
+ * A ticket for a server track's music video, or `null` when it has none
+ * (the server answers 404 for every refusal). Rejects when the server cannot
+ * be reached, which is not the same as "no clip".
+ *
+ * Never store it: a clip can stay open longer than its ticket lasts, so the
+ * player renews it by `expiresAt` — a `<video>` error does not say whether
+ * the ticket ran out.
+ */
+export function remoteTrackClip(
+  trackId: string,
+): Promise<RemoteClipTicket | null> {
+  return invoke<RemoteClipTicket | null>("remote_track_clip", { trackId });
+}
+
 /** What the mirror holds for a server track, to fill the tag editor. */
 export interface RemoteTrackTags {
   title: string;
