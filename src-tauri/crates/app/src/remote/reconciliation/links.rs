@@ -375,6 +375,46 @@ pub async fn linked_remote_track(
     .await?)
 }
 
+/// The local file a server track was proved to be, whichever copy the user
+/// plays its sound from.
+///
+/// For the music video (RFC-029 decision 9): a reconciled track plays its
+/// local clip when it has one, which asks no network and, on Linux, goes
+/// through the loopback server that reads a fragmented MP4. Unlike
+/// [`preferred_local_playback`] it ignores the playback preference: that
+/// chooses where the sound comes from, and the clip beside the local file is
+/// the same video either way. A `confirmed` link to an available track whose
+/// file is still there, as for the sound.
+pub async fn linked_local_file(
+    pool: &SqlitePool,
+    remote_track_id: &str,
+) -> AppResult<Option<PathBuf>> {
+    let path = sqlx::query_scalar::<_, String>(
+        "SELECT t.file_path
+           FROM remote_track_link l
+           JOIN track t ON t.id = l.local_track_id
+          WHERE l.remote_track_id = ?
+            AND l.status = 'confirmed'
+            AND t.is_available = 1
+          LIMIT 1",
+    )
+    .bind(remote_track_id)
+    .fetch_optional(pool)
+    .await?;
+    let Some(path) = path.map(PathBuf::from) else {
+        return Ok(None);
+    };
+    // Off the runtime, like the clip lookup that follows: the folder can be
+    // on a spun-down drive.
+    let exists = tokio::task::spawn_blocking({
+        let path = path.clone();
+        move || path.is_file()
+    })
+    .await
+    .unwrap_or(false);
+    Ok(exists.then_some(path))
+}
+
 pub async fn preferred_local_playback(
     pool: &SqlitePool,
     remote_track_id: &str,

@@ -4869,6 +4869,10 @@
     "switchToVideo": "切换到视频",
     "switchToAudio": "切换到音频",
     "expand": "放大视频",
-    "shrink": "缩小视频"
+    "shrink": "缩小视频",
+    "goneTitle": "此音乐视频已不在服务器上",
+    "goneBody": "服务器已找不到此视频：自上次扫描以来它已被删除或移动。曲目保持暂停在当前位置。",
+    "unreachableTitle": "服务器没有响应",
+    "unreachableBody": "无法向服务器请求此音乐视频。请在服务器可访问后重试；曲目保持暂停在当前位置。"
   }
 }

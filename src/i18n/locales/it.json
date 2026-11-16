@@ -5017,6 +5017,10 @@
     "switchToVideo": "Passa al video",
     "switchToAudio": "Passa all'audio",
     "expand": "Ingrandisci il video",
-    "shrink": "Riduci il video"
+    "shrink": "Riduci il video",
+    "goneTitle": "Questo videoclip non è più sul server",
+    "goneBody": "Il server non trova più questo video: è stato eliminato o spostato dall'ultima scansione. Il brano resta in pausa nella sua posizione.",
+    "unreachableTitle": "Il server non risponde",
+    "unreachableBody": "Non è stato possibile richiedere il videoclip al server. Riprova quando sarà raggiungibile; il brano resta in pausa nella sua posizione."
   }
 }

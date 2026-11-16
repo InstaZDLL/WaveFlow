@@ -12,12 +12,14 @@ import {
   type ContextMenuPoint,
 } from "../components/common/ContextMenu";
 import { isContextMenuKey, menuAnchorForElement } from "../lib/contextMenuKeys";
+import { ServerClipMenuItem } from "../components/common/ServerClipMenuItem";
 
-/** The row the menu acts on — only what the three actions need. */
+/** The row the menu acts on — only what its actions need. */
 export interface RemoteContextTrack {
   /** The server's identifier for the track. */
   remoteId: string;
   title: string;
+  artist: string | null;
 }
 
 interface UseRemoteTrackContextMenuArgs {
@@ -43,7 +45,8 @@ interface UseRemoteTrackContextMenuArgs {
  * the webview's own menu came through it. Meanwhile the same three actions sat
  * behind hover-only icons, so a pointer that never hovered never found them.
  *
- * This offers exactly those three, so both gestures agree.
+ * This offers those three, so both gestures agree, and the track's music
+ * video when it has one.
  */
 export function useRemoteTrackContextMenu({
   onDownload,
@@ -123,6 +126,7 @@ export function useRemoteTrackContextMenu({
           label={t("remote.tags.action")}
           onSelect={act(() => onEditTags(track))}
         />
+        <ServerClipMenuItem track={track} onDone={close} />
       </ContextMenu>
     );
   }, [

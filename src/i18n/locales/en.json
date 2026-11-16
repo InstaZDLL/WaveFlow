@@ -4874,6 +4874,10 @@
     "switchToVideo": "Switch to video",
     "switchToAudio": "Switch to audio",
     "expand": "Enlarge the video",
-    "shrink": "Shrink the video"
+    "shrink": "Shrink the video",
+    "goneTitle": "This music video is no longer on the server",
+    "goneBody": "The server can no longer find this video: it was deleted or moved since its last scan. The track stays paused at its position.",
+    "unreachableTitle": "The server is not responding",
+    "unreachableBody": "The music video could not be requested from the server. Try again once it can be reached; the track stays paused at its position."
   }
 }

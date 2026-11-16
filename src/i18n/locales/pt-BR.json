@@ -5027,6 +5027,10 @@
     "switchToVideo": "Mudar para o vídeo",
     "switchToAudio": "Mudar para o áudio",
     "expand": "Ampliar o vídeo",
-    "shrink": "Reduzir o vídeo"
+    "shrink": "Reduzir o vídeo",
+    "goneTitle": "Este videoclipe não está mais no servidor",
+    "goneBody": "O servidor não encontra mais este vídeo: ele foi excluído ou movido desde a última varredura. A faixa fica pausada na posição atual.",
+    "unreachableTitle": "O servidor não está respondendo",
+    "unreachableBody": "Não foi possível solicitar o videoclipe ao servidor. Tente de novo quando ele estiver acessível; a faixa fica pausada na posição atual."
   }
 }

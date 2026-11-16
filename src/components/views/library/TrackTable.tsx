@@ -477,6 +477,7 @@ export function TrackTable({
                   remoteContextMenu.openFromKeyboard(e, {
                     remoteId: track.id,
                     title: track.title,
+                    artist: track.artist_name,
                   })
                 ) {
                   return;
@@ -500,6 +501,7 @@ export function TrackTable({
                   remoteContextMenu.open(e, {
                     remoteId: track.id,
                     title: track.title,
+                    artist: track.artist_name,
                   });
                 }
               }}
