@@ -2566,6 +2566,7 @@
     "diagnostics": {
       "title": "Application log",
       "subtitle": "To report a bug, open the logs folder or copy recent logs and paste them into a ticket.",
+      "timesNote": "Times in the logs are local, with their offset from UTC. Each file covers one UTC day.",
       "openFolder": "Open folder",
       "copyLogs": "Copy logs",
       "copied": "Logs copied",

@@ -2564,6 +2564,7 @@
     "diagnostics": {
       "title": "Log aplikasi",
       "subtitle": "Untuk melaporkan bug, buka folder log atau salin log terbaru dan tempelkan ke tiket.",
+      "timesNote": "Waktu di log memakai waktu lokal, beserta selisihnya dari UTC. Setiap file mencakup satu hari UTC.",
       "openFolder": "Buka folder",
       "copyLogs": "Salin log",
       "copied": "Log disalin",

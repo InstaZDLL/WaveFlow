@@ -2667,6 +2667,7 @@
     "diagnostics": {
       "title": "Registro do aplicativo",
       "subtitle": "Para relatar um erro, abra a pasta de registros ou copie os registros recentes para colá-los em um chamado.",
+      "timesNote": "Os horários nos registros estão no horário local, com a diferença em relação ao UTC. Cada arquivo abrange um dia UTC.",
       "openFolder": "Abrir pasta",
       "copyLogs": "Copiar registros",
       "copied": "Registros copiados",

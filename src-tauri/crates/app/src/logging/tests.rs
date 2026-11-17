@@ -26,3 +26,52 @@ fn a_restart_counts_what_today_already_wrote() {
     let mut budget = DailyBudget::new(day(29), 100, 100);
     assert_eq!(budget.admit(day(29), 1), Admit::Drop);
 }
+
+fn written<Tz: chrono::TimeZone>(time: &chrono::DateTime<Tz>) -> String
+where
+    Tz::Offset: std::fmt::Display,
+{
+    let mut out = String::new();
+    super::write_log_time(
+        &mut tracing_subscriber::fmt::format::Writer::new(&mut out),
+        time,
+    )
+    .unwrap();
+    out
+}
+
+#[test]
+fn a_line_time_is_the_clock_with_its_offset() {
+    use chrono::{FixedOffset, TimeZone};
+
+    let instant = chrono::Utc
+        .with_ymd_and_hms(2026, 11, 15, 0, 0, 0)
+        .unwrap()
+        .checked_add_signed(chrono::TimeDelta::microseconds(362_923))
+        .unwrap();
+
+    let east = instant.with_timezone(&FixedOffset::east_opt(8 * 3600).unwrap());
+    assert_eq!(written(&east), "2026-11-15T08:00:00.362923+08:00");
+
+    let west = instant.with_timezone(&FixedOffset::west_opt(5 * 3600 + 30 * 60).unwrap());
+    assert_eq!(written(&west), "2026-11-14T18:30:00.362923-05:30");
+
+    // A UTC time says +00:00, never Z: every line has the same shape.
+    assert_eq!(written(&instant), "2026-11-15T00:00:00.362923+00:00");
+}
+
+#[test]
+fn the_sinks_timer_writes_the_local_offset() {
+    use tracing_subscriber::fmt::time::FormatTime;
+
+    let mut out = String::new();
+    super::LocalTime
+        .format_time(&mut tracing_subscriber::fmt::format::Writer::new(&mut out))
+        .unwrap();
+
+    let parsed = chrono::DateTime::parse_from_rfc3339(&out).unwrap();
+    assert_eq!(
+        *parsed.offset(),
+        chrono::Local::now().fixed_offset().timezone()
+    );
+}

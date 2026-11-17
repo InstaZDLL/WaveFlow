@@ -198,6 +198,8 @@ Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`va
 - **7 files are kept.** The appender deletes the oldest as a new day starts.
 - **50 MB per day.** `CappedWriter` counts the day's bytes, starting from the size today's file already has so a restart does not reset it. The write that would cross the limit is replaced by one line saying so, and the rest of the day is dropped.
 
+A line's time is the local clock with its offset from UTC, `2026-11-15T08:00:00.362923+08:00` (`LOG_TIME_FORMAT`, on the terminal and in the file alike), so a user far from UTC reads the time their own clock showed and the instant stays exact (#1108). The days stay UTC: the appender names its files that way, and the daily cap counts the same days. Settings → Diagnostics says both under "Application log".
+
 ## Asset protocol scope
 
 Files under `metadata_artwork/` and `profiles/**` (the per-profile artwork and the profile's `avatar.png`) are served to the renderer via Tauri's asset protocol (`tauri.conf.json::app.security.assetProtocol`). The scope's `deny` list takes each profile's database back out of it — `data.db`, its `-wal` / `-shm` and its pre-migration copies, which hold everything the profile knows and are never drawn: a pattern that allows a directory allows everything in it, and a deny wins over any allow, including the ones granted at runtime below. Frontend code uses [`convertFileSrc()`](https://tauri.app/v2/api/js/core#convertfilesrc) to map an absolute path to an `asset://` URL the `<img>` tag can load.

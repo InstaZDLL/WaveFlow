@@ -56,6 +56,9 @@ export function DiagnosticsSection({
                 <div className="text-xs settings-description">
                   {t("settings.diagnostics.subtitle")}
                 </div>
+                <div className="text-xs settings-description mt-1">
+                  {t("settings.diagnostics.timesNote")}
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-2 shrink-0">

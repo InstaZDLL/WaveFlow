@@ -2566,6 +2566,7 @@
     "diagnostics": {
       "title": "Uygulama günlüğü",
       "subtitle": "Bir hatayı bildirmek için günlük klasörünü aç veya son günlükleri kopyalayıp bir hata kaydına yapıştır.",
+      "timesNote": "Günlüklerdeki saatler yerel saate göredir ve UTC farkını içerir. Her dosya bir UTC gününü kapsar.",
       "openFolder": "Klasörü aç",
       "copyLogs": "Günlükleri kopyala",
       "copied": "Günlükler kopyalandı",
