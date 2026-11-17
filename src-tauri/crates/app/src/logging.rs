@@ -61,8 +61,19 @@ struct LocalTime;
 
 impl FormatTime for LocalTime {
     fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
-        write!(w, "{}", chrono::Local::now().format(LOG_TIME_FORMAT))
+        write_log_time(w, &chrono::Local::now())
     }
+}
+
+/// Writes `time` as a line's time, in [`LOG_TIME_FORMAT`].
+fn write_log_time<Tz: chrono::TimeZone>(
+    w: &mut Writer<'_>,
+    time: &chrono::DateTime<Tz>,
+) -> std::fmt::Result
+where
+    Tz::Offset: std::fmt::Display,
+{
+    write!(w, "{}", time.format(LOG_TIME_FORMAT))
 }
 
 /// Computed at `init_tracing` and reused by Tauri commands so the
