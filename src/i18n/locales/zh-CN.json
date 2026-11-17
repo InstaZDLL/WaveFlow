@@ -2497,6 +2497,7 @@
     "diagnostics": {
       "title": "应用程序日志",
       "subtitle": "要报告错误，请打开日志文件夹或复制最近的日志并粘贴到工单中。",
+      "timesNote": "日志中的时间为本地时间，并标注与 UTC 的时差。每个文件对应一个 UTC 日。",
       "openFolder": "打开文件夹",
       "copyLogs": "复制日志",
       "copied": "已复制",

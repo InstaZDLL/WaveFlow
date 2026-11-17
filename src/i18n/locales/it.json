@@ -2634,6 +2634,7 @@
     "diagnostics": {
       "title": "Log dell'applicazione",
       "subtitle": "Per segnalare un bug, apri la cartella dei log oppure copia i log recenti e incollali in un ticket.",
+      "timesNote": "Gli orari nei log sono in ora locale, con la differenza rispetto a UTC. Ogni file copre un giorno UTC.",
       "openFolder": "Apri cartella",
       "copyLogs": "Copia i log",
       "copied": "Log copiati",

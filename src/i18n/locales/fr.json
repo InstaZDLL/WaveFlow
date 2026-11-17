@@ -2763,6 +2763,7 @@
     "diagnostics": {
       "title": "Journal de l'application",
       "subtitle": "Pour signaler un bug, ouvrez le dossier des journaux ou copiez les journaux récents pour les coller dans un ticket.",
+      "timesNote": "Les heures des journaux sont à l'heure locale, avec leur décalage par rapport à UTC. Chaque fichier couvre une journée UTC.",
       "openFolder": "Ouvrir le dossier",
       "copyLogs": "Copier les journaux",
       "copied": "Journaux copiés",

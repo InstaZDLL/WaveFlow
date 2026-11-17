@@ -2663,6 +2663,7 @@
     "diagnostics": {
       "title": "Registo da aplicação",
       "subtitle": "Para comunicar um erro, abre a pasta de registos ou copia os registos recentes para os colar num ticket.",
+      "timesNote": "As horas nos registos estão na hora local, com a diferença em relação a UTC. Cada ficheiro abrange um dia UTC.",
       "openFolder": "Abrir pasta",
       "copyLogs": "Copiar registos",
       "copied": "Registos copiados",

@@ -2631,6 +2631,7 @@
     "diagnostics": {
       "title": "Registro de la aplicación",
       "subtitle": "Para informar de un fallo, abre la carpeta de registros o copia los registros recientes y pégalos en una incidencia.",
+      "timesNote": "Las horas de los registros están en hora local, con su diferencia respecto a UTC. Cada archivo abarca un día UTC.",
       "openFolder": "Abrir carpeta",
       "copyLogs": "Copiar registros",
       "copied": "Registros copiados",

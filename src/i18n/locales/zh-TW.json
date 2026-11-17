@@ -2497,6 +2497,7 @@
     "diagnostics": {
       "title": "應用程式記錄檔",
       "subtitle": "若要報告錯誤，請開啟記錄檔資料夾，或複製最近的記錄檔貼到問題回報單。",
+      "timesNote": "記錄檔中的時間為本地時間，並標註與 UTC 的時差。每個檔案對應一個 UTC 日。",
       "openFolder": "開啟資料夾",
       "copyLogs": "複製記錄檔",
       "copied": "已複製",
