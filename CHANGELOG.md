@@ -1,5 +1,40 @@
 # Changelog
 
+## [2.2.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.1.0...v2.2.0) (2026-11-17)
+
+
+### Features
+
+* **clip:** play a server track's music video ([353fc2e](https://github.com/InstaZDLL/WaveFlow/commit/353fc2e28a3b9c2ad55238fa8edfe95728edae55))
+* **clip:** play a server track's music video ([f93efc9](https://github.com/InstaZDLL/WaveFlow/commit/f93efc913ff693cf1b09ee667ebe8953881ba804))
+* **logging:** write log times in local time with their utc offset ([e53fd34](https://github.com/InstaZDLL/WaveFlow/commit/e53fd3452740ecf01a512764ca4cf91d15cd0c0f))
+* **logging:** write log times in local time with their utc offset ([a7b61f5](https://github.com/InstaZDLL/WaveFlow/commit/a7b61f5850c082bcc3359bf8e6d01f81d3c6401b)), refs [#1108](https://github.com/InstaZDLL/WaveFlow/issues/1108)
+* **remote:** know which server tracks have a music video ([6765cca](https://github.com/InstaZDLL/WaveFlow/commit/6765cca5f5a3ca72de84150977760cc5575a0aa4))
+* **remote:** know which server tracks have a music video ([f05ed77](https://github.com/InstaZDLL/WaveFlow/commit/f05ed77c222e7121a31f7e6c0b210902f0b206c2))
+
+
+### Bug Fixes
+
+* **audio:** keep asking for a rebuild after a one-shot device loss ([41e8de8](https://github.com/InstaZDLL/WaveFlow/commit/41e8de8d75619cac89032d45571c391cf4682417))
+* **audio:** keep cpal 0.17's render priority and rebuild invalidated streams ([71e472c](https://github.com/InstaZDLL/WaveFlow/commit/71e472c5cc2f4c46fff3825ab51e34dda6342d1a)), refs [#1103](https://github.com/InstaZDLL/WaveFlow/issues/1103)
+* **audio:** log stream notices from the output thread, not the audio callback ([15fa265](https://github.com/InstaZDLL/WaveFlow/commit/15fa265c284b730d149096ca73de1662bc92c468))
+* **audio:** rebuild the output when cpal invalidates the stream ([78800b4](https://github.com/InstaZDLL/WaveFlow/commit/78800b454529f07ba20d35556d5721023327b046))
+* **audio:** recover from pipewire underruns instead of rebuilding the output ([d08fc8f](https://github.com/InstaZDLL/WaveFlow/commit/d08fc8f0ac640df27637e194d1918e75703be0a1)), refs [#1103](https://github.com/InstaZDLL/WaveFlow/issues/1103)
+* **audio:** resume the track playing now after a gapless or crossfade hand-off ([ccd0477](https://github.com/InstaZDLL/WaveFlow/commit/ccd0477b9f90bf6e9ed62fed789179f521801b11))
+* **audio:** resume the track playing now after a gapless or crossfade hand-off ([6f4e3b1](https://github.com/InstaZDLL/WaveFlow/commit/6f4e3b1abd928912dd88970bc580a0e6f43fcbbf)), refs [#1103](https://github.com/InstaZDLL/WaveFlow/issues/1103)
+* **lyrics:** stop transitioning the text-shadow of blurred lyric lines ([9fc5b37](https://github.com/InstaZDLL/WaveFlow/commit/9fc5b37f1baecbda00c9f0296254fb6e826cdb77))
+* **lyrics:** stop transitioning the text-shadow of blurred lyric lines ([7a1e543](https://github.com/InstaZDLL/WaveFlow/commit/7a1e543bd82892b105c4cfd638e943271f7547aa))
+* **playback:** start a track that ran to its end over when play is pressed ([aa6b931](https://github.com/InstaZDLL/WaveFlow/commit/aa6b9314d44644bfc8c245e4ca02e8cc8dbba6b7)), refs [#1109](https://github.com/InstaZDLL/WaveFlow/issues/1109)
+* **remote:** check the reconciled file off the async runtime ([8eef5b3](https://github.com/InstaZDLL/WaveFlow/commit/8eef5b3d12c01387b75979a797f79b8a7bd28127))
+* **remote:** read a held single again once for its clip ([5cb70ae](https://github.com/InstaZDLL/WaveFlow/commit/5cb70aea12815b3f0dd414e80184868db871289b))
+* **remote:** read only a 404 as a track without a clip ([070cb12](https://github.com/InstaZDLL/WaveFlow/commit/070cb122aa27d5770ea766569618be89e4f1d137))
+* **scanner:** cover the cases the review of the code page repair found ([27bba85](https://github.com/InstaZDLL/WaveFlow/commit/27bba85628c5f45ba6dbd2669383a96b55dadf60))
+* **scanner:** keep stored text when the tag is refused, and the rating ([817b052](https://github.com/InstaZDLL/WaveFlow/commit/817b052bcbf850187642d41bc3a61ceebb00cf53))
+* **scanner:** leave a refused tag's track alone and follow moved files ([5766ec8](https://github.com/InstaZDLL/WaveFlow/commit/5766ec88f70cabf06b8df02b881edc950afe6e63))
+* **scanner:** read tags written in a legacy cjk code page ([df1f368](https://github.com/InstaZDLL/WaveFlow/commit/df1f368742775cde2e6819b8632935414f4b5aca))
+* **scanner:** read tags written in a legacy cjk code page ([7411221](https://github.com/InstaZDLL/WaveFlow/commit/7411221fe48b8c7a41e4d562c6548fb704686170))
+* **scan:** repair stored legacy code page tags on the next scan ([472793e](https://github.com/InstaZDLL/WaveFlow/commit/472793e33900ae5b6a5322474e76bb13ebff6596))
+
 ## [2.1.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.0.2...v2.1.0) (2026-11-14)
 
 
