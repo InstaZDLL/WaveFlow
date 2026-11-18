@@ -439,6 +439,39 @@ pub(super) fn move_parked(parked: &mut Option<ParkedSession>, superseded: bool, 
     }
 }
 
+/// A seek asked of a player with nothing loaded (#1129): where the user put
+/// the bar, and how many load intents had been asked for at that moment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct HeldSeek {
+    ms: u64,
+    issued: u64,
+}
+
+/// Whether a seek in `state` has nothing loaded to apply to and is held
+/// for the next Play. `Idle` is the launch, a `Stop` and a park; `Ended` a
+/// track that ran to its end. Both leave the decoder in its idle loop,
+/// which drops a `Seek`.
+pub(super) fn holds_seek(state: crate::audio::PlayerState) -> bool {
+    matches!(
+        state,
+        crate::audio::PlayerState::Idle | crate::audio::PlayerState::Ended
+    )
+}
+
+/// The pure half of [`AudioEngine::take_held_seek`]: a held seek counts
+/// only while no load has been asked for since. Any load asks for an
+/// intent — a track picked, Next, the queue moving on at an end — and the
+/// seek was made on what showed before it.
+pub(super) fn held_seek_position(held: Option<HeldSeek>, issued_now: u64) -> Option<u64> {
+    held.filter(|held| held.issued == issued_now)
+        .map(|held| held.ms)
+}
+
+#[cfg(test)]
+pub(super) fn held_seek_for_test(ms: u64, issued: u64) -> HeldSeek {
+    HeldSeek { ms, issued }
+}
+
 impl AudioEngine {
     /// Whether a device that goes away should park playback instead of
     /// letting it move to whatever the system falls back to (#617).
@@ -624,12 +657,13 @@ impl AudioEngine {
         });
     }
 
-    /// Seek what the user is listening to, to `ms`: the loaded track, or
-    /// the session an output rebuild parked. Every seek a user asks for —
+    /// Seek what the user is listening to, to `ms`: the loaded track, the
+    /// session an output rebuild parked, or, with nothing loaded, the track
+    /// the next Play loads (#1129). Every seek a user asks for —
     /// the progress bar, the OS overlay, MPD — goes through here rather
     /// than sending [`AudioCmd::Seek`] itself.
     pub fn seek(&self, ms: u64) -> crate::error::AppResult<()> {
-        if self.seek_parked(ms) {
+        if self.seek_parked(ms) || self.hold_seek(ms) {
             return Ok(());
         }
         self.send(AudioCmd::Seek(ms))
@@ -648,7 +682,61 @@ impl AudioEngine {
                 .filter(|parked| !self.load_intent_superseded(parked.intent()))
                 .map(|parked| parked.start_ms)
         });
-        parked.unwrap_or_else(|| self.shared.current_position_ms())
+        parked
+            .or_else(|| self.held_seek_ms())
+            .unwrap_or_else(|| self.shared.current_position_ms())
+    }
+
+    /// Keep a seek asked of a player with nothing loaded for the Play that
+    /// loads the track, and say whether it was kept (#1129).
+    ///
+    /// After a launch the player shows the restored track, paused at its
+    /// resume point, but nothing is loaded: the decoder drops a `Seek` it
+    /// has nothing to apply to, and Play started from the resume point,
+    /// not from where the user had dragged the bar. The same after a track
+    /// ran to its end. [`crate::player_actions::resume_last`] takes it
+    /// ([`Self::take_held_seek`]).
+    fn hold_seek(&self, ms: u64) -> bool {
+        if !holds_seek(self.shared.state()) {
+            return false;
+        }
+        let Ok(mut guard) = self.held_seek.lock() else {
+            return false;
+        };
+        *guard = Some(HeldSeek {
+            ms,
+            issued: self.issued_load_intents(),
+        });
+        true
+    }
+
+    /// The held seek's position, while no load has been asked for since it
+    /// was made. Left in place, for what only reports the position.
+    pub(crate) fn held_seek_ms(&self) -> Option<u64> {
+        let held = *self.held_seek.lock().ok()?;
+        held_seek_position(held, self.issued_load_intents())
+    }
+
+    /// Spend the held seek: its position, if no load has been asked for
+    /// since it was made, and `None` otherwise. Called before the resume
+    /// asks for its own intent, which would otherwise make it look stale.
+    pub(crate) fn take_held_seek(&self) -> Option<u64> {
+        let held = self.held_seek.lock().ok()?.take();
+        held_seek_position(held, self.issued_load_intents())
+    }
+
+    /// Forget a held seek: the track it was made on is no longer the one
+    /// Play would load (a profile switch).
+    pub(crate) fn drop_held_seek(&self) {
+        if let Ok(mut guard) = self.held_seek.lock() {
+            *guard = None;
+        }
+    }
+
+    fn issued_load_intents(&self) -> u64 {
+        self.shared
+            .load_intents
+            .load(std::sync::atomic::Ordering::Acquire)
     }
 
     /// Move the parked session to `ms`, if one is held, and say whether it

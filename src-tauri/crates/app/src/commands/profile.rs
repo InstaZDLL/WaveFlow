@@ -201,6 +201,9 @@ pub async fn switch_profile(
     // track IDs from the old profile's database, which would become
     // dangling after the pool swap.
     let _ = engine.send(AudioCmd::Stop);
+    // A seek held for the old profile's restored track (#1129) would
+    // otherwise start the new profile's at that position.
+    engine.drop_held_seek();
     engine
         .shared()
         .set_state(crate::audio::state::PlayerState::Idle);

@@ -226,6 +226,29 @@ fn a_seek_with_nothing_parked_goes_to_the_decoder() {
 }
 
 #[test]
+fn a_seek_with_nothing_loaded_is_held_for_play() {
+    // After a launch the restored track is shown paused but nothing is
+    // loaded, as after a track ran to its end: the decoder dropped the
+    // `Seek` and Play started from the resume point (#1129).
+    use crate::audio::PlayerState;
+    assert!(super::resume::holds_seek(PlayerState::Idle));
+    assert!(super::resume::holds_seek(PlayerState::Ended));
+    assert!(!super::resume::holds_seek(PlayerState::Paused));
+    assert!(!super::resume::holds_seek(PlayerState::Playing));
+    assert!(!super::resume::holds_seek(PlayerState::Loading));
+}
+
+#[test]
+fn a_held_seek_counts_until_a_load_is_asked_for() {
+    let held = Some(super::resume::held_seek_for_test(180_000, 7));
+    assert_eq!(super::resume::held_seek_position(held, 7), Some(180_000));
+    // A track picked or Next since: the seek was made on what showed
+    // before it, and Play must not carry it over.
+    assert_eq!(super::resume::held_seek_position(held, 8), None);
+    assert_eq!(super::resume::held_seek_position(None, 7), None);
+}
+
+#[test]
 fn a_resumed_library_track_keeps_the_source_it_came_from() {
     // Stamping "device-rebuild" on it, as the three paths used to,
     // hides an album play from every statistic that filters on the
