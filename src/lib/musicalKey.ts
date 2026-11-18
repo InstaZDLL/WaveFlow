@@ -1,6 +1,4 @@
-/** The slice of `t` this needs, so a component handed a narrower
- *  translator than i18next's own can still call it. */
-type Translate = (key: string, options?: Record<string, unknown>) => string;
+import type { Translator } from "./translator";
 
 /**
  * A musical key, as a tonic pitch class (0 = C) and a mode.
@@ -78,7 +76,7 @@ export function parseMusicalKey(
  */
 export function formatMusicalKey(
   raw: string | null | undefined,
-  t: Translate,
+  t: Translator,
 ): string {
   const key = parseMusicalKey(raw);
   if (!key) return raw?.trim() ?? "";

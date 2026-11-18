@@ -32,7 +32,7 @@ import {
 import { getTrack, type Track } from "../../../lib/tauri/track";
 import { Artwork } from "../../common/Artwork";
 import { TrackPropertiesModal } from "../../common/TrackPropertiesModal";
-import type { Translator } from "./libraryTypes";
+import type { Translator } from "../../../lib/translator";
 
 /** Rows asked for at a time; the table asks for the next page as the
  *  reader nears the end of what it holds. */

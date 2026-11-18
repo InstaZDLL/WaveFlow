@@ -2423,9 +2423,11 @@
   /* Tailwind 4 writes `scale-[…]` as the `scale` property, which
      `transform: none` leaves in place. */
   scale: none !important;
+  /* The shadow changes in one step and the fill carries the fade: on
+     macOS an animated text-shadow leaves the line that just stopped being
+     sung with doubled, sliced glyphs once it settles (#1074). */
   transition:
     opacity 320ms var(--fe-ease),
-    text-shadow 320ms var(--fe-ease),
     -webkit-text-fill-color 320ms var(--fe-ease),
     color 180ms var(--fe-ease);
 }
@@ -2620,8 +2622,8 @@
   /* Tailwind 4 writes `scale-[…]` as the `scale` property, which
      `transform: none` leaves in place. */
   scale: none !important;
+  /* No text-shadow here either, as in the side panel (#1074). */
   transition:
-    text-shadow 320ms var(--fe-ease),
     -webkit-text-fill-color 320ms var(--fe-ease),
     color 180ms var(--fe-ease);
 }

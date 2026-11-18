@@ -2634,6 +2634,7 @@
     "diagnostics": {
       "title": "Log dell'applicazione",
       "subtitle": "Per segnalare un bug, apri la cartella dei log oppure copia i log recenti e incollali in un ticket.",
+      "timesNote": "Gli orari nei log sono in ora locale, con la differenza rispetto a UTC. Ogni file copre un giorno UTC.",
       "openFolder": "Apri cartella",
       "copyLogs": "Copia i log",
       "copied": "Log copiati",
@@ -5017,6 +5018,10 @@
     "switchToVideo": "Passa al video",
     "switchToAudio": "Passa all'audio",
     "expand": "Ingrandisci il video",
-    "shrink": "Riduci il video"
+    "shrink": "Riduci il video",
+    "goneTitle": "Questo videoclip non è più sul server",
+    "goneBody": "Il server non trova più questo video: è stato eliminato o spostato dall'ultima scansione. Il brano resta in pausa nella sua posizione.",
+    "unreachableTitle": "Il server non risponde",
+    "unreachableBody": "Non è stato possibile richiedere il videoclip al server. Riprova quando sarà raggiungibile; il brano resta in pausa nella sua posizione."
   }
 }

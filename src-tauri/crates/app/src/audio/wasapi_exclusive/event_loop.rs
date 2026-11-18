@@ -129,7 +129,7 @@ pub(super) fn run_event_loop(
             &bytes_scratch
         };
 
-        if let Err(err) = render.write_to_device(need_frames, bytes, None) {
+        if let Err(err) = render.write_to_device(bytes, None) {
             // Same teardown race as the `wait_for_event` arm above.
             if shutdown_rx.try_recv().is_ok() {
                 break ExitReason::Shutdown;
@@ -248,7 +248,7 @@ fn run_dop_event_loop(
             }
         }
 
-        if let Err(err) = render.write_to_device(need_frames, &bytes_scratch, None) {
+        if let Err(err) = render.write_to_device(&bytes_scratch, None) {
             if shutdown_rx.try_recv().is_ok() {
                 break ExitReason::Shutdown;
             }

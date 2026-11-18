@@ -841,35 +841,21 @@ async fn sweep_libraries(
 }
 
 /// Fetch, one by one, the tracks the sweep listed and the album walk never
-/// wrote. On a tidy library this is empty; it exists for the singles that
-/// belong to no album.
+/// wrote, and those it wrote before this build read their clip ([`to_fetch`]).
+/// On a tidy library this is empty; it exists for the singles that belong to
+/// no album.
 async fn fetch_missing(
     client: &RemoteClient<'_>,
     pool: &SqlitePool,
     seen: &HashSet<String>,
 ) -> AppResult<i64> {
-    // Every row we hold, whatever its origin. A track the projection already
-    // cached for a playlist needs its flag set, not a round-trip: it is the
-    // same row, and the metadata it carries came from the same server.
-    let held: HashSet<String> = sqlx::query_scalar("SELECT remote_id FROM remote_track")
-        .fetch_all(pool)
-        .await?
-        .into_iter()
-        .collect();
-
     let mut fetched = 0i64;
-    let mut tx = pool.begin().await?;
-    for id in seen.intersection(&held) {
-        mark_in_catalogue(&mut tx, id).await?;
-    }
-    tx.commit().await?;
-
-    for id in seen.difference(&held) {
+    for id in to_fetch(pool, seen).await? {
         if cancelled() {
             break;
         }
         let song: SongItem = client
-            .send_json(client.get(&format!("/api/v2/tracks/{}", super::client::segment(id)?)))
+            .send_json(client.get(&format!("/api/v2/tracks/{}", super::client::segment(&id)?)))
             .await
             .map_err(|err| AppError::Other(format!("track fetch failed: {err}")))?;
         let mut tx = pool.begin().await?;
@@ -879,6 +865,50 @@ async fn fetch_missing(
         fetched += 1;
     }
     Ok(fetched)
+}
+
+/// The tracks [`fetch_missing`] reads from the server, once it has flagged
+/// the listed rows it already holds.
+///
+/// A held row is normally not read again: a track the projection already
+/// cached for a playlist needs its flag set, not a round-trip, since it is the
+/// same row and its metadata came from the same server. The exception is a row
+/// that has never been told whether it has a music video (`has_clip IS NULL`)
+/// while the server is known to tell (another row says it). Such a row was
+/// cached before this build read the field, and nothing else would ever fill
+/// it: the album walk re-reads only albums, and a single that belongs to none
+/// is held, so it was never fetched again. Read once, it says `0` or `1` and
+/// leaves the set. The condition on the server is what keeps that once: a
+/// server older than the field leaves every row NULL, and would otherwise have
+/// each single fetched again at every sweep.
+async fn to_fetch(pool: &SqlitePool, seen: &HashSet<String>) -> AppResult<Vec<String>> {
+    // Every row we hold, whatever its origin.
+    let held: HashSet<String> = sqlx::query_scalar("SELECT remote_id FROM remote_track")
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .collect();
+    let unsaid: HashSet<String> = sqlx::query_scalar(
+        "SELECT remote_id FROM remote_track
+          WHERE has_clip IS NULL
+            AND EXISTS (SELECT 1 FROM remote_track WHERE has_clip IS NOT NULL)",
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .collect();
+
+    let mut tx = pool.begin().await?;
+    for id in seen.intersection(&held) {
+        mark_in_catalogue(&mut tx, id).await?;
+    }
+    tx.commit().await?;
+
+    Ok(seen
+        .iter()
+        .filter(|id| !held.contains(*id) || unsaid.contains(*id))
+        .cloned()
+        .collect())
 }
 
 /// Drop mirrored rows the sweep did not list. Only rows the mirror owns are

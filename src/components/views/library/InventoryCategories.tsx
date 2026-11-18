@@ -15,6 +15,7 @@ import {
   AudioWaveform,
 } from "lucide-react";
 import type { InventoryCategory } from "../../../lib/tauri/inventory";
+import type { Translator } from "../../../lib/translator";
 
 /**
  * The "needs attention" inventory, as counted categories you click into
@@ -55,9 +56,6 @@ const ICONS: Record<string, typeof AlertTriangle> = {
 
 /** Categories that count artists rather than tracks (#719). */
 const ARTIST_CATEGORIES = new Set(["phantom_artist"]);
-
-/** See the note in `TrackTableHeader`. */
-type Translator = (key: string, options?: Record<string, unknown>) => string;
 
 interface InventoryCategoriesProps {
   categories: InventoryCategory[];

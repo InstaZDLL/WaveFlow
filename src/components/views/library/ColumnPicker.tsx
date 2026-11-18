@@ -16,9 +16,7 @@ import {
   type ColumnId,
   type ColumnLayout,
 } from "../../../lib/trackColumns";
-
-/** See the note in `TrackTableHeader`. */
-type Translator = (key: string, options?: Record<string, unknown>) => string;
+import type { Translator } from "../../../lib/translator";
 
 interface ColumnPickerProps {
   layout: ColumnLayout;

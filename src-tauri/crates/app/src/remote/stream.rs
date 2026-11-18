@@ -271,7 +271,7 @@ pub(crate) async fn mint_ticket(
     // or protocol-relative one would move playback off the authenticated
     // host, so refuse it rather than follow it.
     let rel = resp.url;
-    if !rel.starts_with('/') || rel.starts_with("//") {
+    if !super::client::is_relative(&rel) {
         return Err(RemoteFailure {
             kind: FailureKind::Permanent,
             status: None,

@@ -2631,6 +2631,7 @@
     "diagnostics": {
       "title": "Registro de la aplicación",
       "subtitle": "Para informar de un fallo, abre la carpeta de registros o copia los registros recientes y pégalos en una incidencia.",
+      "timesNote": "Las horas de los registros están en hora local, con su diferencia respecto a UTC. Cada archivo abarca un día UTC.",
       "openFolder": "Abrir carpeta",
       "copyLogs": "Copiar registros",
       "copied": "Registros copiados",
@@ -5014,6 +5015,10 @@
     "switchToVideo": "Cambiar al vídeo",
     "switchToAudio": "Cambiar al audio",
     "expand": "Ampliar el vídeo",
-    "shrink": "Reducir el vídeo"
+    "shrink": "Reducir el vídeo",
+    "goneTitle": "Este videoclip ya no está en el servidor",
+    "goneBody": "El servidor ya no encuentra este vídeo: se eliminó o se movió desde su último escaneo. La pista sigue en pausa en su posición.",
+    "unreachableTitle": "El servidor no responde",
+    "unreachableBody": "No se pudo solicitar el videoclip al servidor. Vuelve a intentarlo cuando esté accesible; la pista sigue en pausa en su posición."
   }
 }

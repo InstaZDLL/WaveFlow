@@ -514,7 +514,7 @@ impl AudioEngine {
             .unwrap_or(false)
     }
 
-    /// Recover from a mid-stream `cpal::StreamError::DeviceNotAvailable`
+    /// Recover from a mid-stream cpal `ErrorKind::DeviceNotAvailable`
     /// (#175). The cpal error callback fires on a random thread when
     /// Windows resets its audio session, a USB DAC unplugs, or a
     /// Bluetooth source flaps — without an automatic rebuild the user

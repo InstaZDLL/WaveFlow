@@ -2566,6 +2566,7 @@
     "diagnostics": {
       "title": "Uygulama günlüğü",
       "subtitle": "Bir hatayı bildirmek için günlük klasörünü aç veya son günlükleri kopyalayıp bir hata kaydına yapıştır.",
+      "timesNote": "Günlüklerdeki saatler yerel saate göredir ve UTC farkını içerir. Her dosya bir UTC gününü kapsar.",
       "openFolder": "Klasörü aç",
       "copyLogs": "Günlükleri kopyala",
       "copied": "Günlükler kopyalandı",
@@ -4874,6 +4875,10 @@
     "switchToVideo": "Videoya geç",
     "switchToAudio": "Sese geç",
     "expand": "Videoyu büyüt",
-    "shrink": "Videoyu küçült"
+    "shrink": "Videoyu küçült",
+    "goneTitle": "Bu müzik videosu artık sunucuda değil",
+    "goneBody": "Sunucu bu videoyu artık bulamıyor: son taramadan bu yana silinmiş veya taşınmış. Parça bulunduğu konumda duraklatılmış olarak kalır.",
+    "unreachableTitle": "Sunucu yanıt vermiyor",
+    "unreachableBody": "Müzik videosu sunucudan istenemedi. Sunucuya yeniden ulaşılabildiğinde tekrar deneyin; parça bulunduğu konumda duraklatılmış olarak kalır."
   }
 }

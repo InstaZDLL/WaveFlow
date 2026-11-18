@@ -33,6 +33,7 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
+import type { Translator } from "../../lib/translator";
 
 interface GenreDetailViewProps {
   genreId: number | null;
@@ -303,7 +304,7 @@ export function DetailTrackTable({
   /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
    *  opened the menu, so the row's own key handling can stand down. */
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: Translator;
 }) {
   "use no memo";
   const { value: singleClickPlay } = useSingleClickPlay();

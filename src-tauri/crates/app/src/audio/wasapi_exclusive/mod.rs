@@ -298,7 +298,7 @@ impl ExclusiveSampleFormat {
         // cable) would then keep it, with the sides on speakers in front.
         // A driver that refuses this one still gets the quirks' other masks.
         let mask = ChannelLayout::from_count(channels).wave_mask();
-        WaveFormat::new(bits, valid, &ty, sample_rate, channels, mask)
+        WaveFormat::new(bits, valid, ty, sample_rate, channels, mask)
     }
 
     /// What the rest of the engine calls this format.

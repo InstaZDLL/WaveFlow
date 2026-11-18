@@ -1,8 +1,6 @@
-export function PlaylistSkeleton({
-  t,
-}: {
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
+import type { Translator } from "../../../lib/translator";
+
+export function PlaylistSkeleton({ t }: { t: Translator }) {
   const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
   return (
     <div

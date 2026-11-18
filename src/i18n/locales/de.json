@@ -2566,6 +2566,7 @@
     "diagnostics": {
       "title": "Anwendungs-Log",
       "subtitle": "Um einen Fehler zu melden, öffne den Log-Ordner oder kopiere die aktuellen Logs und füge sie in ein Ticket ein.",
+      "timesNote": "Die Zeiten in den Logs sind Ortszeit, mit ihrer Abweichung von UTC. Jede Datei umfasst einen UTC-Tag.",
       "openFolder": "Ordner öffnen",
       "copyLogs": "Logs kopieren",
       "copied": "Logs kopiert",
@@ -4874,6 +4875,10 @@
     "switchToVideo": "Zum Video wechseln",
     "switchToAudio": "Zum Audio wechseln",
     "expand": "Video vergrößern",
-    "shrink": "Video verkleinern"
+    "shrink": "Video verkleinern",
+    "goneTitle": "Dieses Musikvideo ist nicht mehr auf dem Server",
+    "goneBody": "Der Server findet dieses Video nicht mehr: Es wurde seit dem letzten Scan gelöscht oder verschoben. Der Titel bleibt an seiner Position pausiert.",
+    "unreachableTitle": "Der Server antwortet nicht",
+    "unreachableBody": "Das Musikvideo konnte nicht vom Server angefordert werden. Versuche es erneut, sobald er erreichbar ist; der Titel bleibt an seiner Position pausiert."
   }
 }

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { getPlayerPosition } from "../hooks/usePlayerPosition";
+import type { ClipSource } from "./tauri/clip";
 
 /**
  * The music video on screen (#1073), if any — one at a time, and the
@@ -24,8 +25,13 @@ import { getPlayerPosition } from "../hooks/usePlayerPosition";
 export interface OpenClip {
   /** A new number at every opening, the same clip again included. */
   session: number;
+  /** The track's library id, or the sentinel a server track plays under
+   *  while it is the one playing (`remoteTrackId` is what names it). */
   trackId: number;
-  localPath: string;
+  /** Set for a server track. Its `trackId` is minted per playback, so the
+   *  server's id is what tells whether the clip is the playing track's. */
+  remoteTrackId: string | null;
+  source: ClipSource;
   title: string;
   artist: string | null;
   /** Where the clip starts, in ms: the track's position when it was
@@ -33,14 +39,17 @@ export interface OpenClip {
   startMs: number;
 }
 
+export type ClipFailure = "unplayable" | "gone" | "unreachable";
+
 export interface ClipState {
   clip: OpenClip | null;
   positionMs: number;
   /** 0 until the video's metadata has loaded. */
   durationMs: number;
   paused: boolean;
-  /** The webview could not play it. */
-  failed: boolean;
+  /** Why it is not playing, once it cannot: the webview could not read
+   *  it, the server no longer has it, or the server could not be reached. */
+  failed: ClipFailure | null;
   /** Width over height, once known: the panel's frame takes the clip's
    *  shape rather than the cover's square. */
   aspect: number | null;
@@ -51,7 +60,7 @@ const CLOSED: ClipState = {
   positionMs: 0,
   durationMs: 0,
   paused: true,
-  failed: false,
+  failed: null,
   aspect: null,
 };
 
@@ -75,6 +84,39 @@ function set(next: Partial<ClipState>) {
   listeners.forEach((listener) => listener());
 }
 
+/**
+ * Takes over the transport while it must: a server clip whose ticket has run
+ * out renews it before the element is asked to play or seek
+ * ([`clipServerSource`](./clipServerSource.ts)). Each method answers whether
+ * it took the request; a request it did not take goes to the element.
+ */
+export interface ClipTransportGuard {
+  /** Whether the element is not to be trusted for "is it paused" now (its
+   *  source is being replaced): the store's word is used instead. */
+  busy(): boolean;
+  play(): boolean;
+  pause(): boolean;
+  seek(ms: number): boolean;
+}
+let guard: { session: number; guard: ClipTransportGuard } | null = null;
+
+/** Register the guard of `session`, or remove it with `null`. Dropped at
+ *  every opening and closing too. */
+export function guardClipTransport(
+  session: number,
+  next: ClipTransportGuard | null,
+): void {
+  if (next === null) {
+    if (guard?.session === session) guard = null;
+    return;
+  }
+  if (isCurrentClipSession(session)) guard = { session, guard: next };
+}
+
+function activeGuard(): ClipTransportGuard | null {
+  return guard && isCurrentClipSession(guard.session) ? guard.guard : null;
+}
+
 /** Whether `session` is the clip on screen. */
 export function isCurrentClipSession(session: number): boolean {
   return state.clip?.session === session;
@@ -87,6 +129,7 @@ export function openClip(clip: Omit<OpenClip, "session">): void {
   epoch += 1;
   video = null;
   videoPositioned = false;
+  guard = null;
   set({
     ...CLOSED,
     clip: { ...clip, session: lastSession },
@@ -101,17 +144,51 @@ export function openClip(clip: Omit<OpenClip, "session">): void {
  * — and at its start for any other track (a context menu can name one).
  */
 export function openClipForTrack(
-  track: { id: number; title: string; artist_name: string | null },
-  localPath: string,
-  currentTrackId: number | null,
+  track: ClipTrack & { title: string; artist_name: string | null },
+  source: ClipSource,
+  currentTrack: ClipTrack | null,
 ): void {
+  const playing = currentTrack !== null && isSameTrack(track, currentTrack);
   openClip({
-    trackId: track.id,
-    localPath,
+    // The playing track's own id when it is the one: a server row in a list
+    // carries an id of its own, not the sentinel the track plays under.
+    trackId: playing ? currentTrack.id : track.id,
+    remoteTrackId: track.remote_id ?? null,
+    source,
     title: track.title,
     artist: track.artist_name,
-    startMs: track.id === currentTrackId ? getPlayerPosition() : 0,
+    startMs: playing ? getPlayerPosition() : 0,
   });
+}
+
+/** What names a track, for a clip: its id, and a server track's own id. */
+export interface ClipTrack {
+  id: number;
+  remote_id?: string;
+}
+
+/** Whether two rows are the same track: a server track by the server's id,
+ *  since each playback mints it a new sentinel; a library one by its id. */
+function isSameTrack(a: ClipTrack, b: ClipTrack): boolean {
+  if (a.remote_id !== undefined || b.remote_id !== undefined) {
+    return a.remote_id === b.remote_id;
+  }
+  return a.id === b.id;
+}
+
+/** Whether `clip` is `track`'s, by the rule above. */
+export function isClipOfTrack(
+  clip: OpenClip,
+  track: ClipTrack | null,
+): boolean {
+  if (track === null) return false;
+  return isSameTrack(
+    {
+      id: clip.trackId,
+      ...(clip.remoteTrackId !== null ? { remote_id: clip.remoteTrackId } : {}),
+    },
+    track,
+  );
 }
 
 /** Take the clip off the screen. Going back to the track's audio — where
@@ -123,6 +200,7 @@ export function closeClip(): void {
   epoch += 1;
   video = null;
   videoPositioned = false;
+  guard = null;
   set(CLOSED);
 }
 
@@ -203,6 +281,19 @@ export function markClipPositioned(
   if (video?.element === element) videoPositioned = true;
 }
 
+/** The element of `session` is loading a new source (a renewed ticket): its
+ *  time says nothing about the clip until its metadata loads again, so the
+ *  store's position is the clip's meanwhile. */
+export function unmarkClipPositioned(
+  session: number,
+  element: HTMLVideoElement,
+): void {
+  positionedElements.delete(element);
+  if (video?.element === element && isCurrentClipSession(session)) {
+    videoPositioned = false;
+  }
+}
+
 /** What the element of `session` reports, for the transport. Ignored once
  *  that session is no longer the clip on screen. */
 export function reportClipProgress(
@@ -242,16 +333,20 @@ export function playClipElement(session: number, target: HTMLVideoElement) {
 export function toggleClip(): void {
   const target = element();
   if (!target || !state.clip) return;
-  if (target.paused) playClipElement(state.clip.session, target);
-  else target.pause();
+  const paused = activeGuard()?.busy() ? state.paused : target.paused;
+  if (paused) playClip();
+  else pauseClip();
 }
 
 export function playClip(): void {
   const target = element();
-  if (target && state.clip) playClipElement(state.clip.session, target);
+  if (!target || !state.clip) return;
+  if (activeGuard()?.play()) return;
+  playClipElement(state.clip.session, target);
 }
 
 export function pauseClip(): void {
+  if (activeGuard()?.pause()) return;
   element()?.pause();
 }
 
@@ -261,7 +356,9 @@ export function seekClip(ms: number): void {
   if (!target) return;
   const duration = Number.isFinite(target.duration) ? target.duration : 0;
   const seconds = Math.max(0, ms / 1000);
-  target.currentTime = duration > 0 ? Math.min(seconds, duration) : seconds;
+  const bounded = duration > 0 ? Math.min(seconds, duration) : seconds;
+  if (activeGuard()?.seek(Math.round(bounded * 1000))) return;
+  target.currentTime = bounded;
   set({ positionMs: Math.round(target.currentTime * 1000) });
 }
 

@@ -59,6 +59,7 @@ import {
 } from "../../lib/tauri/track";
 import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
+import type { Translator } from "../../lib/translator";
 
 /**
  * A server artist in the shape the view already speaks.
@@ -1000,7 +1001,7 @@ function ArtistTrackTable({
   /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
    *  opened the menu, so the row's own key handling can stand down. */
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: Translator;
 }) {
   "use no memo";
   const { value: singleClickPlay } = useSingleClickPlay();

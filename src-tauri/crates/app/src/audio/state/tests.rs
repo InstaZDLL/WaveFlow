@@ -376,3 +376,67 @@ fn speed_change_preserves_position_continuity() {
     s.set_playback_speed(2.0);
     assert_eq!(s.current_position_ms(), 1_000);
 }
+
+/// Three minutes and a half into track 7, at 44.1 kHz stereo.
+fn on_track_seven() -> SharedPlayback {
+    let s = SharedPlayback::new();
+    s.sample_rate.store(44_100, Ordering::Relaxed);
+    s.channels.store(2, Ordering::Relaxed);
+    s.samples_played.store(210 * 44_100 * 2, Ordering::Relaxed);
+    s.current_track_id.store(7, Ordering::Release);
+    s
+}
+
+/// A track that ran to its end is saved, and offered to Play, at its
+/// start (#1109); one stopped or paused anywhere else keeps its position.
+#[test]
+fn a_track_that_ran_out_is_resumed_from_its_start() {
+    let s = on_track_seven();
+    s.set_state(PlayerState::Playing);
+    assert_eq!(s.resume_point(), Some((7, 210_000)));
+    assert_eq!(s.finished_track_id(), None);
+
+    s.set_state(PlayerState::Ended);
+    assert_eq!(s.resume_point(), Some((7, 0)));
+    assert_eq!(s.finished_track_id(), Some(7));
+
+    // A `Stop` on the ended track leaves it no less finished.
+    s.set_state(PlayerState::Idle);
+    assert_eq!(s.resume_point(), Some((7, 0)));
+    assert_eq!(s.finished_track_id(), Some(7));
+}
+
+/// Whatever loads next is not finished, and neither is a track a `Stop`
+/// put on `Idle` part-way through.
+#[test]
+fn the_next_load_or_a_stop_mid_track_is_not_finished() {
+    for next in [
+        PlayerState::Loading,
+        PlayerState::Playing,
+        PlayerState::Paused,
+    ] {
+        let s = on_track_seven();
+        s.set_state(PlayerState::Ended);
+        s.set_state(next);
+        assert_eq!(s.finished_track_id(), None, "{next:?}");
+        assert_eq!(s.resume_point(), Some((7, 210_000)), "{next:?}");
+    }
+    let s = on_track_seven();
+    s.set_state(PlayerState::Playing);
+    s.set_state(PlayerState::Idle);
+    assert_eq!(s.finished_track_id(), None);
+    assert_eq!(s.resume_point(), Some((7, 210_000)));
+}
+
+/// No library track, no resume point and nothing finished: radio and the
+/// remote queue use negative ids, a profile switch clears the id to `0`.
+#[test]
+fn only_a_library_track_has_a_resume_point() {
+    for track_id in [0, -1] {
+        let s = on_track_seven();
+        s.current_track_id.store(track_id, Ordering::Release);
+        s.set_state(PlayerState::Ended);
+        assert_eq!(s.resume_point(), None, "{track_id}");
+        assert_eq!(s.finished_track_id(), None, "{track_id}");
+    }
+}

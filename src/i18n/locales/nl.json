@@ -2566,6 +2566,7 @@
     "diagnostics": {
       "title": "Applicatielogboek",
       "subtitle": "Open de map met logboeken of kopieer recente logboekregels en plak ze in een ticket om een bug te melden.",
+      "timesNote": "Tijden in de logboeken staan in lokale tijd, met het verschil ten opzichte van UTC. Elk bestand beslaat één UTC-dag.",
       "openFolder": "Map openen",
       "copyLogs": "Logboekregels kopiëren",
       "copied": "Logboekregels gekopieerd",
@@ -4874,6 +4875,10 @@
     "switchToVideo": "Naar video",
     "switchToAudio": "Naar audio",
     "expand": "Video vergroten",
-    "shrink": "Video verkleinen"
+    "shrink": "Video verkleinen",
+    "goneTitle": "Deze videoclip staat niet meer op de server",
+    "goneBody": "De server kan deze video niet meer vinden: hij is sinds de laatste scan verwijderd of verplaatst. Het nummer blijft gepauzeerd op zijn positie.",
+    "unreachableTitle": "De server reageert niet",
+    "unreachableBody": "De videoclip kon niet bij de server worden opgevraagd. Probeer het opnieuw zodra die bereikbaar is; het nummer blijft gepauzeerd op zijn positie."
   }
 }

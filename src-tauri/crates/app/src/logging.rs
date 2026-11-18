@@ -26,6 +26,7 @@ use std::sync::{Mutex, OnceLock};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     filter::{filter_fn, FilterFn},
+    fmt::{format::Writer, time::FormatTime},
     layer::SubscriberExt,
     util::SubscriberInitExt,
     EnvFilter,
@@ -44,6 +45,36 @@ const LOG_FILES_KEPT: usize = 7;
 /// an evening — and past it the rest of the day is dropped rather than
 /// filling the disk.
 const LOG_BYTES_PER_DAY: u64 = 50 * 1024 * 1024;
+
+/// How a line's time is written: the local clock to the microsecond, with
+/// its offset from UTC — `2026-11-15T08:00:00.362923+08:00`. Someone
+/// reading the log sees the time their own clock showed, and the offset
+/// keeps the instant exact wherever the log is read. The files are still
+/// named after the UTC day, as the appender names them.
+const LOG_TIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.6f%:z";
+
+/// The timer of both sinks: [`LOG_TIME_FORMAT`] on the local clock. On
+/// Linux and macOS, where `chrono` reads the zone from `TZ` and
+/// `/etc/localtime`, a zone it cannot read falls back to UTC and the
+/// line says `+00:00`.
+struct LocalTime;
+
+impl FormatTime for LocalTime {
+    fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
+        write_log_time(w, &chrono::Local::now())
+    }
+}
+
+/// Writes `time` as a line's time, in [`LOG_TIME_FORMAT`].
+fn write_log_time<Tz: chrono::TimeZone>(
+    w: &mut Writer<'_>,
+    time: &chrono::DateTime<Tz>,
+) -> std::fmt::Result
+where
+    Tz::Offset: std::fmt::Display,
+{
+    write!(w, "{}", time.format(LOG_TIME_FORMAT))
+}
 
 /// Computed at `init_tracing` and reused by Tauri commands so the
 /// frontend can locate logs without re-implementing the path logic.
@@ -132,6 +163,7 @@ pub fn init_tracing() -> FlushOnDrop {
 
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout)
+        .with_timer(LocalTime)
         .with_target(true);
 
     let log_dir = resolve_log_dir();
@@ -152,6 +184,7 @@ pub fn init_tracing() -> FlushOnDrop {
                 let layer = tracing_subscriber::fmt::layer()
                     .with_writer(writer)
                     .with_ansi(false)
+                    .with_timer(LocalTime)
                     .with_target(true);
                 (Some(layer), Some(guard))
             }

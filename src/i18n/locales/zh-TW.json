@@ -2497,6 +2497,7 @@
     "diagnostics": {
       "title": "應用程式記錄檔",
       "subtitle": "若要報告錯誤，請開啟記錄檔資料夾，或複製最近的記錄檔貼到問題回報單。",
+      "timesNote": "記錄檔中的時間為本地時間，並標註與 UTC 的時差。每個檔案對應一個 UTC 日。",
       "openFolder": "開啟資料夾",
       "copyLogs": "複製記錄檔",
       "copied": "已複製",
@@ -4869,6 +4870,10 @@
     "switchToVideo": "切換到影片",
     "switchToAudio": "切換到音訊",
     "expand": "放大影片",
-    "shrink": "縮小影片"
+    "shrink": "縮小影片",
+    "goneTitle": "此音樂影片已不在伺服器上",
+    "goneBody": "伺服器已找不到此影片：自上次掃描以來它已被刪除或移動。曲目維持暫停在目前位置。",
+    "unreachableTitle": "伺服器沒有回應",
+    "unreachableBody": "無法向伺服器請求此音樂影片。請在伺服器可連線後重試；曲目維持暫停在目前位置。"
   }
 }

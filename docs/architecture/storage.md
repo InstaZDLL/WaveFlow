@@ -100,7 +100,7 @@ A clip the user set **by hand** can live with the music instead, when **Settings
 ### Elsewhere
 
 - Remote covers (`sync_v2`): `profiles/<id>/remote-artwork/`, an evictable disk cache of the server's hash-addressed cover art. Unlike `motion/` and `canvas/`, nothing here was chosen by the user — every file is a reproducible download ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#cover-art-is-cached-on-disk-not-inlined)).
-- Remote source (`sync_v2`): `remote_binding`, `remote_playlist`, `remote_playlist_track`, `remote_favorite`, `remote_rating`, `remote_history`, `remote_queue`, `remote_queue_track`, `remote_share`, `remote_share_track`, `remote_track`, `remote_album`, `remote_library`, `remote_mutation`, `remote_track_link`. All derived from the server and droppable — dropping them and re-fetching a snapshot is always a valid recovery. `remote_track.in_catalogue` marks the rows the catalogue walk owns, so purging the mirror cannot take a playlist's titles with it ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#the-catalogue-mirror)).
+- Remote source (`sync_v2`): `remote_binding`, `remote_playlist`, `remote_playlist_track`, `remote_favorite`, `remote_rating`, `remote_history`, `remote_queue`, `remote_queue_track`, `remote_share`, `remote_share_track`, `remote_track`, `remote_album`, `remote_library`, `remote_mutation`, `remote_track_link`. All derived from the server and droppable — dropping them and re-fetching a snapshot is always a valid recovery. `remote_track.in_catalogue` marks the rows the catalogue walk owns, so purging the mirror cannot take a playlist's titles with it ([RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md#the-catalogue-mirror)). `remote_track.has_clip` is whether the server says the track has a music video: `1`, `0`, or `NULL` when the server has said nothing, which a later silence never overwrites ([ui.md](../features/ui.md#music-videos)).
 - Profile-scoped pool: every command that touches user data goes through `state.require_profile_pool().await?`, or `state.require_profile_snapshot().await?` when it also needs the profile id — one lock acquisition for both, so a profile switch cannot pair one profile's database with another's id ([invariant](invariants.md#profile-scoped-pool)).
 
 Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile). Applied via `sqlx::migrate!()` at boot for each opened pool.
@@ -197,6 +197,8 @@ Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`va
 
 - **7 files are kept.** The appender deletes the oldest as a new day starts.
 - **50 MB per day.** `CappedWriter` counts the day's bytes, starting from the size today's file already has so a restart does not reset it. The write that would cross the limit is replaced by one line saying so, and the rest of the day is dropped.
+
+A line's time is the local clock with its offset from UTC, `2026-11-15T08:00:00.362923+08:00` (`LOG_TIME_FORMAT`, on the terminal and in the file alike), so a user far from UTC reads the time their own clock showed and the instant stays exact (#1108). The days stay UTC: the appender names its files that way, and the daily cap counts the same days. Settings → Diagnostics says both under "Application log".
 
 ## Asset protocol scope
 

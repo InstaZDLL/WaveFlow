@@ -738,5 +738,18 @@ pub fn segment(id: &str) -> Result<String, InvalidPathSegment> {
     Ok(out)
 }
 
+/// Whether a media URL the server minted is a path we may append to our own
+/// base.
+///
+/// Every ticket route (audio, Canvas, clip) answers a **relative** path, and
+/// the caller prepends the binding's `base_url`. An absolute or
+/// protocol-relative answer would point the webview or the decoder at a host
+/// the user never authenticated against, and a `<video>` element would load
+/// it without a murmur, so it is refused rather than followed. One function
+/// for every route, so a test of it is a test of the rule each one applies.
+pub fn is_relative(path: &str) -> bool {
+    path.starts_with('/') && !path.starts_with("//")
+}
+
 #[cfg(test)]
 mod tests;

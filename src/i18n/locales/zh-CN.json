@@ -2497,6 +2497,7 @@
     "diagnostics": {
       "title": "应用程序日志",
       "subtitle": "要报告错误，请打开日志文件夹或复制最近的日志并粘贴到问题反馈中。",
+      "timesNote": "日志中的时间为本地时间，并标注与 UTC 的时差。每个文件对应一个 UTC 日。",
       "openFolder": "打开文件夹",
       "copyLogs": "复制日志",
       "copied": "已复制",
@@ -4869,6 +4870,10 @@
     "switchToVideo": "切换到视频",
     "switchToAudio": "切换到音频",
     "expand": "放大视频",
-    "shrink": "缩小视频"
+    "shrink": "缩小视频",
+    "goneTitle": "此音乐视频已不在服务器上",
+    "goneBody": "服务器已找不到此视频：自上次扫描以来它已被删除或移动。曲目保持暂停在当前位置。",
+    "unreachableTitle": "服务器没有响应",
+    "unreachableBody": "无法向服务器请求此音乐视频。请在服务器可访问后重试；曲目保持暂停在当前位置。"
   }
 }

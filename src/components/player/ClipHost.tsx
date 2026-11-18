@@ -5,6 +5,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import {
   clipEpoch,
   closeClip,
+  isClipOfTrack,
   onClipExit,
   pauseClip,
   playClip,
@@ -60,7 +61,7 @@ export function ClipHost() {
     togglePlayback,
     seek,
     next,
-    currentTrackId: currentTrack?.id ?? null,
+    currentTrack,
     durationMs,
   });
   useEffect(() => {
@@ -69,14 +70,13 @@ export function ClipHost() {
       togglePlayback,
       seek,
       next,
-      currentTrackId: currentTrack?.id ?? null,
+      currentTrack,
       durationMs,
     };
   });
 
   // Every opening is a session of its own (`clipPlayer`).
   const clipKey = clip ? clip.session : null;
-  const trackId = clip?.trackId ?? null;
   // Whether the track was playing when the clip opened: when one clip
   // replaces another directly, the track was paused by the first, and what
   // counts is what it was doing before that.
@@ -109,7 +109,7 @@ export function ClipHost() {
 
   // Leaving: the track picks up where the clip was.
   useEffect(() => {
-    if (trackId === null) return;
+    if (clip === null) return;
     onClipExit((exit: ClipExit, positionMs: number) => {
       closeClip();
       // Any opening or closing after this point is another visit.
@@ -119,11 +119,11 @@ export function ClipHost() {
         togglePlayback: toggle,
         seek: seekTrack,
         next: nextTrack,
-        currentTrackId,
+        currentTrack: playingTrack,
         durationMs: trackMs,
       } = live.current;
       const resume = exit === "user" && resumeTrack.current && !playing;
-      if (trackId !== currentTrackId) {
+      if (!isClipOfTrack(clip, playingTrack)) {
         // A clip opened from the menu for another track: nothing to line
         // up, the track that was playing plays on.
         if (resume) void toggle();
@@ -146,7 +146,7 @@ export function ClipHost() {
       })();
     });
     return () => onClipExit(null);
-  }, [trackId]);
+  }, [clip]);
 
   // Where it shows. Read after the render that changed it, so the moment
   // between two surfaces (the panel giving way to the immersive view) does

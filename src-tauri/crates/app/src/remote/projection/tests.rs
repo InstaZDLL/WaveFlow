@@ -675,6 +675,75 @@ async fn a_sparser_sighting_does_not_blank_richer_metadata() {
     assert_eq!(row.try_get::<i64, _>("duration_ms").unwrap(), 1234);
 }
 
+/// `(has_clip, clip_format, clip_byte_size)` for `t1`.
+async fn clip_row(conn: &mut SqliteConnection) -> (Option<i64>, Option<String>, Option<i64>) {
+    sqlx::query_as(
+        "SELECT has_clip, clip_format, clip_byte_size FROM remote_track WHERE remote_id='t1'",
+    )
+    .fetch_one(&mut *conn)
+    .await
+    .unwrap()
+}
+
+async fn sight(conn: &mut SqliteConnection, song: serde_json::Value) {
+    let song: SongItem = serde_json::from_value(song).unwrap();
+    cache_song(conn, &song).await.unwrap();
+}
+
+#[tokio::test]
+async fn a_track_that_never_said_anything_of_a_clip_is_not_known_to_lack_one() {
+    let pool = pool().await;
+    let mut conn = pool.acquire().await.unwrap();
+    sight(&mut conn, serde_json::json!({"id": "t1", "title": "Song"})).await;
+    assert_eq!(clip_row(&mut conn).await, (None, None, None));
+}
+
+#[tokio::test]
+async fn a_clip_is_kept_by_a_sighting_that_says_nothing_and_cleared_by_a_null() {
+    let pool = pool().await;
+    let mut conn = pool.acquire().await.unwrap();
+    let with_clip = serde_json::json!({
+        "id": "t1", "title": "Song", "clip": {"format": "mp4", "byte_size": 4096}
+    });
+    sight(&mut conn, with_clip.clone()).await;
+    assert_eq!(
+        clip_row(&mut conn).await,
+        (Some(1), Some("mp4".into()), Some(4096))
+    );
+
+    // A sparse source, or a server older than the field: nothing said, and
+    // nothing lost.
+    sight(&mut conn, serde_json::json!({"id": "t1", "title": "Song"})).await;
+    assert_eq!(
+        clip_row(&mut conn).await,
+        (Some(1), Some("mp4".into()), Some(4096))
+    );
+
+    // The server says the clip is gone: the flag and what described the
+    // clip go together, so no format outlives the clip it named.
+    sight(
+        &mut conn,
+        serde_json::json!({"id": "t1", "title": "Song", "clip": null}),
+    )
+    .await;
+    assert_eq!(clip_row(&mut conn).await, (Some(0), None, None));
+
+    // And a `null` is kept by a later silence as well.
+    sight(&mut conn, serde_json::json!({"id": "t1", "title": "Song"})).await;
+    assert_eq!(clip_row(&mut conn).await, (Some(0), None, None));
+
+    // A clip that comes back, in another container, replaces every column.
+    sight(
+        &mut conn,
+        serde_json::json!({"id": "t1", "title": "Song", "clip": {"format": "webm"}}),
+    )
+    .await;
+    assert_eq!(
+        clip_row(&mut conn).await,
+        (Some(1), Some("webm".into()), None)
+    );
+}
+
 #[tokio::test]
 async fn a_patch_reply_can_blank_what_the_upsert_would_have_kept() {
     // The one behaviour that stops `apply_track_metadata` being a

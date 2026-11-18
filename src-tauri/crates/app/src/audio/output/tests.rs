@@ -44,3 +44,13 @@ fn the_mono_switch_is_not_the_output_s_job() {
     assert_eq!(written, 2);
     assert_eq!(samples, [0.0, 1.0]);
 }
+
+#[test]
+fn a_full_scale_sample_stays_in_range_as_i24() {
+    use cpal::Sample;
+    // Unbounded, +1.0 lands one past the largest 24-bit value.
+    assert_eq!(cpal::I24::from_sample(1.0_f32).inner(), 8_388_608);
+    let peak = cpal::I24::from_sample(1.0_f32.min(super::I24_CEILING));
+    assert_eq!(peak.inner(), 8_388_607);
+    assert_eq!(cpal::I24::from_sample(-1.0_f32).inner(), -8_388_608);
+}

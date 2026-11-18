@@ -140,6 +140,20 @@ pub async fn remote_track_canvas(
     crate::remote::canvas::ticket_url(&state, &track_id).await
 }
 
+/// A ticket for a server track's music video, or `None` when it has none.
+///
+/// The URL plays in a `<video>` element, ranges included; `expiresAt` says
+/// until when, so the player can mint a fresh one before a seek after a long
+/// pause meets an expired ticket. Like the Canvas's, never to be stored: ask
+/// again to renew. A server that cannot be reached is an error, not "no clip".
+#[tauri::command]
+pub async fn remote_track_clip(
+    state: tauri::State<'_, AppState>,
+    track_id: String,
+) -> AppResult<Option<crate::remote::clip::ClipTicket>> {
+    crate::remote::clip::ticket(&state, &track_id).await
+}
+
 /// What the mirror holds for a server track, to fill the tag editor.
 ///
 /// `None` when the mirror has no row for it — a track known only as an

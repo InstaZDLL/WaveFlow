@@ -299,7 +299,7 @@ fn init_stream(
     let mode = StreamMode::EventsExclusive { period_hns };
 
     client
-        .initialize_client(wave, &Direction::Render, &mode)
+        .initialize_client(wave, Direction::Render, mode, None)
         .map_err(|e| {
             AppError::Audio(format!(
                 "initialize_client {} exclusive: {e:?}",
@@ -321,7 +321,7 @@ fn init_stream(
 
     let silent_bytes = vec![0u8; (buffer_frames as usize) * channels * format.bytes_per_sample()];
     render
-        .write_to_device(buffer_frames as usize, &silent_bytes, None)
+        .write_to_device(&silent_bytes, None)
         .map_err(|e| AppError::Audio(format!("prefill render buffer: {e:?}")))?;
 
     client
@@ -342,7 +342,7 @@ pub(super) fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
         // enumerator (the enumerator's `get_device` wants an opaque
         // device-id, not the human-readable name we persist).
         let coll = enumerator
-            .get_device_collection(&Direction::Render)
+            .get_device_collection(Direction::Render)
             .map_err(|e| AppError::Audio(format!("enumerate render devices: {e:?}")))?;
         if let Ok(dev) = coll.get_device_with_name(name) {
             return Ok(dev);
@@ -353,7 +353,7 @@ pub(super) fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
         );
     }
     enumerator
-        .get_default_device(&Direction::Render)
+        .get_default_device(Direction::Render)
         .map_err(|e| AppError::Audio(format!("default render device: {e:?}")))
 }
 
