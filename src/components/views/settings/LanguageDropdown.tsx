@@ -6,6 +6,7 @@ import {
 } from "../../../i18n";
 import { Check, ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
+import { scrollMovesElement } from "../../../lib/anchorScroll";
 import { leftAligned } from "../../../lib/direction";
 
 // Tallest the listbox gets. With seventeen languages the list is taller
@@ -101,12 +102,14 @@ export function LanguageDropdown({
   // (and matches native <select>) than re-measuring on every frame.
   // The capture-phase listener also hears the listbox's own scrolling —
   // a wheel over it, or the arrow keys moving focus past its edge — and
-  // that one must not close it.
+  // that one must not close it, nor a scroll beside the trigger (the
+  // lyrics panel following the song, #1135).
   useEffect(() => {
     if (!isOpen) return;
     const close = () => setIsOpen(false);
     const onScroll = (event: Event) => {
       if (listboxRef.current?.contains(event.target as Node)) return;
+      if (!scrollMovesElement(event, triggerRef.current)) return;
       setIsOpen(false);
     };
     window.addEventListener("scroll", onScroll, true);
