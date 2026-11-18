@@ -11,7 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
-import { scrollMovesPoint } from "../../lib/anchorScroll";
+import { elementUnder, scrollMovesElement } from "../../lib/anchorScroll";
 import { interfaceIsRtl, leftAtPoint, leftBeside } from "../../lib/direction";
 
 /**
@@ -184,18 +184,19 @@ export function ContextMenu({
       if (target?.closest("[data-context-menu]")) return;
       onClose();
     };
-    // Close when what lies under the menu scrolls — keeps the menu glued
+    // Close when what the menu opened on scrolls — keeps the menu glued
     // to its anchor without chasing the page. The listener captures every
     // scroll, so not when it is inside the menu itself (the playlist
     // submenu's own list closed the menu the moment it moved), nor in a
-    // region away from the point it opened at (the lyrics panel following
-    // the song, #1135).
+    // region that does not hold the element at the point it opened at
+    // (the lyrics panel following the song, #1135).
+    const anchor = elementUnder(point.x, point.y, "[data-context-menu]");
     const onScroll = (e: Event) => {
       const target = e.target;
       if (target instanceof Element && target.closest("[data-context-menu]")) {
         return;
       }
-      if (!scrollMovesPoint(e, point.x, point.y)) return;
+      if (!scrollMovesElement(e, anchor)) return;
       onClose();
     };
     // `mousedown` instead of `click` so dragging doesn't accidentally

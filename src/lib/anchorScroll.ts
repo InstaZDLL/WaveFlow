@@ -7,17 +7,8 @@
  * scroll in the page: the synced lyrics panel scrolling to the next line
  * every few seconds closed a menu opened over the library (#1135). Only a
  * scroll of the document, or of an element that holds the anchor, moves it.
+ * With no anchor every scroll counts, as before.
  */
-
-/** The anchor is a point in the viewport, as a right-click leaves it. */
-export function scrollMovesPoint(event: Event, x: number, y: number): boolean {
-  const target = event.target;
-  if (!(target instanceof Element)) return true;
-  const r = target.getBoundingClientRect();
-  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-}
-
-/** The anchor is the element the menu opened from. */
 export function scrollMovesElement(
   event: Event,
   anchor: Element | null,
@@ -25,4 +16,20 @@ export function scrollMovesElement(
   const target = event.target;
   if (!(target instanceof Element)) return true;
   return anchor === null || target.contains(anchor);
+}
+
+/**
+ * The element a menu opened at a viewport point stands for: the topmost
+ * one there that is not part of a menu (`skip`, a selector), which the
+ * menu itself covers once it is placed. A scrolling panel that only
+ * overlaps the point, under it, is not it.
+ */
+export function elementUnder(
+  x: number,
+  y: number,
+  skip: string,
+): Element | null {
+  return (
+    document.elementsFromPoint(x, y).find((el) => !el.closest(skip)) ?? null
+  );
 }
