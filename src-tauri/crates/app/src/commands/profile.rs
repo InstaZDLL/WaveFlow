@@ -201,9 +201,6 @@ pub async fn switch_profile(
     // track IDs from the old profile's database, which would become
     // dangling after the pool swap.
     let _ = engine.send(AudioCmd::Stop);
-    // A seek held for the old profile's restored track (#1129) would
-    // otherwise start the new profile's at that position.
-    engine.drop_held_seek();
     engine
         .shared()
         .set_state(crate::audio::state::PlayerState::Idle);
@@ -227,6 +224,12 @@ pub async fn switch_profile(
         }
         return Err(err);
     }
+
+    // A seek held for the restored track of the profile just left (#1129),
+    // including one made while this switch ran, would otherwise start the
+    // new profile's track at that position. Only once the swap is done: a
+    // switch that failed leaves the old profile, and its seek, in place.
+    engine.drop_held_seek();
 
     // The shares of the profile just left must not stay reachable from here:
     // not their password, and not a locator that an imported copy of the

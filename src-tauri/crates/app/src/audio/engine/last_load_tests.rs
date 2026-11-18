@@ -239,13 +239,34 @@ fn a_seek_with_nothing_loaded_is_held_for_play() {
 }
 
 #[test]
-fn a_held_seek_counts_until_a_load_is_asked_for() {
-    let held = Some(super::resume::held_seek_for_test(180_000, 7));
-    assert_eq!(super::resume::held_seek_position(held, 7), Some(180_000));
+fn a_held_seek_describes_the_player_until_a_load_is_asked_for() {
+    use super::resume::{held_seek_for_test, held_seek_position};
+    let held = Some(held_seek_for_test(180_000, 7, Some(3)));
+    assert_eq!(held_seek_position(held, 7, Some(3)), Some(180_000));
     // A track picked or Next since: the seek was made on what showed
-    // before it, and Play must not carry it over.
-    assert_eq!(super::resume::held_seek_position(held, 8), None);
-    assert_eq!(super::resume::held_seek_position(None, 7), None);
+    // before it.
+    assert_eq!(held_seek_position(held, 8, Some(3)), None);
+    // Next asked for its intent before the seek came, and its track has
+    // been accepted since: the bar must follow that track, not the seek.
+    assert_eq!(held_seek_position(held, 7, Some(7)), None);
+    assert_eq!(held_seek_position(None, 7, Some(3)), None);
+}
+
+#[test]
+fn play_takes_a_seek_made_on_the_track_it_loads() {
+    use super::resume::{held_seek_for_load, held_seek_for_test};
+    // Made before Play asked for intent 8.
+    let before = Some(held_seek_for_test(180_000, 7, None));
+    assert_eq!(held_seek_for_load(before, 8, None), Some(180_000));
+    // Made while Play read the database: the track shown was still the
+    // one it loads, and the seek is the newer choice.
+    let during = Some(held_seek_for_test(90_000, 8, None));
+    assert_eq!(held_seek_for_load(during, 8, None), Some(90_000));
+    // Made before another load asked for intent 8; Play holds 9.
+    assert_eq!(held_seek_for_load(before, 9, None), None);
+    // A load was accepted since: the seek was on what showed before it.
+    assert_eq!(held_seek_for_load(before, 8, Some(8)), None);
+    assert_eq!(held_seek_for_load(None, 8, None), None);
 }
 
 #[test]

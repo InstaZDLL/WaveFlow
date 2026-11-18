@@ -262,11 +262,6 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         tracing::debug!("resume already in flight; ignoring this play");
         return Ok(());
     };
-    // Where the user dragged the bar while nothing was loaded (#1129), if
-    // nothing has been loaded since. Taken before the intent below, which
-    // would make it look stale; spent whichever path runs, since a park or
-    // an episode resumed instead is not the track it was made on.
-    let held_seek = engine.take_held_seek();
     // The intent starts here, not at the send below (#622). Everything
     // between the two is database work, and a Next pressed during it is a
     // newer choice than this resume — the guard above only stops a second
@@ -321,10 +316,6 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     let Some((track, position_ms)) = queue::resume_target(&pool, finished).await? else {
         return Err(AppError::Other("no resume point available".into()));
     };
-    // A seek the user made is a choice and is taken as asked, its last two
-    // seconds included, over the stored point and over a finished track's
-    // start alike.
-    let position_ms = held_seek.unwrap_or(position_ms);
     let replay_gain = commands::player::fetch_replay_gain(&pool, track.id).await;
     // A Next pressed while this resume was in the database has already
     // claimed the dispatch, which means the load below would be dropped
@@ -338,6 +329,13 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         tracing::debug!("resume superseded by a newer playback intent; dropping it");
         return Ok(());
     }
+    // Where the user dragged the bar while nothing was loaded (#1129), if
+    // it was dragged on this track. Taken only now that the dispatch is
+    // ours: a resume that failed on its way here, or was overtaken, leaves
+    // it for the next Play. A seek is a choice and is taken as asked, its
+    // last two seconds included, over the stored point and over a finished
+    // track's start alike.
+    let position_ms = engine.take_held_seek_for(intent).unwrap_or(position_ms);
     commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
     // The guard above can't cover the last stretch: once the command is in
     // the channel, the decoder still has to pick it up, and until it
