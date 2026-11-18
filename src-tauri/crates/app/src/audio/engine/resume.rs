@@ -440,63 +440,54 @@ pub(super) fn move_parked(parked: &mut Option<ParkedSession>, superseded: bool, 
 }
 
 /// A seek asked of a player with nothing loaded (#1129): where the user put
-/// the bar, how many load intents had been asked for at that moment, and
-/// the load the decoder had last accepted.
+/// the bar, the newest load claimed at that moment, and the load the
+/// decoder had last accepted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct HeldSeek {
     ms: u64,
-    issued: u64,
+    claimed: u64,
     accepted: Option<u64>,
 }
 
-/// Whether a seek in `state` has nothing loaded to apply to and is held
-/// for the next Play. `Idle` is the launch, a `Stop` and a park; `Ended` a
-/// track that ran to its end. Both leave the decoder in its idle loop,
-/// which drops a `Seek`.
-pub(super) fn holds_seek(state: crate::audio::PlayerState) -> bool {
-    matches!(
+/// Whether a seek finds nothing loaded to apply to and is held for the
+/// next Play. `Idle` is the launch, a `Stop` and a park; `Ended` a track
+/// that ran to its end; both leave the decoder in its idle loop, which
+/// drops a `Seek`. Not while a claimed load is on its way to the decoder,
+/// though: a `Seek` sent then follows that load down the channel and
+/// lands on it, as MPD's `seek` from a stop does when it plays the song
+/// and then seeks it.
+pub(super) fn holds_seek(
+    state: crate::audio::PlayerState,
+    claimed: u64,
+    accepted: Option<u64>,
+) -> bool {
+    let idle = matches!(
         state,
         crate::audio::PlayerState::Idle | crate::audio::PlayerState::Ended
-    )
+    );
+    idle && claimed <= accepted.unwrap_or(0)
 }
 
-/// The pure half of [`AudioEngine::held_seek_ms`]: a held seek describes
-/// the player only while no load has been asked for since it was made,
-/// and none accepted. A track picked, Next, the queue moving on at an end
-/// all ask for one; a load already asked for when the seek came, and
-/// accepted since, changes the second.
+/// The pure half of [`AudioEngine::held_seek_ms`] and
+/// [`AudioEngine::take_held_seek`]: a held seek stands for the track shown
+/// when it was made while no load has claimed the dispatch since, and none
+/// been accepted. A track picked, Next, the queue moving on at an end all
+/// claim one. A Play that asked for an intent and failed before claiming
+/// it does not count: the seek is still there for the next.
 pub(super) fn held_seek_position(
     held: Option<HeldSeek>,
-    issued_now: u64,
+    claimed_now: u64,
     accepted_now: Option<u64>,
 ) -> Option<u64> {
-    held.filter(|held| held.issued == issued_now && held.accepted == accepted_now)
+    held.filter(|held| held.claimed == claimed_now && held.accepted == accepted_now)
         .map(|held| held.ms)
 }
 
-/// The pure half of [`AudioEngine::take_held_seek_for`]: whether the held
-/// seek was made on what the resume holding `intent` loads. It was if no
-/// load was accepted since, and if it came either just before the resume
-/// asked for its intent, or while the resume read the database: in both
-/// cases the track on screen was the one the resume loads. A seek from
-/// before another load's intent was asked for belongs to that load.
-pub(super) fn held_seek_for_load(
-    held: Option<HeldSeek>,
-    intent: u64,
-    accepted_now: Option<u64>,
-) -> Option<u64> {
-    held.filter(|held| {
-        held.accepted == accepted_now
-            && (held.issued == intent || held.issued.checked_add(1) == Some(intent))
-    })
-    .map(|held| held.ms)
-}
-
 #[cfg(test)]
-pub(super) fn held_seek_for_test(ms: u64, issued: u64, accepted: Option<u64>) -> HeldSeek {
+pub(super) fn held_seek_for_test(ms: u64, claimed: u64, accepted: Option<u64>) -> HeldSeek {
     HeldSeek {
         ms,
-        issued,
+        claimed,
         accepted,
     }
 }
@@ -724,9 +715,10 @@ impl AudioEngine {
     /// has nothing to apply to, and Play started from the resume point,
     /// not from where the user had dragged the bar. The same after a track
     /// ran to its end. [`crate::player_actions::resume_last`] takes it
-    /// ([`Self::take_held_seek_for`]).
+    /// ([`Self::take_held_seek`]).
     fn hold_seek(&self, ms: u64) -> bool {
-        if !holds_seek(self.shared.state()) {
+        let (claimed, accepted) = (self.claimed_load_intent(), self.accepted_load_intent());
+        if !holds_seek(self.shared.state(), claimed, accepted) {
             return false;
         }
         let Ok(mut guard) = self.held_seek.lock() else {
@@ -734,35 +726,38 @@ impl AudioEngine {
         };
         *guard = Some(HeldSeek {
             ms,
-            issued: self.issued_load_intents(),
-            accepted: self.accepted_load_intent(),
+            claimed,
+            accepted,
         });
         true
     }
 
     /// The held seek's position while it still describes the player:
-    /// nothing loaded, and no load asked for or accepted since. Left in
+    /// nothing loaded, and no load claimed or accepted since. Left in
     /// place, for what only reports the position.
     pub(crate) fn held_seek_ms(&self) -> Option<u64> {
-        if !holds_seek(self.shared.state()) {
+        let (claimed, accepted) = (self.claimed_load_intent(), self.accepted_load_intent());
+        if !holds_seek(self.shared.state(), claimed, accepted) {
             return None;
         }
         let held = *self.held_seek.lock().ok()?;
-        held_seek_position(
-            held,
-            self.issued_load_intents(),
-            self.accepted_load_intent(),
-        )
+        held_seek_position(held, claimed, accepted)
     }
 
-    /// Spend the held seek for the resume that has claimed `intent`: its
-    /// position if it was made on the track that resume loads, `None`
-    /// otherwise ([`held_seek_for_load`]). Called once the dispatch is
-    /// claimed, so a resume that fails or is overtaken before then leaves
-    /// it for the next Play.
-    pub(crate) fn take_held_seek_for(&self, intent: LoadIntent) -> Option<u64> {
+    /// Spend the held seek: its position if no load has claimed the
+    /// dispatch or been accepted since it was made, `None` otherwise.
+    ///
+    /// For a resume, called under [`Self::lock_publish`] and before its
+    /// own claim: every producer claims under that lock, so the answer
+    /// cannot change before the claim, and a resume that fails before
+    /// getting there leaves the seek for the next Play.
+    pub(crate) fn take_held_seek(&self) -> Option<u64> {
         let held = self.held_seek.lock().ok()?.take();
-        held_seek_for_load(held, intent.get(), self.accepted_load_intent())
+        held_seek_position(
+            held,
+            self.claimed_load_intent(),
+            self.accepted_load_intent(),
+        )
     }
 
     /// Forget a held seek: the track it was made on is no longer the one
@@ -777,9 +772,9 @@ impl AudioEngine {
         self.shared.last_load_intent().map(LoadIntent::get)
     }
 
-    fn issued_load_intents(&self) -> u64 {
+    fn claimed_load_intent(&self) -> u64 {
         self.shared
-            .load_intents
+            .newest_load_intent
             .load(std::sync::atomic::Ordering::Acquire)
     }
 

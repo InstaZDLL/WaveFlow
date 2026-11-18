@@ -230,43 +230,39 @@ fn a_seek_with_nothing_loaded_is_held_for_play() {
     // After a launch the restored track is shown paused but nothing is
     // loaded, as after a track ran to its end: the decoder dropped the
     // `Seek` and Play started from the resume point (#1129).
+    use super::resume::holds_seek;
     use crate::audio::PlayerState;
-    assert!(super::resume::holds_seek(PlayerState::Idle));
-    assert!(super::resume::holds_seek(PlayerState::Ended));
-    assert!(!super::resume::holds_seek(PlayerState::Paused));
-    assert!(!super::resume::holds_seek(PlayerState::Playing));
-    assert!(!super::resume::holds_seek(PlayerState::Loading));
+    assert!(holds_seek(PlayerState::Idle, 0, None));
+    assert!(holds_seek(PlayerState::Ended, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Paused, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Playing, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Loading, 4, Some(4)));
 }
 
 #[test]
-fn a_held_seek_describes_the_player_until_a_load_is_asked_for() {
+fn a_seek_behind_a_load_on_its_way_follows_it() {
+    // MPD's `seek` from a stop plays the song, then seeks it: the load is
+    // claimed and in the channel, not yet accepted, and the state is still
+    // `Idle`. Held, the seek was lost and the song started at 0.
+    use super::resume::holds_seek;
+    use crate::audio::PlayerState;
+    assert!(!holds_seek(PlayerState::Idle, 1, None));
+    assert!(!holds_seek(PlayerState::Ended, 5, Some(4)));
+}
+
+#[test]
+fn a_held_seek_stands_until_another_load_claims() {
     use super::resume::{held_seek_for_test, held_seek_position};
-    let held = Some(held_seek_for_test(180_000, 7, Some(3)));
-    assert_eq!(held_seek_position(held, 7, Some(3)), Some(180_000));
-    // A track picked or Next since: the seek was made on what showed
-    // before it.
-    assert_eq!(held_seek_position(held, 8, Some(3)), None);
-    // Next asked for its intent before the seek came, and its track has
-    // been accepted since: the bar must follow that track, not the seek.
-    assert_eq!(held_seek_position(held, 7, Some(7)), None);
-    assert_eq!(held_seek_position(None, 7, Some(3)), None);
-}
-
-#[test]
-fn play_takes_a_seek_made_on_the_track_it_loads() {
-    use super::resume::{held_seek_for_load, held_seek_for_test};
-    // Made before Play asked for intent 8.
-    let before = Some(held_seek_for_test(180_000, 7, None));
-    assert_eq!(held_seek_for_load(before, 8, None), Some(180_000));
-    // Made while Play read the database: the track shown was still the
-    // one it loads, and the seek is the newer choice.
-    let during = Some(held_seek_for_test(90_000, 8, None));
-    assert_eq!(held_seek_for_load(during, 8, None), Some(90_000));
-    // Made before another load asked for intent 8; Play holds 9.
-    assert_eq!(held_seek_for_load(before, 9, None), None);
-    // A load was accepted since: the seek was on what showed before it.
-    assert_eq!(held_seek_for_load(before, 8, Some(8)), None);
-    assert_eq!(held_seek_for_load(None, 8, None), None);
+    // A Play that asked for an intent and failed before claiming it left
+    // both marks as they were: the next Play still finds the seek.
+    let held = Some(held_seek_for_test(180_000, 3, Some(3)));
+    assert_eq!(held_seek_position(held, 3, Some(3)), Some(180_000));
+    // A track picked or Next since claimed the dispatch: the seek was made
+    // on what showed before it.
+    assert_eq!(held_seek_position(held, 4, Some(3)), None);
+    // A load accepted since, the decoder's own advance at an end.
+    assert_eq!(held_seek_position(held, 3, Some(5)), None);
+    assert_eq!(held_seek_position(None, 3, Some(3)), None);
 }
 
 #[test]
