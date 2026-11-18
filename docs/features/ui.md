@@ -165,6 +165,13 @@ are styled by their own classes rather than colour utilities, because the
 materials restyle anything that looks like a selected settings row by matching
 utility substrings.
 
+A closed `<select>`, here and anywhere else in the app, is drawn by the page:
+[`app.css`](../../src/app.css) takes away its native appearance and draws a grey
+chevron at the inline end. WebKitGTK paints a native one with the GTK theme's
+button and ignores the background a class or a skin gives it, so the dark
+grounds' near-white text sat on a white box under Breeze (#1131). The list it
+opens is still the system's.
+
 ### Modified settings and reset
 
 Each category's header also says how many of its settings differ from their

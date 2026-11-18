@@ -200,7 +200,10 @@
 }
 [data-podcasts] .pc-field--select {
   height: 2.25rem;
-  padding: 0 0.5rem;
+  /* The end keeps room for the chevron every closed select draws
+     (app.css, #1131). */
+  padding-block: 0;
+  padding-inline: 0.5rem 2rem;
 }
 /* The list of a native select draws on the system's ground. */
 [data-podcasts] .pc-field--select option {
