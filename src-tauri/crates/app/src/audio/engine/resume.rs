@@ -455,9 +455,13 @@ pub(crate) struct HeldSeek {
 /// drops a `Seek`. Not while a claimed load is on its way to the decoder,
 /// though: a `Seek` sent then follows that load down the channel and
 /// lands on it, as MPD's `seek` from a stop does when it plays the song
-/// and then seeks it.
+/// and then seeks it. Nor when the track shown is not a library track
+/// (`track_id` below 0: a file played without importing it, a radio
+/// station, a server track): Play then loads the library's resume point,
+/// and the seek was made on something else.
 pub(super) fn holds_seek(
     state: crate::audio::PlayerState,
+    track_id: i64,
     claimed: u64,
     accepted: Option<u64>,
 ) -> bool {
@@ -465,7 +469,7 @@ pub(super) fn holds_seek(
         state,
         crate::audio::PlayerState::Idle | crate::audio::PlayerState::Ended
     );
-    idle && claimed <= accepted.unwrap_or(0)
+    idle && track_id >= 0 && claimed <= accepted.unwrap_or(0)
 }
 
 /// The pure half of [`AudioEngine::held_seek_ms`] and
@@ -718,7 +722,12 @@ impl AudioEngine {
     /// ([`Self::take_held_seek`]).
     fn hold_seek(&self, ms: u64) -> bool {
         let (claimed, accepted) = (self.claimed_load_intent(), self.accepted_load_intent());
-        if !holds_seek(self.shared.state(), claimed, accepted) {
+        if !holds_seek(
+            self.shared.state(),
+            self.shown_track_id(),
+            claimed,
+            accepted,
+        ) {
             return false;
         }
         let Ok(mut guard) = self.held_seek.lock() else {
@@ -737,7 +746,12 @@ impl AudioEngine {
     /// place, for what only reports the position.
     pub(crate) fn held_seek_ms(&self) -> Option<u64> {
         let (claimed, accepted) = (self.claimed_load_intent(), self.accepted_load_intent());
-        if !holds_seek(self.shared.state(), claimed, accepted) {
+        if !holds_seek(
+            self.shared.state(),
+            self.shown_track_id(),
+            claimed,
+            accepted,
+        ) {
             return None;
         }
         let held = *self.held_seek.lock().ok()?;
@@ -770,6 +784,14 @@ impl AudioEngine {
 
     fn accepted_load_intent(&self) -> Option<u64> {
         self.shared.last_load_intent().map(LoadIntent::get)
+    }
+
+    /// The track the decoder was last on: 0 before anything has loaded,
+    /// negative for a source that is not a library track.
+    fn shown_track_id(&self) -> i64 {
+        self.shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire)
     }
 
     fn claimed_load_intent(&self) -> u64 {

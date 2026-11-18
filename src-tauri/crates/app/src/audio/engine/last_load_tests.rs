@@ -232,11 +232,22 @@ fn a_seek_with_nothing_loaded_is_held_for_play() {
     // `Seek` and Play started from the resume point (#1129).
     use super::resume::holds_seek;
     use crate::audio::PlayerState;
-    assert!(holds_seek(PlayerState::Idle, 0, None));
-    assert!(holds_seek(PlayerState::Ended, 4, Some(4)));
-    assert!(!holds_seek(PlayerState::Paused, 4, Some(4)));
-    assert!(!holds_seek(PlayerState::Playing, 4, Some(4)));
-    assert!(!holds_seek(PlayerState::Loading, 4, Some(4)));
+    assert!(holds_seek(PlayerState::Idle, 0, 0, None));
+    assert!(holds_seek(PlayerState::Ended, 12, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Paused, 12, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Playing, 12, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Loading, 12, 4, Some(4)));
+}
+
+#[test]
+fn a_seek_on_a_source_play_does_not_resume_is_not_held() {
+    // A file played without importing it, a station or a server track
+    // that ended: Play loads the library's resume point, so a seek made on
+    // the ended file must not start that library track at its position.
+    use super::resume::holds_seek;
+    use crate::audio::PlayerState;
+    assert!(!holds_seek(PlayerState::Ended, -3, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Idle, -3, 4, Some(4)));
 }
 
 #[test]
@@ -246,8 +257,8 @@ fn a_seek_behind_a_load_on_its_way_follows_it() {
     // `Idle`. Held, the seek was lost and the song started at 0.
     use super::resume::holds_seek;
     use crate::audio::PlayerState;
-    assert!(!holds_seek(PlayerState::Idle, 1, None));
-    assert!(!holds_seek(PlayerState::Ended, 5, Some(4)));
+    assert!(!holds_seek(PlayerState::Idle, 0, 1, None));
+    assert!(!holds_seek(PlayerState::Ended, 12, 5, Some(4)));
 }
 
 #[test]
