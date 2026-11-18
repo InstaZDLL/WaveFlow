@@ -133,6 +133,26 @@ export function fetchLyrics(trackId: number): Promise<LyricsPayload | null> {
 }
 
 /**
+ * Lyrics for a file played without importing it (#1128): its own tag and
+ * the sidecar beside it first, then the providers asked by artist and
+ * title (the other way round under "prefer LRCLIB"). `path` is the file's
+ * path; the backend reads beside it only if the session opened it.
+ */
+export function fetchFileLyrics(
+  path: string,
+  artist: string,
+  title: string,
+  trackId: number,
+): Promise<LyricsPayload | null> {
+  return invoke<LyricsPayload | null>("fetch_file_lyrics", {
+    path,
+    artist,
+    title,
+    trackId,
+  }).then(showableLyrics);
+}
+
+/**
  * Fetch + cache lyrics for a now-playing Web Radio song.
  *
  * Radio has no library row (negative sentinel id, live stream), so the
