@@ -18,6 +18,7 @@ import {
   type EqPresetEntry,
 } from "../../../lib/tauri/eq";
 import { SETTINGS } from "../../../lib/settingsRegistry";
+import { scrollMovesElement } from "../../../lib/anchorScroll";
 import { leftAligned } from "../../../lib/direction";
 
 /**
@@ -147,9 +148,12 @@ export function EqualizerCard() {
     };
     // Capture-phase scroll catches scrolls anywhere — but the menu's own
     // overflow-y-auto list scrolling must NOT close it; only an outside
-    // (page / panel) scroll detaches the fixed menu from its trigger.
+    // (page / panel) scroll detaches the fixed menu from its trigger, and
+    // only one that holds the trigger: the lyrics panel following the
+    // song beside the page does not move it (#1135).
     const onScroll = (e: Event) => {
       if (menuRef.current?.contains(e.target as Node)) return;
+      if (!scrollMovesElement(e, presetRef.current)) return;
       setPresetOpen(false);
     };
     const onResize = () => setPresetOpen(false);
