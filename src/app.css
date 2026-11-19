@@ -501,6 +501,28 @@ input[inputmode="decimal"] {
 @import "./styles/skins/studio.css";
 @import "./styles/podcasts.css";
 
+/* A closed <select> is drawn by the page, never by the platform (#1131).
+   WebKitGTK paints a native one with the GTK theme's button, white under
+   Breeze, light grey under Adwaita-dark, and takes neither the background
+   a class or a skin gives it: only the text colour reaches it, the dark
+   ground's near-white on a white box. Without its appearance, the closed
+   field is the element's own box, its class's and its skin's colours
+   included, on every platform; the list it opens is still the system's.
+   The chevron takes the native arrow's place, in a mid grey every ground
+   keeps visible, at the inline end. Unlayered, so its end padding wins
+   over a `px-*` class and the text never runs under it. */
+select:not([multiple], [size]:not([size="1"])) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717a' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.875rem;
+  padding-inline-end: 2rem;
+}
+:root[dir="rtl"] select:not([multiple], [size]:not([size="1"])) {
+  background-position: left 0.625rem center;
+}
+
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the
    desktop. `index.html` stamps `data-skin` in every window, and the
