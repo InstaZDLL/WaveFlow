@@ -7,7 +7,9 @@
  * scroll in the page: the synced lyrics panel scrolling to the next line
  * every few seconds closed a menu opened over the library (#1135). Only a
  * scroll of the document, or of an element that holds the anchor, moves it.
- * With no anchor every scroll counts, as before.
+ * With no anchor every scroll counts, as before, and so with one the page
+ * has since removed (its row filtered out or reloaded): no element holds
+ * it any more, and the menu would otherwise stay open through any scroll.
  */
 export function scrollMovesElement(
   event: Event,
@@ -15,7 +17,7 @@ export function scrollMovesElement(
 ): boolean {
   const target = event.target;
   if (!(target instanceof Element)) return true;
-  return anchor === null || target.contains(anchor);
+  return anchor === null || !anchor.isConnected || target.contains(anchor);
 }
 
 /**
