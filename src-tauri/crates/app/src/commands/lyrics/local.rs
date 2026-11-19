@@ -387,6 +387,16 @@ pub(super) fn read_local_after_embedded(path: &Path) -> Option<(String, LyricsSo
     read_description_lyrics(path).map(|content| (content, LyricsSource::Embedded))
 }
 
+/// Every local tier on the file at `path`, in the waterfall's order — the
+/// tag, the sidecar, the description — for a file with no library row to
+/// cache them under: one played without importing it (#1128). Blocking.
+pub(super) fn read_local_lyrics_of(path: &Path) -> Option<(String, LyricsSource)> {
+    if let Some(content) = read_embedded_lyrics(path) {
+        return Some((content, LyricsSource::Embedded));
+    }
+    read_local_after_embedded(path)
+}
+
 /// Last-resort lyrics from the generic `Description` field, read only
 /// once the real lyrics tags and the sidecar have both come up empty.
 ///

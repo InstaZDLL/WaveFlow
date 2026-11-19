@@ -686,6 +686,7 @@ pub fn run() {
             commands::lyrics::fetch_lyrics,
             commands::lyrics::lyrics_excluded_genre,
             commands::lyrics::fetch_radio_lyrics,
+            commands::lyrics::fetch_file_lyrics,
             commands::lyrics::refetch_lyrics,
             commands::lyrics::import_lrc_file,
             commands::lyrics::save_lyrics,

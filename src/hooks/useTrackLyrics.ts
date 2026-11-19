@@ -12,6 +12,7 @@ import { pickFile } from "../lib/tauri/dialog";
 import { remoteGetPlayQueue } from "../lib/tauri/remoteServer";
 import {
   clearLyrics,
+  fetchFileLyrics,
   fetchLyrics,
   fetchRadioLyrics,
   fetchRemoteLyrics,
@@ -147,10 +148,12 @@ export function useTrackLyrics(): TrackLyrics {
   const remoteTitle = isRemote ? (currentTrack?.title ?? null) : null;
   const remoteDurationMs = isRemote ? (currentTrack?.duration_ms ?? 0) : 0;
 
-  // A file played without importing it: no library row either, so its
-  // lyrics are looked up by artist and title, and rendered synced since
-  // its position is known.
+  // A file played without importing it: no library row either. Its own
+  // lyrics are read from the file — its tag, the sidecar beside it — and
+  // the providers are asked by artist and title (#1128); rendered synced
+  // since its position is known.
   const isFile = isFileTrack(currentTrack);
+  const filePath = isFile ? (currentTrack?.file_path ?? null) : null;
   const fileArtist = isFile ? (currentTrack?.artist_name ?? null) : null;
   const fileTitle = isFile ? (currentTrack?.title ?? null) : null;
 
@@ -235,8 +238,13 @@ export function useTrackLyrics(): TrackLyrics {
               })
             : Promise.resolve<LyricsPayload | null>(null)
           : isFile
-            ? fileArtist && fileTitle
-              ? fetchRadioLyrics(fileArtist, fileTitle, trackId)
+            ? filePath
+              ? fetchFileLyrics(
+                  filePath,
+                  fileArtist ?? "",
+                  fileTitle ?? "",
+                  trackId,
+                )
               : Promise.resolve<LyricsPayload | null>(null)
             : fetchLyrics(trackId);
     request
@@ -279,6 +287,7 @@ export function useTrackLyrics(): TrackLyrics {
     remoteTitle,
     remoteDurationMs,
     isFile,
+    filePath,
     fileArtist,
     fileTitle,
     isPodcast,

@@ -55,6 +55,7 @@
 mod cache;
 mod editor;
 mod fetch;
+mod file;
 mod format;
 mod local;
 mod model;
@@ -68,6 +69,7 @@ mod settings;
 use cache::*;
 pub use editor::*;
 pub use fetch::*;
+pub use file::*;
 use format::*;
 use local::*;
 pub use model::*;
