@@ -117,6 +117,11 @@ sqlx = { version = "0.9", features = [
     "macros",
     "chrono",
 ] }
+# The C API underneath sqlx's SQLite driver, the same crate and version sqlx
+# links: a profile pool's connections get their own busy handler, which
+# reports a wait for the write lock (`db::lock_waiters`). No feature of its
+# own; sqlx's choose the build.
+libsqlite3-sys = { version = "0.37", default-features = false }
 
 # Errors and logging
 thiserror = "2"

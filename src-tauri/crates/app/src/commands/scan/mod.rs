@@ -30,3 +30,6 @@ mod rating_tests;
 
 #[cfg(test)]
 mod reliability_tests;
+
+#[cfg(test)]
+mod lock_turn_tests;

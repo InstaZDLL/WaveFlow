@@ -247,7 +247,10 @@ async fn write_queue_order(
     // Read *inside* the transaction that rewrites them, so the rows
     // put back describe the queue being replaced rather than one that
     // changed in between.
-    let mut tx = pool.begin().await?;
+    // The write lock is taken first: this reads before it writes, and a
+    // deferred transaction's first write fails outright when another writer
+    // (a scan) committed since its read (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let existing: Vec<(i64, String, Option<i64>)> =
         sqlx::query_as("SELECT track_id, source_type, source_id FROM queue_item ORDER BY position")
             .fetch_all(&mut *tx)

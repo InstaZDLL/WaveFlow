@@ -101,7 +101,10 @@ pub async fn clear(pool: &SqlitePool) -> AppResult<()> {
 /// collide. Same `PARK` detour [`reorder`] uses.
 pub async fn remove_range(pool: &SqlitePool, start: i64, end: i64) -> AppResult<u64> {
     const PARK: i64 = 10_000_000;
-    let mut tx = pool.begin().await?;
+    // The write lock is taken first: this reads before it writes, and a
+    // deferred transaction's first write fails outright when another writer
+    // (a scan) committed since its read (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
 
     // Read the length INSIDE the transaction so the clamp, the delete range and
     // `new_len` all derive from the same consistent snapshot the DELETE acts

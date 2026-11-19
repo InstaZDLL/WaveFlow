@@ -52,6 +52,10 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
                 sqlx::query(sqlx::AssertSqlSafe(stmt))
                     .execute(&mut *conn)
                     .await?;
+                // A wait for the write lock is reported, so a long writer
+                // (a scan) can let it through instead of keeping it out for
+                // the whole busy timeout.
+                super::lock_waiters::install(conn).await?;
                 Ok(())
             })
         })

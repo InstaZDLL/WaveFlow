@@ -8,7 +8,11 @@ use waveflow_core::scanner::{
     extract_artist_image, link_local_artist_image, link_va_artist_image, VARIOUS_ARTISTS_LABEL,
 };
 
-use crate::{error::AppResult, state::AppState};
+use crate::{
+    db::lock_waiters,
+    error::{AppError, AppResult},
+    state::AppState,
+};
 
 use super::*;
 
@@ -52,16 +56,13 @@ pub async fn rescan_local_artist_images(
         linked: 0,
     };
 
-    // Batch writes through a single transaction (committed every
-    // TX_BATCH writes) so SQLite WAL fsyncs once per batch instead of
-    // once per artist — same pattern as scan_folder_inner.
-    const TX_BATCH: usize = 200;
-    let mut tx = pool.begin().await?;
-    let mut tx_count: usize = 0;
-
+    // No transaction is open while a folder is read. Those reads can be
+    // slow (a network mount, a spun-down disk), and a transaction holding
+    // the write lock across them kept every other write out until its busy
+    // timeout. The reads run off the async runtime; each artist found is
+    // linked in a short transaction of its own (the artwork row and the
+    // artist's link together), which few artists ever need.
     for (artist_id, _name, canon) in rows {
-        // Track lookup is a read — run it on the pool so it doesn't
-        // serialise behind the open write transaction.
         let tracks: Vec<(String,)> = sqlx::query_as(
             "SELECT t.file_path FROM track t
                JOIN track_artist ta ON ta.track_id = t.id
@@ -72,22 +73,20 @@ pub async fn rescan_local_artist_images(
         .fetch_all(&*pool)
         .await?;
 
-        let mut linked = false;
-        for (path,) in tracks {
-            if let Some(cover) = extract_artist_image(Path::new(&path), &canon, &artwork_dir) {
-                link_local_artist_image(&mut tx, artist_id, &cover).await?;
-                linked = true;
-                break;
-            }
-        }
-        if linked {
+        let dir = artwork_dir.clone();
+        let cover = tokio::task::spawn_blocking(move || {
+            tracks
+                .iter()
+                .find_map(|(path,)| extract_artist_image(Path::new(path), &canon, &dir))
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("artist image search failed: {e}")))?;
+
+        if let Some(cover) = cover {
+            let mut tx = lock_waiters::begin_write(&pool).await?;
+            link_local_artist_image(&mut tx, artist_id, &cover).await?;
+            tx.commit().await?;
             summary.linked += 1;
-            tx_count += 1;
-            if tx_count >= TX_BATCH {
-                tx.commit().await?;
-                tx = pool.begin().await?;
-                tx_count = 0;
-            }
         }
     }
 
@@ -95,14 +94,15 @@ pub async fn rescan_local_artist_images(
     // sentinel never appears in (it's an album artist) — resolve its
     // sidecar via the album relationship instead (issue #292). The
     // rows query above already excluded VA via `canonical_name != ?`.
-    if let Some(linked) = link_va_artist_image(&mut tx, &artwork_dir).await? {
+    // On a plain connection, as the scan does: it reads folders too, and
+    // its one write needs no transaction around those reads.
+    let mut conn = pool.acquire().await?;
+    if let Some(linked) = link_va_artist_image(&mut conn, &artwork_dir).await? {
         summary.considered += 1;
         if linked {
             summary.linked += 1;
         }
     }
-
-    tx.commit().await?;
 
     tracing::info!(
         considered = summary.considered,
