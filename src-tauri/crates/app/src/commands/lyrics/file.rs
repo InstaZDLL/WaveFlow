@@ -70,12 +70,20 @@ fn queued_path(state: &AppState, path: &str) -> Option<PathBuf> {
 /// The entry of `entries` that `path` names. The page knows a file by the
 /// path the decoder sent it, `display()`ed, which is lossy for a name that
 /// is not valid Unicode: matched in that form too, and the entry's own
-/// path returned, so such a file is still read.
+/// path returned, so such a file is still read. Two names can be shown
+/// alike (the bytes `0xFF` and `0xFE` both become U+FFFD); then neither is taken,
+/// since reading the first would show the other file's lyrics.
 fn find_queued(entries: &[ExternalEntry], path: &str) -> Option<PathBuf> {
-    entries
+    if let Some(entry) = entries.iter().find(|entry| entry.path == Path::new(path)) {
+        return Some(entry.path.clone());
+    }
+    let mut shown = entries
         .iter()
-        .find(|entry| entry.path == Path::new(path) || entry.path.display().to_string() == path)
-        .map(|entry| entry.path.clone())
+        .filter(|entry| entry.path.display().to_string() == path);
+    match (shown.next(), shown.next()) {
+        (Some(entry), None) => Some(entry.path.clone()),
+        _ => None,
+    }
 }
 
 /// The local tiers on `path`, as a payload for `track_id`, or `None` when
@@ -138,6 +146,23 @@ mod tests {
         }];
         let shown = native.display().to_string();
         assert_eq!(find_queued(&entries, &shown), Some(native));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn two_names_shown_alike_give_neither() {
+        // Both bytes are shown as U+FFFD: the page's path names either
+        // file, and the wrong one's lyrics would be read for the other.
+        use std::os::unix::ffi::OsStrExt;
+        let first = PathBuf::from(std::ffi::OsStr::from_bytes(b"/music/Chant\xff.flac"));
+        let second = PathBuf::from(std::ffi::OsStr::from_bytes(b"/music/Chant\xfe.flac"));
+        let shown = second.display().to_string();
+        assert_eq!(first.display().to_string(), shown);
+        let entries = [
+            ExternalEntry { path: first },
+            ExternalEntry { path: second },
+        ];
+        assert_eq!(find_queued(&entries, &shown), None);
     }
 
     #[tokio::test]
