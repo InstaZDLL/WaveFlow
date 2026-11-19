@@ -159,3 +159,120 @@ async fn a_queue_write_gets_through_a_scan_and_the_scan_finishes() {
     );
     eprintln!("{during_scan} queue writes during the scan, slowest {slowest:?}");
 }
+
+/// What another writer does while the scan steps aside is not undone by
+/// what the scan read before: a track removed then (a duplicate moved to the
+/// trash) stays removed, and one whose file was rewritten then (a tag edit,
+/// which stores the file's new hash) keeps that hash. Before, the scan wrote
+/// such tracks from its earlier reading: through the id of a removed row its
+/// credits failed their foreign key and stopped the scan.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn rows_changed_while_the_scan_stepped_aside_are_left_alone() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let pool = profile_pool(dir.path()).await;
+    let root = dir.path().join("music");
+    write_library(&root);
+    let artwork = dir.path().join("artwork");
+    let first = scan_folder_inner(&pool, &artwork, 1, None, false)
+        .await
+        .expect("first scan");
+    assert_eq!(first.added as usize, FILES);
+
+    // Every file changed on disk, so the rescan reads them all again.
+    let stamps: std::collections::HashMap<i64, i64> =
+        sqlx::query_as::<_, (i64, i64)>("SELECT id, file_modified FROM track")
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+            .into_iter()
+            .collect();
+    for entry in walkdir_files(&root) {
+        let file = std::fs::File::options().write(true).open(&entry).unwrap();
+        let modified = file.metadata().unwrap().modified().unwrap();
+        file.set_modified(modified + Duration::from_secs(2))
+            .unwrap();
+    }
+
+    let scan = tokio::spawn({
+        let pool = pool.clone();
+        async move { scan_folder_inner(&pool, &artwork, 1, None, false).await }
+    });
+
+    // Once a batch of the rescan is committed, the tracks still showing their
+    // old stamp are, all but a few, not read yet.
+    let started = Instant::now();
+    let pending: Vec<i64> = loop {
+        let rows: Vec<(i64, i64)> = sqlx::query_as("SELECT id, file_modified FROM track")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+        let pending: Vec<i64> = rows
+            .iter()
+            .filter(|(id, modified)| stamps.get(id) == Some(modified))
+            .map(|(id, _)| *id)
+            .collect();
+        if pending.len() < FILES {
+            break pending;
+        }
+        assert!(!scan.is_finished(), "the rescan ended before a batch");
+        assert!(started.elapsed() < Duration::from_secs(60), "no batch");
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    };
+    assert!(pending.len() >= 50, "{} left to read", pending.len());
+    let (removed, edited) = pending[pending.len() - 50..].split_at(25);
+    let list = |ids: &[i64]| ids.iter().map(i64::to_string).collect::<Vec<_>>().join(",");
+
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+        "DELETE FROM track WHERE id IN ({})",
+        list(removed)
+    )))
+    .execute(&pool)
+    .await
+    .expect("a removal during the scan");
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+        "UPDATE track SET file_hash = 'rewritten' WHERE id IN ({})",
+        list(edited)
+    )))
+    .execute(&pool)
+    .await
+    .expect("a tag edit during the scan");
+
+    let summary = scan
+        .await
+        .unwrap()
+        .expect("the rescan survives the rows changed under it");
+    assert_eq!(summary.errors, 0, "{summary:?}");
+
+    let back: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT COUNT(*) FROM track WHERE id IN ({})",
+        list(removed)
+    )))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(back, 0, "a removed track stays removed");
+    let kept: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT COUNT(*) FROM track WHERE file_hash = 'rewritten' AND id IN ({})",
+        list(edited)
+    )))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(kept, 25, "a rewritten track keeps the hash stored for it");
+}
+
+fn walkdir_files(root: &Path) -> Vec<std::path::PathBuf> {
+    let mut files = Vec::new();
+    let mut dirs = vec![root.to_path_buf()];
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                dirs.push(path);
+            } else {
+                files.push(path);
+            }
+        }
+    }
+    files
+}
