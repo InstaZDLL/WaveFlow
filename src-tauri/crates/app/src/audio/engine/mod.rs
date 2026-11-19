@@ -153,6 +153,9 @@ pub struct AudioEngine {
     /// A seek asked of a player with nothing loaded, kept for the Play
     /// that loads the track (#1129). See [`Self::seek`].
     held_seek: Mutex<Option<resume::HeldSeek>>,
+    /// Set while a profile switch runs: no seek is held then (#1129). See
+    /// [`AudioEngine::close_seek_holds`].
+    seek_holds_closed: std::sync::atomic::AtomicBool,
     /// The last thing we told the user about the output (#597), so a
     /// state that persists is announced once instead of at every track.
     /// `None` means "nothing to say", which is also what clears it.
@@ -326,6 +329,7 @@ impl AudioEngine {
             last_device_loss: Mutex::new(None),
             parked_resume: Mutex::new(None),
             held_seek: Mutex::new(None),
+            seek_holds_closed: std::sync::atomic::AtomicBool::new(false),
             last_output_notice: Mutex::new(None),
             pause_pending: std::sync::atomic::AtomicBool::new(false),
             last_requested_rate: std::sync::atomic::AtomicU32::new(0),

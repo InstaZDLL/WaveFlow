@@ -453,7 +453,7 @@ pub(crate) struct HeldSeek {
 
 /// The marks a held seek is checked against, read together.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct LoadMarks {
+pub(crate) struct LoadMarks {
     pub(super) claimed: u64,
     pub(super) accepted: Option<u64>,
     pub(super) loads_started: u64,
@@ -496,6 +496,20 @@ pub(super) fn held_seek_position(held: Option<HeldSeek>, now: LoadMarks) -> Opti
             && held.loads_started == now.loads_started
     })
     .map(|held| held.ms)
+}
+
+/// Opens seek holds again when dropped ([`AudioEngine::close_seek_holds`]),
+/// on every way out of a profile switch.
+pub(crate) struct SeekHoldsClosed<'a> {
+    engine: &'a AudioEngine,
+}
+
+impl Drop for SeekHoldsClosed<'_> {
+    fn drop(&mut self) {
+        self.engine
+            .seek_holds_closed
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
 }
 
 #[cfg(test)]
@@ -731,7 +745,7 @@ impl AudioEngine {
     /// has nothing to apply to, and Play started from the resume point,
     /// not from where the user had dragged the bar. The same after a track
     /// ran to its end. [`crate::player_actions::resume_last`] takes it
-    /// ([`Self::held_seek_ms`]).
+    /// ([`Self::take_held_seek`]).
     ///
     /// Checked and written under the slot's lock, so a profile switch's
     /// [`Self::drop_held_seek`] lands either before the check, which then
@@ -740,6 +754,12 @@ impl AudioEngine {
         let Ok(mut guard) = self.held_seek.lock() else {
             return false;
         };
+        if self
+            .seek_holds_closed
+            .load(std::sync::atomic::Ordering::Acquire)
+        {
+            return false;
+        }
         let Some(marks) = self.idle_marks() else {
             return false;
         };
@@ -761,7 +781,7 @@ impl AudioEngine {
     /// ended, shows in the second reading, and the player is then taken
     /// as not idle. The seek goes to the decoder, and a held one does not
     /// stand.
-    fn idle_marks(&self) -> Option<LoadMarks> {
+    pub(crate) fn idle_marks(&self) -> Option<LoadMarks> {
         let loads_started = self.shared.loads_started();
         let marks = LoadMarks {
             claimed: self.claimed_load_intent(),
@@ -779,13 +799,7 @@ impl AudioEngine {
 
     /// The held seek's position while it still describes the player:
     /// nothing loaded, and no load claimed, accepted or started since.
-    ///
-    /// Read, not spent, for what only reports the position and for a
-    /// resume alike. A resume reads it under [`Self::lock_publish`] and
-    /// before its own claim, which would otherwise make it look stale; one
-    /// superseded at that claim, or failed before it, leaves the seek for
-    /// the next Play, and one that claims clears it
-    /// ([`Self::drop_held_seek`]).
+    /// Read, not spent, for what only reports the position.
     pub(crate) fn held_seek_ms(&self) -> Option<u64> {
         // The slot first, the marks after: a load that starts in between
         // is then counted in what the seek is compared with.
@@ -793,9 +807,47 @@ impl AudioEngine {
         held_seek_position(held, self.idle_marks()?)
     }
 
+    /// Take the held seek for the resume that has just claimed the
+    /// dispatch, against the marks it read before that claim
+    /// ([`Self::idle_marks`], `None` if the player was not idle then).
+    ///
+    /// After the claim, not before: a seek that lands between the two is
+    /// held under the same marks, and is the one the resume starts from,
+    /// where a seek read before the claim and cleared after it would have
+    /// been lost. The resume's own claim is the one mark allowed to have
+    /// moved; a load accepted or started since `before` takes the seek
+    /// away. Spent either way: once a load is claimed, a seek held before
+    /// it no longer stands.
+    pub(crate) fn take_held_seek(&self, before: Option<LoadMarks>) -> Option<u64> {
+        let held = self.held_seek.lock().ok()?.take();
+        let before = before?;
+        let now = LoadMarks {
+            claimed: before.claimed,
+            accepted: self.accepted_load_intent(),
+            loads_started: self.shared.loads_started(),
+        };
+        if now != before {
+            return None;
+        }
+        held_seek_position(held, before)
+    }
+
+    /// Hold no seek until the returned guard is dropped: a profile switch
+    /// takes it for as long as it runs. The bar still shows the profile
+    /// being left until the switch returns, and a seek made on it, held
+    /// after the swap, would start the new profile's track at that
+    /// position on a Play made before the end. Such a seek goes to the
+    /// idle decoder, which drops it, as every seek on a stopped player did
+    /// before #1129. A seek held before the guard stays (the swap drops
+    /// it, a switch that fails keeps it).
+    pub(crate) fn close_seek_holds(&self) -> SeekHoldsClosed<'_> {
+        self.seek_holds_closed
+            .store(true, std::sync::atomic::Ordering::Release);
+        SeekHoldsClosed { engine: self }
+    }
+
     /// Forget a held seek: the track it was made on is no longer the one
-    /// Play would load (a profile switch), or a resume has just claimed
-    /// the load that takes it.
+    /// Play would load (a profile switch).
     pub(crate) fn drop_held_seek(&self) {
         if let Ok(mut guard) = self.held_seek.lock() {
             *guard = None;

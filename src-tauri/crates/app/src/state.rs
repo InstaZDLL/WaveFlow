@@ -627,6 +627,20 @@ impl AppState {
     /// makes the drain terminate: once the old [`ActiveProfile`] is out
     /// of `self.profile`, no further lease can be issued against it.
     pub async fn activate_profile(&self, profile_id: i64) -> AppResult<()> {
+        self.activate_profile_with(profile_id, || {}).await
+    }
+
+    /// [`Self::activate_profile`], running `on_swap` under the profile's
+    /// write lock, in the same step as the swap: what belongs to the
+    /// profile being left and lives outside this state (the engine's held
+    /// seek, #1129) is gone before anything can read the new profile, and
+    /// not while the old pool drains, which can take seconds. Not run when
+    /// the activation fails before the swap.
+    pub async fn activate_profile_with(
+        &self,
+        profile_id: i64,
+        on_swap: impl FnOnce() + Send,
+    ) -> AppResult<()> {
         self.paths.ensure_profile_dirs(profile_id)?;
 
         let db_path = self.paths.profile_db(profile_id);
@@ -651,6 +665,7 @@ impl AppState {
             self.external_playback.clear();
             // A channel's episodes are that profile's rows.
             self.podcast_playback.clear();
+            on_swap();
             previous
         };
         // Before the drain, which may take seconds: the new profile's view is up from
