@@ -14,8 +14,10 @@ use sqlx::SqlitePool;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-/// Enough files for the scan to run for several batches of 200.
-const FILES: usize = 1_000;
+/// Enough files for the scan to run for several batches of 200, and for a
+/// few seconds even on a fast machine (a small FLAC costs about a
+/// millisecond there).
+const FILES: usize = 4_000;
 
 /// How long a queue write may take while a scan runs. A scan that lets a
 /// waiter in takes about one file's writes plus one sleep of the waiter's
@@ -32,6 +34,8 @@ async fn profile_pool(dir: &Path) -> SqlitePool {
         .synchronous(sqlx::sqlite::SqliteSynchronous::Normal);
     let pool = SqlitePoolOptions::new()
         .max_connections(8)
+        // As the profile pool does (`db::profile_db::open`).
+        .after_connect(|conn, _meta| Box::pin(crate::db::lock_waiters::install(conn)))
         .connect_with(options)
         .await
         .unwrap();
@@ -125,7 +129,7 @@ async fn a_queue_write_gets_through_a_scan_and_the_scan_finishes() {
     // Clicks on a track, the way the player writes them, while it scans.
     let mut during_scan = 0;
     let mut slowest = Duration::ZERO;
-    while !scan.is_finished() && during_scan < 8 {
+    while !scan.is_finished() && during_scan < 20 {
         let began = Instant::now();
         crate::queue::fill_queue(&pool, "library", None, &ids, 0, false)
             .await

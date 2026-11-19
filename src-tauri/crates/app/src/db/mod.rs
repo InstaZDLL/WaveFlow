@@ -6,6 +6,7 @@
 //! * [`profile_db`] — per-profile library, playlists, history, analytics.
 
 pub mod app_db;
+pub mod lock_waiters;
 pub mod migration_heal;
 pub mod pinyin_backfill;
 pub mod pre_migration_backup;

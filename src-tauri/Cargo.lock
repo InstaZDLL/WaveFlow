@@ -7977,6 +7977,7 @@ dependencies = [
  "if-addrs",
  "image",
  "libc",
+ "libsqlite3-sys",
  "lofty",
  "mac_address",
  "md-5 0.11.0",

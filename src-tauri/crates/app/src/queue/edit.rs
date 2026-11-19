@@ -97,7 +97,10 @@ pub async fn append(
     if track_ids.is_empty() {
         return Ok(());
     }
-    let mut tx = pool.begin().await?;
+    // The write lock is taken first: this reads before it writes, and a
+    // deferred transaction's first write fails outright when another writer
+    // (a scan) committed since its read (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let max_pos: Option<i64> = sqlx::query_scalar("SELECT MAX(position) FROM queue_item")
         .fetch_one(&mut *tx)
         .await?;
@@ -158,7 +161,10 @@ pub async fn append_to_user_queue(
     // many readers but only one writer, and our reads were happening
     // outside that single-writer envelope before this commit). Every
     // SQL inside the function now runs against `&mut *tx`.
-    let mut tx = pool.begin().await?;
+    // The write lock is taken first: this reads before it writes, and a
+    // deferred transaction's first write fails outright when another writer
+    // (a scan) committed since its read (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let now = Utc::now().timestamp_millis();
 
     let len: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM queue_item")

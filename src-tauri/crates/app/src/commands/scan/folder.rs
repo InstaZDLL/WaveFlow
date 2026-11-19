@@ -22,6 +22,7 @@ use waveflow_core::scanner::{
 
 use crate::{
     commands::artist_split::is_split_of,
+    db::lock_waiters,
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -677,7 +678,9 @@ pub(crate) async fn scan_folder_inner(
     // constraint anyway) but ride inside a transaction that commits
     // every TX_BATCH rows. With synchronous=NORMAL + WAL, this drops
     // a 1k-track first scan from ~30 s to a few seconds — fsync per
-    // checkpoint instead of per row.
+    // checkpoint instead of per row. A batch is cut short when another
+    // connection waits for the write lock, so the rest of the app is never
+    // kept out for a whole batch (`db::lock_waiters`).
     let parallelism = if is_network {
         // The wait is the network's, not the CPU's.
         crate::netlib::scan::CONCURRENT_EXTRACTIONS
@@ -706,12 +709,21 @@ pub(crate) async fn scan_folder_inner(
         .buffered(parallelism);
     futures::pin_mut!(extraction_stream);
 
-    let mut tx = pool.begin().await?;
+    // The batch holds the write lock from its first statement (see
+    // `begin_write`), and lets anyone waiting for it through (see the
+    // top of the loop). `held_since` is when it took the lock: a wait
+    // reported before then was the scan's own.
+    let mut tx = lock_waiters::begin_write(pool).await?;
+    let mut held_since = Instant::now();
     let mut tx_count: usize = 0;
+    let mut stepped_aside: usize = 0;
+    // Tracks whose rows were removed while the scan stepped aside.
+    let mut removed_meanwhile: HashSet<String> = HashSet::new();
     let mut processed: usize = summary.skipped as usize;
-    // Memo for artist / genre id lookups across the whole scan — see
-    // `UpsertCache`. Lives for the loop's duration so every track on
-    // the same album / by the same artist reuses the first resolution.
+    // Memo for artist / genre id lookups — see `UpsertCache`. Lives as
+    // long as the scan holds the write lock (a batch), so every track on
+    // the same album / by the same artist reuses the first resolution,
+    // and starts over whenever the lock was let go.
     let mut upsert_cache = UpsertCache::default();
     // Per-scan memo for the sidecar-artist-image walk (the single
     // biggest scan cost) — threaded into `maybe_link_artist_images`.
@@ -755,7 +767,64 @@ pub(crate) async fn scan_folder_inner(
     let mut cover_backfill_failed = walk_incomplete;
     let mut legacy_text_backfill_failed = walk_incomplete;
 
-    while let Some((path, result)) = extraction_stream.next().await {
+    loop {
+        // SQLite keeps no queue for its write lock: a connection waiting for
+        // it sleeps and asks again, and a batch that took the lock back as
+        // soon as it committed kept a click on a track waiting for a whole
+        // batch, or for its busy timeout (`db::lock_waiters`). So between two
+        // files, and while the next one is still being read, a connection
+        // that waits gets the lock: the batch so far is committed, the scan
+        // steps aside until nobody waits, then takes the lock back. `biased`
+        // so a waiter goes before a file that is already read.
+        let next = tokio::select! {
+            biased;
+            () = lock_waiters::someone_waits(held_since) => None,
+            next = extraction_stream.next() => Some(next),
+        };
+        let Some(next) = next else {
+            let t_commit = Instant::now();
+            tx.commit().await?;
+            timings
+                .db_us
+                .fetch_add(t_commit.elapsed().as_micros() as u64, Ordering::Relaxed);
+            lock_waiters::step_aside().await;
+            tx = lock_waiters::begin_write(pool).await?;
+            held_since = Instant::now();
+            tx_count = 0;
+            stepped_aside += 1;
+            // Someone else wrote meanwhile, and may have removed an artist
+            // or a genre this cache would hand out (a split artist is
+            // deleted): its ids are looked up again.
+            upsert_cache = UpsertCache::default();
+            // A track removed meanwhile (moved to the trash as a duplicate)
+            // stays removed: updating it through the id read before the loop
+            // would fail on its credits' foreign keys and stop the scan, and
+            // inserting it again would bring back what the user just took
+            // out. Its file is left for the next scan, which finds it only
+            // if it is still there.
+            let ids: Vec<i64> = existing_probe.values().map(|probe| probe.0).collect();
+            let mut alive = HashSet::with_capacity(ids.len());
+            for chunk in ids.chunks(PROBE_CHUNK) {
+                let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+                let sql = format!("SELECT id FROM track WHERE id IN ({placeholders})");
+                let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql));
+                for id in chunk {
+                    q = q.bind(id);
+                }
+                alive.extend(q.fetch_all(&mut *tx).await?);
+            }
+            existing_probe.retain(|path, probe| {
+                let kept = alive.contains(&probe.0);
+                if !kept {
+                    removed_meanwhile.insert(path.clone());
+                }
+                kept
+            });
+            continue;
+        };
+        let Some((path, result)) = next else {
+            break;
+        };
         if cancelled() {
             summary.cancelled = true;
             // Deliberately dropping the stream with extractions still
@@ -787,6 +856,10 @@ pub(crate) async fn scan_folder_inner(
         processed += 1;
         if let Some(task) = task.as_ref() {
             task.progress(processed as u64, total_files as u64);
+        }
+        if removed_meanwhile.contains(path.to_string_lossy().as_ref()) {
+            emit_tick(processed, &summary, &path);
+            continue;
         }
         let extracted = match result {
             Ok(Ok(e)) => e,
@@ -1594,8 +1667,12 @@ pub(crate) async fn scan_folder_inner(
         // TX_BATCH rows of work instead of the whole import.
         if tx_count >= TX_BATCH {
             tx.commit().await?;
-            tx = pool.begin().await?;
+            tx = lock_waiters::begin_write(pool).await?;
+            held_since = Instant::now();
             tx_count = 0;
+            // Another writer can get the lock between the commit and the
+            // begin; as after stepping aside, ids are looked up again.
+            upsert_cache = UpsertCache::default();
         }
 
         timings
@@ -1835,6 +1912,9 @@ pub(crate) async fn scan_folder_inner(
         db_ms_total = timings.db_us.load(Ordering::Relaxed) / 1000,
         // Subset of db_ms_total spent in the sidecar-artist-image walk.
         link_ms_total = timings.link_us.load(Ordering::Relaxed) / 1000,
+        // How many times the batch was committed early to let a waiting
+        // writer through.
+        stepped_aside,
         "scan complete"
     );
 
