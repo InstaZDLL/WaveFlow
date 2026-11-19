@@ -590,8 +590,6 @@ pub(crate) async fn scan_folder_inner(
     // restored track is found and flipped back to available. Snapshot-
     // before-loop is safe: the walk yields distinct paths, so no row
     // inserted earlier in THIS scan is ever probed later.
-    const PROBE_CHUNK: usize = 900;
-    type ExistingTrackProbe = (i64, i64, String, i64, Option<i64>);
     let mut existing_probe: HashMap<String, ExistingTrackProbe> = if to_extract.is_empty() {
         HashMap::new()
     } else {
@@ -797,32 +795,8 @@ pub(crate) async fn scan_folder_inner(
             // or a genre this cache would hand out (a split artist is
             // deleted): its ids are looked up again.
             upsert_cache = UpsertCache::default();
-            // A track removed meanwhile (moved to the trash as a duplicate)
-            // stays removed: updating it through the id read before the loop
-            // would fail on its credits' foreign keys and stop the scan, and
-            // inserting it again would bring back what the user just took
-            // out. A track whose file was rewritten meanwhile (a tag edit,
-            // which stores the file's new hash) would get back what was read
-            // from it before. Either way its file is left to the next scan,
-            // which a rewrite in a watched folder asks for anyway.
-            let ids: Vec<i64> = existing_probe.values().map(|probe| probe.0).collect();
-            let mut stored: HashMap<i64, String> = HashMap::with_capacity(ids.len());
-            for chunk in ids.chunks(PROBE_CHUNK) {
-                let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-                let sql = format!("SELECT id, file_hash FROM track WHERE id IN ({placeholders})");
-                let mut q = sqlx::query_as::<_, (i64, String)>(sqlx::AssertSqlSafe(sql));
-                for id in chunk {
-                    q = q.bind(id);
-                }
-                stored.extend(q.fetch_all(&mut *tx).await?);
-            }
-            existing_probe.retain(|path, probe| {
-                let kept = stored.get(&probe.0) == Some(&probe.2);
-                if !kept {
-                    touched_meanwhile.insert(path.clone());
-                }
-                kept
-            });
+            forget_tracks_changed_meanwhile(&mut tx, &mut existing_probe, &mut touched_meanwhile)
+                .await?;
             continue;
         };
         let Some((path, result)) = next else {
@@ -942,7 +916,7 @@ pub(crate) async fn scan_folder_inner(
         // device receiving a re-emit op for an existing track would
         // otherwise see the file as "just added" in its `Recently
         // added` view). Brand-new track path keeps using `now`.
-        let existing = existing_probe.get(&extracted.abs_path).cloned();
+        let existing = existing_probe.remove(&extracted.abs_path);
 
         if let Some((existing_track_id, mtime, ref hash, existing_added_at, old_album_id)) =
             existing
@@ -1669,13 +1643,24 @@ pub(crate) async fn scan_folder_inner(
         // first scans, AND so a failure mid-scan loses at most
         // TX_BATCH rows of work instead of the whole import.
         if tx_count >= TX_BATCH {
+            let released = Instant::now();
             tx.commit().await?;
             tx = lock_waiters::begin_write(pool).await?;
             held_since = Instant::now();
             tx_count = 0;
-            // Another writer can get the lock between the commit and the
-            // begin; as after stepping aside, ids are looked up again.
-            upsert_cache = UpsertCache::default();
+            // Another writer can take the lock between the commit and the
+            // begin; one that was waiting for it, since the scan held it
+            // until then, and a wait is reported. Then, as after stepping
+            // aside, nothing read before is trusted.
+            if lock_waiters::waited_since(released) {
+                upsert_cache = UpsertCache::default();
+                forget_tracks_changed_meanwhile(
+                    &mut tx,
+                    &mut existing_probe,
+                    &mut touched_meanwhile,
+                )
+                .await?;
+            }
         }
 
         timings
@@ -1974,6 +1959,51 @@ pub fn take_unreachable_folders() -> Vec<String> {
 /// The refusal of a folder that does not answer. Announced as well as
 /// returned: a rescan of the library, the scan at launch and the watcher only
 /// count or log what they get back, so the toast is what tells the user.
+/// How many ids or paths go into one `IN (…)` list, under SQLite's limit of
+/// bound parameters.
+const PROBE_CHUNK: usize = 900;
+
+/// What the scan read of a known track before its loop: id, `file_modified`,
+/// `file_hash`, `added_at`, `album_id`.
+type ExistingTrackProbe = (i64, i64, String, i64, Option<i64>);
+
+/// After another writer had the lock, drop from `probe` the tracks it
+/// changed, and remember their paths in `touched`: the scan leaves those
+/// files to the next scan.
+///
+/// A track removed meanwhile (moved to the trash as a duplicate) stays
+/// removed: updating it through the id read before the loop would fail on
+/// its credits' foreign keys and stop the scan, and inserting it again would
+/// bring back what the user just took out. A track whose file was rewritten
+/// meanwhile (a tag edit, which stores the file's new hash) would get back
+/// what was read from it before. The next scan reads the file as it is, and
+/// a rewrite in a watched folder asks for one anyway.
+async fn forget_tracks_changed_meanwhile(
+    conn: &mut sqlx::SqliteConnection,
+    probe: &mut HashMap<String, ExistingTrackProbe>,
+    touched: &mut HashSet<String>,
+) -> sqlx::Result<()> {
+    let ids: Vec<i64> = probe.values().map(|known| known.0).collect();
+    let mut stored: HashMap<i64, String> = HashMap::with_capacity(ids.len());
+    for chunk in ids.chunks(PROBE_CHUNK) {
+        let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let sql = format!("SELECT id, file_hash FROM track WHERE id IN ({placeholders})");
+        let mut q = sqlx::query_as::<_, (i64, String)>(sqlx::AssertSqlSafe(sql));
+        for id in chunk {
+            q = q.bind(id);
+        }
+        stored.extend(q.fetch_all(&mut *conn).await?);
+    }
+    probe.retain(|path, known| {
+        let unchanged = stored.get(&known.0) == Some(&known.2);
+        if !unchanged {
+            touched.insert(path.clone());
+        }
+        unchanged
+    });
+    Ok(())
+}
+
 fn folder_unreachable(
     app_handle: Option<&tauri::AppHandle>,
     folder_id: i64,
