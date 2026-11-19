@@ -42,6 +42,32 @@ pub async fn player_set_volume(app: AppHandle, value: f32) -> AppResult<()> {
     Ok(())
 }
 
+/// Held across a loudness switch's command to the decoder and the store
+/// that publishes it at once. Two toggles running together would otherwise
+/// interleave — one sends, the other sends and stores, the first stores
+/// last — and leave the flag on the value the decoder applied first, until
+/// the next change.
+static LOUDNESS_SWITCH_ORDER: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Send `cmd` to the decoder and publish the switch it sets right away, in
+/// one step against any other loudness switch ([`LOUDNESS_SWITCH_ORDER`]).
+/// Published now as well as by the decoder when it drains the command (the
+/// same plain store), so the clip's gain read at `player:loudness-changed`
+/// sees the new value.
+fn send_and_publish(
+    engine: &AudioEngine,
+    cmd: AudioCmd,
+    flag: impl FnOnce(&SharedPlayback) -> &std::sync::atomic::AtomicBool,
+    enabled: bool,
+) -> AppResult<()> {
+    let _order = LOUDNESS_SWITCH_ORDER
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    engine.send(cmd)?;
+    flag(engine.shared()).store(enabled, Ordering::Release);
+    Ok(())
+}
+
 /// Toggle volume normalization (−3 dB gain reduction on loud tracks).
 /// Persisted in `profile_setting['audio.normalize']`.
 #[tauri::command]
@@ -57,15 +83,12 @@ pub async fn player_set_normalize(
         expected_profile_id,
         &[bool_row("audio.normalize", enabled)],
         || {
-            engine.send(AudioCmd::SetNormalize(enabled))?;
-            // Published now as well as by the decoder when it drains the
-            // command (the same plain store), so that the clip's gain read
-            // at the event below sees it.
-            engine
-                .shared()
-                .normalize_enabled
-                .store(enabled, Ordering::Release);
-            Ok(())
+            send_and_publish(
+                &engine,
+                AudioCmd::SetNormalize(enabled),
+                |shared| &shared.normalize_enabled,
+                enabled,
+            )
         },
     )
     .await?;
@@ -169,14 +192,12 @@ pub async fn player_set_replaygain(
         expected_profile_id,
         &[bool_row("audio.replaygain", enabled)],
         || {
-            engine.send(AudioCmd::SetReplayGain(enabled))?;
-            // Published now as well, for the clip's gain: see
-            // `player_set_normalize`.
-            engine
-                .shared()
-                .replaygain_enabled
-                .store(enabled, Ordering::Release);
-            Ok(())
+            send_and_publish(
+                &engine,
+                AudioCmd::SetReplayGain(enabled),
+                |shared| &shared.replaygain_enabled,
+                enabled,
+            )
         },
     )
     .await?;
