@@ -23,8 +23,7 @@ export function getTrackClip(trackId: number): Promise<TrackClip | null> {
 
 /** A server track's clip. Mirrors `commands::clip::RemoteTrackClip`. */
 export type RemoteTrackClip =
-  | ({ kind: "local" } & TrackClip)
-  | { kind: "server" };
+  ({ kind: "local" } & TrackClip) | { kind: "server" };
 
 /**
  * A server track's music video (RFC-029 decision 9): the clip beside the
@@ -69,3 +68,15 @@ export function playerSetClipOpen(open: boolean): Promise<void> {
 
 /** Payload of the `clip:control` event. */
 export type ClipControl = "play" | "pause" | "toggle" | "stop";
+
+/**
+ * The factor the clip of `trackId` multiplies the volume slider by: what
+ * the engine puts on that track's samples besides the slider (its
+ * ReplayGain, by the decoder's own formula, times the normalization), so
+ * that switching to the clip keeps the level. Linear, above 1 for a boost.
+ * `remote` is set for a server row. Asked again at each
+ * `player:loudness-changed`.
+ */
+export function getClipGain(trackId: number, remote: boolean): Promise<number> {
+  return invoke<number>("get_clip_gain", { trackId, remote });
+}

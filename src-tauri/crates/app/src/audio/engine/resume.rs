@@ -298,6 +298,36 @@ impl LastLoad {
         })
     }
 
+    /// What the decoder's stream for this load carries for its
+    /// ReplayGain: the gain, and the `source_type` the listening context
+    /// is read from, as the decoder opens it. A podcast episode carries no
+    /// gain of its own.
+    pub(crate) fn stream_gain(&self) -> (TrackGain, &str) {
+        use super::super::decoder::{FILE_SOURCE_TYPE, REMOTE_FILE_SOURCE_TYPE, URL_SOURCE_TYPE};
+        match &self.source {
+            LastLoadSource::Local {
+                source_type,
+                replay_gain,
+                ..
+            } => (*replay_gain, source_type.as_str()),
+            LastLoadSource::Url { replay_gain, .. } => (*replay_gain, URL_SOURCE_TYPE),
+            LastLoadSource::RemoteFile {
+                origin,
+                replay_gain,
+                ..
+            } => (
+                *replay_gain,
+                match origin {
+                    DetachedOrigin::File => FILE_SOURCE_TYPE,
+                    DetachedOrigin::Remote => REMOTE_FILE_SOURCE_TYPE,
+                },
+            ),
+            LastLoadSource::Episode(_) => {
+                (TrackGain::default(), crate::podcast::playback::SOURCE_TYPE)
+            }
+        }
+    }
+
     /// Rebuild the command that resumes this load at `start_ms`.
     ///
     /// The intent is the caller's to choose, and the two callers choose

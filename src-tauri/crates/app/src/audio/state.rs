@@ -21,6 +21,10 @@ use waveflow_core::playback::stretch::TimeShift;
 
 use super::engine::{AudioCmd, LastLoad, LastLoadSource};
 
+/// The −3 dB the output applies while normalization is on
+/// ([`SharedPlayback::normalize_gain`]).
+pub const NORMALIZE_GAIN: f32 = 0.707;
+
 /// The sample format the output stream hands over: to the device itself
 /// in exclusive mode, to the system mixer in shared mode, which then
 /// converts to whatever the device runs at. Stored as `AtomicU8`; see
@@ -228,7 +232,7 @@ pub struct SharedPlayback {
     /// instant resume; this one intentionally drops it.
     pub drain_silent: AtomicBool,
     /// When `true`, the cpal callback applies a −3 dB gain reduction
-    /// (× 0.707) to all samples to prevent clipping on loud tracks.
+    /// ([`NORMALIZE_GAIN`]) to all samples to prevent clipping on loud tracks.
     /// Toggled from the Settings "Normalize volume" switch.
     pub normalize_enabled: AtomicBool,
     /// When `true`, the decoder thread averages every channel of a frame
@@ -845,6 +849,17 @@ impl SharedPlayback {
         self.sample_format.store(format as u8, Ordering::Release);
     }
 
+    /// The output's normalization factor: [`NORMALIZE_GAIN`] while the
+    /// switch is on, unity otherwise. Read once per buffer by the output.
+    #[inline]
+    pub fn normalize_gain(&self) -> f32 {
+        if self.normalize_enabled.load(Ordering::Relaxed) {
+            NORMALIZE_GAIN
+        } else {
+            1.0
+        }
+    }
+
     pub fn set_volume(&self, v: f32) {
         let clamped = v.clamp(0.0, 1.0);
         self.volume_bits.store(clamped.to_bits(), Ordering::Relaxed);
@@ -870,6 +885,62 @@ impl SharedPlayback {
                 self.replaygain_mode_bits.load(Ordering::Relaxed),
             ),
         }
+    }
+
+    /// The ReplayGain scalar the decoder multiplies a stream by, for the
+    /// stream's measured `gain` and its `source_type` (the listening
+    /// context [`Self::listening_to`] reads). The one formula: the decoder
+    /// applies it per buffer, and a music video takes it for its own
+    /// element ([`Self::clip_gain`]).
+    ///
+    /// An episode is never gained: it carries no measured gain, and the
+    /// empty one every other stream would pass means the fallback and the
+    /// pre-amp — music's settings, applied to a voice nobody measured
+    /// (RFC-009, decision 2).
+    pub fn replay_gain_linear(
+        &self,
+        gain: super::replay_gain::TrackGain,
+        source_type: &str,
+    ) -> f32 {
+        if source_type == crate::podcast::playback::SOURCE_TYPE {
+            return 1.0;
+        }
+        super::replay_gain::effective_linear(
+            gain,
+            self.replay_gain_settings(),
+            self.listening_to(source_type),
+        )
+    }
+
+    /// What the engine puts on a track's samples besides the volume
+    /// slider, as one linear factor: its ReplayGain times the output's
+    /// normalization. A music video plays in the webview, outside the
+    /// engine, and multiplies its own volume by this so that switching
+    /// from the track to its clip keeps the level.
+    ///
+    /// `track_id` is the clip's track. When it is the load the engine is
+    /// on, the gain is that load's, exactly as its stream is gained — a
+    /// server track or a file opened without importing it included.
+    /// Otherwise `library_gain` is what is known about it (`None` for a
+    /// server row, which the engine plays with no measured gain), taken
+    /// as one track on its own rather than as part of a record.
+    pub fn clip_gain(
+        &self,
+        track_id: i64,
+        library_gain: Option<super::replay_gain::TrackGain>,
+    ) -> f32 {
+        let replay_gain = match self.last_load().filter(|load| load.track_id == track_id) {
+            Some(load) => {
+                let (gain, source_type) = load.stream_gain();
+                self.replay_gain_linear(gain, source_type)
+            }
+            None => super::replay_gain::effective_linear(
+                library_gain.unwrap_or_default(),
+                self.replay_gain_settings(),
+                super::replay_gain::Listening::ToATrack,
+            ),
+        };
+        replay_gain * self.normalize_gain()
     }
 
     /// How the track currently decoding is being listened to, for
@@ -1045,3 +1116,6 @@ mod tests;
 
 #[cfg(test)]
 mod claim_tests;
+
+#[cfg(test)]
+mod clip_gain_tests;

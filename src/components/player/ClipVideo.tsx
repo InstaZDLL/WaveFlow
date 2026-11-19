@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { TriangleAlert } from "lucide-react";
 
@@ -18,7 +19,7 @@ import {
   type ClipFailure,
 } from "../../lib/clipPlayer";
 import { playServerClip } from "../../lib/clipServerSource";
-import type { ClipSource } from "../../lib/tauri/clip";
+import { getClipGain, type ClipSource } from "../../lib/tauri/clip";
 
 /** Stop the clip this far before its end when the track's position would
  *  put it past it, so switching late in a song still shows a frame. */
@@ -36,6 +37,32 @@ const FAILURE_TEXT: Record<ClipFailure, { title: string; body: string }> = {
 
 /** The app's volume, 0–1, kept by the surface showing the clip. */
 let appVolume = 1;
+
+/**
+ * What the engine puts on the clip's track besides the slider — its
+ * ReplayGain times the normalization, linear — once the backend has said
+ * (`get_clip_gain`). Until then the element is silent: the clip plays
+ * outside the engine, and without it switching from the track to its clip
+ * jumped by the track's whole ReplayGain attenuation.
+ */
+let sessionGain: { session: number; gain: number } | null = null;
+
+/**
+ * The element's volume: the slider times the track's gain. A `<video>`
+ * cannot play above its source's level, so the product stops at 1 — a
+ * boost is matched only as far as the slider leaves room for it.
+ */
+function elementVolume(session: number): number {
+  if (sessionGain?.session !== session) return 0;
+  return Math.min(1, Math.max(0, appVolume * sessionGain.gain));
+}
+
+/** Put the session's element at {@link elementVolume}. */
+function applyVolume(session: number) {
+  if (owned?.session !== session) return;
+  const volume = elementVolume(session);
+  if (owned.element.volume !== volume) owned.element.volume = volume;
+}
 
 /**
  * The session's `<video>`, created once and moved from one surface to the
@@ -65,7 +92,7 @@ function sessionElement(session: number, source: ClipSource): HTMLVideoElement {
   element.playsInline = true;
   element.disablePictureInPicture = true;
   element.className = "h-full w-full bg-black object-contain";
-  element.volume = appVolume;
+  element.volume = elementVolume(session);
   element.addEventListener("contextmenu", (event) => event.preventDefault());
 
   // Until its metadata loads and it is put at the clip's position, the
@@ -107,7 +134,8 @@ function sessionElement(session: number, source: ClipSource): HTMLVideoElement {
   // element takes that level over: a clip once left at 0 came back silent
   // at every later launch, the slider at 100 or not.
   element.addEventListener("playing", () => {
-    if (element.volume !== appVolume) element.volume = appVolume;
+    const volume = elementVolume(session);
+    if (element.volume !== volume) element.volume = volume;
   });
   element.addEventListener("pause", () =>
     reportClipProgress(session, { paused: true }),
@@ -159,6 +187,8 @@ export function ClipVideo({ className }: { className?: string }) {
       key={clip.session}
       session={clip.session}
       source={clip.source}
+      trackId={clip.trackId}
+      remote={clip.remoteTrackId !== null}
       className={className}
     />
   );
@@ -167,15 +197,21 @@ export function ClipVideo({ className }: { className?: string }) {
 function ClipSlot({
   session,
   source,
+  trackId,
+  remote,
   className,
 }: {
   session: number;
   /** The session's, fixed for its length. */
   source: ClipSource;
+  /** The clip's track, whose gain the element takes. */
+  trackId: number;
+  /** A server row: the engine plays it with no measured gain. */
+  remote: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
-  const { volume } = usePlayer();
+  const { volume, shuffleMode } = usePlayer();
   const { failed } = useClipState();
   const slot = useRef<HTMLDivElement>(null);
 
@@ -215,8 +251,49 @@ function ClipSlot({
   // slider is the one the user reaches for.
   useEffect(() => {
     appVolume = Math.min(1, Math.max(0, volume / 100));
-    if (owned?.session === session) owned.element.volume = appVolume;
+    applyVolume(session);
   }, [volume, session]);
+
+  // The track's gain, asked when the clip opens and again whenever what it
+  // depends on changes while it plays: a ReplayGain or normalization
+  // setting (`player:loudness-changed`), or the shuffle mode the auto mode
+  // reads. Only the latest answer is taken.
+  useEffect(() => {
+    let latest = 0;
+    let active = true;
+    const ask = () => {
+      const asked = ++latest;
+      getClipGain(trackId, remote)
+        .then((gain) => {
+          if (!active || asked !== latest) return;
+          sessionGain = {
+            session,
+            gain: Number.isFinite(gain) && gain >= 0 ? gain : 1,
+          };
+          applyVolume(session);
+        })
+        .catch((err) => {
+          console.error("[ClipVideo] clip gain failed", err);
+          // The slider alone rather than silence, when nothing is known.
+          if (!active || asked !== latest) return;
+          if (sessionGain?.session === session) return;
+          sessionGain = { session, gain: 1 };
+          applyVolume(session);
+        });
+    };
+    // At once, so the clip is not silent for longer than it must, and again
+    // once the listener is in: a setting changed between the two would
+    // otherwise be missed until the next one.
+    ask();
+    const unlisten = listen("player:loudness-changed", ask);
+    void unlisten.then(() => {
+      if (active) ask();
+    });
+    return () => {
+      active = false;
+      void unlisten.then((stop) => stop());
+    };
+  }, [session, trackId, remote, shuffleMode]);
 
   if (failed) {
     return (

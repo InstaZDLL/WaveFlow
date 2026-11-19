@@ -14,7 +14,6 @@ use super::super::analytics::AnalyticsMsg;
 use super::super::crossfade::{MixWindow, AUTOMIX_ENTER_US};
 use super::super::engine::AudioCmd;
 use super::super::output::ring_reserve;
-use super::super::replay_gain::effective_linear;
 use super::super::state::{PlayerState, SharedPlayback};
 use super::control::{
     drain_commands, drain_ring_silent, finished_from, queued_samples, reset_clock,
@@ -920,18 +919,9 @@ fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, stream: &ActiveSt
 /// The gain [`apply_replay_gain`] multiplies this stream's buffers by.
 #[inline]
 fn replay_gain_of(shared: &SharedPlayback, stream: &ActiveStream) -> f32 {
-    // An episode carries no measured gain, and the empty one every other stream
-    // would pass down here means the fallback and the pre-amp: music's settings,
-    // applied to a voice nobody measured (RFC-009, decision 2). Here and not in
-    // `apply_replay_gain`, since a stretched stream takes its gain from this too.
-    if stream.source_type == crate::podcast::playback::SOURCE_TYPE {
-        return 1.0;
-    }
-    effective_linear(
-        stream.replay_gain,
-        shared.replay_gain_settings(),
-        shared.listening_to(&stream.source_type),
-    )
+    // Here and not in `apply_replay_gain`, since a stretched stream takes its
+    // gain from this too. An episode comes back at unity: see the method.
+    shared.replay_gain_linear(stream.replay_gain, &stream.source_type)
 }
 
 /// Final safety clamp before samples reach the SPSC ring (and the cpal
