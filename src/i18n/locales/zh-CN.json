@@ -2965,7 +2965,7 @@
     },
     "updateChannel": {
       "title": "测试版通道",
-      "subtitle": "在稳定版发布前接收预发布版本。测试版可能不稳定。"
+      "subtitle": "在稳定版发布之前接收测试版。测试版可能不稳定。"
     },
     "artistBio": {
       "title": "简介来源",
