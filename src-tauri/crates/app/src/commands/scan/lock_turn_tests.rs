@@ -139,16 +139,19 @@ async fn a_queue_write_gets_through_a_scan_and_the_scan_finishes() {
         during_scan += 1;
         tokio::time::sleep(Duration::from_millis(150)).await;
     }
-    assert!(
-        during_scan >= 3,
-        "only {during_scan} writes happened while the scan ran; too fast to tell"
-    );
 
+    // Whether the scan lived through them first: one that failed on the
+    // first write also ends the loop early.
     let summary = scan
         .await
         .unwrap()
         .expect("the scan survives the writes made during it");
     assert_eq!(summary.added as usize, FILES, "{summary:?}");
     assert_eq!(summary.errors, 0);
+    assert!(
+        during_scan >= 3,
+        "only {during_scan} writes happened while the scan ran ({:?}); too fast to tell",
+        started.elapsed()
+    );
     eprintln!("{during_scan} queue writes during the scan, slowest {slowest:?}");
 }
