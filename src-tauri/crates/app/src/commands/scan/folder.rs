@@ -717,8 +717,9 @@ pub(crate) async fn scan_folder_inner(
     let mut held_since = Instant::now();
     let mut tx_count: usize = 0;
     let mut stepped_aside: usize = 0;
-    // Tracks whose rows were removed while the scan stepped aside.
-    let mut removed_meanwhile: HashSet<String> = HashSet::new();
+    // Tracks removed, or whose file was rewritten, while the scan stepped
+    // aside: left to the next scan.
+    let mut touched_meanwhile: HashSet<String> = HashSet::new();
     let mut processed: usize = summary.skipped as usize;
     // Memo for artist / genre id lookups — see `UpsertCache`. Lives as
     // long as the scan holds the write lock (a batch), so every track on
@@ -800,23 +801,25 @@ pub(crate) async fn scan_folder_inner(
             // stays removed: updating it through the id read before the loop
             // would fail on its credits' foreign keys and stop the scan, and
             // inserting it again would bring back what the user just took
-            // out. Its file is left for the next scan, which finds it only
-            // if it is still there.
+            // out. A track whose file was rewritten meanwhile (a tag edit,
+            // which stores the file's new hash) would get back what was read
+            // from it before. Either way its file is left to the next scan,
+            // which a rewrite in a watched folder asks for anyway.
             let ids: Vec<i64> = existing_probe.values().map(|probe| probe.0).collect();
-            let mut alive = HashSet::with_capacity(ids.len());
+            let mut stored: HashMap<i64, String> = HashMap::with_capacity(ids.len());
             for chunk in ids.chunks(PROBE_CHUNK) {
                 let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-                let sql = format!("SELECT id FROM track WHERE id IN ({placeholders})");
-                let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql));
+                let sql = format!("SELECT id, file_hash FROM track WHERE id IN ({placeholders})");
+                let mut q = sqlx::query_as::<_, (i64, String)>(sqlx::AssertSqlSafe(sql));
                 for id in chunk {
                     q = q.bind(id);
                 }
-                alive.extend(q.fetch_all(&mut *tx).await?);
+                stored.extend(q.fetch_all(&mut *tx).await?);
             }
             existing_probe.retain(|path, probe| {
-                let kept = alive.contains(&probe.0);
+                let kept = stored.get(&probe.0) == Some(&probe.2);
                 if !kept {
-                    removed_meanwhile.insert(path.clone());
+                    touched_meanwhile.insert(path.clone());
                 }
                 kept
             });
@@ -857,7 +860,7 @@ pub(crate) async fn scan_folder_inner(
         if let Some(task) = task.as_ref() {
             task.progress(processed as u64, total_files as u64);
         }
-        if removed_meanwhile.contains(path.to_string_lossy().as_ref()) {
+        if touched_meanwhile.contains(path.to_string_lossy().as_ref()) {
             emit_tick(processed, &summary, &path);
             continue;
         }
