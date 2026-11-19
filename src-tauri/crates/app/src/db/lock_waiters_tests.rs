@@ -66,6 +66,32 @@ fn the_sleeps_are_sqlites_and_end_at_the_deadline() {
     assert_eq!(busy_delay(2, 4), Some(1), "cut to what is left");
 }
 
+/// A write commit on any pooled connection is counted, so a writer that
+/// lets the lock go can tell that someone committed before it took the
+/// lock back, waiting or not. Other tests commit in parallel: only a rise
+/// is checked.
+#[tokio::test]
+async fn a_write_commit_is_counted() {
+    let dir = tempfile::tempdir().unwrap();
+    let pool = pool(dir.path()).await;
+
+    let before = commits();
+    sqlx::query("INSERT INTO t VALUES (1)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(commits() > before, "an autocommit write is a commit");
+
+    let before = commits();
+    let mut tx = begin_write(&pool).await.unwrap();
+    sqlx::query("INSERT INTO t VALUES (2)")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    assert!(commits() > before, "so is a transaction's");
+}
+
 /// A connection that finds the write lock taken says so, and wakes the
 /// writer that holds it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

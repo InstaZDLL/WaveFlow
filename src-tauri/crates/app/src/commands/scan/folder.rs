@@ -1643,16 +1643,18 @@ pub(crate) async fn scan_folder_inner(
         // first scans, AND so a failure mid-scan loses at most
         // TX_BATCH rows of work instead of the whole import.
         if tx_count >= TX_BATCH {
-            let released = Instant::now();
+            let commits_before = lock_waiters::commits();
             tx.commit().await?;
             tx = lock_waiters::begin_write(pool).await?;
             held_since = Instant::now();
             tx_count = 0;
             // Another writer can take the lock between the commit and the
-            // begin; one that was waiting for it, since the scan held it
-            // until then, and a wait is reported. Then, as after stepping
-            // aside, nothing read before is trusted.
-            if lock_waiters::waited_since(released) {
+            // begin, one that was waiting for it or one that started in the
+            // gap and committed before the scan asked again, which waited
+            // for nothing. Either committed: any commit beyond the scan's
+            // own is someone else's, and then, as after stepping aside,
+            // nothing read before is trusted.
+            if lock_waiters::commits() != commits_before + 1 {
                 upsert_cache = UpsertCache::default();
                 forget_tracks_changed_meanwhile(
                     &mut tx,

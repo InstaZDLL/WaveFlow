@@ -19,6 +19,12 @@
 //! Only the waiting is shared between connections, never whose wait it was:
 //! a long writer compares the last wait with the moment it took the lock, so
 //! its own wait to get the lock never counts.
+//!
+//! [`install`] also counts the write commits of every pooled connection
+//! ([`commits`]). A writer that lets the lock go and takes it straight back
+//! can be overtaken by one that did not wait: it started in the gap and
+//! committed before the first writer asked again, so no wait was reported.
+//! The count tells that writer that someone else committed in between.
 
 use std::os::raw::{c_int, c_void};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -56,6 +62,9 @@ static LAST_WAIT_US: AtomicU64 = AtomicU64::new(0);
 
 /// Woken on every wait.
 static WAITING: LazyLock<Notify> = LazyLock::new(Notify::new);
+
+/// Write commits made by the pooled connections since the start.
+static COMMITS: AtomicU64 = AtomicU64::new(0);
 
 fn micros_since_epoch(at: Instant) -> u64 {
     at.saturating_duration_since(*EPOCH).as_micros() as u64
@@ -112,9 +121,10 @@ unsafe extern "C" fn on_busy(_arg: *mut c_void, count: c_int) -> c_int {
     1
 }
 
-/// Give `conn` the busy handler that reports its waits. For a pool's
-/// `after_connect`; it replaces the `busy_timeout` sqlx installed, with the
-/// same deadline ([`BUSY_TIMEOUT_MS`]).
+/// Give `conn` the busy handler that reports its waits, and the commit hook
+/// that counts its commits ([`commits`]). For a pool's `after_connect`; the
+/// handler replaces the `busy_timeout` sqlx installed, with the same
+/// deadline ([`BUSY_TIMEOUT_MS`]).
 pub async fn install(conn: &mut SqliteConnection) -> sqlx::Result<()> {
     // Started before any writer reads the clock, so no `Instant` taken from
     // here on can fall before it.
@@ -130,7 +140,23 @@ pub async fn install(conn: &mut SqliteConnection) -> sqlx::Result<()> {
             "sqlite3_busy_handler failed with code {rc}"
         )));
     }
+    // SQLite calls it for a commit that writes, never for a read, while the
+    // committing connection still holds the write lock; `true` lets the
+    // commit go on.
+    handle.set_commit_hook(|| {
+        COMMITS.fetch_add(1, Ordering::SeqCst);
+        true
+    });
     Ok(())
+}
+
+/// How many write commits the pooled connections have made. A writer reads
+/// it before its own commit and again once it holds the lock back: anything
+/// beyond its own commit was someone else's. A commit that only touched the
+/// attached `app.db` counts too, which only makes the writer check for
+/// nothing.
+pub fn commits() -> u64 {
+    COMMITS.load(Ordering::SeqCst)
 }
 
 /// Whether any connection has waited for a lock since `since`.
