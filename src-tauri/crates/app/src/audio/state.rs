@@ -209,6 +209,12 @@ pub struct SharedPlayback {
     /// it on, cleared by any other state. A finished track has no
     /// position worth resuming — see [`Self::resume_point`].
     track_finished: AtomicBool,
+    /// How many times the state has moved to [`PlayerState::Loading`]. A
+    /// seek held for the next Play (#1129) stands only while this has not
+    /// moved: the decoder accepts a load a moment before it publishes
+    /// `Loading`, and a seek that lands in between, read as made on an
+    /// idle player, belongs to that load and not to a later Play.
+    loads_started: AtomicU64,
     /// When `true`, the cpal output callback writes silence instead of
     /// draining the SPSC ring — making pause audibly instant even when
     /// the decoder has ~1 s of pre-buffered samples. The decoder
@@ -458,6 +464,7 @@ impl SharedPlayback {
             lead_in_is_previous_track: AtomicBool::new(false),
             current_track_id: AtomicI64::new(0),
             track_finished: AtomicBool::new(false),
+            loads_started: AtomicU64::new(0),
             paused_output: AtomicBool::new(false),
             drain_silent: AtomicBool::new(false),
             normalize_enabled: AtomicBool::new(false),
@@ -728,6 +735,20 @@ impl SharedPlayback {
             }
         }
         self.state.store(state as u8, Ordering::Release);
+        // Counted after the state is published, never before: a reader
+        // that sees the new count then sees `Loading` (or what followed
+        // it), and one that read the count first and the state before the
+        // store sees the count move later.
+        if state == PlayerState::Loading {
+            self.loads_started.fetch_add(1, Ordering::AcqRel);
+        }
+    }
+
+    /// See the field: read before [`Self::state`] by whoever holds a seek,
+    /// so a `Loading` published in between is either seen in the state or
+    /// counted here after it (the writers count it once it is published).
+    pub fn loads_started(&self) -> u64 {
+        self.loads_started.load(Ordering::Acquire)
     }
 
     /// The library track that ran to its end on its own and has not been
@@ -792,9 +813,15 @@ impl SharedPlayback {
     /// loading while it is playing, and every surface that treats
     /// `Loading` as "a track is on its way" goes dead.
     pub fn try_set_state(&self, from: PlayerState, to: PlayerState) -> bool {
-        self.state
+        let moved = self
+            .state
             .compare_exchange(from as u8, to as u8, Ordering::AcqRel, Ordering::Acquire)
-            .is_ok()
+            .is_ok();
+        // After the state, as in `set_state`.
+        if moved && to == PlayerState::Loading {
+            self.loads_started.fetch_add(1, Ordering::AcqRel);
+        }
+        moved
     }
 
     pub fn volume(&self) -> f32 {

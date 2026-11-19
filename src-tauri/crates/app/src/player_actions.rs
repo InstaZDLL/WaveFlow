@@ -326,17 +326,19 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
     // producer from publishing over this one.
     let _publish = engine.lock_publish().await;
     // Where the user dragged the bar while nothing was loaded (#1129), if
-    // no other load has claimed the dispatch since. Taken under the lock
+    // no other load has claimed the dispatch since. Read under the lock
     // and before this resume's own claim, which would otherwise make it
-    // look stale; a resume that failed before here left it for this one.
+    // look stale; spent only once the claim is made, so a resume that is
+    // superseded there, or failed before here, leaves it for the next.
     // A seek is a choice and is taken as asked, its last two seconds
     // included, over the stored point and over a finished track's start
     // alike.
-    let position_ms = engine.take_held_seek().unwrap_or(position_ms);
+    let position_ms = engine.held_seek_ms().unwrap_or(position_ms);
     if !engine.claim_dispatch(intent) {
         tracing::debug!("resume superseded by a newer playback intent; dropping it");
         return Ok(());
     }
+    engine.drop_held_seek();
     commands::player::emit_track_changed(app, &state.paths, &track, Some(profile_id));
     // The guard above can't cover the last stretch: once the command is in
     // the channel, the decoder still has to pick it up, and until it

@@ -263,17 +263,45 @@ fn a_seek_behind_a_load_on_its_way_follows_it() {
 
 #[test]
 fn a_held_seek_stands_until_another_load_claims() {
-    use super::resume::{held_seek_for_test, held_seek_position};
+    use super::resume::{held_seek_for_test, held_seek_position, LoadMarks};
+    let marks = |claimed, accepted, loads_started| LoadMarks {
+        claimed,
+        accepted,
+        loads_started,
+    };
     // A Play that asked for an intent and failed before claiming it left
-    // both marks as they were: the next Play still finds the seek.
-    let held = Some(held_seek_for_test(180_000, 3, Some(3)));
-    assert_eq!(held_seek_position(held, 3, Some(3)), Some(180_000));
+    // every mark as it was: the next Play still finds the seek.
+    let held = Some(held_seek_for_test(180_000, marks(3, Some(3), 2)));
+    assert_eq!(
+        held_seek_position(held, marks(3, Some(3), 2)),
+        Some(180_000)
+    );
     // A track picked or Next since claimed the dispatch: the seek was made
     // on what showed before it.
-    assert_eq!(held_seek_position(held, 4, Some(3)), None);
+    assert_eq!(held_seek_position(held, marks(4, Some(3), 2)), None);
     // A load accepted since, the decoder's own advance at an end.
-    assert_eq!(held_seek_position(held, 3, Some(5)), None);
-    assert_eq!(held_seek_position(None, 3, Some(3)), None);
+    assert_eq!(held_seek_position(held, marks(3, Some(5), 2)), None);
+    // A load the decoder had accepted and not yet started when the seek
+    // was made: it starts after, and the seek is not Play's.
+    assert_eq!(held_seek_position(held, marks(3, Some(3), 3)), None);
+    assert_eq!(held_seek_position(None, marks(3, Some(3), 2)), None);
+}
+
+#[test]
+fn a_load_published_counts_as_started() {
+    use crate::audio::state::SharedPlayback;
+    use crate::audio::PlayerState;
+    let shared = SharedPlayback::new();
+    let before = shared.loads_started();
+    shared.set_state(PlayerState::Ended);
+    shared.set_state(PlayerState::Idle);
+    assert_eq!(shared.loads_started(), before);
+    // The decoder's own transition, and a producer's ahead of it.
+    shared.set_state(PlayerState::Loading);
+    assert_eq!(shared.loads_started(), before + 1);
+    shared.set_state(PlayerState::Idle);
+    assert!(shared.try_set_state(PlayerState::Idle, PlayerState::Loading));
+    assert_eq!(shared.loads_started(), before + 2);
 }
 
 #[test]

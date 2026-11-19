@@ -440,13 +440,23 @@ pub(super) fn move_parked(parked: &mut Option<ParkedSession>, superseded: bool, 
 }
 
 /// A seek asked of a player with nothing loaded (#1129): where the user put
-/// the bar, the newest load claimed at that moment, and the load the
-/// decoder had last accepted.
+/// the bar, the newest load claimed at that moment, the load the decoder
+/// had last accepted, and how many loads had started
+/// ([`SharedPlayback::loads_started`](crate::audio::state::SharedPlayback::loads_started)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct HeldSeek {
     ms: u64,
     claimed: u64,
     accepted: Option<u64>,
+    loads_started: u64,
+}
+
+/// The marks a held seek is checked against, read together.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct LoadMarks {
+    pub(super) claimed: u64,
+    pub(super) accepted: Option<u64>,
+    pub(super) loads_started: u64,
 }
 
 /// Whether a seek finds nothing loaded to apply to and is held for the
@@ -472,27 +482,29 @@ pub(super) fn holds_seek(
     idle && track_id >= 0 && claimed <= accepted.unwrap_or(0)
 }
 
-/// The pure half of [`AudioEngine::held_seek_ms`] and
-/// [`AudioEngine::take_held_seek`]: a held seek stands for the track shown
-/// when it was made while no load has claimed the dispatch since, and none
-/// been accepted. A track picked, Next, the queue moving on at an end all
-/// claim one. A Play that asked for an intent and failed before claiming
-/// it does not count: the seek is still there for the next.
-pub(super) fn held_seek_position(
-    held: Option<HeldSeek>,
-    claimed_now: u64,
-    accepted_now: Option<u64>,
-) -> Option<u64> {
-    held.filter(|held| held.claimed == claimed_now && held.accepted == accepted_now)
-        .map(|held| held.ms)
+/// The pure half of [`AudioEngine::held_seek_ms`]: a held seek stands for the track
+/// shown when it was made while no load has claimed the dispatch since,
+/// none been accepted and none started. A track picked, Next, the queue
+/// moving on at an end all claim one. A Play that asked for an intent and
+/// failed before claiming it does not count: the seek is still there for
+/// the next. A load the decoder had accepted but not yet started when the
+/// seek was made starts after it, and takes it away.
+pub(super) fn held_seek_position(held: Option<HeldSeek>, now: LoadMarks) -> Option<u64> {
+    held.filter(|held| {
+        held.claimed == now.claimed
+            && held.accepted == now.accepted
+            && held.loads_started == now.loads_started
+    })
+    .map(|held| held.ms)
 }
 
 #[cfg(test)]
-pub(super) fn held_seek_for_test(ms: u64, claimed: u64, accepted: Option<u64>) -> HeldSeek {
+pub(super) fn held_seek_for_test(ms: u64, marks: LoadMarks) -> HeldSeek {
     HeldSeek {
         ms,
-        claimed,
-        accepted,
+        claimed: marks.claimed,
+        accepted: marks.accepted,
+        loads_started: marks.loads_started,
     }
 }
 
@@ -719,63 +731,71 @@ impl AudioEngine {
     /// has nothing to apply to, and Play started from the resume point,
     /// not from where the user had dragged the bar. The same after a track
     /// ran to its end. [`crate::player_actions::resume_last`] takes it
-    /// ([`Self::take_held_seek`]).
+    /// ([`Self::held_seek_ms`]).
+    ///
+    /// Checked and written under the slot's lock, so a profile switch's
+    /// [`Self::drop_held_seek`] lands either before the check, which then
+    /// reads the new profile's player, or after the write, and clears it.
     fn hold_seek(&self, ms: u64) -> bool {
-        let (claimed, accepted) = (self.claimed_load_intent(), self.accepted_load_intent());
-        if !holds_seek(
-            self.shared.state(),
-            self.shown_track_id(),
-            claimed,
-            accepted,
-        ) {
-            return false;
-        }
         let Ok(mut guard) = self.held_seek.lock() else {
+            return false;
+        };
+        let Some(marks) = self.idle_marks() else {
             return false;
         };
         *guard = Some(HeldSeek {
             ms,
-            claimed,
-            accepted,
+            claimed: marks.claimed,
+            accepted: marks.accepted,
+            loads_started: marks.loads_started,
         });
         true
     }
 
-    /// The held seek's position while it still describes the player:
-    /// nothing loaded, and no load claimed or accepted since. Left in
-    /// place, for what only reports the position.
-    pub(crate) fn held_seek_ms(&self) -> Option<u64> {
-        let (claimed, accepted) = (self.claimed_load_intent(), self.accepted_load_intent());
-        if !holds_seek(
+    /// The marks a held seek is made and checked against, when the player
+    /// is one a seek is held for ([`holds_seek`]), or `None`.
+    ///
+    /// The count of loads started is read before the state and again
+    /// after: the writers count a `Loading` once it is published, so a
+    /// load that starts while the state is read, and may already have
+    /// ended, shows in the second reading, and the player is then taken
+    /// as not idle. The seek goes to the decoder, and a held one does not
+    /// stand.
+    fn idle_marks(&self) -> Option<LoadMarks> {
+        let loads_started = self.shared.loads_started();
+        let marks = LoadMarks {
+            claimed: self.claimed_load_intent(),
+            accepted: self.accepted_load_intent(),
+            loads_started,
+        };
+        let idle = holds_seek(
             self.shared.state(),
             self.shown_track_id(),
-            claimed,
-            accepted,
-        ) {
-            return None;
-        }
-        let held = *self.held_seek.lock().ok()?;
-        held_seek_position(held, claimed, accepted)
+            marks.claimed,
+            marks.accepted,
+        );
+        (idle && self.shared.loads_started() == loads_started).then_some(marks)
     }
 
-    /// Spend the held seek: its position if no load has claimed the
-    /// dispatch or been accepted since it was made, `None` otherwise.
+    /// The held seek's position while it still describes the player:
+    /// nothing loaded, and no load claimed, accepted or started since.
     ///
-    /// For a resume, called under [`Self::lock_publish`] and before its
-    /// own claim: every producer claims under that lock, so the answer
-    /// cannot change before the claim, and a resume that fails before
-    /// getting there leaves the seek for the next Play.
-    pub(crate) fn take_held_seek(&self) -> Option<u64> {
-        let held = self.held_seek.lock().ok()?.take();
-        held_seek_position(
-            held,
-            self.claimed_load_intent(),
-            self.accepted_load_intent(),
-        )
+    /// Read, not spent, for what only reports the position and for a
+    /// resume alike. A resume reads it under [`Self::lock_publish`] and
+    /// before its own claim, which would otherwise make it look stale; one
+    /// superseded at that claim, or failed before it, leaves the seek for
+    /// the next Play, and one that claims clears it
+    /// ([`Self::drop_held_seek`]).
+    pub(crate) fn held_seek_ms(&self) -> Option<u64> {
+        // The slot first, the marks after: a load that starts in between
+        // is then counted in what the seek is compared with.
+        let held = *self.held_seek.lock().ok()?;
+        held_seek_position(held, self.idle_marks()?)
     }
 
     /// Forget a held seek: the track it was made on is no longer the one
-    /// Play would load (a profile switch).
+    /// Play would load (a profile switch), or a resume has just claimed
+    /// the load that takes it.
     pub(crate) fn drop_held_seek(&self) {
         if let Ok(mut guard) = self.held_seek.lock() {
             *guard = None;
