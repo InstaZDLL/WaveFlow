@@ -211,7 +211,7 @@ function ClipSlot({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const { volume, shuffleMode } = usePlayer();
+  const { volume } = usePlayer();
   const { failed } = useClipState();
   const slot = useRef<HTMLDivElement>(null);
 
@@ -257,7 +257,10 @@ function ClipSlot({
   // The track's gain, asked when the clip opens and again whenever what it
   // depends on changes while it plays: a ReplayGain or normalization
   // setting (`player:loudness-changed`), or the shuffle mode the auto mode
-  // reads. Only the latest answer is taken.
+  // reads (`player:options-changed`). Both come from the backend once the
+  // change is applied: the context's shuffle mode is set before the
+  // command runs, and a gain asked then could read the old mode. Only the
+  // latest answer is taken.
   useEffect(() => {
     let latest = 0;
     let active = true;
@@ -285,15 +288,18 @@ function ClipSlot({
     // once the listener is in: a setting changed between the two would
     // otherwise be missed until the next one.
     ask();
-    const unlisten = listen("player:loudness-changed", ask);
-    void unlisten.then(() => {
+    const unlisteners = [
+      listen("player:loudness-changed", ask),
+      listen("player:options-changed", ask),
+    ];
+    void Promise.all(unlisteners).then(() => {
       if (active) ask();
     });
     return () => {
       active = false;
-      void unlisten.then((stop) => stop());
+      for (const unlisten of unlisteners) void unlisten.then((stop) => stop());
     };
-  }, [session, trackId, remote, shuffleMode]);
+  }, [session, trackId, remote]);
 
   if (failed) {
     return (

@@ -43,6 +43,14 @@ fn track_and_album() -> TrackGain {
     }
 }
 
+/// The decoder accepts `cmd` and is on its track, as it records both when
+/// it takes a load.
+fn decoding(shared: &SharedPlayback, cmd: &AudioCmd) {
+    shared.record_accepted_load(cmd);
+    let track_id = shared.last_load().expect("a load on record").track_id;
+    shared.current_track_id.store(track_id, Ordering::Release);
+}
+
 fn album_load(track_id: i64, replay_gain: TrackGain) -> AudioCmd {
     AudioCmd::LoadAndPlay {
         intent: LoadIntent::from_raw(1),
@@ -63,7 +71,7 @@ fn album_load(track_id: i64, replay_gain: TrackGain) -> AudioCmd {
 #[test]
 fn the_playing_tracks_clip_takes_the_gain_of_its_stream() {
     let shared = replay_gain_on(GainMode::Auto);
-    shared.record_accepted_load(&album_load(42, track_and_album()));
+    decoding(&shared, &album_load(42, track_and_album()));
 
     let gain = shared.clip_gain(42, Some(track_and_album()));
     assert!(close(gain, db(-10.0)), "album gain expected, got {gain}");
@@ -71,6 +79,23 @@ fn the_playing_tracks_clip_takes_the_gain_of_its_stream() {
         gain,
         shared.replay_gain_linear(track_and_album(), "album")
     ));
+}
+
+/// After a profile switch the load on record is the old profile's, and the
+/// new profile's track with the same id is another track: its clip takes
+/// its own row's gain, not the old load's.
+#[test]
+fn the_load_of_the_profile_left_is_not_the_clips() {
+    let shared = replay_gain_on(GainMode::Auto);
+    decoding(&shared, &album_load(42, track_and_album()));
+    // What `switch_profile` does to the engine before the swap.
+    shared.current_track_id.store(0, Ordering::Release);
+
+    let own = TrackGain {
+        gain_db: Some(-2.0),
+        ..Default::default()
+    };
+    assert!(close(shared.clip_gain(42, Some(own)), db(-2.0)));
 }
 
 /// A clip opened from another track's menu takes that track's gain, as one
@@ -81,7 +106,7 @@ fn another_tracks_clip_is_one_track_on_its_own() {
     shared
         .shuffle_mode_bits
         .store(ShuffleMode::Albums.as_bits(), Ordering::Relaxed);
-    shared.record_accepted_load(&album_load(42, TrackGain::default()));
+    decoding(&shared, &album_load(42, TrackGain::default()));
 
     let gain = shared.clip_gain(7, Some(track_and_album()));
     assert!(close(gain, db(-6.0)), "track gain expected, got {gain}");
@@ -107,23 +132,26 @@ fn a_server_row_takes_the_fallback_and_the_pre_amp() {
 #[test]
 fn a_playing_server_track_takes_its_loads_gain() {
     let shared = replay_gain_on(GainMode::Track);
-    shared.record_accepted_load(&AudioCmd::LoadRemoteFileAndPlay {
-        intent: LoadIntent::from_raw(1),
-        origin: DetachedOrigin::Remote,
-        path: PathBuf::from("/dev/null"),
-        start_ms: 0,
-        track_id: -5,
-        duration_ms: 1000,
-        title: None,
-        artist: None,
-        artwork_url: None,
-        fallback_url: None,
-        discard_on_failure: false,
-        replay_gain: TrackGain {
-            gain_db: Some(-4.0),
-            ..Default::default()
+    decoding(
+        &shared,
+        &AudioCmd::LoadRemoteFileAndPlay {
+            intent: LoadIntent::from_raw(1),
+            origin: DetachedOrigin::Remote,
+            path: PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id: -5,
+            duration_ms: 1000,
+            title: None,
+            artist: None,
+            artwork_url: None,
+            fallback_url: None,
+            discard_on_failure: false,
+            replay_gain: TrackGain {
+                gain_db: Some(-4.0),
+                ..Default::default()
+            },
         },
-    });
+    );
 
     assert!(close(shared.clip_gain(-5, None), db(-4.0)));
 }
@@ -147,7 +175,7 @@ fn normalization_multiplies_in() {
 #[test]
 fn with_nothing_on_the_clip_follows_the_slider_alone() {
     let shared = SharedPlayback::new();
-    shared.record_accepted_load(&album_load(42, track_and_album()));
+    decoding(&shared, &album_load(42, track_and_album()));
     assert_eq!(shared.clip_gain(42, Some(track_and_album())), 1.0);
 }
 

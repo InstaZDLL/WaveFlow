@@ -924,12 +924,22 @@ impl SharedPlayback {
     /// Otherwise `library_gain` is what is known about it (`None` for a
     /// server row, which the engine plays with no measured gain), taken
     /// as one track on its own rather than as part of a record.
+    ///
+    /// The load counts only while the decoder is on that track
+    /// (`current_track_id`): a track id belongs to one profile's database,
+    /// and the load on record outlives a profile switch, which sets
+    /// `current_track_id` back to 0. A clip of the new profile's track
+    /// with the same id would otherwise take the old track's gain.
     pub fn clip_gain(
         &self,
         track_id: i64,
         library_gain: Option<super::replay_gain::TrackGain>,
     ) -> f32 {
-        let replay_gain = match self.last_load().filter(|load| load.track_id == track_id) {
+        let on_it = self.current_track_id.load(Ordering::Acquire) == track_id;
+        let replay_gain = match self
+            .last_load()
+            .filter(|load| on_it && load.track_id == track_id)
+        {
             Some(load) => {
                 let (gain, source_type) = load.stream_gain();
                 self.replay_gain_linear(gain, source_type)
