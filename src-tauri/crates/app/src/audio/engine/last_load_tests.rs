@@ -226,6 +226,85 @@ fn a_seek_with_nothing_parked_goes_to_the_decoder() {
 }
 
 #[test]
+fn a_seek_with_nothing_loaded_is_held_for_play() {
+    // After a launch the restored track is shown paused but nothing is
+    // loaded, as after a track ran to its end: the decoder dropped the
+    // `Seek` and Play started from the resume point (#1129).
+    use super::resume::holds_seek;
+    use crate::audio::PlayerState;
+    assert!(holds_seek(PlayerState::Idle, 0, 0, None));
+    assert!(holds_seek(PlayerState::Ended, 12, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Paused, 12, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Playing, 12, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Loading, 12, 4, Some(4)));
+}
+
+#[test]
+fn a_seek_on_a_source_play_does_not_resume_is_not_held() {
+    // A file played without importing it, a station or a server track
+    // that ended: Play loads the library's resume point, so a seek made on
+    // the ended file must not start that library track at its position.
+    use super::resume::holds_seek;
+    use crate::audio::PlayerState;
+    assert!(!holds_seek(PlayerState::Ended, -3, 4, Some(4)));
+    assert!(!holds_seek(PlayerState::Idle, -3, 4, Some(4)));
+}
+
+#[test]
+fn a_seek_behind_a_load_on_its_way_follows_it() {
+    // MPD's `seek` from a stop plays the song, then seeks it: the load is
+    // claimed and in the channel, not yet accepted, and the state is still
+    // `Idle`. Held, the seek was lost and the song started at 0.
+    use super::resume::holds_seek;
+    use crate::audio::PlayerState;
+    assert!(!holds_seek(PlayerState::Idle, 0, 1, None));
+    assert!(!holds_seek(PlayerState::Ended, 12, 5, Some(4)));
+}
+
+#[test]
+fn a_held_seek_stands_until_another_load_claims() {
+    use super::resume::{held_seek_for_test, held_seek_position, LoadMarks};
+    let marks = |claimed, accepted, loads_started| LoadMarks {
+        claimed,
+        accepted,
+        loads_started,
+    };
+    // A Play that asked for an intent and failed before claiming it left
+    // every mark as it was: the next Play still finds the seek.
+    let held = Some(held_seek_for_test(180_000, marks(3, Some(3), 2)));
+    assert_eq!(
+        held_seek_position(held, marks(3, Some(3), 2)),
+        Some(180_000)
+    );
+    // A track picked or Next since claimed the dispatch: the seek was made
+    // on what showed before it.
+    assert_eq!(held_seek_position(held, marks(4, Some(3), 2)), None);
+    // A load accepted since, the decoder's own advance at an end.
+    assert_eq!(held_seek_position(held, marks(3, Some(5), 2)), None);
+    // A load the decoder had accepted and not yet started when the seek
+    // was made: it starts after, and the seek is not Play's.
+    assert_eq!(held_seek_position(held, marks(3, Some(3), 3)), None);
+    assert_eq!(held_seek_position(None, marks(3, Some(3), 2)), None);
+}
+
+#[test]
+fn a_load_published_counts_as_started() {
+    use crate::audio::state::SharedPlayback;
+    use crate::audio::PlayerState;
+    let shared = SharedPlayback::new();
+    let before = shared.loads_started();
+    shared.set_state(PlayerState::Ended);
+    shared.set_state(PlayerState::Idle);
+    assert_eq!(shared.loads_started(), before);
+    // The decoder's own transition, and a producer's ahead of it.
+    shared.set_state(PlayerState::Loading);
+    assert_eq!(shared.loads_started(), before + 1);
+    shared.set_state(PlayerState::Idle);
+    assert!(shared.try_set_state(PlayerState::Idle, PlayerState::Loading));
+    assert_eq!(shared.loads_started(), before + 2);
+}
+
+#[test]
 fn a_resumed_library_track_keeps_the_source_it_came_from() {
     // Stamping "device-rebuild" on it, as the three paths used to,
     // hides an album play from every statistic that filters on the

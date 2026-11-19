@@ -101,7 +101,17 @@ pub async fn player_get_state(
     );
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
-    if snapshot.state == "idle" && snapshot.position_ms == 0 {
+    // A seek made since then on the restored track (#1129) beats both: it
+    // is where the next Play starts, and a window that mounts now (the
+    // mini-player) has to show the bar where the user left it.
+    // Only on a snapshot that read the player idle too: one that read it
+    // playing, before the track ended under it, keeps the live position.
+    let held = matches!(snapshot.state.as_str(), "idle" | "ended")
+        .then(|| engine.held_seek_ms())
+        .flatten();
+    if let Some(held) = held {
+        snapshot.position_ms = held;
+    } else if snapshot.state == "idle" && snapshot.position_ms == 0 {
         snapshot.position_ms = resumed_position;
     }
 

@@ -213,7 +213,17 @@ pub async fn switch_profile(
     // their next scan can't race a stale pool reference.
     watcher.unwatch_all();
 
-    if let Err(err) = state.activate_profile(profile_id).await {
+    // A seek held for the restored track of the profile being left (#1129)
+    // would otherwise start the new profile's track at that position: it
+    // goes in the swap itself, before a Play can read the new profile's
+    // resume point, and not after the old pool has drained. None is held
+    // from here to the end of the switch, on success and failure alike.
+    let _no_seek_holds = engine.close_seek_holds();
+    let drop_held_seek = || engine.drop_held_seek();
+    if let Err(err) = state
+        .activate_profile_with(profile_id, drop_held_seek)
+        .await
+    {
         // Nothing was swapped: the profile being left is still the
         // active one (a pre-migration copy the user would not go without
         // is one way here), and its folders are watched again.
