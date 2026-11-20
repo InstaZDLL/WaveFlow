@@ -45,7 +45,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, PoisonError, RwLock};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -304,6 +304,10 @@ impl Source {
 
 #[derive(Default)]
 struct Registry {
+    /// The profile the sources are to be of, set in the swap that makes a
+    /// profile active ([`profile_changed`]): a reload read for another
+    /// profile installs nothing.
+    profile: Option<i64>,
     sources: HashMap<String, Arc<Source>>,
     cache_dir: Option<std::path::PathBuf>,
     cache_max_bytes: u64,
@@ -374,8 +378,13 @@ pub(crate) fn build_fs(row: &store::SourceRow) -> Result<Box<dyn NetworkFs>, Net
 
 /// Make the registry the sources of this profile. Each starts out unknown and
 /// is asked how it is by [`reload_active`]: new credentials are a reason to ask
-/// again anyway.
-pub async fn reload(pool: &SqlitePool, cache_dir: std::path::PathBuf) -> AppResult<()> {
+/// again anyway. Read for a profile that is no longer the active one (a
+/// switch came in while it read), it installs nothing.
+pub async fn reload(
+    pool: &SqlitePool,
+    cache_dir: std::path::PathBuf,
+    profile_id: i64,
+) -> AppResult<()> {
     let rows = store::list(pool).await?;
     let max_gb = store::cache_max_gb(pool).await;
     let mut sources = HashMap::new();
@@ -398,7 +407,15 @@ pub async fn reload(pool: &SqlitePool, cache_dir: std::path::PathBuf) -> AppResu
             Err(err) => tracing::warn!(error = %err, "network source not usable"),
         }
     }
-    if let Ok(mut registry) = registry().write() {
+    {
+        let mut registry = registry().write().unwrap_or_else(PoisonError::into_inner);
+        if registry.profile != Some(profile_id) {
+            tracing::debug!(
+                profile_id,
+                "network sources: read for a profile no longer active"
+            );
+            return Ok(());
+        }
         registry.sources = sources;
         registry.cache_dir = Some(cache_dir);
         registry.cache_max_bytes = max_gb * 1024 * 1024 * 1024;
@@ -418,6 +435,7 @@ pub async fn reload_active(app: &AppHandle) -> AppResult<()> {
             .paths
             .profile_cache_dir(profile_id)
             .join("network-audio"),
+        profile_id,
     )
     .await?;
     probe_all(false);
@@ -432,10 +450,19 @@ pub async fn reload_cache_limit(pool: &SqlitePool) {
     }
 }
 
-/// No active profile any more: nothing of the last one stays in memory.
-pub fn clear() {
+/// Another profile is active, or none (`None`): called by the state in the
+/// swap itself, under the profile's write lock, so nothing can resolve a
+/// locator for the new profile and reach a share of the one left, an imported
+/// copy of the profile carrying sources of the same uuid. Its sources, its
+/// cache, its clip grants and its pre-load all go at once, password with
+/// them, and the registry stays empty until [`reload`] reads the new
+/// profile's own rows. A reload that fails leaves it empty: the shares read
+/// as down, never as the last profile's.
+pub fn profile_changed(profile_id: Option<i64>) {
     media::stop_prewarm();
-    if let Ok(mut registry) = registry().write() {
+    {
+        let mut registry = registry().write().unwrap_or_else(PoisonError::into_inner);
+        registry.profile = profile_id;
         registry.sources.clear();
         registry.cache_dir = None;
     }
