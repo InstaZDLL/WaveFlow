@@ -350,6 +350,33 @@ pub fn has_sources() -> bool {
     registry().read().is_ok_and(|r| !r.sources.is_empty())
 }
 
+/// The cache of the profile `source` is of, while the registry still holds
+/// that very instance, read under one lock: a source resolved before a
+/// profile switch neither publishes into nor reads from the next profile's
+/// cache, whose copies are named by the same locators (#1143).
+pub(crate) fn cache_of(source: &Arc<Source>) -> Option<(std::path::PathBuf, u64)> {
+    let registry = registry().read().ok()?;
+    let current = registry.sources.get(&source.uuid)?;
+    if !Arc::ptr_eq(current, source) {
+        return None;
+    }
+    Some((registry.cache_dir.clone()?, registry.cache_max_bytes))
+}
+
+/// A locator's source, if the active profile has it, and that profile's
+/// cache directory, read under one lock.
+pub(crate) fn source_and_cache_dir(
+    uuid: &str,
+) -> (Option<Arc<Source>>, Option<std::path::PathBuf>) {
+    match registry().read() {
+        Ok(registry) => (
+            registry.sources.get(uuid).cloned(),
+            registry.cache_dir.clone(),
+        ),
+        Err(_) => (None, None),
+    }
+}
+
 pub(crate) fn cache_config() -> Option<(std::path::PathBuf, u64)> {
     let registry = registry().read().ok()?;
     Some((registry.cache_dir.clone()?, registry.cache_max_bytes))

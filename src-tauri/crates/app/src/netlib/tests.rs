@@ -199,12 +199,17 @@ struct Bench {
 
 /// A profile database with every migration run.
 async fn profile_db(path: &std::path::Path) -> SqlitePool {
-    let options = waveflow_core::repository::sqlite::collation::register(
+    profile_db_with(
         sqlx::sqlite::SqliteConnectOptions::new()
             .filename(path)
             .create_if_missing(true)
             .foreign_keys(true),
-    );
+    )
+    .await
+}
+
+async fn profile_db_with(options: sqlx::sqlite::SqliteConnectOptions) -> SqlitePool {
+    let options = waveflow_core::repository::sqlite::collation::register(options);
     let pool = SqlitePool::connect_with(options).await.unwrap();
     sqlx::migrate!("../../migrations/profile")
         .run(&pool)
@@ -1068,8 +1073,18 @@ async fn a_profile_switch_leaves_nothing_of_the_last_profiles_shares() {
     let now = source(UUID).unwrap();
     assert_eq!(now.name, "New NAS");
     assert!(!Arc::ptr_eq(&now, &left));
-    assert_eq!(cache_config().map(|(dir, _)| dir), Some(next_cache));
+    assert_eq!(cache_config().map(|(dir, _)| dir), Some(next_cache.clone()));
     assert!(clip::allowed_source(&grant, &beside).is_none());
+
+    // A read opened on the profile left, its stat answered before the
+    // switch, publishes nothing into the next profile's cache, whose copies
+    // are named by the same locators, and reads none of them.
+    std::fs::create_dir_all(&next_cache).unwrap();
+    std::fs::write(next_cache.join(cache::entry_name(song).unwrap()), b"next").unwrap();
+    assert!(cache::writer(&left, song, 4, 1).is_none());
+    assert!(cache::slot_for(&left, song).is_none());
+    assert!(cache::slot_for(&now, song).is_some());
+    assert!(cache::writer(&now, song, 4, 1).is_some());
 
     // No profile at all: nothing again, and a late reload installs nothing.
     profile_changed(None);
@@ -1078,6 +1093,58 @@ async fn a_profile_switch_leaves_nothing_of_the_last_profiles_shares() {
         .await
         .unwrap();
     assert!(!has_sources());
+}
+
+/// #1143: a reload of the profile left, started while that profile is still
+/// the active one and whose reads are still waiting when the switch comes,
+/// installs nothing once they come back. The profile left's database is
+/// locked before the reload starts and released only once the next
+/// profile's sources are in; the reload is polled once before the switch, so
+/// whatever it does before its first read runs under the profile left.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_reload_held_across_a_profile_switch_installs_nothing() {
+    let _serial = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    // A rollback journal, where an exclusive lock holds readers back.
+    let left = profile_db_with(
+        sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(bench.dir.path().join("left.db"))
+            .create_if_missing(true)
+            .foreign_keys(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Delete),
+    )
+    .await;
+    add_source_row(&left, "Old NAS", "https://old.invalid/dav").await;
+    let next = profile_db(&bench.dir.path().join("next.db")).await;
+    add_source_row(&next, "New NAS", "https://new.invalid/dav").await;
+
+    let mut lock = left.acquire().await.unwrap();
+    sqlx::query("BEGIN EXCLUSIVE")
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    let mut held = std::pin::pin!(reload(&left, bench.dir.path().join("cache"), PROFILE));
+    let first = std::future::poll_fn(|cx| {
+        std::task::Poll::Ready(std::future::Future::poll(held.as_mut(), cx))
+    })
+    .await;
+    assert!(first.is_pending(), "the reload read through the lock");
+
+    profile_changed(Some(PROFILE + 1));
+    reload(&next, bench.dir.path().join("next-cache"), PROFILE + 1)
+        .await
+        .unwrap();
+    let installed = source(UUID).unwrap();
+    assert_eq!(installed.name, "New NAS");
+
+    sqlx::query("COMMIT").execute(&mut *lock).await.unwrap();
+    drop(lock);
+    held.await.unwrap();
+    let after = source(UUID).unwrap();
+    assert!(
+        Arc::ptr_eq(&after, &installed),
+        "the held reload replaced the next profile's sources"
+    );
 }
 
 /// What is named like a video is read before it is offered: an audio `.mp4`

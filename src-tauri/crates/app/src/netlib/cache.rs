@@ -12,10 +12,12 @@
 //! access time, is not disturbed.
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use waveflow_core::network_locator;
 
+use super::Source;
 use crate::audio::stream_cache::{self, CacheWriter};
 
 /// The default budget, in GiB. Mirrored by `settingsRegistry.ts`.
@@ -87,7 +89,7 @@ impl CacheSlot {
     }
 }
 
-fn slot_in(dir: &Path, locator: &str) -> Option<CacheSlot> {
+pub(crate) fn slot_in(dir: &Path, locator: &str) -> Option<CacheSlot> {
     let path = dir.join(entry_name(locator)?);
     let meta = std::fs::metadata(&path).ok()?;
     if !meta.is_file() || meta.len() == 0 {
@@ -106,9 +108,24 @@ pub fn slot(locator: &str) -> Option<CacheSlot> {
     slot_in(&dir, locator)
 }
 
-/// A writer for a locator's bytes. `None` means play without keeping them.
-pub fn writer(locator: &str, size: u64, modified_ms: i64) -> Option<CacheWriter> {
-    let (dir, max_bytes) = super::cache_config()?;
+/// The copy held for a locator in the cache of the profile `source` is of,
+/// while that source is still the registered one ([`super::cache_of`]).
+pub fn slot_for(source: &Arc<Source>, locator: &str) -> Option<CacheSlot> {
+    let (dir, _) = super::cache_of(source)?;
+    slot_in(&dir, locator)
+}
+
+/// A writer for a locator's bytes read through `source`, into the cache of
+/// the profile that source is of. `None` means play without keeping them,
+/// which is also the answer once another profile is active: what was read
+/// from a share of the profile left never lands in the next one's cache.
+pub fn writer(
+    source: &Arc<Source>,
+    locator: &str,
+    size: u64,
+    modified_ms: i64,
+) -> Option<CacheWriter> {
+    let (dir, max_bytes) = super::cache_of(source)?;
     let name = entry_name(locator)?;
     let modified = (modified_ms > 0)
         .then(|| SystemTime::UNIX_EPOCH + Duration::from_millis(modified_ms as u64));
