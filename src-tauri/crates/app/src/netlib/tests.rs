@@ -955,7 +955,7 @@ async fn a_track_on_a_share_finds_its_clip_there() {
         share_clip(song).await,
         Some((in_clips.to_string(), ClipOrigin::ClipsDir))
     );
-    assert!(clip::is_allowed(in_clips));
+    assert!(clip::allowed_source(in_clips).is_some());
 
     bench.put("Music/A/Song.webm", WEBM.to_vec(), 1);
     let beside = "wfnet://11111111-aaaa/Music/A/Song.webm";
@@ -964,13 +964,15 @@ async fn a_track_on_a_share_finds_its_clip_there() {
         Some((beside.to_string(), ClipOrigin::Sibling))
     );
     // Nothing else on the share is servable for having been listed.
-    assert!(!clip::is_allowed(
-        "wfnet://11111111-aaaa/Music/A/Other.flac"
-    ));
-    // Sources dropped or loaded again (a profile switch): what the last ones
-    // allowed is no longer served.
-    clear();
-    assert!(!clip::is_allowed(beside));
+    assert!(clip::allowed_source("wfnet://11111111-aaaa/Music/A/Other.flac").is_none());
+    // Sources loaded again (a profile switch), with one of the same uuid: what
+    // the last ones allowed is no longer served, an address already handed
+    // out included, and the instance it was found on is no longer current.
+    let found_on = clip::allowed_source(beside).unwrap();
+    let again = Bench::new().await;
+    assert!(clip::allowed_source(beside).is_none());
+    assert!(!clip::is_current(&found_on));
+    drop(again);
 }
 
 /// What is named like a video is read before it is offered: an audio `.mp4`

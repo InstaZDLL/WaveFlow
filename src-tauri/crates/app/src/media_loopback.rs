@@ -12,8 +12,9 @@
 //! - **A music video on a network share, on every platform** (#1133), which
 //!   no webview can read: [`share_url`] names it by its locator, and the
 //!   request is answered from the share through the source's own client,
-//!   range by range ([`serve_share`]). Only a clip a lookup found on the
-//!   sources loaded now is served ([`crate::netlib::clip::is_allowed`]). A fragmented MP4
+//!   range by range ([`serve_share`]). Only a clip a lookup handed out is
+//!   served, through the source it was found on while that one is still
+//!   registered ([`crate::netlib::clip::allowed_source`]). A fragmented MP4
 //!   there is served as it is, as a server's clip is.
 //!
 //! Started on first use and kept for the life of the process. A failure to
@@ -132,22 +133,21 @@ const SHARE_BLOCK: u64 = 1024 * 1024;
 
 /// Answer a request for the clip at `locator`, on a share, from the share.
 async fn serve_share(locator: String, headers: &HeaderMap) -> Response {
-    if !crate::netlib::clip::is_allowed(&locator) {
+    // The source the lookup found the clip on, not whichever one carries its
+    // uuid now: see `netlib::clip`.
+    let Some(source) = crate::netlib::clip::allowed_source(&locator) else {
         return StatusCode::FORBIDDEN.into_response();
-    }
+    };
     let Some(mime) = video_mime(Path::new(&locator)) else {
         return StatusCode::FORBIDDEN.into_response();
     };
     let Some(parsed) = network_locator::parse(&locator) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
-    let Some(source) = crate::netlib::source(parsed.source) else {
-        return StatusCode::NOT_FOUND.into_response();
-    };
     let path = parsed.path.to_string();
     let stat = {
         let (source, path) = (Arc::clone(&source), path.clone());
-        crate::netlib::run(async move { source.stat(&path).await }).await
+        crate::netlib::run_cancellable(async move { source.stat(&path).await }).await
     };
     let total = match stat {
         Ok(Ok(entry)) if !entry.is_dir => entry.size,
@@ -171,7 +171,9 @@ async fn serve_share(locator: String, headers: &HeaderMap) -> Response {
 /// Bytes `[from, to)` of `path` on `source`, read one [`SHARE_BLOCK`] at a
 /// time as the webview takes them, so a request it drops (a seek) stops the
 /// reads. A failed or short read ends the body with an error, which the
-/// webview reports as a clip that cannot play rather than as its end.
+/// webview reports as a clip that cannot play rather than as its end, and so
+/// do sources loaded again meanwhile (a profile switch): `source` is then no
+/// longer theirs, and the response stops before its next block.
 fn share_stream(
     source: Arc<crate::netlib::Source>,
     path: String,
@@ -182,6 +184,9 @@ fn share_stream(
         let (source, path) = (Arc::clone(&source), path.clone());
         async move {
             let at = at.filter(|at| *at < to)?;
+            if !crate::netlib::clip::is_current(&source) {
+                return Some((Err(std::io::Error::other("the sources changed")), None));
+            }
             let len = SHARE_BLOCK.min(to - at);
             // Dropped with the body when the webview gives up on the
             // request (a seek): the read stops, rather than retrying on a

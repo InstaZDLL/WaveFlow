@@ -9,14 +9,17 @@
 //! The webview cannot read a share, so the clip is streamed to it by
 //! [`crate::media_loopback`], which reads it through the source's client
 //! range by range. That server serves only what [`find_clip`] handed out
-//! since the sources were last loaded ([`is_allowed`]), as the asset protocol
-//! serves only what a local lookup put in its scope: a locator names a source
-//! by its uuid, and the next profile's source of that uuid (an imported copy
-//! of the profile) can be another share.
+//! ([`allowed_source`]), as the asset protocol serves only what a local
+//! lookup put in its scope, and reads it through **the source instance the
+//! lookup found it on**, for as long as that instance is the registered one
+//! ([`is_current`]). A locator names its source by uuid, and after a profile
+//! switch the next profile's source of that uuid (an imported copy of the
+//! profile) can be another share: neither an old address nor a response
+//! already streaming reaches it.
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, LazyLock, Mutex};
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, Mutex, Weak};
 
 use waveflow_core::network_locator;
 use waveflow_core::scanner::clips::{
@@ -26,38 +29,35 @@ use waveflow_core::scanner::clips::{
 use super::reader::{RangeReader, ReadMode};
 use super::Source;
 
-/// The locators [`find_clip`] handed out, for the loopback server, and the
-/// generation of the sources they were found on.
-struct Allowed {
-    generation: u64,
-    locators: HashSet<String>,
-}
+/// The locators [`find_clip`] handed out, each with the source instance it
+/// was found on.
+static ALLOWED: LazyLock<Mutex<HashMap<String, Weak<Source>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
-static ALLOWED: LazyLock<Mutex<Allowed>> = LazyLock::new(|| {
-    Mutex::new(Allowed {
-        generation: 0,
-        locators: HashSet::new(),
-    })
-});
-
-fn allowed() -> std::sync::MutexGuard<'static, Allowed> {
+fn allowed() -> std::sync::MutexGuard<'static, HashMap<String, Weak<Source>>> {
     ALLOWED
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// Whether the loopback server may serve `locator`: a clip a lookup found
-/// on the sources loaded now.
-pub fn is_allowed(locator: &str) -> bool {
-    allowed().locators.contains(locator)
+/// Whether `source` is still the registered source of its uuid: the sources
+/// were not loaded again since it was looked up.
+pub fn is_current(source: &Arc<Source>) -> bool {
+    super::source(&source.uuid).is_some_and(|now| Arc::ptr_eq(&now, source))
+}
+
+/// The source the loopback server reads `locator` through: the one a lookup
+/// found it on, while that one is still registered. `None` for anything a
+/// lookup did not hand out.
+pub fn allowed_source(locator: &str) -> Option<Arc<Source>> {
+    let source = allowed().get(locator)?.upgrade()?;
+    is_current(&source).then_some(source)
 }
 
 /// The sources were loaded again or dropped: nothing found on the previous
-/// ones is served any more, and a lookup that started on them allows nothing.
+/// ones is kept. [`allowed_source`] already refuses them, this frees them.
 pub fn forget_all() {
-    let mut allowed = allowed();
-    allowed.generation += 1;
-    allowed.locators.clear();
+    allowed().clear();
 }
 
 /// One share, read for [`clips::find_clip_with`]. Paths are relative to its
@@ -148,7 +148,6 @@ impl ClipFolders for ShareFolders {
 /// `None` for a share that is unknown or down, or one that does not answer
 /// the lookup. Blocking: run it off the async runtime.
 pub fn find_clip(locator: &str) -> Option<(String, ClipOrigin)> {
-    let generation = allowed().generation;
     let parsed = network_locator::parse(locator)?;
     let source = super::source(parsed.source)?;
     if source.is_down() {
@@ -169,9 +168,11 @@ pub fn find_clip(locator: &str) -> Option<(String, ClipOrigin)> {
     )?;
     let clip = network_locator::build(parsed.source, &path)?;
     let mut allowed = allowed();
-    if allowed.generation != generation {
+    // Sources loaded again during the lookup: what it found is on a share
+    // that is no longer one of them.
+    if !is_current(&source) {
         return None;
     }
-    allowed.locators.insert(clip.clone());
+    allowed.insert(clip.clone(), Arc::downgrade(&source));
     Some((clip, origin))
 }
