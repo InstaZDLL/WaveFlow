@@ -1080,10 +1080,14 @@ async fn a_profile_switch_leaves_nothing_of_the_last_profiles_shares() {
     // switch, publishes nothing into the next profile's cache, whose copies
     // are named by the same locators, and reads none of them.
     std::fs::create_dir_all(&next_cache).unwrap();
-    std::fs::write(next_cache.join(cache::entry_name(song).unwrap()), b"next").unwrap();
-    assert!(cache::writer(&left, song, 4, 1).is_none());
+    let copy = next_cache.join(cache::entry_name(song).unwrap());
+    std::fs::write(&copy, b"next").unwrap();
     assert!(cache::slot_for(&left, song).is_none());
     assert!(cache::slot_for(&now, song).is_some());
+    // A writer is refused over a copy already there: none, so that the
+    // refusal below is the source's.
+    std::fs::remove_file(&copy).unwrap();
+    assert!(cache::writer(&left, song, 4, 1).is_none());
     assert!(cache::writer(&now, song, 4, 1).is_some());
 
     // No profile at all: nothing again, and a late reload installs nothing.
