@@ -1,36 +1,43 @@
-//! Loopback HTTP for the webview's local video, on Linux.
+//! Loopback HTTP for the webview's video, where the webview cannot read a
+//! file itself: an ephemeral port on `127.0.0.1`, a token minted per launch,
+//! and two kinds of file.
 //!
-//! WebKitGTK plays `<video>` through GStreamer, and GStreamer has no
-//! source for Tauri's asset protocol: every local Canvas clip and cached
-//! motion cover was refused ("no URI handler implemented for asset").
-//! WebKit's HTTP source plays an ordinary MP4, so those are served from
-//! `127.0.0.1` instead: an ephemeral port, a token minted per launch, and
-//! only video files the asset scope already lets the webview read. A
-//! **fragmented** MP4 (Apple's motion covers) stalls over HTTP after a
-//! couple of seconds, so the first request for one rewrites it as an
-//! ordinary MP4 before serving it ([`playable`]). Windows and macOS
-//! play the asset URL directly and never start this.
+//! - **A local video, on Linux** ([`local`]). WebKitGTK plays `<video>`
+//!   through GStreamer, and GStreamer has no source for Tauri's asset
+//!   protocol: every local Canvas clip and cached motion cover was refused
+//!   ("no URI handler implemented for asset"). WebKit's HTTP source plays an
+//!   ordinary MP4, so those are served from here instead, only video files
+//!   the asset scope already lets the webview read. Windows and macOS play
+//!   the asset URL directly.
+//! - **A music video on a network share, on every platform** (#1133), which
+//!   no webview can read: [`share_url`] names it by its locator, and the
+//!   request is answered from the share through the source's own client,
+//!   range by range ([`serve_share`]). Only a clip a lookup found on the
+//!   sources loaded now is served ([`crate::netlib::clip::is_allowed`]). A fragmented MP4
+//!   there is served as it is, as a server's clip is.
 //!
 //! Started on first use and kept for the life of the process. A failure to
 //! bind is logged and reported as `None`; the caller shows the static cover.
 
-use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddr};
-use std::path::{Component, Path, PathBuf};
-use std::sync::{LazyLock, Mutex};
-use std::time::SystemTime;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+use axum::body::{Body, Bytes};
 use axum::extract::{RawQuery, State};
 use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::Router;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tokio::sync::OnceCell;
-use waveflow_core::artwork::{motion_cache, mp4_defrag};
+use waveflow_core::network_locator;
 
-use crate::dlna::http::{build_range_body, parse_range, range_not_satisfiable};
-use crate::state::AppState;
+use crate::dlna::http::{parse_range, range_not_satisfiable};
+use crate::netlib::fs::NetError;
+
+#[cfg(target_os = "linux")]
+mod local;
 
 static BASE_URL: OnceCell<Option<String>> = OnceCell::const_new();
 
@@ -45,6 +52,16 @@ struct Ctx {
 /// the first call.
 pub async fn base_url(app: &AppHandle) -> Option<String> {
     BASE_URL.get_or_init(|| start(app.clone())).await.clone()
+}
+
+/// The address the webview plays the clip at `locator`, on a share, from.
+/// `None` when the server could not start.
+pub async fn share_url(app: &AppHandle, locator: &str) -> Option<String> {
+    let base = base_url(app).await?;
+    let query: String = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("locator", locator)
+        .finish();
+    Some(format!("{base}&{query}"))
 }
 
 async fn start(app: AppHandle) -> Option<String> {
@@ -82,58 +99,128 @@ async fn start(app: AppHandle) -> Option<String> {
 }
 
 async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: HeaderMap) -> Response {
-    let (mut token, mut path) = (None, None);
+    let (mut token, mut path, mut locator) = (None, None, None);
     for (key, value) in url::form_urlencoded::parse(query.unwrap_or_default().as_bytes()) {
         match key.as_ref() {
             "token" => token = Some(value.into_owned()),
             "path" => path = Some(PathBuf::from(value.into_owned())),
+            "locator" => locator = Some(value.into_owned()),
             _ => {}
         }
     }
     if token.as_deref() != Some(ctx.token.as_str()) {
         return StatusCode::FORBIDDEN.into_response();
     }
-    let Some(path) = path.filter(|p| is_plain_absolute(p)) else {
+    if let Some(locator) = locator {
+        return serve_share(locator, &headers).await;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        local::serve(&ctx.app, path, &headers).await
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        // Windows and macOS play a local file through the asset protocol.
+        let _ = (&ctx.app, path);
+        StatusCode::FORBIDDEN.into_response()
+    }
+}
+
+/// Bytes asked of the share per read while a clip on it streams: the block
+/// a share's background download asks for.
+const SHARE_BLOCK: u64 = 1024 * 1024;
+
+/// Answer a request for the clip at `locator`, on a share, from the share.
+async fn serve_share(locator: String, headers: &HeaderMap) -> Response {
+    if !crate::netlib::clip::is_allowed(&locator) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let Some(mime) = video_mime(Path::new(&locator)) else {
+        return StatusCode::FORBIDDEN.into_response();
+    };
+    let Some(parsed) = network_locator::parse(&locator) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
-    let Some(mime) = video_mime(&path) else {
-        return StatusCode::FORBIDDEN.into_response();
+    let Some(source) = crate::netlib::source(parsed.source) else {
+        return StatusCode::NOT_FOUND.into_response();
     };
-    // The same check the asset protocol makes, so this serves exactly what
-    // the webview could already read — no wider, and no narrower either.
-    if !ctx.app.asset_protocol_scope().is_allowed(&path) {
-        return StatusCode::FORBIDDEN.into_response();
-    }
-
-    let mut served = playable(&ctx.app, &path).await;
-    let mut opened = tokio::fs::File::open(&served).await;
-    if opened.is_err() && served != path {
-        // A converted copy evicted between the lookup and the open: the
-        // lookup now sees it gone and makes it again.
-        served = playable(&ctx.app, &path).await;
-        opened = tokio::fs::File::open(&served).await;
-    }
-    let path = served;
-    let file = match opened {
-        Ok(file) => file,
-        Err(_) => return StatusCode::NOT_FOUND.into_response(),
+    let path = parsed.path.to_string();
+    let stat = {
+        let (source, path) = (Arc::clone(&source), path.clone());
+        crate::netlib::run(async move { source.stat(&path).await }).await
     };
-    let total = match file.metadata().await {
-        Ok(metadata) => metadata.len(),
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    let total = match stat {
+        Ok(Ok(entry)) if !entry.is_dir => entry.size,
+        Ok(Ok(_) | Err(NetError::NotFound)) => return StatusCode::NOT_FOUND.into_response(),
+        Ok(Err(err)) | Err(err) => {
+            tracing::warn!(
+                code = err.code(),
+                "media loopback: a clip on a share did not answer"
+            );
+            return StatusCode::BAD_GATEWAY.into_response();
+        }
     };
     let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
     let Some((status, start, length)) = parse_range(range, total).window(total) else {
         return range_not_satisfiable(total);
     };
-    let body = match build_range_body(file, start, length).await {
-        Ok(body) => body,
-        Err(err) => {
-            tracing::warn!(%err, path = %path.display(), "media loopback: read failed");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
+    let body = Body::from_stream(share_stream(source, path, start, start + length));
+    range_response(status, mime, (start, length, total), body)
+}
 
+/// Bytes `[from, to)` of `path` on `source`, read one [`SHARE_BLOCK`] at a
+/// time as the webview takes them, so a request it drops (a seek) stops the
+/// reads. A failed or short read ends the body with an error, which the
+/// webview reports as a clip that cannot play rather than as its end.
+fn share_stream(
+    source: Arc<crate::netlib::Source>,
+    path: String,
+    from: u64,
+    to: u64,
+) -> impl futures::Stream<Item = std::io::Result<Bytes>> {
+    futures::stream::unfold(Some(from), move |at| {
+        let (source, path) = (Arc::clone(&source), path.clone());
+        async move {
+            let at = at.filter(|at| *at < to)?;
+            let len = SHARE_BLOCK.min(to - at);
+            // Dropped with the body when the webview gives up on the
+            // request (a seek): the read stops, rather than retrying on a
+            // share that went quiet and marking it down for nobody.
+            let read =
+                crate::netlib::run_cancellable(async move { source.read_at(&path, at, len).await })
+                    .await;
+            match read {
+                Ok(Ok(bytes)) if !bytes.is_empty() => {
+                    let next = at + bytes.len() as u64;
+                    Some((Ok(Bytes::from(bytes)), Some(next)))
+                }
+                Ok(Ok(_)) => Some((
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "the clip on the share is shorter than it was",
+                    )),
+                    None,
+                )),
+                Ok(Err(err)) | Err(err) => {
+                    tracing::warn!(
+                        code = err.code(),
+                        "media loopback: a clip on a share stopped"
+                    );
+                    Some((Err(std::io::Error::other(err.code())), None))
+                }
+            }
+        }
+    })
+}
+
+/// The answer to a `Range` request for `[start, start + length)` of a
+/// `total`-byte video: its headers and `body`.
+fn range_response(
+    status: StatusCode,
+    mime: &'static str,
+    (start, length, total): (u64, u64, u64),
+    body: Body,
+) -> Response {
     let mut out = HeaderMap::new();
     out.insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
     out.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
@@ -145,184 +232,6 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
         }
     }
     (status, out, body).into_response()
-}
-
-/// Where converted copies of clips WaveFlow does not own go, under the
-/// cache root, and how large that folder may grow (oldest evicted first).
-const COPIES_DIR: &str = "linux_video";
-const COPIES_MAX_BYTES: u64 = 512 * 1024 * 1024;
-
-/// The file's length and mtime.
-type Stamp = (u64, SystemTime);
-
-/// What each file resolved to — itself, or its converted copy — with the
-/// stamp it had then: a file that changes is looked at again, one that
-/// does not is never re-read.
-static RESOLVED: LazyLock<Mutex<HashMap<PathBuf, (Stamp, PathBuf)>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-/// One conversion at a time. The requests that arrive during one wait for
-/// it, then find the file resolved.
-static CONVERTING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-
-async fn stamp(path: &Path) -> Option<Stamp> {
-    let meta = tokio::fs::metadata(path).await.ok()?;
-    Some((meta.len(), meta.modified().ok()?))
-}
-
-fn resolved(path: &Path, stamp: Option<Stamp>) -> Option<PathBuf> {
-    let stamp = stamp?;
-    let seen = RESOLVED.lock().ok()?;
-    seen.get(path)
-        // A copy the eviction has since removed is made again.
-        .filter(|(then, served)| *then == stamp && served.is_file())
-        .map(|(_, served)| served.clone())
-}
-
-/// The file to serve for `path`: itself, or an ordinary MP4 made from it
-/// when it is a fragmented one.
-///
-/// WebKitGTK stops a fragmented MP4 served over HTTP a couple of seconds
-/// in, for good; the same frames indexed up front play
-/// ([`waveflow_core::artwork::mp4_defrag`]). Who owns the file decides
-/// where the conversion goes. One under WaveFlow's own data or cache
-/// directories — a downloaded or chosen cover, a clip the app copied
-/// there — is rewritten in place, through a temporary file renamed over
-/// it. Anything else, a clip in the user's music folder, is never
-/// modified: the converted copy goes to [`COPIES_DIR`], keyed by the
-/// file's path, length and mtime, and is served instead. A file that
-/// cannot be converted is served as it is and logged.
-async fn playable(app: &AppHandle, path: &Path) -> PathBuf {
-    // Only an ISO-BMFF file is ever fragmented this way; a WebM or Matroska
-    // music video is served as it is.
-    if !matches!(video_mime(path), Some("video/mp4" | "video/quicktime")) {
-        return path.to_path_buf();
-    }
-    if let Some(served) = resolved(path, stamp(path).await) {
-        return served;
-    }
-    let _converting = CONVERTING.lock().await;
-    let Some(before) = stamp(path).await else {
-        return path.to_path_buf();
-    };
-    if let Some(served) = resolved(path, Some(before)) {
-        return served;
-    }
-
-    let paths = &app.state::<AppState>().paths;
-    let owned = path.starts_with(&paths.root) || path.starts_with(&paths.cache_root);
-    let copy = (!owned).then(|| copy_path(&paths.cache_root, path, before));
-    let source = path.to_path_buf();
-    let served = match tokio::task::spawn_blocking(move || convert(&source, copy.as_deref())).await
-    {
-        Ok(Ok(Some(converted))) => {
-            tracing::info!(
-                path = %path.display(),
-                served = %converted.display(),
-                "media loopback: converted a fragmented mp4"
-            );
-            converted
-        }
-        Ok(Ok(None)) => path.to_path_buf(),
-        Ok(Err(err)) => {
-            tracing::warn!(%err, path = %path.display(), "media loopback: could not convert a fragmented mp4");
-            path.to_path_buf()
-        }
-        Err(err) => {
-            tracing::warn!(%err, "media loopback: conversion task failed");
-            path.to_path_buf()
-        }
-    };
-    // An in-place rewrite changed the file, so it is recorded under the
-    // stamp it has now. A copy is recorded under the stamp of the content
-    // it was made from: were the file edited meanwhile, the next request
-    // sees the difference and converts it again. A file that failed is
-    // recorded too, so it is not re-read on every range request.
-    let key = if owned {
-        stamp(path).await
-    } else {
-        Some(before)
-    };
-    if let (Some(key), Ok(mut seen)) = (key, RESOLVED.lock()) {
-        seen.insert(path.to_path_buf(), (key, served.clone()));
-    }
-    served
-}
-
-/// Where the converted copy of a file WaveFlow does not own goes: named
-/// after its path, length and mtime, so an edited file gets a new copy.
-fn copy_path(cache_root: &Path, path: &Path, (len, mtime): Stamp) -> PathBuf {
-    use std::os::unix::ffi::OsStrExt;
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(path.as_os_str().as_bytes());
-    hasher.update(&len.to_le_bytes());
-    let nanos = mtime
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    hasher.update(&nanos.to_le_bytes());
-    cache_root
-        .join(COPIES_DIR)
-        .join(format!("{}.mp4", hasher.finalize().to_hex()))
-}
-
-/// `Ok(Some(path to serve))` when the file is fragmented and has been
-/// converted — into `copy` when given, in place otherwise.
-fn convert(path: &Path, copy: Option<&Path>) -> std::io::Result<Option<PathBuf>> {
-    if let Some(copy) = copy.filter(|c| c.is_file()) {
-        // Made on an earlier launch; the bump keeps it off the eviction end.
-        let _ = std::fs::OpenOptions::new()
-            .write(true)
-            .open(copy)
-            .and_then(|f| f.set_modified(SystemTime::now()));
-        return Ok(Some(copy.to_path_buf()));
-    }
-    // Headers only: an ordinary clip, however large, is never read whole.
-    if !mp4_defrag::is_fragmented(&mut std::io::BufReader::new(std::fs::File::open(path)?))? {
-        return Ok(None);
-    }
-    let input = std::fs::read(path)?;
-    let Some(output) = mp4_defrag::defragment(&input).map_err(std::io::Error::other)? else {
-        return Ok(None);
-    };
-    let target = copy.unwrap_or(path);
-    let dir = target.parent().unwrap_or(Path::new("/"));
-    std::fs::create_dir_all(dir)?;
-    let name = target
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    // Room is made before the copy lands, so the eviction can never take
-    // the file about to be served. A copy larger than the whole folder is
-    // not made at all (no clip or cover comes near it): the original is
-    // served instead, and the failure logged.
-    if copy.is_some() {
-        if output.len() as u64 > COPIES_MAX_BYTES {
-            return Err(std::io::Error::other(
-                "converted copy larger than the folder it would go to",
-            ));
-        }
-        let room = COPIES_MAX_BYTES.saturating_sub(output.len() as u64);
-        motion_cache::evict_lru(dir, room);
-    }
-    // `.part`, so a crash mid-write leaves an orphan the eviction, like the
-    // motion cache's, knows to prune.
-    let staged = dir.join(format!(".{name}.{}.part", std::process::id()));
-    let written = std::fs::write(&staged, &output).and_then(|()| std::fs::rename(&staged, target));
-    if let Err(err) = written {
-        let _ = std::fs::remove_file(&staged);
-        return Err(err);
-    }
-    Ok(Some(target.to_path_buf()))
-}
-
-/// Absolute, and no `..`: a scope pattern like `profiles/**` is matched as
-/// text, so a parent component could otherwise climb out of it.
-fn is_plain_absolute(path: &Path) -> bool {
-    path.is_absolute()
-        && path
-            .components()
-            .all(|c| matches!(c, Component::RootDir | Component::Normal(_)))
 }
 
 /// Only the containers a Canvas, a music video or a motion cover can be; anything else in

@@ -21,7 +21,6 @@ mod external_open;
 mod global_shortcuts;
 mod logging;
 mod media_controls;
-#[cfg(target_os = "linux")]
 mod media_loopback;
 mod metadata_artwork;
 mod mpd;

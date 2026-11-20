@@ -1,7 +1,8 @@
 //! A track's music video (discussion #1073): the video file named like the
 //! track, beside it or in a `Clips` folder beside it, or the track's own
 //! file when it is a video. Found on the disk at each asking, by
-//! [`waveflow_core::scanner::clips::find_clip`]; nothing is stored.
+//! [`waveflow_core::scanner::clips::find_clip`], or on the share a track
+//! lies on by [`crate::netlib::clip::find_clip`] (#1133); nothing is stored.
 //!
 //! The clip plays in the webview with its own sound and its own length.
 //! It is not the album version, so nothing ties it to the track's
@@ -32,24 +33,61 @@ pub struct TrackClip {
     pub origin: ClipOrigin,
 }
 
-/// `track_id`'s clip, or `None`. A track on a network share has none in this
-/// version: the webview reads no share locator as a local file. A server
-/// track asks `get_remote_track_clip`.
+/// Where a library track's clip plays from.
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum LibraryTrackClip {
+    /// A file on this machine.
+    Local(TrackClip),
+    /// A file on the share the track lies on, which the webview cannot
+    /// read: streamed to it from the share by the loopback server
+    /// ([`crate::media_loopback::share_url`]).
+    #[serde(rename_all = "camelCase")]
+    Share { url: String, origin: ClipOrigin },
+}
+
+/// `track_id`'s clip, or `None`. A server track asks
+/// `get_remote_track_clip`.
 #[tauri::command]
 pub async fn get_track_clip(
     app: AppHandle,
     state: State<'_, AppState>,
     track_id: i64,
-) -> AppResult<Option<TrackClip>> {
-    let pool = state.require_profile_pool().await?;
-    let row: Option<(String,)> = sqlx::query_as("SELECT file_path FROM track WHERE id = ?")
-        .bind(track_id)
-        .fetch_optional(&*pool)
-        .await?;
+) -> AppResult<Option<LibraryTrackClip>> {
+    let row: Option<(String,)> = {
+        // Released before the lookup, which can wait on a slow disk or a
+        // share: a profile switch waits for every lease to come back.
+        let pool = state.require_profile_pool().await?;
+        sqlx::query_as("SELECT file_path FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&*pool)
+            .await?
+    };
     let Some((file_path,)) = row else {
         return Ok(None);
     };
-    Ok(local_clip(&app, file_path).await)
+    if waveflow_core::network_locator::is_locator(&file_path) {
+        return Ok(share_clip(&app, file_path).await);
+    }
+    Ok(local_clip(&app, file_path)
+        .await
+        .map(LibraryTrackClip::Local))
+}
+
+/// The clip beside the track at `locator`, on a share, and the address the
+/// webview plays it from.
+async fn share_clip(app: &AppHandle, locator: String) -> Option<LibraryTrackClip> {
+    // A listing or two and a few ranged header reads on the share, each
+    // waited on: off the runtime.
+    let found = tokio::task::spawn_blocking(move || crate::netlib::clip::find_clip(&locator))
+        .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(?err, "clip lookup on a share failed");
+            None
+        });
+    let (clip, origin) = found?;
+    let url = crate::media_loopback::share_url(app, &clip).await?;
+    Some(LibraryTrackClip::Share { url, origin })
 }
 
 /// The clip beside the local file `file_path`, made readable by the webview.

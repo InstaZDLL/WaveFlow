@@ -5,15 +5,15 @@ import {
   getTrackClip,
   type ClipSource,
 } from "../lib/tauri/clip";
-import { isNetworkPath } from "../lib/networkTracks";
 import type { Track } from "../lib/tauri/track";
 import { useProfile } from "./useProfile";
 
 /**
- * `track`'s music video (#1073), or `null`. A library track on this machine
- * has one beside its file; a server track (RFC-029) has the one beside the
- * local file it was reconciled with, or the server's. A stream, a file
- * opened without importing it and a track on a share have none.
+ * `track`'s music video (#1073), or `null`. A library track has one beside
+ * its file, on this machine or on the share it lies on (#1133); a server
+ * track (RFC-029) has the one beside the local file it was reconciled with,
+ * or the server's. A stream and a file opened without importing it have
+ * none.
  *
  * Asked at each track change, not cached: the local lookup is a directory
  * listing, and a clip the user just dropped beside a song should be offered
@@ -30,11 +30,7 @@ export function useTrackClip(
   probe = false,
 ): ClipSource | null {
   const remoteId = track?.remote_id ?? null;
-  const local =
-    track !== null &&
-    remoteId === null &&
-    track.id >= 0 &&
-    !isNetworkPath(track.file_path);
+  const local = track !== null && remoteId === null && track.id >= 0;
   return useClipLookup(
     local ? track.id : null,
     // The path too: a relinked or replaced file keeps its id, and its clip
@@ -85,7 +81,11 @@ function useClipLookup(
                 : { kind: "server", remoteTrackId },
           )
         : getTrackClip(trackId as number).then((clip) =>
-            clip === null ? null : { kind: "local", localPath: clip.localPath },
+            clip === null
+              ? null
+              : clip.kind === "share"
+                ? { kind: "share", url: clip.url }
+                : { kind: "local", localPath: clip.localPath },
           );
     lookup
       .then((clip) => {
