@@ -9,14 +9,17 @@
 //! after. What this module adds besides the lookup is the flag that lets a
 //! play / pause from outside the window (media keys, tray, taskbar,
 //! global shortcut) reach the clip instead of starting the track under it
-//! — see [`crate::player_actions::set_clip_open`].
+//! — see [`crate::player_actions::set_clip_open`] — and the gain that
+//! keeps the clip at the track's level ([`get_clip_gain`]).
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
 use waveflow_core::scanner::clips::{self, ClipOrigin};
 
+use crate::audio::AudioEngine;
 use crate::error::AppResult;
 use crate::state::AppState;
 
@@ -119,4 +122,35 @@ pub async fn get_remote_track_clip(
 #[tauri::command]
 pub fn player_set_clip_open(open: bool) {
     crate::player_actions::set_clip_open(open);
+}
+
+/// The factor the clip of `track_id` multiplies the volume slider by, so
+/// that switching from the track to its clip keeps the level: what the
+/// engine puts on that track's samples besides the slider, its ReplayGain
+/// (mode, pre-amp, fallback and clipping prevention, by the decoder's own
+/// formula) times the normalization — see
+/// [`SharedPlayback::clip_gain`](crate::audio::state::SharedPlayback::clip_gain).
+///
+/// Linear, and above 1 for a boost: a `<video>` cannot play louder than
+/// its source, so the frontend caps the product with the slider at 1.
+/// `remote` is set for a server row, which the engine plays with no
+/// measured gain. Asked again at each `player:loudness-changed`.
+#[tauri::command]
+pub async fn get_clip_gain(
+    state: State<'_, AppState>,
+    engine: State<'_, Arc<AudioEngine>>,
+    track_id: i64,
+    remote: bool,
+) -> AppResult<f32> {
+    // A clip still plays without a profile (none is open during a switch):
+    // what is known about the track is then nothing, as for a server row.
+    let library_gain = if remote {
+        None
+    } else {
+        match state.require_profile_pool().await {
+            Ok(pool) => Some(crate::commands::player::fetch_replay_gain(&pool, track_id).await),
+            Err(_) => None,
+        }
+    };
+    Ok(engine.shared().clip_gain(track_id, library_gain))
 }

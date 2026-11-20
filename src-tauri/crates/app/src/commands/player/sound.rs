@@ -6,7 +6,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -42,10 +42,37 @@ pub async fn player_set_volume(app: AppHandle, value: f32) -> AppResult<()> {
     Ok(())
 }
 
+/// Held across a loudness switch's command to the decoder and the store
+/// that publishes it at once. Two toggles running together would otherwise
+/// interleave — one sends, the other sends and stores, the first stores
+/// last — and leave the flag on the value the decoder applied first, until
+/// the next change.
+static LOUDNESS_SWITCH_ORDER: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Send `cmd` to the decoder and publish the switch it sets right away, in
+/// one step against any other loudness switch ([`LOUDNESS_SWITCH_ORDER`]).
+/// Published now as well as by the decoder when it drains the command (the
+/// same plain store), so the clip's gain read at `player:loudness-changed`
+/// sees the new value.
+fn send_and_publish(
+    engine: &AudioEngine,
+    cmd: AudioCmd,
+    flag: impl FnOnce(&SharedPlayback) -> &std::sync::atomic::AtomicBool,
+    enabled: bool,
+) -> AppResult<()> {
+    let _order = LOUDNESS_SWITCH_ORDER
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    engine.send(cmd)?;
+    flag(engine.shared()).store(enabled, Ordering::Release);
+    Ok(())
+}
+
 /// Toggle volume normalization (−3 dB gain reduction on loud tracks).
 /// Persisted in `profile_setting['audio.normalize']`.
 #[tauri::command]
 pub async fn player_set_normalize(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
@@ -55,9 +82,28 @@ pub async fn player_set_normalize(
         &state.profile,
         expected_profile_id,
         &[bool_row("audio.normalize", enabled)],
-        || engine.send(AudioCmd::SetNormalize(enabled)),
+        || {
+            send_and_publish(
+                &engine,
+                AudioCmd::SetNormalize(enabled),
+                |shared| &shared.normalize_enabled,
+                enabled,
+            )
+        },
     )
-    .await
+    .await?;
+    loudness_changed(&app);
+    Ok(())
+}
+
+/// The event a music video's gain is asked again at
+/// ([`crate::commands::clip::get_clip_gain`]): a setting that changes
+/// what the engine puts on a track's samples besides the volume slider —
+/// ReplayGain, its options and mode, normalization — was just applied.
+pub(crate) const EVENT_LOUDNESS_CHANGED: &str = "player:loudness-changed";
+
+fn loudness_changed(app: &AppHandle) {
+    let _ = app.emit(EVENT_LOUDNESS_CHANGED, ());
 }
 
 /// Allowed DSD → PCM FIR tap counts. 256 is the historical default
@@ -135,6 +181,7 @@ pub async fn player_set_dsd_dop(
 /// Persisted in `profile_setting['audio.replaygain']`.
 #[tauri::command]
 pub async fn player_set_replaygain(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
@@ -144,9 +191,18 @@ pub async fn player_set_replaygain(
         &state.profile,
         expected_profile_id,
         &[bool_row("audio.replaygain", enabled)],
-        || engine.send(AudioCmd::SetReplayGain(enabled)),
+        || {
+            send_and_publish(
+                &engine,
+                AudioCmd::SetReplayGain(enabled),
+                |shared| &shared.replaygain_enabled,
+                enabled,
+            )
+        },
     )
-    .await
+    .await?;
+    loudness_changed(&app);
+    Ok(())
 }
 
 /// Bound on the pre-amp and on the fallback gain, in dB. Wide enough
@@ -167,6 +223,7 @@ pub const REPLAYGAIN_ADJUST_LIMIT_DB: f32 = 15.0;
 /// 'audio.replaygain_fallback' | 'audio.replaygain_prevent_clipping']`.
 #[tauri::command]
 pub async fn player_set_replaygain_options(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     preamp_db: f32,
@@ -211,7 +268,9 @@ pub async fn player_set_replaygain_options(
             .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
         Ok(())
     })
-    .await
+    .await?;
+    loudness_changed(&app);
+    Ok(())
 }
 
 /// Choose which of a file's two ReplayGain measurements to apply:
@@ -229,6 +288,7 @@ pub async fn player_set_replaygain_options(
 /// Persisted in `profile_setting['audio.replaygain_mode']`.
 #[tauri::command]
 pub async fn player_set_replaygain_mode(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     mode: String,
@@ -251,7 +311,9 @@ pub async fn player_set_replaygain_mode(
             Ok(())
         },
     )
-    .await
+    .await?;
+    loudness_changed(&app);
+    Ok(())
 }
 
 /// Keep a pre-amp / fallback value inside the supported range, and

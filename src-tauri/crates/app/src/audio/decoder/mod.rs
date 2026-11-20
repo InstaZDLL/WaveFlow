@@ -40,6 +40,15 @@ use episode::play_episode;
 use tone::{play_test_tone, ToneEnd};
 use track::play_track;
 
+/// The `source_type` of a stream opened from a URL: a station, or a
+/// server track streamed (a remote-queue entry, or a library track whose
+/// file failed to open). Read back by `LastLoad::stream_gain`.
+pub(crate) const URL_SOURCE_TYPE: &str = "radio";
+/// The `source_type` of a file the user opened without importing it.
+pub(crate) const FILE_SOURCE_TYPE: &str = "file";
+/// The `source_type` of a remote-queue track played from a local copy.
+pub(crate) const REMOTE_FILE_SOURCE_TYPE: &str = "remote-local";
+
 /// Minimum interval between `player:position` events emitted during
 /// playback. Keeps UI traffic bounded to ~4 Hz regardless of packet
 /// cadence.
@@ -582,7 +591,12 @@ fn decoder_loop(
                     &path,
                     track_id,
                     duration_ms,
-                    if is_file { "file" } else { "remote-local" }.to_string(),
+                    if is_file {
+                        FILE_SOURCE_TYPE
+                    } else {
+                        REMOTE_FILE_SOURCE_TYPE
+                    }
+                    .to_string(),
                     None,
                     replay_gain,
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
@@ -870,7 +884,7 @@ fn decoder_loop(
                     // play_track interprets it to suppress crossfade
                     // prefetch + end-of-track guard.
                     0,
-                    "radio".to_string(),
+                    URL_SOURCE_TYPE.to_string(),
                     None,
                     // Empty for a live station; carries the track's own
                     // gain when this is a library track that fell back

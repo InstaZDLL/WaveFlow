@@ -360,9 +360,8 @@ pub(super) fn fill_pcm_period(
     _channels: usize,
 ) -> u64 {
     let volume = shared.volume();
-    let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
     // Normalization applies a -3 dB reduction to leave headroom.
-    let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
+    let norm_gain = shared.normalize_gain();
     let mut written: u64 = 0;
 
     for slot in samples.iter_mut() {
@@ -1171,10 +1170,10 @@ where
                 // loads that avoid ~5k redundant ops per callback. Mono
                 // is folded on the decoder thread, before the balance.
                 let volume = shared.volume();
-                let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
-                // Normalization applies a −3 dB gain reduction (× 0.707)
-                // to prevent clipping on loud source material.
-                let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
+                // Normalization applies a −3 dB gain reduction
+                // (`NORMALIZE_GAIN`) to prevent clipping on loud source
+                // material.
+                let norm_gain = shared.normalize_gain();
 
                 let mut written: u64 = 0;
 
