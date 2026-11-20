@@ -276,7 +276,9 @@ pub async fn network_source_list(
     let pool = state.require_profile_pool().await?;
     let mut out = Vec::new();
     for row in store::list(&pool).await? {
-        let live = netlib::source(&row.uuid);
+        // The state of this profile's source, not of the next one's of the
+        // same uuid should a switch land while this reads.
+        let live = netlib::source_for(&pool, &row.uuid);
         let folders = store::folders_of(&pool, &row.uuid)
             .await?
             .into_iter()

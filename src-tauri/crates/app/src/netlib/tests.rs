@@ -260,6 +260,7 @@ impl Bench {
         {
             let mut registry = registry().write().unwrap();
             registry.profile = Some(PROFILE);
+            registry.db = Some(db_of(&pool));
             registry.sources = HashMap::from([(UUID.to_string(), source)]);
             registry.cache_dir = Some(dir.path().join("cache"));
             registry.cache_max_bytes = 1024 * 1024 * 1024;
@@ -1148,6 +1149,50 @@ async fn a_reload_held_across_a_profile_switch_installs_nothing() {
     assert!(
         Arc::ptr_eq(&after, &installed),
         "the held reload replaced the next profile's sources"
+    );
+}
+
+/// #1143, the other way round: a walk or a clip lookup holding the database
+/// of the profile left, still running once the next profile's sources are
+/// in, resolves none of them, even under the same uuid; what it listed would
+/// be written into the profile left.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_lease_of_the_profile_left_reaches_no_share_of_the_next() {
+    let _serial = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/A/Song.flac", wav(1), 1);
+    assert_eq!(bench.scan().await.unwrap().added, 1);
+    assert!(source_for(&bench.pool, UUID).is_some());
+
+    let next = profile_db(&bench.dir.path().join("next.db")).await;
+    add_source_row(&next, "New NAS", "https://new.invalid/dav").await;
+    profile_changed(Some(PROFILE + 1));
+    reload(&next, bench.dir.path().join("next-cache"), PROFILE + 1)
+        .await
+        .unwrap();
+    assert_eq!(
+        source_for(&next, UUID).map(|s| s.name.clone()),
+        Some("New NAS".to_string())
+    );
+    assert!(source_for(&bench.pool, UUID).is_none());
+
+    // Refused before any request is made: a request to the next profile's
+    // share would fail as unreachable instead.
+    let db = db_of(&bench.pool);
+    let walked = tokio::task::spawn_blocking(move || {
+        super::scan::walk(LIBRARY_ROOT, &db, |_, _| {}, || false).map(|_| ())
+    })
+    .await
+    .unwrap();
+    assert!(
+        matches!(&walked, Err(NetError::Protocol(m)) if m.contains("not available")),
+        "{walked:?}"
+    );
+    // And the profile left's scan keeps its tracks.
+    assert!(bench.scan().await.is_err());
+    assert_eq!(
+        bench.available().await,
+        vec!["wfnet://11111111-aaaa/Music/A/Song.flac"]
     );
 }
 
