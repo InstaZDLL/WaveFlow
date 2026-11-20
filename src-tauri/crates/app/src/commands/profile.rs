@@ -235,10 +235,9 @@ pub async fn switch_profile(
         return Err(err);
     }
 
-    // The shares of the profile just left must not stay reachable from here:
-    // not their password, and not a locator that an imported copy of the
-    // profile shares with them. This also tells the views what is grey now.
-    crate::netlib::media::stop_prewarm();
+    // The shares of the profile just left went in the swap (#1143); these
+    // are the new profile's own. A reload that fails leaves none: its shares
+    // read as down until a reload succeeds, never as the last profile's.
     if let Err(err) = crate::netlib::reload_active(&app).await {
         tracing::warn!(%err, "network sources: reload after a profile switch failed");
     }
@@ -358,7 +357,6 @@ pub async fn deactivate_profile(
     // profile this closes.
     let _switching = state.profile_switch_lock.clone().lock_owned().await;
     watcher.unwatch_all();
-    crate::netlib::clear();
     state.deactivate_profile().await;
     Ok(())
 }

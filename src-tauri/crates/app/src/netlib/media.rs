@@ -162,8 +162,11 @@ impl Read for Transfer {
 /// [`NetworkOpener`](waveflow_core::playback::stream::NetworkOpener).
 pub fn open(locator: &str) -> Result<Box<dyn MediaSource>, String> {
     let parsed = network_locator::parse(locator).ok_or_else(|| "bad locator".to_string())?;
-    let cached = cache::slot(locator);
-    let source = super::source(parsed.source);
+    // The source and the cache read together, so that a profile switch in
+    // between cannot pair one profile's copy with the other's share, nor
+    // offer the next profile's copy for a source this one had removed.
+    let (source, cache_dir) = super::source_and_cache_dir(parsed.source);
+    let cached = cache_dir.and_then(|dir| cache::slot_in(&dir, locator));
 
     let Some(source) = source else {
         // Removed since the queue was built, but the bytes may still be here.
@@ -225,7 +228,7 @@ pub fn open(locator: &str) -> Result<Box<dyn MediaSource>, String> {
         len: entry.size,
         pos: 0,
         block: FIRST_TRANSFER_BLOCK,
-        cache: cache::writer(locator, entry.size, entry.modified_ms),
+        cache: cache::writer(&source, locator, entry.size, entry.modified_ms),
     };
     let read_ahead = ReadAhead::spawn(transfer, Some(Box::new(direct)), entry.size)
         .map_err(|e| format!("network read-ahead: {e}"))?;
@@ -325,7 +328,9 @@ fn fetch_into_cache(locator: &str, cancel: &AtomicBool) -> Result<bool, NetError
         return Ok(false);
     }
     let entry = super::block_on(source.stat(parsed.path))?;
-    if let Some(slot) = cache::slot(locator) {
+    // The copy and the writer of this source's profile: one stat'ed on the
+    // share of the profile left neither discards nor replaces the next's.
+    if let Some(slot) = cache::slot_for(&source, locator) {
         if slot.matches(entry.size, entry.modified_ms) {
             return Ok(true);
         }
@@ -334,7 +339,7 @@ fn fetch_into_cache(locator: &str, cancel: &AtomicBool) -> Result<bool, NetError
     if entry.size > MAX_READ_AHEAD_BYTES {
         return Ok(false);
     }
-    let Some(mut writer) = cache::writer(locator, entry.size, entry.modified_ms) else {
+    let Some(mut writer) = cache::writer(&source, locator, entry.size, entry.modified_ms) else {
         return Ok(false);
     };
     let started = Instant::now();

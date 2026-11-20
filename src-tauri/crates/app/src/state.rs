@@ -665,6 +665,11 @@ impl AppState {
             self.external_playback.clear();
             // A channel's episodes are that profile's rows.
             self.podcast_playback.clear();
+            // Its shares too: a locator resolved from here on must not
+            // reach a share of the profile left, even under the same uuid
+            // (#1143). The new profile's own are read by
+            // `netlib::reload_active` once the swap is done.
+            crate::netlib::profile_changed(Some(profile_id));
             on_swap();
             previous
         };
@@ -701,6 +706,8 @@ impl AppState {
             self.external_playback.clear();
             // A channel's episodes are that profile's rows.
             self.podcast_playback.clear();
+            // And its shares, which no profile has now.
+            crate::netlib::profile_changed(None);
             previous
         };
         if let Some(previous) = previous {

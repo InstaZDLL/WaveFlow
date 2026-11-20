@@ -17,6 +17,8 @@ use crate::commands::scan::scan_folder_inner;
 static SERIAL: AsyncMutex<()> = AsyncMutex::const_new(());
 
 const UUID: &str = "11111111-aaaa";
+/// The profile the bench's sources are of.
+const PROFILE: i64 = 1;
 const LIBRARY_ROOT: &str = "wfnet://11111111-aaaa/Music";
 
 #[derive(Default)]
@@ -195,20 +197,45 @@ struct Bench {
     folder_id: i64,
 }
 
+/// A profile database with every migration run.
+async fn profile_db(path: &std::path::Path) -> SqlitePool {
+    profile_db_with(
+        sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(path)
+            .create_if_missing(true)
+            .foreign_keys(true),
+    )
+    .await
+}
+
+async fn profile_db_with(options: sqlx::sqlite::SqliteConnectOptions) -> SqlitePool {
+    let options = waveflow_core::repository::sqlite::collation::register(options);
+    let pool = SqlitePool::connect_with(options).await.unwrap();
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+    pool
+}
+
+/// The row a profile keeps for a WebDAV share, under the bench's uuid.
+async fn add_source_row(pool: &SqlitePool, name: &str, endpoint: &str) {
+    sqlx::query(
+        "INSERT INTO network_source (uuid, kind, name, endpoint, created_at)
+         VALUES (?, 'webdav', ?, ?, 0)",
+    )
+    .bind(UUID)
+    .bind(name)
+    .bind(endpoint)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
 impl Bench {
     async fn new() -> Self {
         let dir = tempfile::tempdir().unwrap();
-        let options = waveflow_core::repository::sqlite::collation::register(
-            sqlx::sqlite::SqliteConnectOptions::new()
-                .filename(dir.path().join("profile.db"))
-                .create_if_missing(true)
-                .foreign_keys(true),
-        );
-        let pool = SqlitePool::connect_with(options).await.unwrap();
-        sqlx::migrate!("../../migrations/profile")
-            .run(&pool)
-            .await
-            .unwrap();
+        let pool = profile_db(&dir.path().join("profile.db")).await;
         sqlx::query("INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0)")
             .execute(&pool)
             .await
@@ -232,6 +259,7 @@ impl Bench {
         });
         {
             let mut registry = registry().write().unwrap();
+            registry.profile = Some(PROFILE);
             registry.sources = HashMap::from([(UUID.to_string(), source)]);
             registry.cache_dir = Some(dir.path().join("cache"));
             registry.cache_max_bytes = 1024 * 1024 * 1024;
@@ -989,6 +1017,138 @@ async fn a_track_on_a_share_finds_its_clip_there() {
     assert!(clip::allowed_source(&new, beside).is_some());
     assert!(clip::allowed_source(&old, beside).is_none());
     drop(bench);
+}
+
+/// #1143: a profile switch takes the shares of the profile left out in the
+/// swap itself, and only the new profile's own reload fills the registry
+/// again; not a reload read for the profile left that lands after the swap,
+/// and not one that fails. The next profile is an imported copy: a source of
+/// the same uuid, on another share.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_profile_switch_leaves_nothing_of_the_last_profiles_shares() {
+    let _serial = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    add_source_row(&bench.pool, "Old NAS", "https://old.invalid/dav").await;
+    bench.put("Music/A/Song.flac", wav(1), 1);
+    bench.put("Music/A/Song.webm", WEBM.to_vec(), 1);
+    let song = "wfnet://11111111-aaaa/Music/A/Song.flac";
+    let (beside, _, grant) = share_clip(song).await.unwrap();
+    let left = source(UUID).unwrap();
+
+    let next = profile_db(&bench.dir.path().join("next.db")).await;
+    add_source_row(&next, "New NAS", "https://new.invalid/dav").await;
+    let next_cache = bench.dir.path().join("next-cache");
+
+    // The swap: nothing of the profile left resolves any more.
+    profile_changed(Some(PROFILE + 1));
+    assert!(source(UUID).is_none());
+    assert!(!has_sources());
+    assert!(cache_config().is_none());
+    assert!(is_blocked(song), "a share with no source reads as down");
+    assert!(clip::allowed_source(&grant, &beside).is_none());
+    assert!(!clip::is_current(&left));
+
+    // A reload read for the profile left, landing after the swap.
+    reload(&bench.pool, bench.dir.path().join("cache"), PROFILE)
+        .await
+        .unwrap();
+    assert!(
+        source(UUID).is_none(),
+        "the profile left's rows were installed"
+    );
+
+    // The new profile's reload fails: still nothing.
+    let closed = profile_db(&bench.dir.path().join("closed.db")).await;
+    closed.close().await;
+    assert!(reload(&closed, next_cache.clone(), PROFILE + 1)
+        .await
+        .is_err());
+    assert!(source(UUID).is_none());
+    assert!(cache_config().is_none());
+
+    // Its own reload: its share, under the same uuid, and no grant of before.
+    reload(&next, next_cache.clone(), PROFILE + 1)
+        .await
+        .unwrap();
+    let now = source(UUID).unwrap();
+    assert_eq!(now.name, "New NAS");
+    assert!(!Arc::ptr_eq(&now, &left));
+    assert_eq!(cache_config().map(|(dir, _)| dir), Some(next_cache.clone()));
+    assert!(clip::allowed_source(&grant, &beside).is_none());
+
+    // A read opened on the profile left, its stat answered before the
+    // switch, publishes nothing into the next profile's cache, whose copies
+    // are named by the same locators, and reads none of them.
+    std::fs::create_dir_all(&next_cache).unwrap();
+    let copy = next_cache.join(cache::entry_name(song).unwrap());
+    std::fs::write(&copy, b"next").unwrap();
+    assert!(cache::slot_for(&left, song).is_none());
+    assert!(cache::slot_for(&now, song).is_some());
+    // A writer is refused over a copy already there: none, so that the
+    // refusal below is the source's.
+    std::fs::remove_file(&copy).unwrap();
+    assert!(cache::writer(&left, song, 4, 1).is_none());
+    assert!(cache::writer(&now, song, 4, 1).is_some());
+
+    // No profile at all: nothing again, and a late reload installs nothing.
+    profile_changed(None);
+    assert!(!has_sources());
+    reload(&next, bench.dir.path().join("late"), PROFILE + 1)
+        .await
+        .unwrap();
+    assert!(!has_sources());
+}
+
+/// #1143: a reload of the profile left, started while that profile is still
+/// the active one and whose reads are still waiting when the switch comes,
+/// installs nothing once they come back. The profile left's database is
+/// locked before the reload starts and released only once the next
+/// profile's sources are in; the reload is polled once before the switch, so
+/// whatever it does before its first read runs under the profile left.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_reload_held_across_a_profile_switch_installs_nothing() {
+    let _serial = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    // A rollback journal, where an exclusive lock holds readers back.
+    let left = profile_db_with(
+        sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(bench.dir.path().join("left.db"))
+            .create_if_missing(true)
+            .foreign_keys(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Delete),
+    )
+    .await;
+    add_source_row(&left, "Old NAS", "https://old.invalid/dav").await;
+    let next = profile_db(&bench.dir.path().join("next.db")).await;
+    add_source_row(&next, "New NAS", "https://new.invalid/dav").await;
+
+    let mut lock = left.acquire().await.unwrap();
+    sqlx::query("BEGIN EXCLUSIVE")
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    let mut held = std::pin::pin!(reload(&left, bench.dir.path().join("cache"), PROFILE));
+    let first = std::future::poll_fn(|cx| {
+        std::task::Poll::Ready(std::future::Future::poll(held.as_mut(), cx))
+    })
+    .await;
+    assert!(first.is_pending(), "the reload read through the lock");
+
+    profile_changed(Some(PROFILE + 1));
+    reload(&next, bench.dir.path().join("next-cache"), PROFILE + 1)
+        .await
+        .unwrap();
+    let installed = source(UUID).unwrap();
+    assert_eq!(installed.name, "New NAS");
+
+    sqlx::query("COMMIT").execute(&mut *lock).await.unwrap();
+    drop(lock);
+    held.await.unwrap();
+    let after = source(UUID).unwrap();
+    assert!(
+        Arc::ptr_eq(&after, &installed),
+        "the held reload replaced the next profile's sources"
+    );
 }
 
 /// What is named like a video is read before it is offered: an audio `.mp4`
