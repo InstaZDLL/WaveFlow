@@ -5,6 +5,7 @@ import {
   getTrackClip,
   type ClipSource,
 } from "../lib/tauri/clip";
+import { isNetworkPath, useNetworkSourcesVersion } from "../lib/networkTracks";
 import type { Track } from "../lib/tauri/track";
 import { useProfile } from "./useProfile";
 
@@ -31,6 +32,7 @@ export function useTrackClip(
 ): ClipSource | null {
   const remoteId = track?.remote_id ?? null;
   const local = track !== null && remoteId === null && track.id >= 0;
+  const sourcesVersion = useNetworkSourcesVersion();
   return useClipLookup(
     local ? track.id : null,
     // The path too: a relinked or replaced file keeps its id, and its clip
@@ -38,6 +40,10 @@ export function useTrackClip(
     local ? track.file_path : null,
     remoteId,
     probe,
+    // A track on a share asks again when the sources change: the address
+    // of its clip is served only by the source instance that found it, and
+    // a share that was down when it was asked may answer now.
+    local && isNetworkPath(track.file_path) ? sourcesVersion : 0,
   );
 }
 
@@ -54,22 +60,29 @@ function useClipLookup(
   filePath: string | null,
   remoteTrackId: string | null,
   probe: boolean,
+  sourcesVersion = 0,
 ): ClipSource | null {
   const { activeProfile } = useProfile();
   const profileId = activeProfile?.id ?? null;
   const [found, setFound] = useState<{
     key: string;
+    track: string;
     clip: ClipSource | null;
   } | null>(null);
-  const key =
+  // Which track the answer is about, and, with the sources' version, which
+  // asking it answers: a new version asks again but keeps showing the last
+  // answer about the same track until the new one lands, so the button does
+  // not blink at each change of a share's state.
+  const track =
     trackId !== null
       ? `${profileId}:${trackId}:${filePath}`
       : remoteTrackId !== null
         ? `${profileId}:server:${remoteTrackId}:${probe}`
         : null;
+  const key = track === null ? null : `${track}:${sourcesVersion}`;
 
   useEffect(() => {
-    if (key === null) return;
+    if (key === null || track === null) return;
     let cancelled = false;
     const lookup: Promise<ClipSource | null> =
       remoteTrackId !== null
@@ -89,16 +102,16 @@ function useClipLookup(
           );
     lookup
       .then((clip) => {
-        if (!cancelled) setFound({ key, clip });
+        if (!cancelled) setFound({ key, track, clip });
       })
       .catch((err) => {
         console.error("[useTrackClip] lookup failed", err);
-        if (!cancelled) setFound({ key, clip: null });
+        if (!cancelled) setFound({ key, track, clip: null });
       });
     return () => {
       cancelled = true;
     };
-  }, [key, trackId, remoteTrackId, probe]);
+  }, [key, track, trackId, remoteTrackId, probe]);
 
-  return found !== null && found.key === key ? found.clip : null;
+  return found !== null && found.track === track ? found.clip : null;
 }

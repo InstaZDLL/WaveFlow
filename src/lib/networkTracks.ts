@@ -30,6 +30,8 @@ interface Snapshot {
 }
 
 let snapshot: Snapshot = { blocked: new Set(), sources: [] };
+/** Bumped at each answer that lands: what depends on the sources asks again. */
+let version = 0;
 let started = false;
 const listeners = new Set<() => void>();
 /** Only the latest read may land: a slow one must not undo a newer answer. */
@@ -44,6 +46,7 @@ async function refresh() {
     ]);
     if (mine !== generation) return;
     snapshot = { blocked: new Set(blocked), sources };
+    version += 1;
     listeners.forEach((listener) => listener());
   } catch (err) {
     console.warn("[networkTracks] refresh failed", err);
@@ -84,6 +87,15 @@ export function useTrackBlocked(trackId: number | null | undefined): boolean {
 /** The same as a set, for a view that renders its rows inline. */
 export function useBlockedTrackIds(): ReadonlySet<number> {
   return useSyncExternalStore(subscribe, () => snapshot.blocked);
+}
+
+/**
+ * A number that changes each time the sources were read again: they were
+ * reloaded (a profile switch, a share edited) or one of them changed state.
+ * What was asked of a share keys on it.
+ */
+export function useNetworkSourcesVersion(): number {
+  return useSyncExternalStore(subscribe, () => version);
 }
 
 /** Every source of the profile, kept current. */
