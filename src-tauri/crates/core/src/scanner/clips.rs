@@ -39,7 +39,7 @@ pub const VIDEO_EXTENSIONS: &[&str] = &["mp4", "m4v", "mov", "webm", "mkv"];
 /// The ISO-BMFF ones, whose content [`has_video_track`] can confirm. An
 /// `.mp4` or a `.mov` can hold audio alone; a `.webm` or an `.mkv` is
 /// taken at its extension.
-const ISO_BMFF_EXTENSIONS: &[&str] = &["mp4", "m4v", "mov"];
+pub const ISO_BMFF_EXTENSIONS: &[&str] = &["mp4", "m4v", "mov"];
 
 /// The folder beside a track that holds its clip, case ignored.
 pub const CLIPS_DIR_NAME: &str = "Clips";
@@ -275,7 +275,7 @@ pub fn file_has_video_track(path: &Path) -> bool {
 }
 
 /// The four bytes every EBML document starts with: WebM and Matroska.
-const EBML_MAGIC: [u8; 4] = [0x1a, 0x45, 0xdf, 0xa3];
+pub const EBML_MAGIC: [u8; 4] = [0x1a, 0x45, 0xdf, 0xa3];
 
 fn starts_with_ebml(path: &Path) -> bool {
     let mut head = [0u8; 4];
@@ -302,63 +302,171 @@ fn is_local_video(path: &Path) -> bool {
     }
 }
 
-/// The video in `dir` named like `stem`, other than `track` itself.
-/// Several candidates (a `.webm` and an `.mp4`) are taken in
-/// [`VIDEO_EXTENSIONS`] order, so the answer does not depend on the order
-/// a directory lists in.
-fn video_named_in(dir: &Path, stem: &str, track: &Path) -> Option<PathBuf> {
-    let mut found: Vec<PathBuf> = fs::read_dir(dir)
-        .ok()?
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| path != track)
-        .filter(|path| is_video_extension(path))
-        .filter(|path| stem_key(path).as_deref() == Some(stem))
-        .collect();
-    found.sort_by_key(|path| {
-        let ext = lowercase_extension(path).unwrap_or_default();
-        VIDEO_EXTENSIONS.iter().position(|known| *known == ext)
-    });
-    found.into_iter().find(|path| is_local_video(path))
+/// What [`find_clip_with`] reads of the place a track lies in: a local
+/// disk ([`find_clip`]) or a share, whose reads the app makes.
+pub trait ClipFolders {
+    /// A file or folder of that place.
+    type Path: Clone + PartialEq;
+
+    /// The entries directly inside `dir`: each one's name, path and whether
+    /// it is a folder that may be entered (a link is not one: what is found
+    /// is handed to the webview, and a linked folder could lead anywhere).
+    /// `None` when the folder cannot be read.
+    fn entries(&self, dir: &Self::Path) -> Option<Vec<FolderEntry<Self::Path>>>;
+
+    /// Whether the file `path` is a video the webview may be handed: a
+    /// moving picture in it for the ISO-BMFF containers, an EBML header for
+    /// the others. Checked rather than taken from the name, since the
+    /// answer opens the file to the webview.
+    fn is_video(&self, path: &Self::Path) -> bool;
+
+    /// [`has_video_track`] on the track's own file, an ISO-BMFF one.
+    fn has_video_track(&self, path: &Self::Path) -> bool;
 }
 
-/// The `Clips` directory of `dir`, whatever its case.
-fn clips_dir_of(dir: &Path) -> Option<PathBuf> {
-    fs::read_dir(dir)
-        .ok()?
-        .filter_map(Result::ok)
-        // Not a link: what is found there enters the webview's asset scope,
-        // and a linked folder could lead anywhere.
-        .find(|entry| {
-            is_clips_dir_name(&entry.file_name())
-                && fs::symlink_metadata(entry.path()).is_ok_and(|meta| meta.is_dir())
+/// One entry of a [`ClipFolders::entries`] listing.
+pub struct FolderEntry<P> {
+    pub name: String,
+    pub path: P,
+    pub is_dir: bool,
+}
+
+/// The video among `entries` named like the track, other than `track`
+/// itself. `stem` is the track's name without its extension, as spelt.
+/// Several candidates are taken in [`VIDEO_EXTENSIONS`] order (a `.webm`
+/// before an `.mp4`), then the one spelt like the track before another case
+/// (`Song.mp4` before `song.MP4`, which a case-sensitive share can hold side
+/// by side), then by name: the answer does not depend on the order a folder
+/// lists in.
+fn video_named_in<F: ClipFolders>(
+    folders: &F,
+    entries: &[FolderEntry<F::Path>],
+    stem: &str,
+    track: &F::Path,
+) -> Option<F::Path> {
+    let key = stem.to_lowercase();
+    let mut found: Vec<(usize, bool, &str, &F::Path)> = entries
+        .iter()
+        .filter(|entry| !entry.is_dir && entry.path != *track)
+        .filter_map(|entry| {
+            let name = Path::new(&entry.name);
+            let ext = lowercase_extension(name)?;
+            let rank = VIDEO_EXTENSIONS.iter().position(|known| *known == ext)?;
+            let other_case = name.file_stem().and_then(OsStr::to_str) != Some(stem);
+            (stem_key(name).as_deref() == Some(key.as_str())).then_some((
+                rank,
+                other_case,
+                entry.name.as_str(),
+                &entry.path,
+            ))
         })
-        .map(|entry| entry.path())
+        .collect();
+    found.sort_by(|a, b| (a.0, a.1, a.2).cmp(&(b.0, b.1, b.2)));
+    found
+        .into_iter()
+        .map(|(_, _, _, path)| path)
+        .find(|path| folders.is_video(path))
+        .cloned()
 }
 
-/// The clip of a local track: beside it, else in its `Clips` folder, else
-/// the track's own file when it is a video. Blocking (a directory listing
-/// or two and a few header reads); run it off the async runtime.
+/// The clip of the track `track`, named `track_name`, lying in `dir`, a
+/// folder named `dir_name`: beside it, else in its `Clips` folder, else the
+/// track's own file when it is a video. Blocking: a listing or two and a
+/// few header reads.
 ///
 /// A track inside a `Clips` folder is not offered its neighbours: they
 /// are the clips of the tracks above, and it is most likely one of them
 /// that the scan kept because it holds no picture.
-pub fn find_clip(track: &Path) -> Option<(PathBuf, ClipOrigin)> {
-    let dir = track.parent()?;
-    let stem = stem_key(track)?;
-    let in_clips_dir = dir.file_name().is_some_and(is_clips_dir_name);
+pub fn find_clip_with<F: ClipFolders>(
+    folders: &F,
+    dir: &F::Path,
+    dir_name: Option<&str>,
+    track: &F::Path,
+    track_name: &str,
+) -> Option<(F::Path, ClipOrigin)> {
+    let name = Path::new(track_name);
+    let stem = name.file_stem()?.to_str()?;
+    let in_clips_dir = dir_name.is_some_and(|dir_name| is_clips_dir_name(OsStr::new(dir_name)));
     if !in_clips_dir {
-        if let Some(path) = video_named_in(dir, &stem, track) {
-            return Some((path, ClipOrigin::Sibling));
-        }
-        if let Some(path) = clips_dir_of(dir).and_then(|clips| video_named_in(&clips, &stem, track))
-        {
-            return Some((path, ClipOrigin::ClipsDir));
+        if let Some(entries) = folders.entries(dir) {
+            if let Some(path) = video_named_in(folders, &entries, stem, track) {
+                return Some((path, ClipOrigin::Sibling));
+            }
+            // Every `Clips` folder, a case-sensitive share being able to hold
+            // `Clips` and `clips` side by side: `Clips` first, then by name.
+            let mut clips_dirs: Vec<&FolderEntry<F::Path>> = entries
+                .iter()
+                .filter(|entry| entry.is_dir && is_clips_dir_name(OsStr::new(&entry.name)))
+                .collect();
+            clips_dirs.sort_by(|a, b| {
+                (a.name != CLIPS_DIR_NAME, &a.name).cmp(&(b.name != CLIPS_DIR_NAME, &b.name))
+            });
+            for clips_dir in clips_dirs {
+                let Some(clips) = folders.entries(&clips_dir.path) else {
+                    continue;
+                };
+                if let Some(path) = video_named_in(folders, &clips, stem, track) {
+                    return Some((path, ClipOrigin::ClipsDir));
+                }
+            }
         }
     }
-    let own_extension = lowercase_extension(track)?;
-    (ISO_BMFF_EXTENSIONS.contains(&own_extension.as_str()) && file_has_video_track(track))
-        .then(|| (track.to_path_buf(), ClipOrigin::Itself))
+    let own_extension = lowercase_extension(name)?;
+    (ISO_BMFF_EXTENSIONS.contains(&own_extension.as_str()) && folders.has_video_track(track))
+        .then(|| (track.clone(), ClipOrigin::Itself))
+}
+
+/// The local disk, for [`find_clip`].
+struct LocalFolders;
+
+impl ClipFolders for LocalFolders {
+    type Path = PathBuf;
+
+    fn entries(&self, dir: &PathBuf) -> Option<Vec<FolderEntry<PathBuf>>> {
+        Some(
+            fs::read_dir(dir)
+                .ok()?
+                .filter_map(Result::ok)
+                // A name that is not UTF-8 is matched against nothing (see
+                // `stem_key`), and no `Clips` folder is spelt that way.
+                .filter_map(|entry| {
+                    let name = entry.file_name().into_string().ok()?;
+                    // Not followed through a link, and on most systems read
+                    // with the listing rather than asked of each entry.
+                    let is_dir = entry.file_type().is_ok_and(|kind| kind.is_dir());
+                    Some(FolderEntry {
+                        name,
+                        path: entry.path(),
+                        is_dir,
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    fn is_video(&self, path: &PathBuf) -> bool {
+        is_local_video(path)
+    }
+
+    fn has_video_track(&self, path: &PathBuf) -> bool {
+        file_has_video_track(path)
+    }
+}
+
+/// The clip of a local track ([`find_clip_with`] on the local disk).
+/// Blocking (a directory listing or two and a few header reads); run it off
+/// the async runtime.
+pub fn find_clip(track: &Path) -> Option<(PathBuf, ClipOrigin)> {
+    let dir = track.parent()?;
+    let dir_name = dir.file_name().and_then(OsStr::to_str);
+    let track_name = track.file_name()?.to_str()?;
+    find_clip_with(
+        &LocalFolders,
+        &dir.to_path_buf(),
+        dir_name,
+        &track.to_path_buf(),
+        track_name,
+    )
 }
 
 #[cfg(test)]

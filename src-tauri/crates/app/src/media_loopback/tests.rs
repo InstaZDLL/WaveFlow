@@ -1,6 +1,9 @@
-use super::{is_plain_absolute, video_mime};
+#[cfg(target_os = "linux")]
+use super::local::is_plain_absolute;
+use super::video_mime;
 use std::path::Path;
 
+#[cfg(target_os = "linux")]
 #[test]
 fn only_plain_absolute_paths_are_accepted() {
     assert!(is_plain_absolute(Path::new("/home/a/canvas/x.mp4")));

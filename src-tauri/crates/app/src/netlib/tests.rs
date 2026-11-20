@@ -903,3 +903,109 @@ fn a_track_on_a_share_is_never_written() {
     assert!(refuse_if_network("wfnet://abc/a.flac").is_err());
     assert!(refuse_if_network("/music/a.flac").is_ok());
 }
+
+/// A music video: an ISO-BMFF file whose track is a moving picture, with the
+/// boxes `scanner::clips::has_video_track` walks and nothing more.
+fn video_mp4() -> Vec<u8> {
+    fn boxed(kind: &[u8; 4], body: &[u8]) -> Vec<u8> {
+        let mut out = ((body.len() + 8) as u32).to_be_bytes().to_vec();
+        out.extend_from_slice(kind);
+        out.extend_from_slice(body);
+        out
+    }
+    let mut hdlr = vec![0u8; 8];
+    hdlr.extend_from_slice(b"vide");
+    hdlr.extend_from_slice(&[0u8; 12]);
+    let mut stsd = vec![0, 0, 0, 0, 0, 0, 0, 1];
+    stsd.extend(boxed(b"avc1", &[0u8; 16]));
+    let minf = boxed(b"minf", &boxed(b"stbl", &boxed(b"stsd", &stsd)));
+    let mut mdia = boxed(b"hdlr", &hdlr);
+    mdia.extend(minf);
+    let trak = boxed(b"trak", &boxed(b"mdia", &mdia));
+    let mut out = boxed(b"ftyp", b"isom\0\0\0\0isommp42");
+    out.extend(boxed(b"moov", &trak));
+    out
+}
+
+const WEBM: &[u8] = &[0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0];
+
+/// What `get_track_clip` asks of the share: the clip of `locator`, on the
+/// source the registry holds now, with its grant.
+async fn share_clip(
+    locator: &str,
+) -> Option<(String, waveflow_core::scanner::clips::ClipOrigin, String)> {
+    let locator = locator.to_string();
+    let source = source(UUID)?;
+    tokio::task::spawn_blocking(move || clip::find_clip(source, &locator))
+        .await
+        .unwrap()
+        .map(|found| (found.locator, found.origin, found.grant))
+}
+
+/// #1133: a track on a share is offered the clip beside it or in its `Clips`
+/// folder, read on the share by the local rule, and only that clip becomes
+/// servable, under the grant its lookup made.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_track_on_a_share_finds_its_clip_there() {
+    use waveflow_core::scanner::clips::ClipOrigin;
+    let _serial = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/A/Song.flac", wav(1), 1);
+    bench.put("Music/A/Other.flac", wav(2), 1);
+    let song = "wfnet://11111111-aaaa/Music/A/Song.flac";
+    assert_eq!(share_clip(song).await, None);
+
+    // Of two `Clips` folders a case-sensitive share can hold, the one that
+    // has the clip, whichever lists first.
+    // `Clips` is tried first and lacks it here.
+    bench.put("Music/A/Clips/other.mp4", video_mp4(), 1);
+    bench.put("Music/A/clips/song.mp4", video_mp4(), 1);
+    let in_clips = "wfnet://11111111-aaaa/Music/A/clips/song.mp4";
+    let (found, origin, grant) = share_clip(song).await.unwrap();
+    assert_eq!((found.as_str(), origin), (in_clips, ClipOrigin::ClipsDir));
+    assert!(clip::allowed_source(&grant, in_clips).is_some());
+    // A grant serves its own locator and no other.
+    assert!(clip::allowed_source(&grant, "wfnet://11111111-aaaa/Music/A/Other.flac").is_none());
+    assert!(clip::allowed_source("made-up", in_clips).is_none());
+
+    // Beside the track, the one spelt like it first.
+    bench.put("Music/A/song.WEBM", WEBM.to_vec(), 1);
+    bench.put("Music/A/Song.webm", WEBM.to_vec(), 1);
+    let beside = "wfnet://11111111-aaaa/Music/A/Song.webm";
+    let (found, origin, old) = share_clip(song).await.unwrap();
+    assert_eq!((found.as_str(), origin), (beside, ClipOrigin::Sibling));
+
+    // Sources loaded again (a profile switch) with one of the same uuid: the
+    // address handed out before is refused, and stays refused once the new
+    // source's own lookup finds the same clip, under a grant of its own.
+    let found_on = clip::allowed_source(&old, beside).unwrap();
+    let again = Bench::new().await;
+    again.put("Music/A/Song.flac", wav(1), 1);
+    again.put("Music/A/Song.webm", WEBM.to_vec(), 1);
+    assert!(clip::allowed_source(&old, beside).is_none());
+    assert!(!clip::is_current(&found_on));
+    let (found, _, new) = share_clip(song).await.unwrap();
+    assert_eq!(found, beside);
+    assert!(clip::allowed_source(&new, beside).is_some());
+    assert!(clip::allowed_source(&old, beside).is_none());
+    drop(bench);
+}
+
+/// What is named like a video is read before it is offered: an audio `.mp4`
+/// or a `.webm` that is no WebM is not a clip, and a share that does not
+/// answer offers none.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_clip_on_a_share_is_checked_and_a_share_down_offers_none() {
+    let _serial = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Song.flac", wav(1), 1);
+    bench.put("Music/Song.mp4", wav(2), 1);
+    bench.put("Music/Song.webm", b"not a video".to_vec(), 1);
+    let song = "wfnet://11111111-aaaa/Music/Song.flac";
+    assert_eq!(share_clip(song).await, None);
+
+    bench.put("Music/Clips/Song.mp4", video_mp4(), 1);
+    assert!(share_clip(song).await.is_some());
+    bench.state.down.store(true, Ordering::Release);
+    assert_eq!(share_clip(song).await, None);
+}

@@ -158,6 +158,11 @@ function sessionElement(session: number, source: ClipSource): HTMLVideoElement {
   element.addEventListener("error", () =>
     reportClipProgress(session, { failed: "unplayable" }),
   );
+  if (source.kind === "share") {
+    // Already a loopback address, which every webview plays as it is.
+    element.src = source.url;
+    return element;
+  }
   void playableVideoSrc(source.localPath, false).then((src) => {
     if (owned?.element !== element) return;
     if (src) element.src = src;

@@ -11,14 +11,22 @@ export interface TrackClip {
   origin: ClipOrigin;
 }
 
+/** A library track's clip. Mirrors `commands::clip::LibraryTrackClip`. */
+export type LibraryTrackClip =
+  | ({ kind: "local" } & TrackClip)
+  | { kind: "share"; url: string; origin: ClipOrigin };
+
 /**
  * The video named like the track — beside it, in a `Clips` folder beside
- * it, or the track's own file when it is a video. Looked up on the disk
- * at each call; `null` when there is none, and always for a track on a
- * network share. A server track asks {@link getRemoteTrackClip}.
+ * it, or the track's own file when it is a video. Looked up at each call,
+ * on the disk or on the share the track lies on (#1133); `null` when there
+ * is none. A clip on a share comes with the loopback address the webview
+ * plays it from. A server track asks {@link getRemoteTrackClip}.
  */
-export function getTrackClip(trackId: number): Promise<TrackClip | null> {
-  return invoke<TrackClip | null>("get_track_clip", { trackId });
+export function getTrackClip(
+  trackId: number,
+): Promise<LibraryTrackClip | null> {
+  return invoke<LibraryTrackClip | null>("get_track_clip", { trackId });
 }
 
 /** A server track's clip. Mirrors `commands::clip::RemoteTrackClip`. */
@@ -41,10 +49,12 @@ export function getRemoteTrackClip(
   });
 }
 
-/** Where an open clip plays from: a file on this machine, or the server
- *  through a ticket minted as it opens. */
+/** Where an open clip plays from: a file on this machine, a file on a share
+ *  through the loopback server, or the server through a ticket minted as it
+ *  opens. */
 export type ClipSource =
   | { kind: "local"; localPath: string }
+  | { kind: "share"; url: string }
   | { kind: "server"; remoteTrackId: string };
 
 /** The flag's writes in flight, one after the other. */

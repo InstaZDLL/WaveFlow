@@ -32,6 +32,7 @@
 //! use [`run`].
 
 pub mod cache;
+pub mod clip;
 pub mod fs;
 pub mod media;
 pub mod reader;
@@ -109,6 +110,25 @@ where
     runtime()
         .spawn(future)
         .await
+        .map_err(|e| NetError::Protocol(format!("network task: {e}")))
+}
+
+/// [`run`], cancelled when the caller stops waiting for it: dropping the
+/// returned future aborts the task, where [`run`] leaves it running.
+pub async fn run_cancellable<F>(future: F) -> Result<F::Output, NetError>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    struct AbortOnDrop(tokio::task::AbortHandle);
+    impl Drop for AbortOnDrop {
+        fn drop(&mut self) {
+            self.0.abort();
+        }
+    }
+    let task = runtime().spawn(future);
+    let _abort = AbortOnDrop(task.abort_handle());
+    task.await
         .map_err(|e| NetError::Protocol(format!("network task: {e}")))
 }
 
@@ -383,6 +403,7 @@ pub async fn reload(pool: &SqlitePool, cache_dir: std::path::PathBuf) -> AppResu
         registry.cache_dir = Some(cache_dir);
         registry.cache_max_bytes = max_gb * 1024 * 1024 * 1024;
     }
+    clip::forget_stale();
     notify_changed();
     Ok(())
 }
@@ -418,6 +439,7 @@ pub fn clear() {
         registry.sources.clear();
         registry.cache_dir = None;
     }
+    clip::forget_stale();
     notify_changed();
 }
 
