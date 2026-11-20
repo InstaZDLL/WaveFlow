@@ -331,30 +331,40 @@ pub struct FolderEntry<P> {
     pub is_dir: bool,
 }
 
-/// The video among `entries` named like `stem`, other than `track` itself.
-/// Several candidates (a `.webm` and an `.mp4`) are taken in
-/// [`VIDEO_EXTENSIONS`] order, so the answer does not depend on the order
-/// a folder lists in.
+/// The video among `entries` named like the track, other than `track`
+/// itself. `stem` is the track's name without its extension, as spelt.
+/// Several candidates are taken in [`VIDEO_EXTENSIONS`] order (a `.webm`
+/// before an `.mp4`), then the one spelt like the track before another case
+/// (`Song.mp4` before `song.MP4`, which a case-sensitive share can hold side
+/// by side), then by name: the answer does not depend on the order a folder
+/// lists in.
 fn video_named_in<F: ClipFolders>(
     folders: &F,
     entries: &[FolderEntry<F::Path>],
     stem: &str,
     track: &F::Path,
 ) -> Option<F::Path> {
-    let mut found: Vec<(usize, &F::Path)> = entries
+    let key = stem.to_lowercase();
+    let mut found: Vec<(usize, bool, &str, &F::Path)> = entries
         .iter()
         .filter(|entry| !entry.is_dir && entry.path != *track)
         .filter_map(|entry| {
             let name = Path::new(&entry.name);
             let ext = lowercase_extension(name)?;
             let rank = VIDEO_EXTENSIONS.iter().position(|known| *known == ext)?;
-            (stem_key(name).as_deref() == Some(stem)).then_some((rank, &entry.path))
+            let other_case = name.file_stem().and_then(OsStr::to_str) != Some(stem);
+            (stem_key(name).as_deref() == Some(key.as_str())).then_some((
+                rank,
+                other_case,
+                entry.name.as_str(),
+                &entry.path,
+            ))
         })
         .collect();
-    found.sort_by_key(|(rank, _)| *rank);
+    found.sort_by(|a, b| (a.0, a.1, a.2).cmp(&(b.0, b.1, b.2)));
     found
         .into_iter()
-        .map(|(_, path)| path)
+        .map(|(_, _, _, path)| path)
         .find(|path| folders.is_video(path))
         .cloned()
 }
@@ -375,18 +385,27 @@ pub fn find_clip_with<F: ClipFolders>(
     track_name: &str,
 ) -> Option<(F::Path, ClipOrigin)> {
     let name = Path::new(track_name);
-    let stem = stem_key(name)?;
+    let stem = name.file_stem()?.to_str()?;
     let in_clips_dir = dir_name.is_some_and(|dir_name| is_clips_dir_name(OsStr::new(dir_name)));
     if !in_clips_dir {
         if let Some(entries) = folders.entries(dir) {
-            if let Some(path) = video_named_in(folders, &entries, &stem, track) {
+            if let Some(path) = video_named_in(folders, &entries, stem, track) {
                 return Some((path, ClipOrigin::Sibling));
             }
-            let clips_dir = entries
+            // Every `Clips` folder, a case-sensitive share being able to hold
+            // `Clips` and `clips` side by side: `Clips` first, then by name.
+            let mut clips_dirs: Vec<&FolderEntry<F::Path>> = entries
                 .iter()
-                .find(|entry| entry.is_dir && is_clips_dir_name(OsStr::new(&entry.name)));
-            if let Some(clips) = clips_dir.and_then(|entry| folders.entries(&entry.path)) {
-                if let Some(path) = video_named_in(folders, &clips, &stem, track) {
+                .filter(|entry| entry.is_dir && is_clips_dir_name(OsStr::new(&entry.name)))
+                .collect();
+            clips_dirs.sort_by(|a, b| {
+                (a.name != CLIPS_DIR_NAME, &a.name).cmp(&(b.name != CLIPS_DIR_NAME, &b.name))
+            });
+            for clips_dir in clips_dirs {
+                let Some(clips) = folders.entries(&clips_dir.path) else {
+                    continue;
+                };
+                if let Some(path) = video_named_in(folders, &clips, stem, track) {
                     return Some((path, ClipOrigin::ClipsDir));
                 }
             }

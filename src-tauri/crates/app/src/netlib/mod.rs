@@ -403,7 +403,7 @@ pub async fn reload(pool: &SqlitePool, cache_dir: std::path::PathBuf) -> AppResu
         registry.cache_dir = Some(cache_dir);
         registry.cache_max_bytes = max_gb * 1024 * 1024 * 1024;
     }
-    clip::forget_all();
+    clip::forget_stale();
     notify_changed();
     Ok(())
 }
@@ -439,7 +439,7 @@ pub fn clear() {
         registry.sources.clear();
         registry.cache_dir = None;
     }
-    clip::forget_all();
+    clip::forget_stale();
     notify_changed();
 }
 

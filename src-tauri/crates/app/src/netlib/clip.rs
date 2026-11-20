@@ -15,10 +15,12 @@
 //! ([`is_current`]). A locator names its source by uuid, and after a profile
 //! switch the next profile's source of that uuid (an imported copy of the
 //! profile) can be another share: neither an old address nor a response
-//! already streaming reaches it.
+//! already streaming reaches it. Each address carries a grant of its own, so
+//! a later lookup of the same clip on another source allows a new address,
+//! never an old one again.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, LazyLock, Mutex, Weak};
 
 use waveflow_core::network_locator;
@@ -29,12 +31,21 @@ use waveflow_core::scanner::clips::{
 use super::reader::{RangeReader, ReadMode};
 use super::Source;
 
-/// The locators [`find_clip`] handed out, each with the source instance it
-/// was found on.
-static ALLOWED: LazyLock<Mutex<HashMap<String, Weak<Source>>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+/// What one address [`find_clip`] handed out allows: its locator, read
+/// through the source instance it was found on.
+struct Grant {
+    id: String,
+    locator: String,
+    source: Weak<Source>,
+}
 
-fn allowed() -> std::sync::MutexGuard<'static, HashMap<String, Weak<Source>>> {
+/// How many grants are kept, oldest dropped first: one is made per lookup of
+/// a track on a share, and only the last few can still be in a player.
+const MAX_GRANTS: usize = 256;
+
+static ALLOWED: LazyLock<Mutex<VecDeque<Grant>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
+
+fn allowed() -> std::sync::MutexGuard<'static, VecDeque<Grant>> {
     ALLOWED
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -46,18 +57,29 @@ pub fn is_current(source: &Arc<Source>) -> bool {
     super::source(&source.uuid).is_some_and(|now| Arc::ptr_eq(&now, source))
 }
 
-/// The source the loopback server reads `locator` through: the one a lookup
-/// found it on, while that one is still registered. `None` for anything a
-/// lookup did not hand out.
-pub fn allowed_source(locator: &str) -> Option<Arc<Source>> {
-    let source = allowed().get(locator)?.upgrade()?;
+/// The source the loopback server reads `locator` through under the grant
+/// `id`: the one the lookup that made the grant found it on, while that one
+/// is still registered. `None` for anything a lookup did not hand out.
+pub fn allowed_source(id: &str, locator: &str) -> Option<Arc<Source>> {
+    let source = allowed()
+        .iter()
+        .find(|grant| grant.id == id && grant.locator == locator)?
+        .source
+        .upgrade()?;
     is_current(&source).then_some(source)
 }
 
-/// The sources were loaded again or dropped: nothing found on the previous
-/// ones is kept. [`allowed_source`] already refuses them, this frees them.
-pub fn forget_all() {
-    allowed().clear();
+/// The sources were loaded again or dropped: what was found on the previous
+/// ones goes. [`allowed_source`] already refuses it, this frees it. A grant
+/// on a source still registered stays: a lookup that ended just after the
+/// new sources came in made it on one of them.
+pub fn forget_stale() {
+    allowed().retain(|grant| {
+        grant
+            .source
+            .upgrade()
+            .is_some_and(|source| is_current(&source))
+    });
 }
 
 /// One share, read for [`clips::find_clip_with`]. Paths are relative to its
@@ -144,13 +166,21 @@ impl ClipFolders for ShareFolders {
     }
 }
 
-/// The clip of the track at `locator`, as a locator, and where it was found.
-/// `None` for a share that is unknown or down, or one that does not answer
-/// the lookup. Blocking: run it off the async runtime.
-pub fn find_clip(locator: &str) -> Option<(String, ClipOrigin)> {
+/// A clip [`find_clip`] found on a share, and the grant that lets the
+/// loopback server serve it.
+pub struct FoundClip {
+    pub locator: String,
+    pub origin: ClipOrigin,
+    pub grant: String,
+}
+
+/// The clip of the track at `locator`, on `source`, the source its profile
+/// names (resolved by the caller while that profile was held). `None` for a
+/// share that is down or does not answer the lookup, and for sources loaded
+/// again meanwhile. Blocking: run it off the async runtime.
+pub fn find_clip(source: Arc<Source>, locator: &str) -> Option<FoundClip> {
     let parsed = network_locator::parse(locator)?;
-    let source = super::source(parsed.source)?;
-    if source.is_down() {
+    if parsed.source != source.uuid || source.is_down() {
         return None;
     }
     let (dir, track_name) = parsed.path.rsplit_once('/').unwrap_or(("", parsed.path));
@@ -173,6 +203,18 @@ pub fn find_clip(locator: &str) -> Option<(String, ClipOrigin)> {
     if !is_current(&source) {
         return None;
     }
-    allowed.insert(clip.clone(), Arc::downgrade(&source));
-    Some((clip, origin))
+    let grant = uuid::Uuid::new_v4().simple().to_string();
+    if allowed.len() >= MAX_GRANTS {
+        allowed.pop_front();
+    }
+    allowed.push_back(Grant {
+        id: grant.clone(),
+        locator: clip.clone(),
+        source: Arc::downgrade(&source),
+    });
+    Some(FoundClip {
+        locator: clip,
+        origin,
+        grant,
+    })
 }

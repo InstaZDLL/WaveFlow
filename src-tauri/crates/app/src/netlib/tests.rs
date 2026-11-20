@@ -929,16 +929,22 @@ fn video_mp4() -> Vec<u8> {
 
 const WEBM: &[u8] = &[0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0];
 
-async fn share_clip(locator: &str) -> Option<(String, waveflow_core::scanner::clips::ClipOrigin)> {
+/// What `get_track_clip` asks of the share: the clip of `locator`, on the
+/// source the registry holds now, with its grant.
+async fn share_clip(
+    locator: &str,
+) -> Option<(String, waveflow_core::scanner::clips::ClipOrigin, String)> {
     let locator = locator.to_string();
-    tokio::task::spawn_blocking(move || clip::find_clip(&locator))
+    let source = source(UUID)?;
+    tokio::task::spawn_blocking(move || clip::find_clip(source, &locator))
         .await
         .unwrap()
+        .map(|found| (found.locator, found.origin, found.grant))
 }
 
 /// #1133: a track on a share is offered the clip beside it or in its `Clips`
 /// folder, read on the share by the local rule, and only that clip becomes
-/// servable.
+/// servable, under the grant its lookup made.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_track_on_a_share_finds_its_clip_there() {
     use waveflow_core::scanner::clips::ClipOrigin;
@@ -949,30 +955,40 @@ async fn a_track_on_a_share_finds_its_clip_there() {
     let song = "wfnet://11111111-aaaa/Music/A/Song.flac";
     assert_eq!(share_clip(song).await, None);
 
+    // Of two `Clips` folders a case-sensitive share can hold, the one that
+    // has the clip, whichever lists first.
+    // `Clips` is tried first and lacks it here.
+    bench.put("Music/A/Clips/other.mp4", video_mp4(), 1);
     bench.put("Music/A/clips/song.mp4", video_mp4(), 1);
     let in_clips = "wfnet://11111111-aaaa/Music/A/clips/song.mp4";
-    assert_eq!(
-        share_clip(song).await,
-        Some((in_clips.to_string(), ClipOrigin::ClipsDir))
-    );
-    assert!(clip::allowed_source(in_clips).is_some());
+    let (found, origin, grant) = share_clip(song).await.unwrap();
+    assert_eq!((found.as_str(), origin), (in_clips, ClipOrigin::ClipsDir));
+    assert!(clip::allowed_source(&grant, in_clips).is_some());
+    // A grant serves its own locator and no other.
+    assert!(clip::allowed_source(&grant, "wfnet://11111111-aaaa/Music/A/Other.flac").is_none());
+    assert!(clip::allowed_source("made-up", in_clips).is_none());
 
+    // Beside the track, the one spelt like it first.
+    bench.put("Music/A/song.WEBM", WEBM.to_vec(), 1);
     bench.put("Music/A/Song.webm", WEBM.to_vec(), 1);
     let beside = "wfnet://11111111-aaaa/Music/A/Song.webm";
-    assert_eq!(
-        share_clip(song).await,
-        Some((beside.to_string(), ClipOrigin::Sibling))
-    );
-    // Nothing else on the share is servable for having been listed.
-    assert!(clip::allowed_source("wfnet://11111111-aaaa/Music/A/Other.flac").is_none());
-    // Sources loaded again (a profile switch), with one of the same uuid: what
-    // the last ones allowed is no longer served, an address already handed
-    // out included, and the instance it was found on is no longer current.
-    let found_on = clip::allowed_source(beside).unwrap();
+    let (found, origin, old) = share_clip(song).await.unwrap();
+    assert_eq!((found.as_str(), origin), (beside, ClipOrigin::Sibling));
+
+    // Sources loaded again (a profile switch) with one of the same uuid: the
+    // address handed out before is refused, and stays refused once the new
+    // source's own lookup finds the same clip, under a grant of its own.
+    let found_on = clip::allowed_source(&old, beside).unwrap();
     let again = Bench::new().await;
-    assert!(clip::allowed_source(beside).is_none());
+    again.put("Music/A/Song.flac", wav(1), 1);
+    again.put("Music/A/Song.webm", WEBM.to_vec(), 1);
+    assert!(clip::allowed_source(&old, beside).is_none());
     assert!(!clip::is_current(&found_on));
-    drop(again);
+    let (found, _, new) = share_clip(song).await.unwrap();
+    assert_eq!(found, beside);
+    assert!(clip::allowed_source(&new, beside).is_some());
+    assert!(clip::allowed_source(&old, beside).is_none());
+    drop(bench);
 }
 
 /// What is named like a video is read before it is offered: an audio `.mp4`

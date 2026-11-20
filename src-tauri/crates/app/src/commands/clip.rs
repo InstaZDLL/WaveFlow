@@ -54,20 +54,30 @@ pub async fn get_track_clip(
     state: State<'_, AppState>,
     track_id: i64,
 ) -> AppResult<Option<LibraryTrackClip>> {
-    let row: Option<(String,)> = {
+    let (row, share) = {
         // Released before the lookup, which can wait on a slow disk or a
-        // share: a profile switch waits for every lease to come back.
+        // share: a profile switch waits for every lease to come back. The
+        // share is resolved while the lease is held, so that it is this
+        // profile's source of that uuid, not the next one's.
         let pool = state.require_profile_pool().await?;
-        sqlx::query_as("SELECT file_path FROM track WHERE id = ?")
+        let row: Option<(String,)> = sqlx::query_as("SELECT file_path FROM track WHERE id = ?")
             .bind(track_id)
             .fetch_optional(&*pool)
-            .await?
+            .await?;
+        let share = row.as_ref().and_then(|(path,)| {
+            let parsed = waveflow_core::network_locator::parse(path)?;
+            crate::netlib::source(parsed.source)
+        });
+        (row, share)
     };
     let Some((file_path,)) = row else {
         return Ok(None);
     };
     if waveflow_core::network_locator::is_locator(&file_path) {
-        return Ok(share_clip(&app, file_path).await);
+        let Some(source) = share else {
+            return Ok(None);
+        };
+        return Ok(share_clip(&app, source, file_path).await);
     }
     Ok(local_clip(&app, file_path)
         .await
@@ -76,18 +86,25 @@ pub async fn get_track_clip(
 
 /// The clip beside the track at `locator`, on a share, and the address the
 /// webview plays it from.
-async fn share_clip(app: &AppHandle, locator: String) -> Option<LibraryTrackClip> {
+async fn share_clip(
+    app: &AppHandle,
+    source: std::sync::Arc<crate::netlib::Source>,
+    locator: String,
+) -> Option<LibraryTrackClip> {
     // A listing or two and a few ranged header reads on the share, each
     // waited on: off the runtime.
-    let found = tokio::task::spawn_blocking(move || crate::netlib::clip::find_clip(&locator))
-        .await
-        .unwrap_or_else(|err| {
-            tracing::warn!(?err, "clip lookup on a share failed");
-            None
-        });
-    let (clip, origin) = found?;
-    let url = crate::media_loopback::share_url(app, &clip).await?;
-    Some(LibraryTrackClip::Share { url, origin })
+    let found =
+        tokio::task::spawn_blocking(move || crate::netlib::clip::find_clip(source, &locator))
+            .await
+            .unwrap_or_else(|err| {
+                tracing::warn!(?err, "clip lookup on a share failed");
+                None
+            })?;
+    let url = crate::media_loopback::share_url(app, &found.locator, &found.grant).await?;
+    Some(LibraryTrackClip::Share {
+        url,
+        origin: found.origin,
+    })
 }
 
 /// The clip beside the local file `file_path`, made readable by the webview.

@@ -55,12 +55,14 @@ pub async fn base_url(app: &AppHandle) -> Option<String> {
     BASE_URL.get_or_init(|| start(app.clone())).await.clone()
 }
 
-/// The address the webview plays the clip at `locator`, on a share, from.
-/// `None` when the server could not start.
-pub async fn share_url(app: &AppHandle, locator: &str) -> Option<String> {
+/// The address the webview plays the clip at `locator`, on a share, from,
+/// under the grant `grant` its lookup made. `None` when the server could not
+/// start.
+pub async fn share_url(app: &AppHandle, locator: &str, grant: &str) -> Option<String> {
     let base = base_url(app).await?;
     let query: String = url::form_urlencoded::Serializer::new(String::new())
         .append_pair("locator", locator)
+        .append_pair("grant", grant)
         .finish();
     Some(format!("{base}&{query}"))
 }
@@ -100,12 +102,13 @@ async fn start(app: AppHandle) -> Option<String> {
 }
 
 async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: HeaderMap) -> Response {
-    let (mut token, mut path, mut locator) = (None, None, None);
+    let (mut token, mut path, mut locator, mut grant) = (None, None, None, None);
     for (key, value) in url::form_urlencoded::parse(query.unwrap_or_default().as_bytes()) {
         match key.as_ref() {
             "token" => token = Some(value.into_owned()),
             "path" => path = Some(PathBuf::from(value.into_owned())),
             "locator" => locator = Some(value.into_owned()),
+            "grant" => grant = Some(value.into_owned()),
             _ => {}
         }
     }
@@ -113,7 +116,7 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
         return StatusCode::FORBIDDEN.into_response();
     }
     if let Some(locator) = locator {
-        return serve_share(locator, &headers).await;
+        return serve_share(locator, grant.unwrap_or_default(), &headers).await;
     }
     #[cfg(target_os = "linux")]
     {
@@ -131,11 +134,12 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
 /// a share's background download asks for.
 const SHARE_BLOCK: u64 = 1024 * 1024;
 
-/// Answer a request for the clip at `locator`, on a share, from the share.
-async fn serve_share(locator: String, headers: &HeaderMap) -> Response {
+/// Answer a request for the clip at `locator`, on a share, under the grant
+/// `grant`, from the share.
+async fn serve_share(locator: String, grant: String, headers: &HeaderMap) -> Response {
     // The source the lookup found the clip on, not whichever one carries its
     // uuid now: see `netlib::clip`.
-    let Some(source) = crate::netlib::clip::allowed_source(&locator) else {
+    let Some(source) = crate::netlib::clip::allowed_source(&grant, &locator) else {
         return StatusCode::FORBIDDEN.into_response();
     };
     let Some(mime) = video_mime(Path::new(&locator)) else {
