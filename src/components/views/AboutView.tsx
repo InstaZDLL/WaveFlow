@@ -18,6 +18,7 @@ import {
 import type { ViewId } from "../../types";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { getChangelog, type ChangelogEntry } from "../../lib/tauri/changelog";
+import { getSqliteVersion } from "../../lib/tauri/appInfo";
 import { useWhatsNewRelease } from "../../hooks/useWhatsNew";
 import { openWhatsNew } from "../../lib/discovery";
 import {
@@ -255,6 +256,19 @@ export function AboutView({
       .then(setVersion)
       .catch((err) => console.error("[AboutView] getVersion failed", err));
   }, []);
+  // The other library versions are read from the lockfiles at build time
+  // (`__DEPENDENCY_VERSIONS__`); SQLite's is asked of the linked library.
+  // "…" while it answers, "—" if it cannot, so the line is never blank.
+  const [sqliteVersion, setSqliteVersion] = useState<string>("…");
+  useEffect(() => {
+    getSqliteVersion()
+      .then(setSqliteVersion)
+      .catch((err) => {
+        console.error("[AboutView] getSqliteVersion failed", err);
+        setSqliteVersion("—");
+      });
+  }, []);
+  const versions = __DEPENDENCY_VERSIONS__;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -338,7 +352,7 @@ export function AboutView({
         >
           {t("about.sections.frameworkDesktop")}
         </h2>
-        <TechItem name="Tauri" version="2.x" />
+        <TechItem name="Tauri" version={versions.tauri} />
       </section>
 
       {/* Frontend */}
@@ -350,10 +364,10 @@ export function AboutView({
           {t("about.sections.frontend")}
         </h2>
         <div className="grid grid-cols-2 gap-x-8">
-          <TechItem name="React" version="19.x" />
-          <TechItem name="Vite" version="8.x" />
-          <TechItem name="TypeScript" version="6.x" />
-          <TechItem name="Tailwind CSS" version="4.x" />
+          <TechItem name="React" version={versions.react} />
+          <TechItem name="Vite" version={versions.vite} />
+          <TechItem name="TypeScript" version={versions.typescript} />
+          <TechItem name="Tailwind CSS" version={versions.tailwindcss} />
         </div>
       </section>
 
@@ -366,10 +380,18 @@ export function AboutView({
           {t("about.sections.backend")}
         </h2>
         <div className="grid grid-cols-2 gap-x-8">
-          <TechItem name="Rust" version="2021 ed." />
-          <TechItem icon={<Database size={16} />} name="SQLx" version="0.9" />
-          <TechItem name="SQLite" version="3.x" />
-          <TechItem icon={<Zap size={16} />} name="Tokio" version="1.x" />
+          <TechItem name="Rust" version={`${versions.rustEdition} ed.`} />
+          <TechItem
+            icon={<Database size={16} />}
+            name="SQLx"
+            version={versions.sqlx}
+          />
+          <TechItem name="SQLite" version={sqliteVersion} />
+          <TechItem
+            icon={<Zap size={16} />}
+            name="Tokio"
+            version={versions.tokio}
+          />
         </div>
       </section>
 
@@ -382,9 +404,21 @@ export function AboutView({
           {t("about.sections.audio")}
         </h2>
         <div className="grid grid-cols-2 gap-x-8">
-          <TechItem icon={<Music size={16} />} name="Symphonia" version="0.6" />
-          <TechItem icon={<Settings2 size={16} />} name="CPAL" version="0.17" />
-          <TechItem icon={<Waves size={16} />} name="Rubato" version="5.x" />
+          <TechItem
+            icon={<Music size={16} />}
+            name="Symphonia"
+            version={versions.symphonia}
+          />
+          <TechItem
+            icon={<Settings2 size={16} />}
+            name="CPAL"
+            version={versions.cpal}
+          />
+          <TechItem
+            icon={<Waves size={16} />}
+            name="Rubato"
+            version={versions.rubato}
+          />
         </div>
       </section>
 
