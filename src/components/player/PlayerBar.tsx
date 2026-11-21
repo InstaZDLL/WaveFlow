@@ -15,6 +15,7 @@ import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { usePlayerBarLayout } from "../../hooks/usePlayerBarLayout";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { Artwork } from "../common/Artwork";
+import { NowPlayingTitleLink } from "./NowPlayingTitleLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
 import { useProbableFakeLossless } from "../../hooks/useProbableFakeLossless";
@@ -34,9 +35,13 @@ import { useSkin } from "../../hooks/useSkin";
 
 interface PlayerBarProps {
   onNavigateToArtist: (artistId: number) => void;
+  onNavigateToAlbum: (albumId: number) => void;
 }
 
-export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
+export function PlayerBar({
+  onNavigateToArtist,
+  onNavigateToAlbum,
+}: PlayerBarProps) {
   const { t } = useTranslation();
   const {
     isQueueOpen,
@@ -172,10 +177,16 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               />
             </button>
             <div className="flex flex-col min-w-0">
-              <MarqueeText
-                text={title}
-                className="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
-              />
+              {/* The title opens the track's album, as the artist below
+                  opens the artist. The colour sits on the link so its
+                  hover colour reaches the text. */}
+              <NowPlayingTitleLink
+                albumId={currentTrack?.album_id}
+                onNavigate={onNavigateToAlbum}
+                className="text-zinc-900 dark:text-zinc-100"
+              >
+                <MarqueeText text={title} className="text-sm font-semibold" />
+              </NowPlayingTitleLink>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                 {currentTrack?.artist_name ? (
                   <ArtistLink
@@ -416,6 +427,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           startsInTheater={immersiveStartsInTheater}
           onClose={closeImmersive}
           onNavigateToArtist={onNavigateToArtist}
+          onNavigateToAlbum={onNavigateToAlbum}
           isLiked={isLiked}
           onToggleLike={handleToggleLike}
         />

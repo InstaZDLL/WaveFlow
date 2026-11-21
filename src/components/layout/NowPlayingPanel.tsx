@@ -47,6 +47,8 @@ import {
   requestBackToAudio,
   useClipState,
 } from "../../lib/clipPlayer";
+import { AlbumLink } from "../common/AlbumLink";
+import { NowPlayingTitleLink } from "../player/NowPlayingTitleLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
 import { enrichArtistByName, enrichArtistDeezer } from "../../lib/tauri/detail";
@@ -67,6 +69,7 @@ import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
+  onNavigateToAlbum: (albumId: number) => void;
   /** Navigate to a remote artist (RFC-005) — used when the current track
    *  is a remote stream, whose artist has a server id, not a local one. */
   onNavigateToRemoteArtist: (artistId: string) => void;
@@ -88,6 +91,7 @@ interface NowPlayingPanelProps {
  */
 export function NowPlayingPanel({
   onNavigateToArtist,
+  onNavigateToAlbum,
   onNavigateToRemoteArtist,
   embedded = false,
 }: NowPlayingPanelProps) {
@@ -442,11 +446,21 @@ export function NowPlayingPanel({
         artist: "text-zinc-500 dark:text-zinc-400",
         album: "text-zinc-400",
       };
+  // The title and the album line open the album, closing the panel the
+  // way the artist link does.
+  const openCurrentAlbum = (albumId: number) => {
+    onNavigateToAlbum(albumId);
+    toggleNowPlaying();
+  };
   const trackIdentity = currentTrack ? (
     <div className="space-y-1">
-      <div className={`text-xl font-bold leading-tight ${identityTone.title}`}>
+      <NowPlayingTitleLink
+        albumId={currentTrack.album_id}
+        onNavigate={openCurrentAlbum}
+        className={`text-xl font-bold leading-tight ${identityTone.title}`}
+      >
         {currentTrack.title}
-      </div>
+      </NowPlayingTitleLink>
       <div className={`text-sm ${identityTone.artist}`}>
         {isRemote ? (
           canOpenArtist ? (
@@ -472,9 +486,12 @@ export function NowPlayingPanel({
         )}
       </div>
       {currentTrack.album_title && (
-        <div className={`text-xs ${identityTone.album}`}>
-          {currentTrack.album_title}
-        </div>
+        <AlbumLink
+          title={currentTrack.album_title}
+          albumId={currentTrack.album_id}
+          onNavigate={openCurrentAlbum}
+          className={`block text-xs ${identityTone.album}`}
+        />
       )}
     </div>
   ) : null;

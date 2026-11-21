@@ -91,6 +91,7 @@ interface ImmersiveViewProps {
   startsInTheater?: boolean;
   onClose: () => void;
   onNavigateToArtist: (artistId: number) => void;
+  onNavigateToAlbum: (albumId: number) => void;
   isLiked: boolean;
   onToggleLike: () => void;
 }
@@ -130,6 +131,7 @@ export function ImmersiveView({
   startsInTheater,
   onClose,
   onNavigateToArtist,
+  onNavigateToAlbum,
   isLiked,
   onToggleLike,
 }: ImmersiveViewProps) {
@@ -687,6 +689,7 @@ export function ImmersiveView({
                 stacked={panelBelow}
                 onClose={onClose}
                 onNavigateToArtist={onNavigateToArtist}
+                onNavigateToAlbum={onNavigateToAlbum}
                 isLiked={isLiked}
                 onToggleLike={onToggleLike}
               />

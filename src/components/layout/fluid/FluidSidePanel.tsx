@@ -12,6 +12,7 @@ import { forwardArrowKey } from "../../../lib/direction";
 
 interface FluidSidePanelProps {
   onNavigateToArtist: (artistId: number) => void;
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToRemoteArtist: (artistId: string) => void;
 }
 
@@ -28,6 +29,7 @@ interface FluidSidePanelProps {
  */
 export function FluidSidePanel({
   onNavigateToArtist,
+  onNavigateToAlbum,
   onNavigateToRemoteArtist,
 }: FluidSidePanelProps) {
   const { t } = useTranslation();
@@ -133,6 +135,7 @@ export function FluidSidePanel({
             <NowPlayingPanel
               embedded
               onNavigateToArtist={onNavigateToArtist}
+              onNavigateToAlbum={onNavigateToAlbum}
               onNavigateToRemoteArtist={onNavigateToRemoteArtist}
             />
           )}

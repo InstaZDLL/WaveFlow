@@ -1176,6 +1176,7 @@ export function AppLayout() {
               {fluidPanel && activeRightPanel != null && (
                 <FluidSidePanel
                   onNavigateToArtist={navigateToArtist}
+                  onNavigateToAlbum={navigateToAlbum}
                   onNavigateToRemoteArtist={navigateToRemoteArtist}
                 />
               )}
@@ -1183,6 +1184,7 @@ export function AppLayout() {
               {!fluidPanel && activeRightPanel === "nowPlaying" && (
                 <NowPlayingPanel
                   onNavigateToArtist={navigateToArtist}
+                  onNavigateToAlbum={navigateToAlbum}
                   onNavigateToRemoteArtist={navigateToRemoteArtist}
                 />
               )}
@@ -1205,7 +1207,10 @@ export function AppLayout() {
           <ClipHost />
 
           {/* Bottom Player Bar */}
-          <PlayerBar onNavigateToArtist={navigateToArtist} />
+          <PlayerBar
+            onNavigateToArtist={navigateToArtist}
+            onNavigateToAlbum={navigateToAlbum}
+          />
         </div>
 
         <ProfileSelectorModal

@@ -656,14 +656,21 @@
 :root[data-skin="liquid"] footer [class*="tabular"] {
   color: var(--fe-ink-2) !important;
 }
+/* The track's title is a button too, since it opens the album, but it
+   keeps the title's colour: in the controls' ink it read as dim as the
+   artist under it. */
 :root[data-skin="liquid"] footer :where(button) {
-  color: var(--fe-ink-2) !important;
   transition:
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease),
     transform 100ms var(--fe-ease);
 }
-:root[data-skin="liquid"] footer :where(button:hover) {
+:root[data-skin="liquid"] footer :where(button:not([data-now-playing-title])) {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-skin="liquid"]
+  footer
+  :where(button:not([data-now-playing-title]):hover) {
   color: var(--fe-ink) !important;
 }
 :root[data-skin="liquid"] footer :where(button:active) {
