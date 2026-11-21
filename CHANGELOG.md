@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.3.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.2.0...v2.3.0) (2026-11-21)
+
+
+### Features
+
+* **player:** open the album from the playing track's title ([bc78b75](https://github.com/InstaZDLL/WaveFlow/commit/bc78b75edde9c13a8ae5c177c4b869e58bb1bd8f))
+* **player:** open the album from the playing track's title ([e7d2e1f](https://github.com/InstaZDLL/WaveFlow/commit/e7d2e1fe58cbda75006fd774afe6e3a5e4919769))
+
+
+### Bug Fixes
+
+* **clip:** ask again for a clip on a share when the sources change ([9e6c46f](https://github.com/InstaZDLL/WaveFlow/commit/9e6c46f52b4744afb1dcc7ac8f83f2d9976cef32))
+* **clip:** give each clip address its own grant and settle ties by name ([9e4c481](https://github.com/InstaZDLL/WaveFlow/commit/9e4c48136d78283c51db639f61cd29b1ff1bf861))
+* **clip:** play a track's music video when the track lies on a share ([a3a9b3a](https://github.com/InstaZDLL/WaveFlow/commit/a3a9b3a79b21dad5516586bfd14672054d64c4d2))
+* **clip:** play a track's music video when the track lies on a share ([8c6fbf7](https://github.com/InstaZDLL/WaveFlow/commit/8c6fbf7f89d73bdb4dff145ebe09314fd3cdfa8e)), refs [#1133](https://github.com/InstaZDLL/WaveFlow/issues/1133)
+* **clip:** read a clip on a share through the source it was found on ([bb43967](https://github.com/InstaZDLL/WaveFlow/commit/bb43967c7af5af7233ffe1deec28544d09e36f66))
+* **i18n:** use 测试版 consistently in zh-CN update channel text ([c424336](https://github.com/InstaZDLL/WaveFlow/commit/c424336a1b414e9e7d424949f6f008aa0de02782))
+* **i18n:** use 测试版 consistently in zh-CN updateChannel subtitle ([b9fedc8](https://github.com/InstaZDLL/WaveFlow/commit/b9fedc895ee6c7d7c872ea39e30c061db98313c5))
+* **i18n:** use 问题反馈 for the bug-report hint in zh-CN ([2528e4c](https://github.com/InstaZDLL/WaveFlow/commit/2528e4cd499e59f6ad45eb0bf47c8a9b58355271))
+* **i18n:** use 问题反馈 for the bug-report hint in zh-CN ([745b92d](https://github.com/InstaZDLL/WaveFlow/commit/745b92d980ae6454d10e7a320fa37f467d5db88d))
+* **lyrics:** read beside the file the session opened, even on a failed lookup ([22519d4](https://github.com/InstaZDLL/WaveFlow/commit/22519d4241fc3798166ee3db4d2954bc55056293))
+* **lyrics:** read no file when two queued names are shown alike ([f666b5e](https://github.com/InstaZDLL/WaveFlow/commit/f666b5eb547ad1000c2c16a32f0b5d0046435405))
+* **lyrics:** read the sidecar beside a file played without importing it ([71c32ce](https://github.com/InstaZDLL/WaveFlow/commit/71c32ce94a71c263f800d7553ab7a77a54a213d8))
+* **lyrics:** read the sidecar beside a file played without importing it ([8b4ce52](https://github.com/InstaZDLL/WaveFlow/commit/8b4ce5211435d3ccb484a656373e153eb1cb97ee)), refs [#1128](https://github.com/InstaZDLL/WaveFlow/issues/1128)
+* **netlib:** drop the last profile's shares in the profile swap itself ([3f1c56a](https://github.com/InstaZDLL/WaveFlow/commit/3f1c56ae2d3863fe81df100712e2dc777963bfaa))
+* **netlib:** drop the last profile's shares in the profile swap itself ([bb87833](https://github.com/InstaZDLL/WaveFlow/commit/bb87833a31b7d6999a6fedcc4c7822c22f8ba1d3)), refs [#1143](https://github.com/InstaZDLL/WaveFlow/issues/1143)
+* **netlib:** keep a read in the cache of the profile its source is of ([1e06415](https://github.com/InstaZDLL/WaveFlow/commit/1e0641570b9794a4adf7aa365410a89acb1ff765))
+* **netlib:** resolve a share for the database that names it ([8161b75](https://github.com/InstaZDLL/WaveFlow/commit/8161b75d0eaa042c6aa246593c227d668ea21a09))
+* **netlib:** resolve a share for the database that names it ([abd5d63](https://github.com/InstaZDLL/WaveFlow/commit/abd5d63b45f51328f7cb40daf3c045702ca09056))
+* **player:** drop a held seek once a load starts, and spend it only after the claim ([60b780d](https://github.com/InstaZDLL/WaveFlow/commit/60b780de567568679fe793b429687b7e3863eaf5))
+* **player:** give a music video the gain the engine gives its track ([87d4fe2](https://github.com/InstaZDLL/WaveFlow/commit/87d4fe287d7013eb7d2aed9e73d0b408719fe674))
+* **player:** give a music video the gain the engine gives its track ([35b63db](https://github.com/InstaZDLL/WaveFlow/commit/35b63db073ef670f3eb97df7f9e713dc71a93afc))
+* **player:** hold a seek made before anything is loaded for the next play ([410df73](https://github.com/InstaZDLL/WaveFlow/commit/410df7386e61cf6aa0e22f05e7c8daa921ceb277))
+* **player:** hold a seek made before anything is loaded for the next play ([9734b98](https://github.com/InstaZDLL/WaveFlow/commit/9734b986e69081a425711f9075323c6ebbec868c)), refs [#1129](https://github.com/InstaZDLL/WaveFlow/issues/1129)
+* **player:** hold no seek on a source play does not resume ([4e4c4bb](https://github.com/InstaZDLL/WaveFlow/commit/4e4c4bb24aa191243959f00d33cfcd76b8243608))
+* **player:** let a seek behind a load on its way follow it ([691838d](https://github.com/InstaZDLL/WaveFlow/commit/691838d6bce9543c8cd9ef7b150695b3ecd49cd3))
+* **player:** send a loudness switch and publish it in one step ([42b63be](https://github.com/InstaZDLL/WaveFlow/commit/42b63be821005bdd71d6c359ba6af319e50713fc))
+* **player:** take a held seek after the resume's claim, and hold none during a profile switch ([8af389e](https://github.com/InstaZDLL/WaveFlow/commit/8af389eb02cdd666095d387300545fc79e78cbeb))
+* **player:** take a held seek only for the track the resume loads ([903247e](https://github.com/InstaZDLL/WaveFlow/commit/903247ebf0916b093e52cac0236f378dc5b74745))
+* **player:** take a load gain only while the decoder is on it, and re-ask after shuffle applies ([98d99b8](https://github.com/InstaZDLL/WaveFlow/commit/98d99b809e4cf233b9ea4be886099bc5fddbe053))
+* **scan:** check what changed after a batch commit someone waited on ([b794453](https://github.com/InstaZDLL/WaveFlow/commit/b794453f454996bc9f2b4c1e89d480bbe581cb6f))
+* **scan:** leave a track whose file was rewritten while the scan stepped aside ([f79f67a](https://github.com/InstaZDLL/WaveFlow/commit/f79f67a2d044ab334b15af04bbedfceef5863dcb))
+* **scan:** let a waiting write through instead of holding it out for a batch ([87e0b3c](https://github.com/InstaZDLL/WaveFlow/commit/87e0b3c6799caeeb1229faac312e380ff2266689))
+* **scan:** let a waiting write through instead of holding it out for a batch ([1edf7bd](https://github.com/InstaZDLL/WaveFlow/commit/1edf7bd061b377b95cdae81d5178e94dbea11b83))
+* **scan:** see a write that slipped in between two batches without waiting ([573a43a](https://github.com/InstaZDLL/WaveFlow/commit/573a43a1aa9fcfa54f53e931ed9957620814f5ac))
+* **ui:** anchor a context menu on the element it opened on ([406819d](https://github.com/InstaZDLL/WaveFlow/commit/406819d8a8b7b732a2ca74ba09805df68ecb1969))
+* **ui:** close a context menu on any scroll once its row has left the page ([1993204](https://github.com/InstaZDLL/WaveFlow/commit/1993204c8728c4fbef4cef67c4a032075e697222))
+* **ui:** draw closed selects in the page's colours on every platform ([fa7609d](https://github.com/InstaZDLL/WaveFlow/commit/fa7609d016b3c95dba651f76022e78c30189ebd0)), refs [#1131](https://github.com/InstaZDLL/WaveFlow/issues/1131)
+* **ui:** keep a context menu open while another region scrolls ([e3239c0](https://github.com/InstaZDLL/WaveFlow/commit/e3239c09b384cfa777a1d75919ee25ddf700c82b))
+* **ui:** keep a context menu open while another region scrolls ([54ca41a](https://github.com/InstaZDLL/WaveFlow/commit/54ca41a20b9cda854347f64f5e84ef165c2456d9)), refs [#1135](https://github.com/InstaZDLL/WaveFlow/issues/1135)
+
 ## [2.2.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.1.0...v2.2.0) (2026-11-17)
 
 
