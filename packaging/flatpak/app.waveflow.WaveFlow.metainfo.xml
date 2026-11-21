@@ -140,6 +140,58 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2.3.0" date="2026-11-21">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.3.0</url>
+      <description>
+        <p>The playing track's title opens its album, and music videos reach the immersive view and network shares.</p>
+        <ul>
+          <li>The title of the playing track opens its album, from the player bar, the now-playing panel and the immersive view</li>
+          <li>The immersive view can switch to the playing track's music video</li>
+          <li>A track on an SMB or WebDAV share plays its music video</li>
+          <li>A music video plays at its track's level, with the same ReplayGain and normalization</li>
+          <li>Playing a track no longer waits for a library scan to finish its batch</li>
+          <li>A file played without importing it shows the lyrics in its tag or in the .lrc file beside it</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.2.0" date="2026-11-17">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.2.0</url>
+      <description>
+        <p>Music videos from WaveFlow Server, steadier playback after an audio interruption, and old Chinese, Japanese and Korean tags read correctly. Each profile's database gets one small change, after a verified backup.</p>
+        <ul>
+          <li>A server track's music video plays like a local one, with WaveFlow Server 2.3.0 or later</li>
+          <li>After the audio output restarts, the track that was playing resumes, at its position</li>
+          <li>Short audio interruptions under PipeWire recover in place</li>
+          <li>MP3 tags written in an old Chinese, Japanese or Korean code page show their real titles</li>
+          <li>Log times are in local time, with their offset from UTC</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.1.0" date="2026-11-14">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.1.0</url>
+      <description>
+        <p>Music videos play beside their song, synced lyrics can be read ahead, and a track with no album shows the cover inside its file. Each profile's database gets one small change, after a verified backup.</p>
+        <ul>
+          <li>A video named like a song, beside it or in a Clips folder next to it, becomes that song's music video</li>
+          <li>The player bar drives the music video while it is shown, and switching between audio and video keeps the position</li>
+          <li>Synced lyrics can be scrolled while they play, and stop pulling back to the sung line</li>
+          <li>A track with no album shows the cover inside its file</li>
+        </ul>
+      </description>
+    </release>
+    <release version="2.0.2" date="2026-11-13">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.0.2</url>
+      <description>
+        <p>Fixes for artists, scrobbling, lyrics and the window frame.</p>
+        <ul>
+          <li>Two artists spelt alike stay two artists when the files carry their MusicBrainz identifiers</li>
+          <li>Last.fm receives a track under its main artist rather than its whole credit</li>
+          <li>Undo in the tag workshop restores every Album Artist value</li>
+          <li>The active lyrics line no longer shakes on macOS</li>
+          <li>The title bar WaveFlow draws on Linux can minimise and maximise the window</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.1" date="2026-11-10">
       <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v2.0.1</url>
       <description>
