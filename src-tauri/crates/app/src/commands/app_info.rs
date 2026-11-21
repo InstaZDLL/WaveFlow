@@ -33,6 +33,18 @@ pub async fn get_app_info(state: tauri::State<'_, AppState>) -> AppResult<AppInf
     })
 }
 
+/// The version of the SQLite library the app runs on, as the library
+/// reports it, for the About page. The other versions there are read from
+/// the lockfiles when the frontend is built; this one is asked of the
+/// linked library, so a build that links another SQLite still shows its own.
+#[tauri::command]
+pub fn get_sqlite_version() -> String {
+    // SAFETY: `sqlite3_libversion` takes no argument and returns a pointer to
+    // a static, NUL-terminated string that lives as long as the library.
+    let version = unsafe { std::ffi::CStr::from_ptr(libsqlite3_sys::sqlite3_libversion()) };
+    version.to_string_lossy().into_owned()
+}
+
 #[tauri::command]
 pub async fn open_data_folder(
     state: tauri::State<'_, AppState>,

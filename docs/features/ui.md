@@ -974,6 +974,10 @@ The nine categories, what each one houses, the settings search and the card layo
 
 The About view renders the release history without a network call: [`build.rs`](../../src-tauri/crates/app/build.rs) parses `git log` at **compile time** and embeds the result, so the shipped binary carries its own changelog and offline installs still show it.
 
+### Library versions
+
+The versions the About view lists are never typed by hand, so a dependency bump cannot leave them stale. [`vite.config.ts`](../../vite.config.ts) reads them when the frontend is built — the crates from `src-tauri/Cargo.lock` (the newest when one is locked at several versions), the npm packages from their installed `package.json`, the Rust edition from the app crate's manifest — and inlines them as `__DEPENDENCY_VERSIONS__`; a package that goes missing fails the build instead of leaving a blank line. SQLite is the exception: `get_sqlite_version` asks the linked library at runtime, so a build that links another SQLite shows its own.
+
 ## Theme system
 
 [`THEME_PRESETS`](../../src/lib/themes.ts) ships 14 presets split into two visual rows:
