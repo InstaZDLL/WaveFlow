@@ -258,13 +258,15 @@ export function AboutView({
   }, []);
   // The other library versions are read from the lockfiles at build time
   // (`__DEPENDENCY_VERSIONS__`); SQLite's is asked of the linked library.
-  const [sqliteVersion, setSqliteVersion] = useState<string>("");
+  // "…" while it answers, "—" if it cannot, so the line is never blank.
+  const [sqliteVersion, setSqliteVersion] = useState<string>("…");
   useEffect(() => {
     getSqliteVersion()
       .then(setSqliteVersion)
-      .catch((err) =>
-        console.error("[AboutView] getSqliteVersion failed", err),
-      );
+      .catch((err) => {
+        console.error("[AboutView] getSqliteVersion failed", err);
+        setSqliteVersion("—");
+      });
   }, []);
   const versions = __DEPENDENCY_VERSIONS__;
 
