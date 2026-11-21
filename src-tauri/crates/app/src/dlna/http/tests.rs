@@ -205,3 +205,149 @@ fn mime_for_path_recognises_lossless_and_lossy() {
     assert_eq!(mime_for_path("a.ape"), "audio/x-ape");
     assert_eq!(mime_for_path("a.unknown"), "application/octet-stream");
 }
+
+/// Range headers a hostile or broken client can send. None of them may make
+/// the server name a byte outside the file, or fail in any other way than
+/// by ignoring the header or answering `416`: the DLNA stream and the media
+/// loopback both read their `Range` through `parse_range`.
+const HOSTILE_RANGES: &[&str] = &[
+    "bytes=",
+    "bytes=-",
+    "bytes=--",
+    "bytes=0--1",
+    "bytes=-1-",
+    "bytes=1-0",
+    "bytes=1-2-3",
+    "bytes=5",
+    "bytes=a-",
+    "bytes=0x10-20",
+    "bytes=+5-10",
+    "bytes= 5 - 10 ",
+    "bytes=\t1-2",
+    "bytes=5-10 , 20-30",
+    "BYTES=0-1",
+    "bytes=0-0",
+    "bytes=-1",
+    "bytes=999-",
+    "bytes=1000-",
+    "bytes=18446744073709551615-",
+    "bytes=18446744073709551616-",
+    "bytes=0-18446744073709551615",
+    "bytes=0-18446744073709551616",
+    "bytes=-18446744073709551615",
+    "bytes=-18446744073709551616",
+    "bytes=18446744073709551615-18446744073709551615",
+    "bytes=999999999999999999999999999-",
+    "bytes=\u{ff19}-10",
+];
+
+#[test]
+fn parse_range_never_names_a_byte_outside_the_file() {
+    for &total in &[0, 1, 2, 1000, u64::MAX] {
+        for &raw in HOSTILE_RANGES {
+            let reply = parse_range(Some(raw), total);
+            if let RangeReply::Partial { start, end } = reply {
+                assert!(
+                    start <= end && end < total,
+                    "{raw:?} of {total} bytes gave {start}-{end}"
+                );
+            }
+            match reply.window(total) {
+                Some((status, start, length)) => {
+                    assert!(
+                        status == StatusCode::OK || status == StatusCode::PARTIAL_CONTENT,
+                        "{raw:?} of {total} bytes: {status}"
+                    );
+                    assert!(
+                        start.checked_add(length).is_some_and(|end| end <= total),
+                        "{raw:?} of {total} bytes: {length} bytes from {start}"
+                    );
+                }
+                None => assert!(total > 0, "{raw:?}: a 416 for an empty file"),
+            }
+        }
+    }
+}
+
+/// The same headers through the real stream handler, on a real file: each
+/// is answered `200`, `206` or `416`, never an error, and a body is exactly
+/// the bytes its headers announce. A header that is not text (obs-text) is
+/// ignored like any malformed one.
+#[tokio::test]
+async fn a_hostile_range_is_answered_and_never_breaks_the_stream() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("track.flac");
+    let bytes: Vec<u8> = (0..1000u32).map(|i| (i % 251) as u8).collect();
+    std::fs::write(&path, &bytes).unwrap();
+
+    // One connection: every connection to `sqlite::memory:` is a database
+    // of its own.
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::query(
+        "CREATE TABLE track (id INTEGER PRIMARY KEY, file_path TEXT NOT NULL,
+                             is_available INTEGER NOT NULL)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO track (id, file_path, is_available) VALUES (1, ?, 1)")
+        .bind(path.to_string_lossy().into_owned())
+        .execute(&pool)
+        .await
+        .unwrap();
+    let ctx = Arc::new(ServerCtx {
+        server_name: "WaveFlow".into(),
+        base_url: "http://127.0.0.1:0".into(),
+        pool,
+        profile_artwork_dir: dir.path().join("artwork"),
+        metadata_artwork_dir: dir.path().join("metadata_artwork"),
+        labels: Default::default(),
+    });
+
+    let mut values: Vec<HeaderValue> = HOSTILE_RANGES
+        .iter()
+        .map(|raw| HeaderValue::from_str(raw).unwrap())
+        .collect();
+    values.push(HeaderValue::from_bytes(b"bytes=\xff0-1").unwrap());
+
+    for value in values {
+        let mut request = HeaderMap::new();
+        request.insert(header::RANGE, value.clone());
+        let response = serve_stream(State(ctx.clone()), Path(1), request).await;
+        let status = response.status();
+        let headers = response.headers().clone();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        match status {
+            StatusCode::RANGE_NOT_SATISFIABLE => {
+                assert_eq!(headers[header::CONTENT_RANGE], "bytes */1000", "{value:?}");
+                assert!(body.is_empty(), "{value:?}");
+            }
+            StatusCode::OK => assert_eq!(&body[..], &bytes[..], "{value:?}"),
+            StatusCode::PARTIAL_CONTENT => {
+                let range = headers[header::CONTENT_RANGE].to_str().unwrap();
+                let (span, total) = range
+                    .strip_prefix("bytes ")
+                    .and_then(|r| r.split_once('/'))
+                    .unwrap();
+                assert_eq!(total, "1000", "{value:?}");
+                let (start, end) = span.split_once('-').unwrap();
+                let (start, end): (usize, usize) = (start.parse().unwrap(), end.parse().unwrap());
+                assert_eq!(&body[..], &bytes[start..=end], "{value:?}");
+            }
+            other => panic!("{value:?} was answered {other}"),
+        }
+        if status != StatusCode::RANGE_NOT_SATISFIABLE {
+            assert_eq!(
+                headers[header::CONTENT_LENGTH],
+                body.len().to_string().as_str(),
+                "{value:?}"
+            );
+        }
+    }
+}
