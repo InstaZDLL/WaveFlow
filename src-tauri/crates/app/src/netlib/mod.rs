@@ -308,6 +308,10 @@ struct Registry {
     /// profile active ([`profile_changed`]): a reload read for another
     /// profile installs nothing.
     profile: Option<i64>,
+    /// The database the sources were read from, the profile's own: a reader
+    /// that still holds the database of the profile left (a lease taken
+    /// before a switch) resolves none of them ([`source_in`]).
+    db: Option<std::path::PathBuf>,
     sources: HashMap<String, Arc<Source>>,
     cache_dir: Option<std::path::PathBuf>,
     cache_max_bytes: u64,
@@ -335,6 +339,29 @@ fn notify_changed() {
 /// The source a locator names, in the active profile.
 pub fn source(uuid: &str) -> Option<Arc<Source>> {
     registry().read().ok()?.sources.get(uuid).cloned()
+}
+
+/// The database file a pool reads, what [`source_in`] compares.
+pub(crate) fn db_of(pool: &SqlitePool) -> std::path::PathBuf {
+    pool.connect_options().get_filename().to_path_buf()
+}
+
+/// The source a locator names, for a reader of the database `db`: none when
+/// the sources in memory were read from another one. A walk or a lookup that
+/// holds a lease of the profile left, still running after a switch, must
+/// not reach the next profile's share of the same uuid and write what it
+/// lists into the profile left (#1143, the other way round).
+pub fn source_in(db: &Path, uuid: &str) -> Option<Arc<Source>> {
+    let registry = registry().read().ok()?;
+    if registry.db.as_deref() != Some(db) {
+        return None;
+    }
+    registry.sources.get(uuid).cloned()
+}
+
+/// [`source_in`] for the database `pool` reads.
+pub fn source_for(pool: &SqlitePool, uuid: &str) -> Option<Arc<Source>> {
+    source_in(&db_of(pool), uuid)
 }
 
 fn all_sources() -> Vec<Arc<Source>> {
@@ -443,6 +470,7 @@ pub async fn reload(
             );
             return Ok(());
         }
+        registry.db = Some(db_of(pool));
         registry.sources = sources;
         registry.cache_dir = Some(cache_dir);
         registry.cache_max_bytes = max_gb * 1024 * 1024 * 1024;
@@ -490,6 +518,7 @@ pub fn profile_changed(profile_id: Option<i64>) {
     {
         let mut registry = registry().write().unwrap_or_else(PoisonError::into_inner);
         registry.profile = profile_id;
+        registry.db = None;
         registry.sources.clear();
         registry.cache_dir = None;
     }
@@ -673,7 +702,7 @@ async fn rescan_all(app: &AppHandle) {
             return;
         }
         let down = network_locator::parse(&path)
-            .and_then(|p| source(p.source))
+            .and_then(|p| source_for(&pool, p.source))
             .map_or(true, |s| s.is_down());
         if down {
             continue;

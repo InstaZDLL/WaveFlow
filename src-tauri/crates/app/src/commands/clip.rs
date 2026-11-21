@@ -57,8 +57,9 @@ pub async fn get_track_clip(
     let (row, share) = {
         // Released before the lookup, which can wait on a slow disk or a
         // share: a profile switch waits for every lease to come back. The
-        // share is resolved while the lease is held, so that it is this
-        // profile's source of that uuid, not the next one's.
+        // share is resolved for this lease's database, so that it is this
+        // profile's source of that uuid, not the next one's: a switch can
+        // swap the sources while the lease is still held.
         let pool = state.require_profile_pool().await?;
         let row: Option<(String,)> = sqlx::query_as("SELECT file_path FROM track WHERE id = ?")
             .bind(track_id)
@@ -66,7 +67,7 @@ pub async fn get_track_clip(
             .await?;
         let share = row.as_ref().and_then(|(path,)| {
             let parsed = waveflow_core::network_locator::parse(path)?;
-            crate::netlib::source(parsed.source)
+            crate::netlib::source_for(&pool, parsed.source)
         });
         (row, share)
     };

@@ -151,15 +151,17 @@ fn absorb(
 }
 
 /// List a share's folder, reporting as it goes and stoppable. `Ok(None)` when
-/// stopped, which like an error yields no list.
+/// stopped, which like an error yields no list. The share is the one the
+/// database `db` names ([`super::source_in`]), the one the scan writes to.
 pub fn walk(
     folder: &str,
+    db: &std::path::Path,
     mut on_progress: impl FnMut(usize, String),
     should_stop: impl Fn() -> bool,
 ) -> Result<Option<Listing>, NetError> {
     let parsed = network_locator::parse(folder)
         .ok_or_else(|| NetError::Protocol("not a network folder".into()))?;
-    let source = super::source(parsed.source)
+    let source = super::source_in(db, parsed.source)
         .ok_or_else(|| NetError::Protocol("this network source is not available".into()))?;
     let uuid = parsed.source.to_string();
     let mut listing = Listing {

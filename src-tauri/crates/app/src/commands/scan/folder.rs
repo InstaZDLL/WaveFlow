@@ -162,6 +162,9 @@ pub(crate) async fn scan_folder_inner(
     // with it and comes back: the walk reports through it (files found,
     // the directory it is in, no total yet) and watches its stop flag.
     let folder_path_owned = folder_path.clone();
+    // A share is resolved for this database: a scan holding a lease of a
+    // profile left behind finds none of the next profile's shares.
+    let db = crate::netlib::db_of(pool);
     let (walked, task, network) = tokio::task::spawn_blocking(move || {
         // A share is listed in its own way, and what it answers replaces the
         // `fs::metadata` calls and file opens below. Its walk gives a whole
@@ -170,6 +173,7 @@ pub(crate) async fn scan_folder_inner(
         if waveflow_core::network_locator::is_locator(&folder_path_owned) {
             let walked = crate::netlib::scan::walk(
                 &folder_path_owned,
+                &db,
                 |found, dir| {
                     if let Some(task) = task.as_ref() {
                         task.progress(found as u64, 0);
