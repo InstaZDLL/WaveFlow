@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   X,
+  Clapperboard,
   PanelBottom,
   PanelRight,
   Mic2,
@@ -37,7 +38,8 @@ import { CanvasToggleButton } from "./CanvasToggleButton";
 import { CanvasPickerModal } from "../common/CanvasPickerModal";
 import { LINUX } from "../../hooks/usePlayableVideo";
 import { ClipStage } from "./ClipStage";
-import { useOpenClip } from "../../lib/clipPlayer";
+import { openClipForTrack, useOpenClip } from "../../lib/clipPlayer";
+import { useTrackClip } from "../../hooks/useTrackClip";
 
 /** Below this width the dual-column layout collapses to a single column
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
@@ -160,6 +162,8 @@ export function ImmersiveView({
   const canvasEnabled = useCanvasEnabled();
   const reducedMotion = usePrefersReducedMotion();
   const canvasPath = useTrackCanvas(currentTrack);
+  // The playing track's music video, probed as the now-playing panel does.
+  const trackClip = useTrackClip(currentTrack, true);
   const [canvasPickerOpen, setCanvasPickerOpen] = useState(false);
   // Freeze the target track + its Canvas state when the picker opens, so an
   // auto-advance to the next track mid-dialog can't redirect a set/remove
@@ -611,6 +615,23 @@ export function ImmersiveView({
                 <Mic2 size={22} />
               </button>
             ))}
+          {/* Open the track's music video (#1073), as the now-playing
+              panel's "Switch to video" does: the clip covers this view
+              (`ClipStage`), whose own controls go back to the audio. The
+              clapperboard, not the Canvas's play square beside it. */}
+          {currentTrack && trackClip && (
+            <button
+              type="button"
+              onClick={() =>
+                openClipForTrack(currentTrack, trackClip, currentTrack)
+              }
+              aria-label={t("clip.switchToVideo")}
+              title={t("clip.switchToVideo")}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition-colors"
+            >
+              <Clapperboard size={22} />
+            </button>
+          )}
           {/* Show Canvas toggle — only when the current track has a Canvas
               and motion isn't reduced (never a dead control). */}
           {canvasShowable && canvasAvailable && (
