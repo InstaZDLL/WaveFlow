@@ -234,6 +234,7 @@ pub fn run() {
             commands::display_backend::display_backend_set_xwayland,
             commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
+            commands::app_info::get_sqlite_version,
             commands::app_info::open_data_folder,
             commands::app_info::open_external_url,
             commands::changelog::get_changelog,
