@@ -798,6 +798,10 @@ impl SharedPlayback {
     /// halves of the rule read the same word: a producer raises it when it
     /// commits to publishing, and [`accept_load`](super::decoder) drops
     /// anything that arrives below it.
+    // Rust 1.100 renamed `fetch_update` to `try_update`, which is stable only
+    // from 1.95, past the MSRV `clippy.toml` declares (1.80). The old name
+    // does the same thing; it stays until the MSRV moves.
+    #[allow(deprecated)]
     pub fn try_claim_load(&self, intent: u64) -> bool {
         self.newest_load_intent
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |newest| {

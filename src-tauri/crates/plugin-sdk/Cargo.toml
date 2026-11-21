@@ -13,6 +13,3 @@ publish = false
 # (manifest schema version, supported world versions) that both the
 # host (`waveflow-core`) and the future `waveflow-plugin` author crate
 # import without duplicating.
-
-[dependencies]
-serde = { version = "1", features = ["derive"] }

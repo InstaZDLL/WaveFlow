@@ -215,8 +215,22 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
-          toolchain: 1.98.0
+          toolchain: 1.100.0
           targets: ${{ matrix.platform == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Add the macOS targets to the tag's own toolchain
+        if: matrix.platform == 'macos'
+        shell: bash
+        # The step above gives its targets to the toolchain it names, but the
+        # checked-out tag's rust-toolchain.toml decides which compiler cargo
+        # runs. An older tag rebuilt by this workflow pins an older one, which
+        # would build the universal bundle with neither target. Install the
+        # toolchain the tag pins and give it both targets; on a tag that pins
+        # the same version, both commands find everything already there.
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustc --version
 
       - name: Cache Cargo build
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
