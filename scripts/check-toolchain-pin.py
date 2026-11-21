@@ -4,7 +4,7 @@
 `rust-toolchain.toml` is read by rustup, and the workflows deliberately
 do not read it: rustup would install `stable` first and then download
 the pinned toolchain again on the first cargo call. The version is
-therefore written in six places, and nothing made them agree.
+therefore written in seven places, and nothing made them agree.
 
 That is a silent failure, which is the only kind worth a script. Bump
 the file, forget `release.yml`, and CI stays green while the release is
