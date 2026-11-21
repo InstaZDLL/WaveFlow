@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Heart, Star, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { MotionCoverOverlay } from "./MotionCoverOverlay";
 import { CanvasStage } from "./CanvasStage";
 import { CoverSlideshow } from "./CoverSlideshow";
+import { AlbumLink } from "../common/AlbumLink";
+import { NowPlayingTitleLink } from "./NowPlayingTitleLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { MarqueeText } from "../common/MarqueeText";
 import { PlaybackControls } from "./PlaybackControls";
@@ -32,6 +34,9 @@ interface ImmersiveNowPlayingProps {
   /** Dismisses the immersive view (used after an artist navigation). */
   onClose: () => void;
   onNavigateToArtist: (artistId: number) => void;
+  /** Opens the track's album from the title and the album line, then
+   *  closes the view, as an artist link does. */
+  onNavigateToAlbum: (albumId: number) => void;
   isLiked: boolean;
   onToggleLike: () => void;
   /** The panel is docked below (portrait window, #1077): the column has
@@ -69,6 +74,7 @@ const STACKED_PADDING_Y = "pt-20 pb-10";
 export function ImmersiveNowPlaying({
   onClose,
   onNavigateToArtist,
+  onNavigateToAlbum,
   isLiked,
   onToggleLike,
   stacked = false,
@@ -164,6 +170,12 @@ export function ImmersiveNowPlaying({
 
   const title = currentTrack?.title ?? t("player.noTrack");
   const album = currentTrack?.album_title;
+  const albumId = currentTrack?.album_id ?? null;
+  const titleLinkRef = useRef<HTMLButtonElement>(null);
+  const openAlbum = (id: number) => {
+    onNavigateToAlbum(id);
+    onClose();
+  };
 
   return (
     // Whole stack (cover → metadata → transport) is centred together as
@@ -228,10 +240,14 @@ export function ImmersiveNowPlaying({
             `aria-haspopup`) only when a menu is actually available, so
             the Menu key / Shift+F10 reach it without a mouse (issue
             #436). Deliberately NOT `role="button"`: it opens a menu but
-            it is still the heading, and Enter/Space are left alone. */}
+            it is still the heading, and Enter/Space are left alone. When
+            the title also opens the album, that link is a button inside
+            the heading: the button is then the one tab stop, Enter opens
+            the album, and the Menu key pressed on it still opens the
+            track menu. */}
         <h1
           className="text-3xl md:text-4xl font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded"
-          tabIndex={menuTrack ? 0 : undefined}
+          tabIndex={menuTrack && albumId == null ? 0 : undefined}
           aria-haspopup={menuTrack ? "menu" : undefined}
           onContextMenu={
             menuTrack ? (e) => trackMenu.open(e, menuTrack) : undefined
@@ -239,13 +255,24 @@ export function ImmersiveNowPlaying({
           onKeyDown={
             menuTrack
               ? (e) => {
-                  if (e.target !== e.currentTarget) return;
+                  if (
+                    e.target !== e.currentTarget &&
+                    e.target !== titleLinkRef.current
+                  )
+                    return;
                   trackMenu.openFromKeyboard(e, menuTrack);
                 }
               : undefined
           }
         >
-          <MarqueeText text={title} className="leading-tight pb-1" />
+          <NowPlayingTitleLink
+            albumId={albumId}
+            onNavigate={openAlbum}
+            buttonRef={titleLinkRef}
+            className="mx-auto"
+          >
+            <MarqueeText text={title} className="leading-tight pb-1" />
+          </NowPlayingTitleLink>
         </h1>
         <div className="mt-2 text-lg text-white/80 flex items-center justify-center gap-3 flex-wrap">
           {currentTrack?.artist_name && (
@@ -261,7 +288,12 @@ export function ImmersiveNowPlaying({
           {album && (
             <>
               <span className="text-white/40">·</span>
-              <span className="truncate">{album}</span>
+              <AlbumLink
+                title={album}
+                albumId={albumId}
+                onNavigate={openAlbum}
+                className="truncate"
+              />
             </>
           )}
         </div>
