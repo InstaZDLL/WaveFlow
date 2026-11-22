@@ -4236,6 +4236,10 @@
   "ratingNotice": {
     "notInFile": "Valutazione salvata solo in WaveFlow: non è stato possibile scriverla nel file."
   },
+  "writeFailed": {
+    "like": "Preferiti non aggiornati. Riprova tra un attimo.",
+    "playlist": "Brani non aggiunti alla playlist. Riprova tra un attimo."
+  },
   "moodCuration": {
     "open": "Modifica i mood",
     "title": "Modifica i mood",

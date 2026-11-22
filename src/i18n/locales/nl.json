@@ -4121,6 +4121,10 @@
   "ratingNotice": {
     "notInFile": "Beoordeling alleen in WaveFlow opgeslagen: deze kon niet naar het bestand worden geschreven."
   },
+  "writeFailed": {
+    "like": "Favorieten niet bijgewerkt. Probeer het zo meteen opnieuw.",
+    "playlist": "Nummers niet aan de playlist toegevoegd. Probeer het zo meteen opnieuw."
+  },
   "moodCuration": {
     "open": "Stemmingen bewerken",
     "title": "Stemmingen bewerken",

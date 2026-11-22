@@ -4,6 +4,7 @@ import {
   type ListTracksResponse,
   type Track,
 } from "./track";
+import { announceWriteFailure } from "./writeFailed";
 
 /**
  * Playlist row returned by the Rust backend (mirrors
@@ -197,18 +198,26 @@ export async function listPlaylistTracks(playlistId: number): Promise<Track[]> {
   return expandTrackResponse(resp);
 }
 
+/** An addition that did not land is announced, for `WriteFailedToast`. */
 export function addTrackToPlaylist(
   playlistId: number,
   trackId: number,
 ): Promise<void> {
-  return invoke<void>("add_track_to_playlist", { playlistId, trackId });
+  return announceWriteFailure(
+    "playlist",
+    invoke<void>("add_track_to_playlist", { playlistId, trackId }),
+  );
 }
 
+/** An addition that did not land is announced, for `WriteFailedToast`. */
 export function addTracksToPlaylist(
   playlistId: number,
   trackIds: number[],
 ): Promise<number> {
-  return invoke<number>("add_tracks_to_playlist", { playlistId, trackIds });
+  return announceWriteFailure(
+    "playlist",
+    invoke<number>("add_tracks_to_playlist", { playlistId, trackIds }),
+  );
 }
 
 export function removeTrackFromPlaylist(
@@ -245,18 +254,22 @@ export function reorderPlaylistTrack(
 /**
  * Add every track belonging to a source (folder, album, artist) to a
  * playlist. The SELECT + INSERT runs server-side in one transaction so
- * no track IDs travel through the IPC bridge.
+ * no track IDs travel through the IPC bridge. An addition that did not
+ * land is announced, for `WriteFailedToast`.
  */
 export function addSourceToPlaylist(
   playlistId: number,
   sourceType: "folder" | "album" | "artist",
   sourceId: number,
 ): Promise<number> {
-  return invoke<number>("add_source_to_playlist", {
-    playlistId,
-    sourceType,
-    sourceId,
-  });
+  return announceWriteFailure(
+    "playlist",
+    invoke<number>("add_source_to_playlist", {
+      playlistId,
+      sourceType,
+      sourceId,
+    }),
+  );
 }
 
 export interface ImportPlaylistResult {

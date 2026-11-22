@@ -4121,6 +4121,10 @@
   "ratingNotice": {
     "notInFile": "Puan yalnızca WaveFlow'a kaydedildi: dosyaya yazılamadı."
   },
+  "writeFailed": {
+    "like": "Beğeniler güncellenmedi. Birazdan tekrar deneyin.",
+    "playlist": "Parçalar çalma listesine eklenmedi. Birazdan tekrar deneyin."
+  },
   "moodCuration": {
     "open": "Ruh hallerini düzenle",
     "title": "Ruh hallerini düzenle",

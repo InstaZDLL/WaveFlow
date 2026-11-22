@@ -4233,6 +4233,10 @@
   "ratingNotice": {
     "notInFile": "Valoración guardada solo en WaveFlow: no se pudo escribir en el archivo."
   },
+  "writeFailed": {
+    "like": "No se ha actualizado Me gusta. Inténtalo de nuevo en un momento.",
+    "playlist": "No se han añadido las canciones a la playlist. Inténtalo de nuevo en un momento."
+  },
   "moodCuration": {
     "open": "Editar estados de ánimo",
     "title": "Editar estados de ánimo",

@@ -4119,6 +4119,10 @@
   "ratingNotice": {
     "notInFile": "Penilaian hanya disimpan di WaveFlow: tidak dapat ditulis ke berkas."
   },
+  "writeFailed": {
+    "like": "Disukai tidak diperbarui. Coba lagi sebentar lagi.",
+    "playlist": "Lagu tidak ditambahkan ke playlist. Coba lagi sebentar lagi."
+  },
   "moodCuration": {
     "open": "Sunting mood",
     "title": "Sunting mood",
