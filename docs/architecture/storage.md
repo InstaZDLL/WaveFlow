@@ -117,7 +117,9 @@ Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile
 2. **`file_path`** — catches exactly that case: same file, different hash. Fails if the user reorganised their folders.
 3. **artist + title** — a re-rip or a different encoding. Loosest, deliberately last: it can't tell a live version from the studio one.
 
-Each step only claims what the previous one left, so a strong match is never overwritten by a weak one, and only `is_available = 1` tracks are matched (attaching to a vanished file would just re-orphan on the next pass).
+Each step only claims what the previous one left, so a strong match is never overwritten by a weak one, and only `is_available = 1` tracks are matched (attaching to a vanished file would just re-orphan on the next pass). Within a key the lowest track id wins, and artist and title compare as `NOCASE` does (ASCII letters folded).
+
+An orphan whose file never comes back is looked for again after every scan, so the search must not hold the write lock: neither `track.file_path` alone nor the title is indexed, and the three correlated `UPDATE`s it once was scanned the whole `track` table per orphan, inside one transaction (500 orphans on 20 000 tracks: 9 s of lock, on every scan). The pass reads the orphans, then the available tracks a page at a time keeping only the keys an orphan waits for, and writes only the events that found a track, in short transactions that start with their write and check that the event is still an orphan and the track still available.
 
 This gives stats a coherent split, worth knowing before writing a new query: **aggregate totals** (play count, listening time, the monthly histogram) read `play_event` directly and therefore survive a library delete — which is the whole point. **Per-item breakdowns** (top tracks, top artists) join `track` and so exclude orphans, because a row you can't name can't be rendered; they come back when the files are re-scanned.
 
