@@ -484,9 +484,23 @@ pub async fn fill_pending(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i64>
     // filling one shifts the ones after it, so the positions loaded above
     // are stale by the second fill. It reads before it writes, so the
     // transaction holds the lock from its start.
+    //
+    // The candidates were read before that lock: a sweep may have marked a
+    // matched track gone while this waited for it. Such a track is asked
+    // again under the lock and skipped, its placeholder kept for a later
+    // pass, rather than filled with a track the playlist would hide.
     let mut tx = super::write_lock::begin_write_on(pool, "playlist_placeholder").await?;
     let mut changed: Vec<i64> = Vec::new();
     for (id, track_id, playlist_id) in matches {
+        let available: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM track WHERE id = ? AND is_available = 1)",
+        )
+        .bind(track_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        if !available {
+            continue;
+        }
         if fill(&mut tx, id, track_id, now_ms).await?.is_some() && !changed.contains(&playlist_id) {
             changed.push(playlist_id);
         }

@@ -49,23 +49,35 @@ export function WriteFailedToast() {
     return () => window.clearTimeout(timer);
   }, [shown]);
 
-  if (shown == null) return null;
-
+  // The live region stays mounted, empty between failures: a screen reader
+  // announces what is put into a region it already knows, and may say
+  // nothing of one inserted with its text. The key sits on the message, so
+  // a repeat replaces it inside the same region.
   return createPortal(
     <div
-      key={shown.key}
       role="status"
       aria-live="polite"
-      className="fixed bottom-52 left-1/2 -translate-x-1/2 z-100 flex items-center gap-2 rounded-full border border-zinc-200 bg-white/95 px-4 py-2 text-sm text-zinc-700 shadow-xl backdrop-blur animate-fade-in dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-200"
+      className="fixed bottom-52 left-1/2 -translate-x-1/2 z-100"
     >
-      <AlertTriangle
-        size={16}
-        className="shrink-0 text-amber-500"
-        aria-hidden="true"
-      />
-      <span>
-        {t(shown.kind === "like" ? "writeFailed.like" : "writeFailed.playlist")}
-      </span>
+      {shown != null && (
+        <div
+          key={shown.key}
+          className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/95 px-4 py-2 text-sm text-zinc-700 shadow-xl backdrop-blur animate-fade-in dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-200"
+        >
+          <AlertTriangle
+            size={16}
+            className="shrink-0 text-amber-500"
+            aria-hidden="true"
+          />
+          <span>
+            {t(
+              shown.kind === "like"
+                ? "writeFailed.like"
+                : "writeFailed.playlist",
+            )}
+          </span>
+        </div>
+      )}
     </div>,
     document.body,
   );
