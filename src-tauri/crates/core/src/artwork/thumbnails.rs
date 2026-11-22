@@ -132,15 +132,9 @@ impl ThumbnailIndex {
         } else {
             // An error part-way through the listing would leave it short,
             // and a short listing calls present thumbnails missing: any
-            // error, at the open or on an entry, falls back to probing.
-            let listed = std::fs::read_dir(dir).and_then(|entries| {
-                entries
-                    .map(|entry| entry.map(|e| e.file_name().into_string().ok()))
-                    .filter_map(Result::transpose)
-                    .collect::<std::io::Result<std::collections::HashSet<String>>>()
-            });
-            match listed {
-                Ok(names) => Some(names),
+            // error on an entry falls back to probing, whatever its kind.
+            // Only a directory that is not there at the open lists as empty.
+            match std::fs::read_dir(dir) {
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                     Some(std::collections::HashSet::new())
                 }
@@ -148,6 +142,17 @@ impl ThumbnailIndex {
                     tracing::warn!(error = %e, "thumbnail directory not listable; probing per file");
                     None
                 }
+                Ok(entries) => match entries
+                    .map(|entry| entry.map(|e| e.file_name().into_string().ok()))
+                    .filter_map(Result::transpose)
+                    .collect::<std::io::Result<std::collections::HashSet<String>>>()
+                {
+                    Ok(names) => Some(names),
+                    Err(e) => {
+                        tracing::warn!(error = %e, "thumbnail directory listing failed; probing per file");
+                        None
+                    }
+                },
             }
         };
         Self {

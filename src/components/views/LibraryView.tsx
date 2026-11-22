@@ -1901,7 +1901,9 @@ export function LibraryView({
                   // Optimistic flip — the watcher hookup is fire-and-
                   // forget on the backend so the UI shouldn't block on it.
                   // The cached list is forgotten rather than patched: the
-                  // next visit asks again.
+                  // next visit asks again. Forgotten once more when the
+                  // write lands, since a listing read while it was on its
+                  // way may have cached the old flag in between.
                   dropLibraryLists("folders");
                   setFolders((prev) =>
                     prev.map((f) =>
@@ -1910,17 +1912,19 @@ export function LibraryView({
                         : f,
                     ),
                   );
-                  setFolderWatched(folderId, enable).catch((err) => {
-                    console.error("[LibraryView] toggle watched failed", err);
-                    // Roll back on error.
-                    setFolders((prev) =>
-                      prev.map((f) =>
-                        f.id === folderId
-                          ? { ...f, is_watched: enable ? 0 : 1 }
-                          : f,
-                      ),
-                    );
-                  });
+                  setFolderWatched(folderId, enable)
+                    .then(() => dropLibraryLists("folders"))
+                    .catch((err) => {
+                      console.error("[LibraryView] toggle watched failed", err);
+                      // Roll back on error.
+                      setFolders((prev) =>
+                        prev.map((f) =>
+                          f.id === folderId
+                            ? { ...f, is_watched: enable ? 0 : 1 }
+                            : f,
+                        ),
+                      );
+                    });
                 }}
               />
             )}
