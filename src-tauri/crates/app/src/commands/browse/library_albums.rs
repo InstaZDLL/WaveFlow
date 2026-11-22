@@ -150,21 +150,24 @@ pub async fn list_library_albums(
 
 /// Stitch thumbnail-existence flags onto the local half only.
 ///
-/// A remote hash names nothing in the profile's artwork directory, so probing
-/// for it would be `is_file` calls guaranteed to fail — once per remote album,
-/// twice each, on the blocking pool. The frontend resolves those covers
-/// through the server cover cache instead.
+/// A remote hash names nothing in the profile's artwork directory, so looking
+/// it up would be an answer guaranteed to be "missing" — once per remote album,
+/// twice each. The frontend resolves those covers through the server cover
+/// cache instead. The local half is answered by one
+/// [`ThumbnailIndex`](crate::thumbnails::ThumbnailIndex): a directory listing
+/// for a large library rather than two file probes per album.
 async fn expand_library_album_rows(
     raw: Vec<LibraryAlbumRawRow>,
     artwork_dir: PathBuf,
 ) -> AppResult<Vec<LibraryAlbumRow>> {
     tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
         raw.into_iter()
             .map(|row| {
                 let local = row.source == "local";
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
                     Some(hash) if local => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = thumbs.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     _ => (false, false),

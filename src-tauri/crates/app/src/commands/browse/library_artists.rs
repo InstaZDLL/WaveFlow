@@ -130,19 +130,29 @@ async fn expand_library_artist_rows(
     metadata_dir: PathBuf,
 ) -> AppResult<Vec<LibraryArtistRow>> {
     tokio::task::spawn_blocking(move || {
+        // Counted per directory: the Deezer pictures live in the shared
+        // metadata directory, and most artists have none.
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
+        let pictures = crate::thumbnails::ThumbnailIndex::new(
+            &metadata_dir,
+            raw.iter().filter(|r| r.picture_hash.is_some()).count(),
+        );
         raw.into_iter()
             .map(|r| {
                 let local = r.source == "local";
                 let (artwork_has_1x, artwork_has_2x) = match r.artwork_hash.as_deref() {
                     Some(hash) if local => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = thumbs.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     _ => (false, false),
                 };
                 let (picture_has_1x, picture_has_2x) = match r.picture_hash.as_deref() {
                     Some(hash) if local => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&metadata_dir, hash);
+                        let (p1, p2) = pictures.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     _ => (false, false),

@@ -86,11 +86,12 @@ async fn expand_genre_rows(
     artwork_dir: PathBuf,
 ) -> AppResult<Vec<GenreRow>> {
     tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
         raw.into_iter()
             .map(|row| {
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = thumbs.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),

@@ -113,11 +113,12 @@ pub async fn list_years(
 /// Thumbnail-existence flags, off the async thread like `expand_genre_rows`.
 async fn expand_year_rows(raw: Vec<YearRawRow>, artwork_dir: PathBuf) -> AppResult<Vec<YearRow>> {
     tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
         raw.into_iter()
             .map(|row| {
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = thumbs.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -165,9 +166,10 @@ pub async fn get_year_detail(
             .fetch_all(&*pool)
             .await?;
 
+    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, rows.len());
     let tracks: Vec<crate::commands::track::Track> = rows
         .into_iter()
-        .map(|row| detail_track(row, &artwork_dir))
+        .map(|row| detail_track(row, &thumbs))
         .collect();
 
     let cover = most_common_cover(&tracks);

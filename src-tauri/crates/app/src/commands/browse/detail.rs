@@ -624,9 +624,10 @@ pub async fn get_genre_detail(
     .fetch_all(&*pool)
     .await?;
 
+    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, rows.len());
     let tracks: Vec<crate::commands::track::Track> = rows
         .into_iter()
-        .map(|row| detail_track(row, &artwork_dir))
+        .map(|row| detail_track(row, &thumbs))
         .collect();
 
     let track_count = tracks.len() as i64;
@@ -691,19 +692,21 @@ pub(crate) fn detail_tracks_sql(join: &str, filter: &str) -> sqlx::AssertSqlSafe
 }
 
 /// A [`DetailTrackRaw`] as the `Track` the frontend plays, its cover
-/// resolved under `artwork_dir`.
+/// resolved under the artwork directory `thumbs` indexes -- one index
+/// for the whole list, which a genre or a year can make thousands long.
 pub(crate) fn detail_track(
     row: DetailTrackRaw,
-    artwork_dir: &std::path::Path,
+    thumbs: &crate::thumbnails::ThumbnailIndex,
 ) -> crate::commands::track::Track {
     let (artwork_path, artwork_path_1x, artwork_path_2x) =
         match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
             (Some(hash), Some(format)) => {
-                let full = artwork_dir
+                let full = thumbs
+                    .dir()
                     .join(format!("{}.{}", hash, format))
                     .to_string_lossy()
                     .to_string();
-                let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+                let (p1, p2) = thumbs.paths_for(hash);
                 (Some(full), p1, p2)
             }
             _ => (None, None, None),

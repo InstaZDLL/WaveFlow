@@ -140,6 +140,7 @@ pub async fn list_recent_plays(
     .fetch_all(&*pool)
     .await?;
 
+    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
     let rows = raw
         .into_iter()
         .map(|row| {
@@ -153,7 +154,7 @@ pub async fn list_recent_plays(
                         .join(format!("{hash}.{format}"))
                         .to_string_lossy()
                         .to_string();
-                    let (p1, p2) = crate::thumbnails::thumbnail_paths_for(dir, hash);
+                    let (p1, p2) = thumbs.paths_for(hash);
                     (Some(full), p1, p2)
                 }
                 _ => (None, None, None),
@@ -284,6 +285,7 @@ pub async fn list_play_history(
     .fetch_all(&*pool)
     .await?;
 
+    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
     let rows = raw
         .into_iter()
         .map(|row| {
@@ -297,7 +299,7 @@ pub async fn list_play_history(
                         .join(format!("{hash}.{format}"))
                         .to_string_lossy()
                         .to_string();
-                    let (p1, p2) = crate::thumbnails::thumbnail_paths_for(dir, hash);
+                    let (p1, p2) = thumbs.paths_for(hash);
                     (Some(full), p1, p2)
                 }
                 _ => (None, None, None),

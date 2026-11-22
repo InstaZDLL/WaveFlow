@@ -136,22 +136,29 @@ pub async fn list_artists(
 
 /// Stitch local + Deezer thumbnail-existence flags onto a batch of raw
 /// artist rows. Same blocking-pool offload as [`expand_album_rows`]:
-/// each row triggers up to 5 `Path::exists` probes (1 Deezer-full + 2
-/// local thumbs + 2 Deezer thumbs) — at 900 artists that's ~4 500
-/// syscalls in a tight loop, well past the threshold where stalling the
-/// tokio runtime starts to matter. Shared by `list_artists` and
-/// `search_artists`.
+/// each row asks up to 5 existence questions (1 Deezer-full + 2 local
+/// thumbs + 2 Deezer thumbs), answered by one index per directory — a
+/// listing apiece for a large batch rather than ~4 500 probes at 900
+/// artists. Shared by `list_artists` and `search_artists`.
 async fn expand_artist_rows(
     raw: Vec<ArtistRowRaw>,
     artwork_dir: PathBuf,
     metadata_dir: PathBuf,
 ) -> AppResult<Vec<ArtistRow>> {
     tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
+        let pictures = crate::thumbnails::ThumbnailIndex::new(
+            &metadata_dir,
+            raw.iter().filter(|r| r.picture_hash.is_some()).count(),
+        );
         raw.into_iter()
             .map(|r| {
                 let (artwork_has_1x, artwork_has_2x) = match r.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = thumbs.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -160,12 +167,12 @@ async fn expand_artist_rows(
                 // `<hash>.jpg` naming pattern, so we can drop a `picture_hash`
                 // when the source file is missing — the frontend won't have
                 // anything to point a thumbnail variant at either.
-                let picture_hash = r
-                    .picture_hash
-                    .filter(|h| crate::metadata_artwork::existing_path(&metadata_dir, h).is_some());
+                let picture_hash = r.picture_hash.filter(|h| {
+                    pictures.holds(&crate::metadata_artwork::path_for_hash(&metadata_dir, h))
+                });
                 let (picture_has_1x, picture_has_2x) = match picture_hash.as_deref() {
                     Some(h) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&metadata_dir, h);
+                        let (p1, p2) = pictures.paths_for(h);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),

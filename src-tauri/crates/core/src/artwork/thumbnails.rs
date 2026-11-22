@@ -91,5 +91,97 @@ pub fn thumbnail_paths_for(base_dir: &Path, hash: &str) -> (Option<String>, Opti
     (s1, s2)
 }
 
+/// Below this many lookups a batch asks the disk per file, as
+/// [`thumbnail_paths_for`] does; at or above it, it lists the directory
+/// once. A listing reads every entry of the directory -- three per
+/// cover -- so it only pays off once the batch is large enough, and the
+/// lists it is meant for (a library's albums, its tracks) are hundreds
+/// to tens of thousands of rows.
+pub const LIST_THRESHOLD: usize = 64;
+
+/// Which thumbnails exist, for a whole batch of hashes in one directory.
+///
+/// [`thumbnail_paths_for`] asks the filesystem twice per hash. Each of
+/// those is a file open on Windows, measured at 130 to 400 µs under the
+/// stock antivirus: the album list of a 20 000-track library spent about
+/// ten times longer on them than on its query, and the track list, two
+/// per track, five to fifteen seconds. Listing the directory once answers every
+/// row of the batch from memory instead.
+///
+/// The answers are the same: a thumbnail is written whole under its
+/// final name (`store_content_addressed`), so an entry with that name is
+/// a complete file, and a partial one carries a suffix no lookup asks
+/// for. A thumbnail written after the listing reads as missing, which
+/// the caller already handles -- it is the state of a cover whose
+/// thumbnails the worker has not produced yet.
+pub struct ThumbnailIndex {
+    dir: PathBuf,
+    /// The directory's file names, or `None` to ask the disk per lookup:
+    /// a small batch, or a directory that could not be listed.
+    names: Option<std::collections::HashSet<String>>,
+}
+
+impl ThumbnailIndex {
+    /// An index over `dir` for about `lookups` hashes. A directory that
+    /// does not exist yet holds no thumbnail, so it lists as empty; one
+    /// that cannot be read for another reason falls back to asking per
+    /// file rather than calling every cover missing.
+    pub fn new(dir: &Path, lookups: usize) -> Self {
+        let names = if lookups < LIST_THRESHOLD {
+            None
+        } else {
+            match std::fs::read_dir(dir) {
+                Ok(entries) => Some(
+                    entries
+                        .flatten()
+                        .filter_map(|entry| entry.file_name().into_string().ok())
+                        .collect(),
+                ),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    Some(std::collections::HashSet::new())
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "thumbnail directory not listable; probing per file");
+                    None
+                }
+            }
+        };
+        Self {
+            dir: dir.to_path_buf(),
+            names,
+        }
+    }
+
+    /// The directory the index answers for.
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// Whether `path`, a file directly inside the indexed directory,
+    /// exists: `Path::exists`, answered from the listing when there is one.
+    pub fn holds(&self, path: &Path) -> bool {
+        match &self.names {
+            Some(names) => {
+                path.parent() == Some(self.dir.as_path())
+                    && path
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .is_some_and(|name| names.contains(name))
+            }
+            None => path.exists(),
+        }
+    }
+
+    /// [`thumbnail_paths_for`], answered from the listing when there is one.
+    pub fn paths_for(&self, hash: &str) -> (Option<String>, Option<String>) {
+        let lookup = |size| {
+            let path = thumbnail_path(&self.dir, hash, size);
+            self.holds(&path)
+                .then(|| path.to_string_lossy().into_owned())
+        };
+        (lookup(THUMB_SMALL), lookup(THUMB_MEDIUM))
+    }
+}
+
 #[cfg(test)]
 mod tests;
