@@ -7,6 +7,11 @@ use sqlx::SqlitePool;
 /// without them the orphaning behaviour under test never fires.
 async fn fixture_pool() -> SqlitePool {
     let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    create_schema(&pool).await;
+    pool
+}
+
+async fn create_schema(pool: &SqlitePool) {
     sqlx::raw_sql(
         "PRAGMA foreign_keys = ON;
              CREATE TABLE artist (
@@ -37,10 +42,9 @@ async fn fixture_pool() -> SqlitePool {
                  snapshot_title TEXT
              );",
     )
-    .execute(&pool)
+    .execute(pool)
     .await
     .unwrap();
-    pool
 }
 
 async fn seed_track(pool: &SqlitePool, id: i64, path: &str, hash: &str, title: &str, artist: &str) {
@@ -269,4 +273,87 @@ async fn an_attached_event_is_never_rewritten() {
         vec![Some(2)],
         "must not be re-pointed at the lower-id duplicate",
     );
+}
+
+/// `NOCASE` folds ASCII letters and nothing else, and the name key keeps
+/// to it: "SONG" by "ARTIST" is "Song" by "Artist", "ÉTÉ" is not "été".
+#[tokio::test]
+async fn the_name_key_folds_ascii_case_alone() {
+    let pool = fixture_pool().await;
+    seed_orphan_event(&pool, None, None, Some("ARTIST"), Some("SONG")).await;
+    seed_orphan_event(&pool, None, None, Some("ARTIST"), Some("ÉTÉ")).await;
+    seed_track(&pool, 7, "/a.flac", "h7", "Song", "Artist").await;
+    seed_track(&pool, 8, "/b.flac", "h8", "été", "Artist").await;
+
+    let n = reattach_orphaned_play_events(&pool).await.unwrap();
+
+    assert_eq!(n, 1);
+    assert_eq!(attached_track_ids(&pool).await, vec![Some(7), None]);
+}
+
+/// Two available copies under one key: the lowest id, on every run, so the
+/// history does not hop between them.
+#[tokio::test]
+async fn a_key_held_by_two_tracks_goes_to_the_lowest_id() {
+    let pool = fixture_pool().await;
+    seed_orphan_event(&pool, Some("same"), None, None, None).await;
+    seed_orphan_event(&pool, None, None, Some("Artist"), Some("Song")).await;
+    seed_track(&pool, 9, "/b.flac", "same", "Song", "Artist").await;
+    seed_track(&pool, 4, "/a.flac", "same", "Song", "Artist").await;
+
+    let n = reattach_orphaned_play_events(&pool).await.unwrap();
+
+    assert_eq!(n, 2);
+    assert_eq!(attached_track_ids(&pool).await, vec![Some(4), Some(4)]);
+}
+
+/// Orphans whose file never came back are looked for after every scan.
+/// Looking writes nothing, so it must not need the write lock: the pass
+/// used to hold it for the whole search (a scan of the tracks per orphan),
+/// seconds on a real library, and a click on a track at the end of a scan
+/// failed on its busy timeout. Here another connection holds the lock for
+/// the whole pass, with a busy timeout too short to wait it out.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn orphans_that_find_nothing_need_no_write_lock() {
+    use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
+    use sqlx::{ConnectOptions, Connection};
+
+    let dir = tempfile::tempdir().unwrap();
+    let options = SqliteConnectOptions::new()
+        .filename(dir.path().join("data.db"))
+        .create_if_missing(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .busy_timeout(std::time::Duration::from_millis(200));
+    let pool = SqlitePoolOptions::new()
+        .max_connections(2)
+        .connect_with(options.clone())
+        .await
+        .unwrap();
+    create_schema(&pool).await;
+    for i in 0..50 {
+        seed_orphan_event(
+            &pool,
+            Some(&format!("gone-{i}")),
+            Some(&format!("/gone/{i}.flac")),
+            Some("Ghost"),
+            Some(&format!("Missing {i}")),
+        )
+        .await;
+    }
+    seed_track(&pool, 7, "/other.flac", "other-hash", "Other", "Other").await;
+
+    let mut holder = options.connect().await.unwrap();
+    sqlx::query("BEGIN IMMEDIATE")
+        .execute(&mut holder)
+        .await
+        .unwrap();
+
+    let n = reattach_orphaned_play_events(&pool)
+        .await
+        .expect("the search reads; it writes only what it found");
+
+    sqlx::query("ROLLBACK").execute(&mut holder).await.unwrap();
+    holder.close().await.unwrap();
+    assert_eq!(n, 0);
+    assert_eq!(attached_track_ids(&pool).await, vec![None; 50]);
 }
