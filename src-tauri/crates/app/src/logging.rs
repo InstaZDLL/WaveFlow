@@ -27,9 +27,9 @@ use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     filter::{filter_fn, FilterFn},
     fmt::{format::Writer, time::FormatTime},
-    layer::SubscriberExt,
+    layer::{Context, SubscriberExt},
     util::SubscriberInitExt,
-    EnvFilter,
+    EnvFilter, Layer,
 };
 
 const APP_IDENTIFIER: &str = "app.waveflow";
@@ -154,17 +154,76 @@ pub(crate) fn without_connection_lines() -> FilterFn<impl Fn(&tracing::Metadata<
 
 /// What reaches the log when `RUST_LOG` is not set.
 ///
-/// Besides `sqlx` and `lofty`, two lines symphonia writes each time it opens a
-/// file are held back, since they say nothing about a failure and on a large
-/// library they can fill the day's whole budget, crowding out everything after:
-/// - the MP4 demuxer names every top-level atom it skips (`free`, `udta`,
-///   `uuid`…), at info, for each MP4 or M4A it opens;
-/// - the probe warns about the bytes it skips before a stream starts, which
-///   an ID3 pad or a tag written ahead of the audio leaves in many files.
+/// Besides `sqlx` and `lofty`, the line symphonia's MP4 demuxer writes for
+/// every top-level atom it skips (`free`, `udta`, `uuid`…) is held back: it
+/// comes at info for each MP4 or M4A opened, says nothing about a failure,
+/// and on a large library it can fill the day's whole budget, crowding out
+/// everything after. The probe's line about skipped bytes is the other one,
+/// held back by [`without_probe_junk`], since its target also carries a
+/// warning worth keeping.
 ///
 /// Every other symphonia warning, a decode error among them, still reaches it.
-pub(crate) const DEFAULT_FILTER: &str =
-    "info,sqlx=warn,lofty=error,symphonia_format_isomp4=warn,symphonia_core::formats::probe=error";
+pub(crate) const DEFAULT_FILTER: &str = "info,sqlx=warn,lofty=error,symphonia_format_isomp4=warn";
+
+/// The target symphonia's probe writes under.
+const PROBE_TARGET: &str = "symphonia_core::formats::probe";
+
+/// Takes out, whatever `RUST_LOG` says, the warning symphonia's probe
+/// writes for the bytes it skips before a stream starts. An ID3 pad or a
+/// tag written ahead of the audio leaves those bytes in many files, so the
+/// line comes once a file on a large library and says nothing about a
+/// failure.
+///
+/// The probe also warns when it has to skip metadata at the end of a file
+/// because reading it failed: that one is a real diagnostic and passes. A
+/// level on the target cannot tell the two apart, so this reads the
+/// message, and only for that one target.
+///
+/// symphonia logs through `log`, and `tracing-log` hands such a line on
+/// under a callsite of its own whose target is `log`, the line's own target
+/// in its `log.target` field: that field is the one read when present.
+pub(crate) struct WithoutProbeJunk;
+
+pub(crate) fn without_probe_junk() -> WithoutProbeJunk {
+    WithoutProbeJunk
+}
+
+impl<S: tracing::Subscriber> Layer<S> for WithoutProbeJunk {
+    fn event_enabled(&self, event: &tracing::Event<'_>, _: Context<'_, S>) -> bool {
+        let own_target = event.metadata().target();
+        if own_target != PROBE_TARGET && own_target != "log" {
+            return true;
+        }
+        let mut line = ProbeLine::default();
+        event.record(&mut line);
+        let target = line.log_target.as_deref().unwrap_or(own_target);
+        !(target == PROBE_TARGET && line.skipped_junk)
+    }
+}
+
+/// What [`WithoutProbeJunk`] reads of an event: the target a line bridged
+/// from `log` carries as a field, and whether the message is the probe's
+/// "skipped N bytes of junk at P".
+#[derive(Default)]
+struct ProbeLine {
+    log_target: Option<String>,
+    skipped_junk: bool,
+}
+
+impl tracing::field::Visit for ProbeLine {
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "log.target" {
+            self.log_target = Some(value.to_owned());
+        }
+    }
+
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            let text = format!("{value:?}");
+            self.skipped_junk = text.starts_with("skipped ") && text.contains(" bytes of junk at ");
+        }
+    }
+}
 
 /// Install the global tracing subscriber.
 ///
@@ -222,6 +281,7 @@ pub fn init_tracing() -> FlushOnDrop {
 
     tracing_subscriber::registry()
         .with(without_connection_lines())
+        .with(without_probe_junk())
         .with(filter)
         .with(stdout_layer)
         .with(file_layer)
