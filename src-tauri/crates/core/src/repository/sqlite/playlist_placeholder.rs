@@ -482,8 +482,9 @@ pub async fn fill_pending(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i64>
 
     // `fill` reads each placeholder's position as it is at that moment —
     // filling one shifts the ones after it, so the positions loaded above
-    // are stale by the second fill.
-    let mut tx = pool.begin().await?;
+    // are stale by the second fill. It reads before it writes, so the
+    // transaction holds the lock from its start.
+    let mut tx = super::write_lock::begin_write_on(pool, "playlist_placeholder").await?;
     let mut changed: Vec<i64> = Vec::new();
     for (id, track_id, playlist_id) in matches {
         if fill(&mut tx, id, track_id, now_ms).await?.is_some() && !changed.contains(&playlist_id) {

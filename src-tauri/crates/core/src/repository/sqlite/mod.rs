@@ -18,6 +18,7 @@ pub mod profile;
 pub mod search;
 pub mod sidebar_pin;
 pub mod track;
+pub mod write_lock;
 
 pub use album::SqliteAlbumRepository;
 pub use library::SqliteLibraryRepository;

@@ -8,7 +8,9 @@ use sqlx::SqlitePool;
 use crate::error::CoreResult;
 use crate::scanner::folders::same_directory;
 
-use super::{upsert_artist, VARIOUS_ARTISTS_LABEL};
+use crate::repository::sqlite::write_lock::begin_write_on;
+
+use super::{canonical_name, upsert_artist, VARIOUS_ARTISTS_LABEL};
 
 /// One album row a merge could take: its available tracks, as far as telling
 /// a compilation from an unrelated album of the same title needs them.
@@ -177,7 +179,32 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
         return Ok(());
     }
 
-    let mut tx = pool.begin().await?;
+    // Read first, without the lock. The same titles come back here after
+    // every scan, shared by albums that are not one record ("Best", "Live"),
+    // and the pass merges nothing; it used to read them all inside one
+    // write transaction. Only a title with a record to merge is read again
+    // below, under the lock, where the merge is decided on what is there
+    // then.
+    let known_va: Option<i64> =
+        sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ?")
+            .bind(canonical_name(VARIOUS_ARTISTS_LABEL))
+            .fetch_optional(pool)
+            .await?;
+    let mut to_merge: Vec<String> = Vec::new();
+    {
+        let mut conn = pool.acquire().await?;
+        for (canonical_title,) in groups {
+            let albums = candidate_albums(&mut conn, &canonical_title, known_va).await?;
+            if !compilations_among(albums).is_empty() {
+                to_merge.push(canonical_title);
+            }
+        }
+    }
+    if to_merge.is_empty() {
+        return Ok(());
+    }
+
+    let mut tx = begin_write_on(pool, "album").await?;
     let va_id = upsert_artist(&mut tx, VARIOUS_ARTISTS_LABEL).await?;
     let Some(va_id) = va_id else {
         // upsert_artist returned None — name canonicalised to empty,
@@ -186,49 +213,8 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
         return Ok(());
     };
 
-    for (canonical_title,) in groups {
-        type Row = (
-            i64,
-            Option<i64>,
-            Option<i64>,
-            String,
-            Option<i64>,
-            Option<i64>,
-        );
-        let rows: Vec<Row> = sqlx::query_as(
-            "SELECT al.id, al.artist_id, al.year, t.file_path, t.disc_number, t.track_number
-               FROM album al
-               JOIN track t ON t.album_id = al.id AND t.is_available = 1
-              WHERE al.canonical_title = ?
-                AND al.album_artist IS NULL
-                AND al.is_compilation = 0
-              ORDER BY al.id ASC",
-        )
-        .bind(&canonical_title)
-        .fetch_all(&mut *tx)
-        .await?;
-        let mut albums: Vec<CandidateAlbum> = Vec::new();
-        for (id, artist_id, year, path, disc, track) in rows {
-            // Files tagged with the artist "Various Artists" and nothing else
-            // make a row under that key with no compilation flag. It is what
-            // a merge lands on, never one of the rows it takes.
-            if artist_id == Some(va_id) {
-                continue;
-            }
-            let candidate = CandidateTrack {
-                path,
-                place: track.map(|track| (disc.unwrap_or(1), track)),
-            };
-            match albums.last_mut().filter(|album| album.id == id) {
-                Some(album) => album.tracks.push(candidate),
-                None => albums.push(CandidateAlbum {
-                    id,
-                    artist_id,
-                    year,
-                    tracks: vec![candidate],
-                }),
-            }
-        }
+    for canonical_title in to_merge {
+        let albums = candidate_albums(&mut tx, &canonical_title, Some(va_id)).await?;
 
         for record in compilations_among(albums) {
             let existing: Option<i64> = sqlx::query_scalar(
@@ -308,6 +294,57 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
 
     tx.commit().await?;
     Ok(())
+}
+
+/// The available tracks of the albums under `canonical_title` that a merge
+/// could take, album by album. Files tagged with the artist "Various
+/// Artists" and nothing else make a row under that key with no compilation
+/// flag: it is what a merge lands on, never one of the rows it takes.
+async fn candidate_albums(
+    conn: &mut sqlx::SqliteConnection,
+    canonical_title: &str,
+    va_id: Option<i64>,
+) -> CoreResult<Vec<CandidateAlbum>> {
+    type Row = (
+        i64,
+        Option<i64>,
+        Option<i64>,
+        String,
+        Option<i64>,
+        Option<i64>,
+    );
+    let rows: Vec<Row> = sqlx::query_as(
+        "SELECT al.id, al.artist_id, al.year, t.file_path, t.disc_number, t.track_number
+           FROM album al
+           JOIN track t ON t.album_id = al.id AND t.is_available = 1
+          WHERE al.canonical_title = ?
+            AND al.album_artist IS NULL
+            AND al.is_compilation = 0
+          ORDER BY al.id ASC",
+    )
+    .bind(canonical_title)
+    .fetch_all(&mut *conn)
+    .await?;
+    let mut albums: Vec<CandidateAlbum> = Vec::new();
+    for (id, artist_id, year, path, disc, track) in rows {
+        if va_id.is_some() && artist_id == va_id {
+            continue;
+        }
+        let candidate = CandidateTrack {
+            path,
+            place: track.map(|track| (disc.unwrap_or(1), track)),
+        };
+        match albums.last_mut().filter(|album| album.id == id) {
+            Some(album) => album.tracks.push(candidate),
+            None => albums.push(CandidateAlbum {
+                id,
+                artist_id,
+                year,
+                tracks: vec![candidate],
+            }),
+        }
+    }
+    Ok(albums)
 }
 
 /// Can `record` join the Various Artists row `album_id` already holds? Only
