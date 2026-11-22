@@ -218,7 +218,10 @@ async fn read_page(
           AND {format_sql}"
     );
 
-    let mut tx = pool.begin().await?;
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let mut count =
         sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(format!("SELECT COUNT(*) {filter}")))
             .bind(verdict)

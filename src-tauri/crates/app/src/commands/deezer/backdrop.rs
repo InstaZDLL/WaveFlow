@@ -205,7 +205,10 @@ async fn set_artist_background_artwork(
     format: &str,
     source: ArtworkSource,
 ) -> AppResult<()> {
-    let mut tx = pool.begin().await?;
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let artwork_id = upsert_artwork(&mut tx, hash, format, source).await?;
     let res = sqlx::query("UPDATE artist SET background_artwork_id = ? WHERE id = ?")
         .bind(artwork_id)

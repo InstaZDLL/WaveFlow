@@ -663,7 +663,10 @@ pub(crate) async fn remove_folder_inner(
     // is a 2-statement DELETE without paths) lets the SELECT live in
     // the same tx as the DELETE + emit chain so the three either all
     // land or all roll back.
-    let mut tx = pool.begin().await?;
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let tracks: Vec<(i64, String)> =
         sqlx::query_as("SELECT library_id, file_path FROM track WHERE folder_id = ?")
             .bind(folder_id)

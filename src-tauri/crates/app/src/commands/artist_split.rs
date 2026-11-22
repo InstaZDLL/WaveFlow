@@ -169,7 +169,10 @@ pub(crate) async fn split_artist_inner(
         ));
     }
 
-    let mut tx = pool.begin().await?;
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
 
     // Resolve each fragment, reusing an existing row by canonical name so
     // a track split off "A, B, C" lands on the already-enriched A / B / C

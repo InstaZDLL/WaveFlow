@@ -289,7 +289,10 @@ pub(crate) async fn apply_feed(
     validators: &Validators,
 ) -> Result<i64, sqlx::Error> {
     let now = Utc::now().timestamp_millis();
-    let mut tx = pool.begin().await?;
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let channel_id: i64 = sqlx::query_scalar(
         "INSERT INTO podcast_channel
             (feed_key, feed_url, title, description, author, language, site_url, image_url,
