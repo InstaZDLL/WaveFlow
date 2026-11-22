@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { dropLibraryLists } from "../libraryListCache";
 
 /** Album row returned by `list_albums`. UI-facing shape — paths are
  *  reconstructed by the wrapper from the wire-format slim row. */
@@ -808,15 +809,19 @@ export async function listYears(libraryId: number | null): Promise<YearRow[]> {
   }));
 }
 
-export function setGenreArtworkFromFile(
+// A genre picture changes without an event: the library's cached genre
+// list is dropped so a return to the tab does not paint the old one.
+export async function setGenreArtworkFromFile(
   genreId: number,
   filePath: string,
 ): Promise<void> {
-  return invoke<void>("set_genre_artwork_from_file", { genreId, filePath });
+  await invoke<void>("set_genre_artwork_from_file", { genreId, filePath });
+  dropLibraryLists("genres");
 }
 
-export function clearGenreArtwork(genreId: number): Promise<void> {
-  return invoke<void>("clear_genre_artwork", { genreId });
+export async function clearGenreArtwork(genreId: number): Promise<void> {
+  await invoke<void>("clear_genre_artwork", { genreId });
+  dropLibraryLists("genres");
 }
 
 export function listFolders(libraryId: number | null): Promise<FolderRow[]> {

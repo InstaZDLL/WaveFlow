@@ -364,14 +364,13 @@ pub async fn list_playlist_tracks(
 
     // Same blocking-pool offload as `list_tracks` — large playlists
     // (the Liked Songs pseudo-playlist routinely runs 800+ rows on a
-    // healthy library) would otherwise stall the runtime on per-row
-    // `Path::exists` thumbnail probes.
+    // healthy library) answer their thumbnail flags from one directory
+    // listing, still blocking I/O.
     let artwork_dir_for_blocking = artwork_dir.clone();
     let items = tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir_for_blocking, rows.len());
         rows.into_iter()
-            .map(|row| {
-                crate::commands::track::track_list_item_from_row(row, &artwork_dir_for_blocking)
-            })
+            .map(|row| crate::commands::track::track_list_item_from_row(row, &thumbs))
             .collect()
     })
     .await

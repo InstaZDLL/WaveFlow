@@ -401,7 +401,13 @@ pub(crate) async fn expand_library_track_rows(
     artwork_dir: PathBuf,
 ) -> AppResult<Vec<LibraryTrackRow>> {
     tokio::task::spawn_blocking(move || {
-        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
+        // Only local rows look a thumbnail up: a server-only list must not
+        // list the local directory for nothing.
+        let lookups = raw
+            .iter()
+            .filter(|row| row.source == "local" && row.artwork_hash.is_some())
+            .count();
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, lookups);
         raw.into_iter()
             .map(|row| {
                 let local = row.source == "local";

@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { dropLibraryLists } from "../libraryListCache";
+
 export interface DeezerAlbumLite {
   deezer_id: number;
   title: string;
@@ -11,25 +13,32 @@ export function searchAlbumsDeezer(query: string): Promise<DeezerAlbumLite[]> {
   return invoke<DeezerAlbumLite[]>("search_albums_deezer", { query });
 }
 
-export function setAlbumArtworkFromDeezer(
+// An album cover changes without an event, so the library's cached album
+// list is dropped here: a return to the grid must not paint the old one.
+
+export async function setAlbumArtworkFromDeezer(
   albumId: number,
   deezerAlbumId: number,
 ): Promise<void> {
-  return invoke<void>("set_album_artwork_from_deezer", {
+  await invoke<void>("set_album_artwork_from_deezer", {
     albumId,
     deezerAlbumId,
   });
+  dropLibraryLists("albums");
 }
 
-export function setAlbumArtworkFromFile(
+export async function setAlbumArtworkFromFile(
   albumId: number,
   filePath: string,
 ): Promise<void> {
-  return invoke<void>("set_album_artwork_from_file", { albumId, filePath });
+  await invoke<void>("set_album_artwork_from_file", { albumId, filePath });
+  dropLibraryLists("albums");
 }
 
-export function batchFetchMissingAlbumCovers(): Promise<number> {
-  return invoke<number>("batch_fetch_missing_album_covers");
+export async function batchFetchMissingAlbumCovers(): Promise<number> {
+  const filled = await invoke<number>("batch_fetch_missing_album_covers");
+  dropLibraryLists("albums");
+  return filled;
 }
 
 export function batchFetchMissingArtistPictures(): Promise<number> {

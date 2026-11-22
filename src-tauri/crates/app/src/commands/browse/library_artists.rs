@@ -130,15 +130,17 @@ async fn expand_library_artist_rows(
     metadata_dir: PathBuf,
 ) -> AppResult<Vec<LibraryArtistRow>> {
     tokio::task::spawn_blocking(move || {
-        // Counted per directory: the Deezer pictures live in the shared
-        // metadata directory, and most artists have none.
+        // Counted per directory, local rows only: the Deezer pictures live
+        // in the shared metadata directory, most artists have none, and a
+        // server row looks nothing up in either.
+        let local = || raw.iter().filter(|r| r.source == "local");
         let thumbs = crate::thumbnails::ThumbnailIndex::new(
             &artwork_dir,
-            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+            local().filter(|r| r.artwork_hash.is_some()).count(),
         );
         let pictures = crate::thumbnails::ThumbnailIndex::new(
             &metadata_dir,
-            raw.iter().filter(|r| r.picture_hash.is_some()).count(),
+            local().filter(|r| r.picture_hash.is_some()).count(),
         );
         raw.into_iter()
             .map(|r| {

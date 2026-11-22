@@ -21,13 +21,17 @@ use crate::{error::AppResult, state::AppState};
 // resolving.
 pub use waveflow_core::domain::track::{ListTracksResponse, Track, TrackListItem};
 
-/// Build the slim row + check thumbnail existence on disk in one
-/// pass. Shared between every bulk endpoint so the conversion stays
-/// in lockstep.
-pub fn track_list_item_from_row(row: TrackRow, artwork_dir: &Path) -> TrackListItem {
+/// Build the slim row + check thumbnail existence in one pass. Shared
+/// between every bulk endpoint so the conversion stays in lockstep; the
+/// caller builds one [`ThumbnailIndex`](crate::thumbnails::ThumbnailIndex)
+/// for the whole batch.
+pub fn track_list_item_from_row(
+    row: TrackRow,
+    thumbs: &crate::thumbnails::ThumbnailIndex,
+) -> TrackListItem {
     let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
         Some(hash) => {
-            let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+            let (p1, p2) = thumbs.paths_for(hash);
             (p1.is_some(), p2.is_some())
         }
         None => (false, false),
@@ -163,14 +167,14 @@ pub async fn list_tracks(
         )
         .await?;
 
-    // Each row triggers 2 synchronous `Path::exists` probes for the
-    // thumbnail variants — at 1k+ tracks that's enough to stall the
-    // tokio runtime. Hand the batch off to the blocking pool in one
-    // hop rather than spawning per row.
+    // The thumbnail flags are blocking I/O — one directory listing for a
+    // large batch, a probe per file for a small one. Hand the batch off
+    // to the blocking pool in one hop rather than spawning per row.
     let artwork_dir_for_blocking = artwork_dir.clone();
     let items = tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir_for_blocking, rows.len());
         rows.into_iter()
-            .map(|row| track_list_item_from_row(row, &artwork_dir_for_blocking))
+            .map(|row| track_list_item_from_row(row, &thumbs))
             .collect()
     })
     .await
@@ -872,8 +876,9 @@ pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<L
     // Same blocking-pool offload as `list_tracks`.
     let artwork_dir_for_blocking = artwork_dir.clone();
     let items = tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir_for_blocking, rows.len());
         rows.into_iter()
-            .map(|row| track_list_item_from_row(row, &artwork_dir_for_blocking))
+            .map(|row| track_list_item_from_row(row, &thumbs))
             .collect()
     })
     .await

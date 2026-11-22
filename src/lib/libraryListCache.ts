@@ -22,11 +22,13 @@ import { listen } from "@tauri-apps/api/event";
  * is away is one list per tab -- the track list being the large one.
  *
  * Dropped by the events that say the lists changed underneath -- a
- * rescan, a tag edit, an artist picture -- because the view is not there
- * to hear them while it is unmounted. Anything that changes a list
- * without either an event or a new signature is caught by the fetch the
- * view still runs on every mount: a cached list is shown first, never
- * instead of asking.
+ * rescan, a tag edit, an artist picture, an enrichment, a sync with the
+ * server -- because the view is not there to hear them while it is
+ * unmounted, and by the wrappers of the commands that change a cover
+ * without an event (an album cover, a genre picture). Anything that
+ * changes a list without either is caught by the fetch the view still
+ * runs on every mount: a cached list is shown first, never instead of
+ * asking.
  */
 
 const KINDS = [
@@ -46,9 +48,11 @@ interface Entry {
 }
 
 const entries = new Map<LibraryListKind, Entry>();
-/** Bumped per kind when its entry is dropped, so a fetch started before
- *  an invalidating event cannot write its answer back afterwards. */
-const generations = new Map<LibraryListKind, number>();
+/** Per kind, bumped by every fetch that starts and every drop. A fetch
+ *  writes only if it is still the last thing that happened to its kind:
+ *  an answer overtaken by a newer fetch (another sort, say) or by an
+ *  invalidating event never lands in the cache. */
+const tickets = new Map<LibraryListKind, number>();
 let started = false;
 
 function start() {
@@ -61,6 +65,12 @@ function start() {
     "track:updated",
     "library:rescanned",
     "artist:updated",
+    // An enrichment decision applied or undone, a tag workshop batch
+    // written or undone, server changes applied: each rewrites rows the
+    // lists show.
+    "enrichment:changed",
+    "tag-workshop:changed",
+    "remote:synced",
   ]) {
     void listen(event, () => dropLibraryLists());
   }
@@ -80,23 +90,31 @@ export function readLibraryList<T>(
   return entry.value as T;
 }
 
-/** A token to hand back to {@link writeLibraryList}, taken when a fetch
- *  starts: the write is refused if `kind` was dropped meanwhile. */
-export function libraryListGeneration(kind: LibraryListKind): number {
-  start();
-  return generations.get(kind) ?? 0;
+function bump(kind: LibraryListKind): number {
+  const next = (tickets.get(kind) ?? 0) + 1;
+  tickets.set(kind, next);
+  return next;
 }
 
-/** Keep `value` as `kind`'s list for `scope` and `params`, unless the
- *  entry was dropped since `since` was taken. */
+/** Called when a fetch of `kind` starts. The ticket goes back to
+ *  {@link writeLibraryList}, which refuses it once a newer fetch has
+ *  started or the entry has been dropped. */
+export function startLibraryListFetch(kind: LibraryListKind): number {
+  start();
+  return bump(kind);
+}
+
+/** Keep `value` as `kind`'s list for `scope` and `params`, if `ticket`
+ *  is still the latest: kept even when the view has gone meanwhile, since
+ *  that answer is exactly what the next visit wants to paint. */
 export function writeLibraryList(
   kind: LibraryListKind,
   scope: string,
   params: string,
   value: unknown,
-  since: number,
+  ticket: number,
 ): void {
-  if (since !== (generations.get(kind) ?? 0)) return;
+  if (ticket !== tickets.get(kind)) return;
   entries.set(kind, { scope, params, value });
 }
 
@@ -104,7 +122,7 @@ export function writeLibraryList(
  *  paints. */
 export function dropLibraryLists(kind?: LibraryListKind): void {
   for (const k of kind ? [kind] : KINDS) {
-    generations.set(k, (generations.get(k) ?? 0) + 1);
+    bump(k);
     entries.delete(k);
   }
 }

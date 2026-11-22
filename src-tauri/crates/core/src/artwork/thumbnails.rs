@@ -130,13 +130,17 @@ impl ThumbnailIndex {
         let names = if lookups < LIST_THRESHOLD {
             None
         } else {
-            match std::fs::read_dir(dir) {
-                Ok(entries) => Some(
-                    entries
-                        .flatten()
-                        .filter_map(|entry| entry.file_name().into_string().ok())
-                        .collect(),
-                ),
+            // An error part-way through the listing would leave it short,
+            // and a short listing calls present thumbnails missing: any
+            // error, at the open or on an entry, falls back to probing.
+            let listed = std::fs::read_dir(dir).and_then(|entries| {
+                entries
+                    .map(|entry| entry.map(|e| e.file_name().into_string().ok()))
+                    .filter_map(Result::transpose)
+                    .collect::<std::io::Result<std::collections::HashSet<String>>>()
+            });
+            match listed {
+                Ok(names) => Some(names),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                     Some(std::collections::HashSet::new())
                 }
