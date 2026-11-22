@@ -4119,6 +4119,10 @@
   "ratingNotice": {
     "notInFile": "평점이 WaveFlow에만 저장되었습니다. 파일에 쓸 수 없었습니다."
   },
+  "writeFailed": {
+    "like": "좋아요를 저장하지 못했습니다. 잠시 후 다시 시도하세요.",
+    "playlist": "플레이리스트에 트랙을 추가하지 못했습니다. 잠시 후 다시 시도하세요."
+  },
   "moodCuration": {
     "open": "분위기 편집",
     "title": "분위기 편집",

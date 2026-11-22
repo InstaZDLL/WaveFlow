@@ -115,6 +115,25 @@ impl std::ops::Deref for ProfilePool {
 }
 
 impl ProfilePool {
+    /// A transaction that holds the profile database's write lock from its
+    /// start ([`crate::db::lock_waiters::begin_write`]), in place of the
+    /// deferred one the pool's own `begin` opens. Every command that writes
+    /// through the leased pool gets it.
+    ///
+    /// A deferred transaction cannot wait for the lock once it has read: at
+    /// its first write, a lock another connection holds fails it at once
+    /// with `SQLITE_BUSY`, and a commit another connection made since its
+    /// read fails it with `SQLITE_BUSY_SNAPSHOT`. Nearly every command
+    /// checks something before it writes (a like reads the like, an
+    /// addition to a playlist reads the playlist), and during a scan, which
+    /// holds the lock between two files, each of them failed in a few
+    /// milliseconds. Holding the lock from the start, the transaction waits
+    /// in the busy handler instead, which tells the scan to let it through.
+    /// One that only reads holds the lock for its own short span.
+    pub async fn begin(&self) -> sqlx::Result<sqlx::Transaction<'static, sqlx::Sqlite>> {
+        crate::db::lock_waiters::begin_write(&self.pool).await
+    }
+
     /// Split into the raw pool and its lease.
     ///
     /// For the handful of call sites that must hand an owned
@@ -915,3 +934,6 @@ mod expected_profile_tests;
 
 #[cfg(test)]
 mod lease_tests;
+
+#[cfg(test)]
+mod transaction_tests;

@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceWriteFailure } from "./writeFailed";
+
 /**
  * Track row joined with album title + primary artist name, as returned by
  * the `list_tracks` command. The IDs of the joined rows are intentionally
@@ -268,8 +270,12 @@ export function searchTracksAdvanced(filters: SearchFilters): Promise<Track[]> {
 }
 
 /** Toggle liked state. Returns `true` if the track is now liked. */
+/** A like that did not land is announced, for `WriteFailedToast`. */
 export function toggleLikeTrack(trackId: number): Promise<boolean> {
-  return invoke<boolean>("toggle_like_track", { trackId });
+  return announceWriteFailure(
+    "like",
+    invoke<boolean>("toggle_like_track", { trackId }),
+  );
 }
 
 /** A rating is in the library but could not reach the track's file. */

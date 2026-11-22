@@ -9,6 +9,7 @@ use sqlx::SqlitePool;
 
 use crate::error::{CoreError, CoreResult};
 use crate::network_locator;
+use crate::repository::sqlite::write_lock::begin_write_on;
 use crate::scanner::extract::{extract_folder_cover, ArtworkSource, ExtractedCover};
 
 use super::upsert_artwork;
@@ -257,17 +258,30 @@ pub async fn refresh_folder_covers(
         .await
         .map_err(|e| CoreError::Other(format!("folder cover resolution join: {e}")))?;
 
+    // Only an album whose sidecar is not what it shows has anything to
+    // write. After the first scan that is nearly always none, and then the
+    // pass ends here without taking the write lock.
+    let changed: Vec<(CoverCandidate, String, String)> = candidates
+        .into_iter()
+        .filter_map(|candidate| {
+            let (hash, format) = covers.get(&candidate.dir).cloned().flatten()?;
+            (candidate.observed_hash.as_deref() != Some(hash.as_str()))
+                .then_some((candidate, hash, format))
+        })
+        .collect();
+    if changed.is_empty() {
+        return Ok(0);
+    }
+
     // One transaction for the whole batch — the scanner is the single
     // writer and a per-album autocommit would serialise N round-trips
     // through WAL for no benefit. Also makes each artwork insert and the
-    // album row that points at it land together.
-    let mut tx = pool.begin().await?;
+    // album row that points at it land together. It holds the lock from
+    // its start: it reads (the artwork row) before it writes.
+    let mut tx = begin_write_on(pool, "album").await?;
     let mut updated: u32 = 0;
 
-    for candidate in candidates {
-        let Some((hash, format)) = covers.get(&candidate.dir).cloned().flatten() else {
-            continue;
-        };
+    for (candidate, hash, format) in changed {
         let adoption = adopt_folder_cover(
             &mut tx,
             candidate.album_id,
@@ -434,7 +448,12 @@ pub async fn apply_network_covers(
     pool: &SqlitePool,
     reads: Vec<(NetworkCoverCandidate, SidecarStamp, ExtractedCover)>,
 ) -> CoreResult<u32> {
-    let mut tx = pool.begin().await?;
+    if reads.is_empty() {
+        return Ok(0);
+    }
+    // It reads (the artwork row, the album's cover) before it writes, so it
+    // holds the lock from its start.
+    let mut tx = begin_write_on(pool, "album").await?;
     let mut updated: u32 = 0;
 
     for (candidate, stamp, cover) in reads {

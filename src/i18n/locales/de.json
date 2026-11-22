@@ -4121,6 +4121,10 @@
   "ratingNotice": {
     "notInFile": "Bewertung nur in WaveFlow gespeichert: Sie konnte nicht in die Datei geschrieben werden."
   },
+  "writeFailed": {
+    "like": "Favoriten nicht aktualisiert. Versuche es gleich noch einmal.",
+    "playlist": "Titel nicht zur Playlist hinzugefügt. Versuche es gleich noch einmal."
+  },
   "moodCuration": {
     "open": "Stimmungen bearbeiten",
     "title": "Stimmungen bearbeiten",

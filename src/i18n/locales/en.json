@@ -4121,6 +4121,10 @@
   "ratingNotice": {
     "notInFile": "Rating saved in WaveFlow only: it could not be written to the file."
   },
+  "writeFailed": {
+    "like": "Liked tracks not updated. Try again in a moment.",
+    "playlist": "Tracks not added to the playlist. Try again in a moment."
+  },
   "moodCuration": {
     "open": "Edit moods",
     "title": "Edit moods",

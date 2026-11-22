@@ -50,7 +50,10 @@ pub(crate) async fn sync_db_spelled(
     edit: &TrackEdit,
     spelled: &FileSpelling,
 ) -> AppResult<()> {
-    let mut tx = pool.begin().await?;
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
     let file_artist = spelled
         .artist
         .as_deref()

@@ -195,20 +195,19 @@ pub async fn step_aside() {
 /// snapshot with the read; if another connection commits before the first
 /// write, that write fails at once with `SQLITE_BUSY_SNAPSHOT`, which no busy
 /// handler waits out. A scan batch failed that way the moment a click got a
-/// queue written between two batches, and the whole scan with it.
+/// queue written between two batches, and the whole scan with it. And if
+/// another connection only holds the lock at that write, it fails at once
+/// with `SQLITE_BUSY`, without waiting either: a like during a scan failed
+/// in a few milliseconds every time.
 ///
 /// Not `BEGIN IMMEDIATE`: that reserves every database of the connection,
 /// and a profile connection has `app.db` attached, whose own pool would then
 /// wait on every scan batch. A write that changes nothing in `main` takes
 /// the profile database's lock alone, waiting for it in the busy handler
-/// before any snapshot is taken. `profile_setting` is in every profile
-/// database.
+/// before any snapshot is taken (core's `write_lock::begin_write_on`).
+/// `profile_setting` is in every profile database.
 pub async fn begin_write(pool: &SqlitePool) -> sqlx::Result<Transaction<'static, Sqlite>> {
-    let mut tx = pool.begin().await?;
-    sqlx::query("UPDATE main.profile_setting SET key = key WHERE 0")
-        .execute(&mut *tx)
-        .await?;
-    Ok(tx)
+    waveflow_core::repository::sqlite::write_lock::begin_write_on(pool, "profile_setting").await
 }
 
 #[cfg(test)]

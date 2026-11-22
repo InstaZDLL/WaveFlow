@@ -4233,6 +4233,10 @@
   "ratingNotice": {
     "notInFile": "Note gardée dans WaveFlow seulement : elle n'a pas pu être écrite dans le fichier."
   },
+  "writeFailed": {
+    "like": "Coup de cœur non enregistré. Réessayez dans un instant.",
+    "playlist": "Titres non ajoutés à la playlist. Réessayez dans un instant."
+  },
   "moodCuration": {
     "open": "Modifier les humeurs",
     "title": "Modifier les humeurs",

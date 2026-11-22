@@ -4119,6 +4119,10 @@
   "ratingNotice": {
     "notInFile": "評分僅儲存在 WaveFlow 中：無法寫入檔案。"
   },
+  "writeFailed": {
+    "like": "未能更新「收藏」。請稍後再試。",
+    "playlist": "未能將曲目加入播放清單。請稍後再試。"
+  },
   "moodCuration": {
     "open": "編輯心情",
     "title": "編輯心情",

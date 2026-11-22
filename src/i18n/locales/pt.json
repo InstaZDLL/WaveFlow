@@ -4234,6 +4234,10 @@
   "ratingNotice": {
     "notInFile": "Classificação guardada apenas no WaveFlow: não foi possível escrevê-la no ficheiro."
   },
+  "writeFailed": {
+    "like": "Os favoritos não foram atualizados. Tente novamente daqui a pouco.",
+    "playlist": "As faixas não foram adicionadas à playlist. Tente novamente daqui a pouco."
+  },
   "moodCuration": {
     "open": "Editar humores",
     "title": "Editar humores",

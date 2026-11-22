@@ -4242,6 +4242,10 @@
   "ratingNotice": {
     "notInFile": "Avaliação salva apenas no WaveFlow: não foi possível gravá-la no arquivo."
   },
+  "writeFailed": {
+    "like": "As curtidas não foram atualizadas. Tente de novo daqui a pouco.",
+    "playlist": "As faixas não foram adicionadas à playlist. Tente de novo daqui a pouco."
+  },
   "moodCuration": {
     "open": "Editar humores",
     "title": "Editar humores",

@@ -53,6 +53,7 @@ import { TaskStatusBar } from "./TaskStatusBar";
 import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
 import { QueueToast } from "../common/QueueToast";
 import { RatingNoticeToast } from "../common/RatingNoticeToast";
+import { WriteFailedToast } from "../common/WriteFailedToast";
 import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
@@ -1229,6 +1230,7 @@ export function AppLayout() {
         <PlaybackAlertToast />
         <QueueToast />
         <RatingNoticeToast />
+        <WriteFailedToast />
         <PluginAttentionToast />
         {showOnboarding && (
           <Suspense fallback={null}>

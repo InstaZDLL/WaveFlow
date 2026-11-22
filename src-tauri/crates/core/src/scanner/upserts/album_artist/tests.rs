@@ -104,3 +104,98 @@ async fn joins_the_album_that_already_holds_the_new_key() {
         .unwrap();
     assert_eq!(album_id, Some(2));
 }
+
+/// A merge that is due while another connection holds the write lock waits
+/// for it, then merges. The pass used to read everything first and fail its
+/// first write at once with `SQLITE_BUSY`: a deferred transaction that has
+/// read cannot wait for the lock.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_due_merge_waits_for_the_lock_instead_of_failing() {
+    use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
+    use sqlx::{ConnectOptions, Connection};
+
+    let dir = tempfile::tempdir().unwrap();
+    let options = SqliteConnectOptions::new()
+        .filename(dir.path().join("data.db"))
+        .create_if_missing(true)
+        .foreign_keys(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .busy_timeout(std::time::Duration::from_secs(3));
+    let pool = SqlitePoolOptions::new()
+        .max_connections(2)
+        .connect_with(options.clone())
+        .await
+        .unwrap();
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'L', 0, 0)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    // The Various Artists row already exists, as it does after the first
+    // compilation a library meets: the pass then only reads until it merges.
+    sqlx::query("INSERT INTO artist (id, name, canonical_name) VALUES (9, ?, ?)")
+        .bind(VARIOUS_ARTISTS_LABEL)
+        .bind(canonical_name(VARIOUS_ARTISTS_LABEL))
+        .execute(&pool)
+        .await
+        .unwrap();
+    // One record in one directory, a different artist on each track.
+    for n in 1..=3_i64 {
+        sqlx::query("INSERT INTO artist (id, name, canonical_name) VALUES (?, ?, ?)")
+            .bind(n)
+            .bind(format!("Artist {n}"))
+            .bind(format!("artist {n}"))
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO album (id, title, canonical_title, artist_id) VALUES (?, 'Record', 'record', ?)",
+        )
+        .bind(n)
+        .bind(n)
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO track
+                (id, library_id, file_path, file_hash, file_size, file_modified,
+                 title, album_id, primary_artist, track_number, duration_ms, added_at)
+             VALUES (?, 1, ?, 'h', 0, 0, 'Song', ?, ?, ?, 1000, 0)",
+        )
+        .bind(n)
+        .bind(format!("/music/Record/{n:02}.flac"))
+        .bind(n)
+        .bind(n)
+        .bind(n)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+
+    let mut holder = options.connect().await.unwrap();
+    sqlx::query("BEGIN IMMEDIATE")
+        .execute(&mut holder)
+        .await
+        .unwrap();
+    let release = tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        sqlx::query("COMMIT").execute(&mut holder).await.unwrap();
+        holder.close().await.unwrap();
+    });
+
+    merge_implicit_compilations(&pool)
+        .await
+        .expect("the merge waits for the lock");
+    release.await.unwrap();
+
+    let albums: Vec<(i64, i64)> = sqlx::query_as(
+        "SELECT DISTINCT t.album_id, al.artist_id FROM track t JOIN album al ON al.id = t.album_id",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(albums, vec![(1, 9)], "one Various Artists record");
+}
