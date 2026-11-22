@@ -75,3 +75,114 @@ fn the_sinks_timer_writes_the_local_offset() {
         chrono::Local::now().fixed_offset().timezone()
     );
 }
+
+/// The default filter and [`super::without_probe_junk`] hold back the two
+/// lines symphonia writes for every file it opens, and only those: its other
+/// warnings still pass, the probe's own about unreadable trailing metadata
+/// included.
+#[test]
+fn the_default_filter_drops_symphonias_per_file_lines_only() {
+    use std::sync::{Arc, Mutex};
+    use tracing_subscriber::layer::{Context, SubscriberExt};
+    use tracing_subscriber::{EnvFilter, Layer};
+
+    struct Targets(Arc<Mutex<Vec<String>>>);
+    impl<S: tracing::Subscriber> Layer<S> for Targets {
+        fn on_event(&self, event: &tracing::Event<'_>, _: Context<'_, S>) {
+            self.0
+                .lock()
+                .unwrap()
+                .push(event.metadata().target().to_owned());
+        }
+    }
+
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let subscriber = tracing_subscriber::registry()
+        .with(super::without_probe_junk())
+        .with(EnvFilter::new(super::DEFAULT_FILTER))
+        .with(Targets(Arc::clone(&seen)));
+    tracing::subscriber::with_default(subscriber, || {
+        tracing::info!(target: "symphonia_format_isomp4::demuxer", "skipping top-level atom");
+        tracing::warn!(target: "symphonia_core::formats::probe", "skipped {} bytes of junk at {}", 4096, 0);
+        tracing::warn!(
+            target: "symphonia_core::formats::probe",
+            "skipping trailing '{}' metdata due to error while reading it",
+            "APEv2"
+        );
+        tracing::warn!(target: "symphonia_format_isomp4::atoms::ilst", "unsupported data type");
+        tracing::warn!(target: "symphonia_core::codecs", "decode error");
+        tracing::info!(target: "waveflow::scan", "scan finished");
+        tracing::info!(target: "sqlx::query", "slow statement");
+    });
+
+    let seen = seen.lock().unwrap();
+    assert_eq!(
+        *seen,
+        [
+            "symphonia_core::formats::probe",
+            "symphonia_format_isomp4::atoms::ilst",
+            "symphonia_core::codecs",
+            "waveflow::scan",
+        ]
+    );
+}
+
+/// symphonia logs through `log`: its probe lines reach the subscriber
+/// through `tracing-log`, under the `log` target with their own in a field.
+/// The junk line is still held back that way, and the trailing-metadata
+/// warning still passes.
+#[test]
+fn the_probe_junk_line_is_held_back_when_it_comes_through_log() {
+    use log::Log;
+    use std::sync::{Arc, Mutex};
+    use tracing_subscriber::layer::{Context, SubscriberExt};
+    use tracing_subscriber::{EnvFilter, Layer};
+
+    struct Messages(Arc<Mutex<Vec<String>>>);
+    impl<S: tracing::Subscriber> Layer<S> for Messages {
+        fn on_event(&self, event: &tracing::Event<'_>, _: Context<'_, S>) {
+            struct Message<'a>(&'a mut Vec<String>);
+            impl tracing::field::Visit for Message<'_> {
+                fn record_debug(
+                    &mut self,
+                    field: &tracing::field::Field,
+                    value: &dyn std::fmt::Debug,
+                ) {
+                    if field.name() == "message" {
+                        self.0.push(format!("{value:?}"));
+                    }
+                }
+            }
+            event.record(&mut Message(&mut self.0.lock().unwrap()));
+        }
+    }
+
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let subscriber = tracing_subscriber::registry()
+        .with(super::without_probe_junk())
+        .with(EnvFilter::new(super::DEFAULT_FILTER))
+        .with(Messages(Arc::clone(&seen)));
+    let bridge = tracing_log::LogTracer::new();
+    let warn = |args: std::fmt::Arguments<'_>| {
+        bridge.log(
+            &log::Record::builder()
+                .target("symphonia_core::formats::probe")
+                .level(log::Level::Warn)
+                .args(args)
+                .build(),
+        );
+    };
+    tracing::subscriber::with_default(subscriber, || {
+        warn(format_args!("skipped {} bytes of junk at {}", 4096, 0));
+        warn(format_args!(
+            "skipping trailing '{}' metdata due to error while reading it",
+            "APEv2"
+        ));
+    });
+
+    let seen = seen.lock().unwrap();
+    assert_eq!(
+        *seen,
+        ["skipping trailing 'APEv2' metdata due to error while reading it"]
+    );
+}
