@@ -142,22 +142,26 @@ pub async fn list_albums(
 
 /// Stitch the thumbnail-existence flags onto a batch of raw album rows.
 ///
-/// Per-row mapping does N synchronous `Path::exists` probes against the
-/// artwork dir (via `thumbnail_paths_for`). At 850+ albums × 2 checks
-/// that's enough sustained syscalls to noticeably stall the tokio
-/// runtime, so we hand the whole batch off to the blocking pool in one
-/// shot — single hop, no per-row overhead. Shared by `list_albums` and
-/// `search_albums`.
+/// The flags come from one [`ThumbnailIndex`](crate::thumbnails::ThumbnailIndex)
+/// over the artwork dir: a single directory listing for a large batch
+/// rather than two `Path::exists` probes per album, which on Windows
+/// cost more than the query itself. Still blocking I/O, so the whole
+/// batch goes to the blocking pool in one hop. Shared by `list_albums`
+/// and `search_albums`.
 async fn expand_album_rows(
     raw: Vec<AlbumRawRow>,
     artwork_dir: PathBuf,
 ) -> AppResult<Vec<AlbumRow>> {
     tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
         raw.into_iter()
             .map(|row| {
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = thumbs.paths_for(hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),

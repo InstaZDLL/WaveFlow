@@ -69,6 +69,7 @@ import {
   useSingleClickPlay,
 } from "../../hooks/useSingleClickPlay";
 import { useLibrary } from "../../hooks/useLibrary";
+import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
@@ -109,6 +110,13 @@ import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromMod
 import { BatchTagEditModal } from "../common/BatchTagEditModal";
 import { playerAddToQueue, playerPlayNext } from "../../lib/tauri/player";
 import { type TracksView } from "./library/libraryTypes";
+import {
+  dropLibraryLists,
+  type LibraryListKind,
+  readLibraryList,
+  startLibraryListFetch,
+  writeLibraryList,
+} from "../../lib/libraryListCache";
 import { toLocalTrack } from "./library/toLocalTrack";
 
 import {
@@ -264,13 +272,40 @@ export function LibraryView({
     null,
   );
   const [coverReloadKey, setCoverReloadKey] = useState(0);
-  const [tracks, setTracks] = useState<LibraryTrackRow[]>([]);
-  const [albums, setAlbums] = useState<LibraryAlbumRow[]>([]);
+  // Re-fetch when any library's updated_at changes (e.g. after a scan),
+  // and when the sort sets articles aside or stops: the backend sorts
+  // artists and albums with it, so every listing comes back reordered.
+  const { ignoreArticles } = useSortIgnoreArticles();
+  const librariesSignature = `${libraries
+    .map((l) => `${l.id}:${l.updated_at}`)
+    .join(",")}|${ignoreArticles ? "articles" : "literal"}`;
+  // Where the tab lists are cached between two visits: the profile, and
+  // the signature above. See `libraryListCache`.
+  const { activeProfile } = useProfile();
+  const listScope = `${activeProfile?.id ?? 0}|${librariesSignature}`;
+  // What the previous visit left, painted on the first render instead of
+  // a skeleton. Read by the initializers only: from here on the fetch
+  // effects below decide, and nothing keeps the first lists alive once
+  // they have been replaced.
+  const [tracks, setTracks] = useState<LibraryTrackRow[]>(
+    () => readLibraryList("tracks", listScope) ?? [],
+  );
+  const [albums, setAlbums] = useState<LibraryAlbumRow[]>(
+    () => readLibraryList("albums", listScope) ?? [],
+  );
   const librarySource = useLibrarySource();
-  const [artists, setArtists] = useState<LibraryArtistRow[]>([]);
-  const [genres, setGenres] = useState<GenreRow[]>([]);
-  const [years, setYears] = useState<YearRow[]>([]);
-  const [folders, setFolders] = useState<FolderRow[]>([]);
+  const [artists, setArtists] = useState<LibraryArtistRow[]>(
+    () => readLibraryList("artists", listScope) ?? [],
+  );
+  const [genres, setGenres] = useState<GenreRow[]>(
+    () => readLibraryList("genres", listScope) ?? [],
+  );
+  const [years, setYears] = useState<YearRow[]>(
+    () => readLibraryList("years", listScope) ?? [],
+  );
+  const [folders, setFolders] = useState<FolderRow[]>(
+    () => readLibraryList("folders", listScope) ?? [],
+  );
   // Folder browsing (#578). `null` is the list of configured roots —
   // the tab's original content, which stays reachable because it is
   // also where a root is unwatched or removed.
@@ -291,18 +326,30 @@ export function LibraryView({
   // Per-tab loading state — drives both the in-place dim and the
   // first-load skeleton. Independent flags let the 5 fetches run in
   // parallel without one tab's dim leaking onto another. Initial value
-  // is `true` everywhere so the skeleton paints on first render instead
-  // of a one-frame EmptyState flash before the effects schedule.
-  const [loading, setLoading] = useState<Record<LibraryTab, boolean>>({
-    tracks: true,
-    albums: true,
-    artists: true,
-    genres: true,
-    years: true,
+  // is `true` for every tab with nothing cached, so the skeleton paints
+  // on first render instead of a one-frame EmptyState flash before the
+  // effects schedule; a cached list paints as it is.
+  const uncached = (kind: LibraryListKind) =>
+    readLibraryList(kind, listScope) === undefined;
+  // The sorted lists the first render restored, whatever parameters they
+  // were fetched under. Each fetch effect checks its own once the stored
+  // sort and source are in: a list fetched under others is not shown
+  // under these, and the tab goes back to its skeleton instead.
+  const restoredAtMount = useRef(
+    new Set<LibraryListKind>(
+      (["tracks", "albums", "artists"] as const).filter((k) => !uncached(k)),
+    ),
+  );
+  const [loading, setLoading] = useState<Record<LibraryTab, boolean>>(() => ({
+    tracks: uncached("tracks"),
+    albums: uncached("albums"),
+    artists: uncached("artists"),
+    genres: uncached("genres"),
+    years: uncached("years"),
     // Playlists come from PlaylistContext, already loaded — there is no
     // fetch of our own to wait on, so this tab never shows a skeleton.
     playlists: false,
-    folders: true,
+    folders: uncached("folders"),
     // The only tab that does NOT prefetch. Its counts are album-level
     // aggregates plus a walk over every track to chain probable
     // duplicates, so paying for them on every mount of the library --
@@ -315,7 +362,7 @@ export function LibraryView({
     "needs-attention": true,
     // Fetches its own counts and rows when opened (`QualityTab`).
     quality: false,
-  });
+  }));
   // Which columns the track table shows, in what order and how wide
   // (#588). One preference for every list that renders the shared
   // table, so the library, the folder browser and the inventory agree.
@@ -445,22 +492,23 @@ export function LibraryView({
     selectedTrackIds: [...selection.selectedIds],
   });
 
-  // Re-fetch when any library's updated_at changes (e.g. after a scan),
-  // and when the sort sets articles aside or stops: the backend sorts
-  // artists and albums with it, so every listing comes back reordered.
-  const { ignoreArticles } = useSortIgnoreArticles();
-  const librariesSignature = `${libraries
-    .map((l) => `${l.id}:${l.updated_at}`)
-    .join(",")}|${ignoreArticles ? "articles" : "literal"}`;
   // Bumped when a tag edit elsewhere fires `track:updated` so the
   // active tab re-fetches and shows the new metadata.
   const [editRefetch, setEditRefetch] = useState(0);
+  // Every refetch of edited data goes through here, and drops the cached
+  // lists first: they predate whatever prompted it, and a cached answer
+  // would otherwise paint at full opacity for the length of the reload
+  // instead of the list dimming as it waits. (The cache drops itself on
+  // `track:updated` too, but which of the two listeners runs first is
+  // not ours to decide.)
   // `setEditRefetch` is listed even though a state setter is stable:
   // the React Compiler infers it as a dependency, and a manual list
   // that does not match makes it skip optimizing the whole component.
-  useTrackUpdated(
-    useCallback(() => setEditRefetch((k) => k + 1), [setEditRefetch]),
-  );
+  const refetchEdited = useCallback(() => {
+    dropLibraryLists();
+    setEditRefetch((k) => k + 1);
+  }, [setEditRefetch]);
+  useTrackUpdated(refetchEdited);
   // And when an artist's picture changes: the artists grid reads that
   // image, and a picture set from the artist page used to leave the
   // grid showing the old one until a scan or a tag edit (#692). Its own
@@ -469,7 +517,10 @@ export function LibraryView({
   // tags or folders.
   const [artistRefetch, setArtistRefetch] = useState(0);
   useArtistUpdated(
-    useCallback(() => setArtistRefetch((k) => k + 1), [setArtistRefetch]),
+    useCallback(() => {
+      dropLibraryLists("artists");
+      setArtistRefetch((k) => k + 1);
+    }, [setArtistRefetch]),
   );
   const clearSelection = selection.clear;
   // The track table on screen, if any: the tracks tab, an opened folder,
@@ -691,14 +742,25 @@ export function LibraryView({
     // Both preferences gate the fetch, for the reason on the albums effect.
     if (!tracksSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
+    const params = `${librarySource.source}|${tracksSort.sort.orderBy}|${tracksSort.sort.direction}`;
+    const cached = readLibraryList<LibraryTrackRow[]>(
+      "tracks",
+      listScope,
+      params,
+    );
+    const restored = restoredAtMount.current.delete("tracks");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, tracks: true }));
+    if (cached) setTracks(cached);
+    else if (restored) setTracks([]);
+    setLoading((p) => ({ ...p, tracks: cached === undefined }));
+    const ticket = startLibraryListFetch("tracks");
     listLibraryTracks(
       null,
       librarySource.source === "all" ? null : librarySource.source,
       tracksSort.sort,
     )
       .then((list) => {
+        writeLibraryList("tracks", listScope, params, list, ticket);
         if (!cancelled) setTracks(list);
       })
       .catch((err) => {
@@ -712,7 +774,7 @@ export function LibraryView({
       cancelled = true;
     };
   }, [
-    librariesSignature,
+    listScope,
     tracksSort.isLoaded,
     tracksSort.sort,
     librarySource.ready,
@@ -726,8 +788,20 @@ export function LibraryView({
     // filter is the more visible of the two to get wrong.
     if (!albumsSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
+    // A cached list for this very query paints at once and the fetch
+    // below replaces it; without one, the tab waits on the fetch.
+    const params = `${librarySource.source}|${albumsSort.sort.orderBy}|${albumsSort.sort.direction}`;
+    const cached = readLibraryList<LibraryAlbumRow[]>(
+      "albums",
+      listScope,
+      params,
+    );
+    const restored = restoredAtMount.current.delete("albums");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, albums: true }));
+    if (cached) setAlbums(cached);
+    else if (restored) setAlbums([]);
+    setLoading((p) => ({ ...p, albums: cached === undefined }));
+    const ticket = startLibraryListFetch("albums");
     listLibraryAlbums(
       null,
       librarySource.source === "all" ? null : librarySource.source,
@@ -737,6 +811,7 @@ export function LibraryView({
       },
     )
       .then((list) => {
+        writeLibraryList("albums", listScope, params, list, ticket);
         if (!cancelled) setAlbums(list);
       })
       .catch((err) => {
@@ -750,7 +825,7 @@ export function LibraryView({
       cancelled = true;
     };
   }, [
-    librariesSignature,
+    listScope,
     albumsSort.isLoaded,
     albumsSort.sort,
     librarySource.ready,
@@ -763,14 +838,25 @@ export function LibraryView({
     // Both preferences gate the fetch, for the reason on the albums effect.
     if (!artistsSort.isLoaded || !librarySource.ready) return;
     let cancelled = false;
+    const params = `${librarySource.source}|${artistsSort.sort.orderBy}|${artistsSort.sort.direction}`;
+    const cached = readLibraryList<LibraryArtistRow[]>(
+      "artists",
+      listScope,
+      params,
+    );
+    const restored = restoredAtMount.current.delete("artists");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, artists: true }));
+    if (cached) setArtists(cached);
+    else if (restored) setArtists([]);
+    setLoading((p) => ({ ...p, artists: cached === undefined }));
+    const ticket = startLibraryListFetch("artists");
     listLibraryArtists(
       null,
       librarySource.source === "all" ? null : librarySource.source,
       artistsSort.sort,
     )
       .then((list) => {
+        writeLibraryList("artists", listScope, params, list, ticket);
         if (!cancelled) setArtists(list);
       })
       .catch((err) => {
@@ -784,7 +870,7 @@ export function LibraryView({
       cancelled = true;
     };
   }, [
-    librariesSignature,
+    listScope,
     artistsSort.isLoaded,
     artistsSort.sort,
     librarySource.ready,
@@ -795,10 +881,14 @@ export function LibraryView({
 
   useEffect(() => {
     let cancelled = false;
+    const cached = readLibraryList<GenreRow[]>("genres", listScope, "");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, genres: true }));
+    if (cached) setGenres(cached);
+    setLoading((p) => ({ ...p, genres: cached === undefined }));
+    const ticket = startLibraryListFetch("genres");
     listGenres(null)
       .then((list) => {
+        writeLibraryList("genres", listScope, "", list, ticket);
         if (!cancelled) setGenres(list);
       })
       .catch((err) => {
@@ -810,14 +900,18 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [librariesSignature, editRefetch]);
+  }, [listScope, editRefetch]);
 
   useEffect(() => {
     let cancelled = false;
+    const cached = readLibraryList<YearRow[]>("years", listScope, "");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, years: true }));
+    if (cached) setYears(cached);
+    setLoading((p) => ({ ...p, years: cached === undefined }));
+    const ticket = startLibraryListFetch("years");
     listYears(null)
       .then((list) => {
+        writeLibraryList("years", listScope, "", list, ticket);
         if (!cancelled) setYears(list);
       })
       .catch((err) => {
@@ -829,14 +923,18 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [librariesSignature, editRefetch]);
+  }, [listScope, editRefetch]);
 
   useEffect(() => {
     let cancelled = false;
+    const cached = readLibraryList<FolderRow[]>("folders", listScope, "");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading((p) => ({ ...p, folders: true }));
+    if (cached) setFolders(cached);
+    setLoading((p) => ({ ...p, folders: cached === undefined }));
+    const ticket = startLibraryListFetch("folders");
     listFolders(null)
       .then((list) => {
+        writeLibraryList("folders", listScope, "", list, ticket);
         if (!cancelled) setFolders(list);
       })
       .catch((err) => {
@@ -848,7 +946,7 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [librariesSignature]);
+  }, [listScope]);
 
   // Load liked track IDs once on mount so the TrackTable can show
   // filled hearts. Re-fetches when the libraries change (scan might
@@ -1100,13 +1198,14 @@ export function LibraryView({
     try {
       await scanFolder(folderId, true);
       // scan_folder doesn't emit `library:rescanned` (only folder
-      // removal / tag edits do), and it doesn't touch `library.updated_at`
-      // either, so `librariesSignature` never moves. Without refetching
+      // removal / tag edits do), and the `library.updated_at` it writes
+      // reaches `librariesSignature` only once the library rows are read
+      // again. Without refetching
       // here the new tracks reached the database while the Songs, Albums
       // and Artists lists kept the old ones (#613): bump the same refetch
       // an import uses, refresh the library rows for their counts, and
       // reload the folder rows for their last-scan date and track count.
-      setEditRefetch((k) => k + 1);
+      refetchEdited();
       const [list] = await Promise.all([listFolders(null), refreshLibraries()]);
       setFolders(list);
     } catch (err) {
@@ -1746,7 +1845,7 @@ export function LibraryView({
                 {inventoryCategory === "phantom_artist" && (
                   <PhantomArtistList
                     refreshKey={editRefetch}
-                    onChanged={() => setEditRefetch((k) => k + 1)}
+                    onChanged={refetchEdited}
                     t={t}
                   />
                 )}
@@ -1787,6 +1886,9 @@ export function LibraryView({
                   // tracks too, so the LibraryContext will refresh on
                   // the `library:rescanned` event the command emits.
                   setFolders((prev) => prev.filter((f) => f.id !== folderId));
+                  // The cached list still holds it: a return before the
+                  // event lands must not paint the folder back.
+                  dropLibraryLists("folders");
                   removeFolderFromLibrary(folderId).catch((err) => {
                     console.error("[LibraryView] remove folder failed", err);
                   });
@@ -1798,6 +1900,11 @@ export function LibraryView({
                 onToggleWatched={(folderId, enable) => {
                   // Optimistic flip — the watcher hookup is fire-and-
                   // forget on the backend so the UI shouldn't block on it.
+                  // The cached list is forgotten rather than patched: the
+                  // next visit asks again. Forgotten once more when the
+                  // write lands, since a listing read while it was on its
+                  // way may have cached the old flag in between.
+                  dropLibraryLists("folders");
                   setFolders((prev) =>
                     prev.map((f) =>
                       f.id === folderId
@@ -1805,17 +1912,19 @@ export function LibraryView({
                         : f,
                     ),
                   );
-                  setFolderWatched(folderId, enable).catch((err) => {
-                    console.error("[LibraryView] toggle watched failed", err);
-                    // Roll back on error.
-                    setFolders((prev) =>
-                      prev.map((f) =>
-                        f.id === folderId
-                          ? { ...f, is_watched: enable ? 0 : 1 }
-                          : f,
-                      ),
-                    );
-                  });
+                  setFolderWatched(folderId, enable)
+                    .then(() => dropLibraryLists("folders"))
+                    .catch((err) => {
+                      console.error("[LibraryView] toggle watched failed", err);
+                      // Roll back on error.
+                      setFolders((prev) =>
+                        prev.map((f) =>
+                          f.id === folderId
+                            ? { ...f, is_watched: enable ? 0 : 1 }
+                            : f,
+                        ),
+                      );
+                    });
                 }}
               />
             )}
@@ -1915,7 +2024,7 @@ export function LibraryView({
           // rather than trusting the backend's `library:rescanned` to move
           // `librariesSignature` — it only does when a library row itself
           // changed.
-          setEditRefetch((k) => k + 1);
+          refetchEdited();
         }}
       />
 
@@ -1934,7 +2043,7 @@ export function LibraryView({
           // The mirror row was rewritten in the same transaction that
           // queued the patch, so the list is one row out of date the
           // moment the modal closes. Same refetch an import triggers.
-          setEditRefetch((k) => k + 1);
+          refetchEdited();
         }}
       />
 
@@ -1954,7 +2063,10 @@ export function LibraryView({
           })()}
           isOpen={coverPickerAlbumId != null}
           onClose={() => setCoverPickerAlbumId(null)}
-          onSuccess={() => setCoverReloadKey((k) => k + 1)}
+          onSuccess={() => {
+            dropLibraryLists("albums", "tracks", "years");
+            setCoverReloadKey((k) => k + 1);
+          }}
         />
       )}
 
