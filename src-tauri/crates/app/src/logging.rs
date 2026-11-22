@@ -152,14 +152,28 @@ pub(crate) fn without_connection_lines() -> FilterFn<impl Fn(&tracing::Metadata<
     })
 }
 
+/// What reaches the log when `RUST_LOG` is not set.
+///
+/// Besides `sqlx` and `lofty`, two lines symphonia writes each time it opens a
+/// file are held back, since they say nothing about a failure and on a large
+/// library they can fill the day's whole budget, crowding out everything after:
+/// - the MP4 demuxer names every top-level atom it skips (`free`, `udta`,
+///   `uuid`…), at info, for each MP4 or M4A it opens;
+/// - the probe warns about the bytes it skips before a stream starts, which
+///   an ID3 pad or a tag written ahead of the audio leaves in many files.
+///
+/// Every other symphonia warning, a decode error among them, still reaches it.
+pub(crate) const DEFAULT_FILTER: &str =
+    "info,sqlx=warn,lofty=error,symphonia_format_isomp4=warn,symphonia_core::formats::probe=error";
+
 /// Install the global tracing subscriber.
 ///
 /// Parks the file writer's guard in [`LOG_GUARD`] and returns a
 /// [`FlushOnDrop`] the caller must hold for the whole program: let it
 /// fall out of scope early and the file sink closes with it.
 pub fn init_tracing() -> FlushOnDrop {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn,lofty=error"));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(DEFAULT_FILTER));
 
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout)

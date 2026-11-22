@@ -75,3 +75,45 @@ fn the_sinks_timer_writes_the_local_offset() {
         chrono::Local::now().fixed_offset().timezone()
     );
 }
+
+/// The default filter holds back the two lines symphonia writes for every
+/// file it opens, and only those: its other warnings still pass.
+#[test]
+fn the_default_filter_drops_symphonias_per_file_lines_only() {
+    use std::sync::{Arc, Mutex};
+    use tracing_subscriber::layer::{Context, SubscriberExt};
+    use tracing_subscriber::{EnvFilter, Layer};
+
+    struct Targets(Arc<Mutex<Vec<String>>>);
+    impl<S: tracing::Subscriber> Layer<S> for Targets {
+        fn on_event(&self, event: &tracing::Event<'_>, _: Context<'_, S>) {
+            self.0
+                .lock()
+                .unwrap()
+                .push(event.metadata().target().to_owned());
+        }
+    }
+
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let subscriber = tracing_subscriber::registry()
+        .with(EnvFilter::new(super::DEFAULT_FILTER))
+        .with(Targets(Arc::clone(&seen)));
+    tracing::subscriber::with_default(subscriber, || {
+        tracing::info!(target: "symphonia_format_isomp4::demuxer", "skipping top-level atom");
+        tracing::warn!(target: "symphonia_core::formats::probe", "skipped junk");
+        tracing::warn!(target: "symphonia_format_isomp4::atoms::ilst", "unsupported data type");
+        tracing::warn!(target: "symphonia_core::codecs", "decode error");
+        tracing::info!(target: "waveflow::scan", "scan finished");
+        tracing::info!(target: "sqlx::query", "slow statement");
+    });
+
+    let seen = seen.lock().unwrap();
+    assert_eq!(
+        *seen,
+        [
+            "symphonia_format_isomp4::atoms::ilst",
+            "symphonia_core::codecs",
+            "waveflow::scan",
+        ]
+    );
+}
