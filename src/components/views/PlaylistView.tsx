@@ -1219,156 +1219,158 @@ export function PlaylistView({
         return (
           <div
             data-page-hero
-            className="@container flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64"
+            className="flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64"
           >
-            {/* Cover beside the title once the header itself is wide enough
-                (`@xl`, the `@container` above), not the window: the sidebar
-                and the side panels narrow the page, and a title squeezed
-                next to the cover broke one letter per line. */}
-            <div className="flex min-w-0 flex-col items-start gap-6 @xl:flex-row @xl:items-end">
-              {remote && remoteCoverHashes.length >= 4 ? (
-                <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 grid grid-cols-2">
-                  {remoteCoverHashes.map((hash) => (
-                    <RemoteArtwork
-                      key={hash}
-                      hash={hash}
-                      className="w-full h-full"
-                      iconSize={16}
-                    />
-                  ))}
-                </div>
-              ) : remote && remoteCoverHashes.length >= 1 ? (
-                <RemoteArtwork
-                  hash={remoteCoverHashes[0]}
-                  className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl shadow-xl shrink-0"
-                  iconSize={40}
-                />
-              ) : (
-                <div
-                  className={`relative w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 flex items-center justify-center ${
-                    coverUrl ? "" : `${color.tileBg} ${color.tileText}`
-                  }`}
-                >
-                  {coverUrl ? (
-                    <>
-                      <img
-                        src={coverUrl}
-                        alt=""
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="lazy"
+            {/* Cover beside the title once this block is wide enough (`@xl`
+                on the `@container` wrapper), not the window: the sidebar,
+                the side panels and the actions beside it narrow it, and a
+                title squeezed next to the cover broke one letter per line. */}
+            <div className="@container min-w-0 lg:flex-1">
+              <div className="flex min-w-0 flex-col items-start gap-6 @xl:flex-row @xl:items-end">
+                {remote && remoteCoverHashes.length >= 4 ? (
+                  <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 grid grid-cols-2">
+                    {remoteCoverHashes.map((hash) => (
+                      <RemoteArtwork
+                        key={hash}
+                        hash={hash}
+                        className="w-full h-full"
+                        iconSize={16}
                       />
-                      {isSmart && (
-                        <>
-                          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/70 to-transparent" />
-                          <div className="absolute bottom-1.5 start-2 end-2 text-[9px] font-bold tracking-widest text-white uppercase truncate">
-                            {t(
-                              smartFamilyStyle(
-                                playlist ? smartPlaylistKind(playlist) : null,
-                              ).labelKey,
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  ) : remote ? (
-                    <ListMusic size={72} />
-                  ) : (
-                    <PlaylistIcon iconId={playlist.icon_id} size={72} />
-                  )}
-                </div>
-              )}
-              {/* Dark ink in the light theme, white in the dark one — the
+                    ))}
+                  </div>
+                ) : remote && remoteCoverHashes.length >= 1 ? (
+                  <RemoteArtwork
+                    hash={remoteCoverHashes[0]}
+                    className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl shadow-xl shrink-0"
+                    iconSize={40}
+                  />
+                ) : (
+                  <div
+                    className={`relative w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 flex items-center justify-center ${
+                      coverUrl ? "" : `${color.tileBg} ${color.tileText}`
+                    }`}
+                  >
+                    {coverUrl ? (
+                      <>
+                        <img
+                          src={coverUrl}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {isSmart && (
+                          <>
+                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/70 to-transparent" />
+                            <div className="absolute bottom-1.5 start-2 end-2 text-[9px] font-bold tracking-widest text-white uppercase truncate">
+                              {t(
+                                smartFamilyStyle(
+                                  playlist ? smartPlaylistKind(playlist) : null,
+                                ).labelKey,
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    ) : remote ? (
+                      <ListMusic size={72} />
+                    ) : (
+                      <PlaylistIcon iconId={playlist.icon_id} size={72} />
+                    )}
+                  </div>
+                )}
+                {/* Dark ink in the light theme, white in the dark one — the
                   two palettes are not inverses of each other (see
                   usePlaylistAccent). The dark header only guarantees 3:1
                   behind this block, and the shadow is what carries the
                   small label and counts; the light one reaches 4.5:1 on
                   its own, where a shadow under dark text would only look
                   smudged. */}
-              <div className="min-w-0 pb-1 dark:[text-shadow:0_1px_3px_rgb(0_0_0/0.35)]">
-                <div className="text-[10px] font-bold tracking-widest text-neutral-900/85 dark:text-white/85 uppercase mb-1">
-                  {t(remote ? "remote.playlist.label" : "playlistView.badge")}
-                </div>
-                {remote && isRenaming ? (
-                  <input
-                    autoFocus
-                    value={nameDraft}
-                    aria-label={t("remote.playlist.nameLabel")}
-                    onChange={(e) => setNameDraft(e.target.value)}
-                    onBlur={() => void commitRename()}
-                    onKeyDown={(e) => {
-                      // Ignore the Enter/Escape that closes an IME
-                      // composition (Japanese, Chinese, …) — committing or
-                      // cancelling on it would fire mid-word, before the
-                      // character has been chosen.
-                      if (e.nativeEvent.isComposing) return;
-                      if (e.key === "Enter") void commitRename();
-                      if (e.key === "Escape") setIsRenaming(false);
-                    }}
-                    className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
-                  />
-                ) : (
-                  // Sized on the header's own width (`cqi`), for the same
-                  // reason; the fluid layout sets its own size. Three lines
-                  // at most, the whole name in the tooltip.
-                  <h1
-                    title={playlist.name}
-                    className="text-[clamp(1.75rem,6.5cqi,3.75rem)] leading-tight font-extrabold mb-3 break-words line-clamp-3 text-neutral-900 dark:text-white"
-                  >
-                    {playlist.name}
-                  </h1>
-                )}
-                {playlist.description && (
-                  <p className="text-sm text-neutral-900/85 dark:text-white/85 mb-2 line-clamp-2">
-                    {playlist.description}
-                  </p>
-                )}
-                {!remote && <SmartRuleSummary playlist={playlist} />}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-neutral-900/85 dark:text-white/85">
-                  <Music2 size={16} />
-                  <span>
-                    {t("playlistView.trackCount", {
-                      count: playlist.track_count,
-                    })}
-                  </span>
-                  {placeholders.length > 0 && (
-                    <>
-                      <span>·</span>
-                      <span>
-                        {t("playlistView.placeholder.count", {
-                          count: placeholders.length,
-                        })}
-                      </span>
-                    </>
+                <div className="min-w-0 pb-1 dark:[text-shadow:0_1px_3px_rgb(0_0_0/0.35)]">
+                  <div className="text-[10px] font-bold tracking-widest text-neutral-900/85 dark:text-white/85 uppercase mb-1">
+                    {t(remote ? "remote.playlist.label" : "playlistView.badge")}
+                  </div>
+                  {remote && isRenaming ? (
+                    <input
+                      autoFocus
+                      value={nameDraft}
+                      aria-label={t("remote.playlist.nameLabel")}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      onBlur={() => void commitRename()}
+                      onKeyDown={(e) => {
+                        // Ignore the Enter/Escape that closes an IME
+                        // composition (Japanese, Chinese, …) — committing or
+                        // cancelling on it would fire mid-word, before the
+                        // character has been chosen.
+                        if (e.nativeEvent.isComposing) return;
+                        if (e.key === "Enter") void commitRename();
+                        if (e.key === "Escape") setIsRenaming(false);
+                      }}
+                      className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
+                    />
+                  ) : (
+                    // Sized on the header's own width (`cqi`), for the same
+                    // reason; the fluid layout sets its own size. Three lines
+                    // at most, the whole name in the tooltip.
+                    <h1
+                      title={playlist.name}
+                      className="text-[clamp(1.75rem,6.5cqi,3.75rem)] leading-tight font-extrabold mb-3 break-words line-clamp-3 text-neutral-900 dark:text-white"
+                    >
+                      {playlist.name}
+                    </h1>
                   )}
-                  <span>·</span>
-                  <span>{totalDurationLabel}</span>
-                  {remote && keeping && (
-                    <>
-                      <span>·</span>
-                      <span>
-                        {t("remote.playlist.keepingProgress", {
-                          done: keeping.done,
-                          total: keeping.total,
-                        })}
-                      </span>
-                    </>
+                  {playlist.description && (
+                    <p className="text-sm text-neutral-900/85 dark:text-white/85 mb-2 line-clamp-2">
+                      {playlist.description}
+                    </p>
                   )}
-                  {remote && !keeping && offlineTrackCount > 0 && (
-                    <>
-                      <span>·</span>
-                      <span>
-                        {t("remote.playlist.keptOffline", {
-                          count: offlineTrackCount,
-                        })}
-                      </span>
-                    </>
-                  )}
-                  {remote && remotePending && (
-                    <>
-                      <span>·</span>
-                      <span>{t("remote.playlist.notSent")}</span>
-                    </>
-                  )}
+                  {!remote && <SmartRuleSummary playlist={playlist} />}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-neutral-900/85 dark:text-white/85">
+                    <Music2 size={16} />
+                    <span>
+                      {t("playlistView.trackCount", {
+                        count: playlist.track_count,
+                      })}
+                    </span>
+                    {placeholders.length > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>
+                          {t("playlistView.placeholder.count", {
+                            count: placeholders.length,
+                          })}
+                        </span>
+                      </>
+                    )}
+                    <span>·</span>
+                    <span>{totalDurationLabel}</span>
+                    {remote && keeping && (
+                      <>
+                        <span>·</span>
+                        <span>
+                          {t("remote.playlist.keepingProgress", {
+                            done: keeping.done,
+                            total: keeping.total,
+                          })}
+                        </span>
+                      </>
+                    )}
+                    {remote && !keeping && offlineTrackCount > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>
+                          {t("remote.playlist.keptOffline", {
+                            count: offlineTrackCount,
+                          })}
+                        </span>
+                      </>
+                    )}
+                    {remote && remotePending && (
+                      <>
+                        <span>·</span>
+                        <span>{t("remote.playlist.notSent")}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
