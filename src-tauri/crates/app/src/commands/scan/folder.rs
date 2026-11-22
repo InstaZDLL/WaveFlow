@@ -1700,9 +1700,11 @@ pub(crate) async fn scan_folder_inner(
     // state": the safe stopping point for a scan is not merely between
     // two files, it is *before this pass*.
     // SQLite caps bound parameters at ~999, so we update one row at a
-    // time. Removed counts are normally tiny (a handful per scan); for
-    // bulk wipes the loop is still acceptable since we're already
-    // off the audio thread.
+    // time. Removed counts are normally tiny (a handful per scan), but a
+    // folder emptied of its files sweeps thousands of rows: they go in
+    // batches, as the scan's own, under a transaction that holds the lock
+    // from its start and lets a waiting writer through between two rows.
+    // One autocommit per row took the lock back as soon as it let it go.
     let sweep: Vec<&String> = if summary.cancelled {
         Vec::new()
     } else {
@@ -1713,14 +1715,26 @@ pub(crate) async fn scan_folder_inner(
             .filter(|path| !missed(&unreadable, Path::new(path.as_str())))
             .collect()
     };
-    for missing_path in sweep {
+    let t_pass = Instant::now();
+    let mut tx = lock_waiters::begin_write(pool).await?;
+    let mut held_since = Instant::now();
+    for (swept, missing_path) in sweep.into_iter().enumerate() {
+        if swept > 0 && (swept % TX_BATCH == 0 || lock_waiters::waited_since(held_since)) {
+            let waited = lock_waiters::waited_since(held_since);
+            tx.commit().await?;
+            if waited {
+                lock_waiters::step_aside().await;
+            }
+            tx = lock_waiters::begin_write(pool).await?;
+            held_since = Instant::now();
+        }
         let res = sqlx::query(
             "UPDATE track SET is_available = 0
               WHERE folder_id = ? AND file_path = ? AND is_available = 1",
         )
         .bind(folder_id)
         .bind(missing_path)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         if res.rows_affected() > 0 {
             summary.removed += 1;
@@ -1730,27 +1744,32 @@ pub(crate) async fn scan_folder_inner(
     sqlx::query("UPDATE library_folder SET last_scanned_at = ? WHERE id = ?")
         .bind(now)
         .bind(folder_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     sqlx::query("UPDATE library SET updated_at = ? WHERE id = ?")
         .bind(now)
         .bind(library_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+    tx.commit().await?;
+    let sweep_ms = t_pass.elapsed().as_millis();
 
     // Auto-detect compilations among the tagless rows. Catches the case
     // where a Various-Artists record has neither aART nor TCMP set on
     // its source files (Soothing-Breeze-style lofi compilations,
     // SoundCloud DL packs, …) — the scanner would otherwise leave 21
     // single-track album rows fragmented by primary_artist.
+    let t_pass = Instant::now();
     if let Err(err) = merge_implicit_compilations(pool).await {
         tracing::warn!(?err, "merge_implicit_compilations failed (non-fatal)");
     }
+    let compilations_ms = t_pass.elapsed().as_millis();
 
     // Album years are derived from the final set of available tracks. A
     // previously missing or corrected year must survive a rescan, while
     // conflicting track years must not depend on scan order (#816). Keep
     // this on cancellation too: processed tracks are already committed.
+    let t_pass = Instant::now();
     let previous_album_ids: Vec<i64> = previous_album_ids.into_iter().collect();
     let album_repo = SqliteAlbumRepository::new(pool.clone());
     if let Err(err) = album_repo
@@ -1759,12 +1778,14 @@ pub(crate) async fn scan_folder_inner(
     {
         tracing::warn!(?err, "refresh_album_years failed (non-fatal)");
     }
+    let years_ms = t_pass.elapsed().as_millis();
 
     // VA is an album artist (never in `track_artist`), so the per-track
     // `maybe_link_artist_images` pass above can't reach it — resolve a
     // curated `Various Artists/artist.jpg` via the album relationship here
     // (issue #292). Runs after the merge so a freshly promoted VA row is
     // covered. Non-fatal: a missing sidecar is the common case.
+    let t_pass = Instant::now();
     match pool.acquire().await {
         Ok(mut conn) => {
             if let Err(err) = link_va_artist_image(&mut conn, artwork_dir).await {
@@ -1802,11 +1823,13 @@ pub(crate) async fn scan_folder_inner(
             Err(err) => tracing::warn!(?err, "network refresh_covers failed (non-fatal)"),
         }
     }
+    let covers_ms = t_pass.elapsed().as_millis();
 
     // Give listening history back to tracks that were deleted and have
     // now been re-scanned (issue #367). Runs library-wide rather than
     // per-folder: an orphaned event has no folder any more, that's what
     // being orphaned means. Non-fatal for the same reason as above.
+    let t_pass = Instant::now();
     let reattached_plays = match reattach_orphaned_play_events(pool).await {
         Ok(n) => n,
         Err(err) => {
@@ -1814,6 +1837,7 @@ pub(crate) async fn scan_folder_inner(
             0
         }
     };
+    let plays_ms = t_pass.elapsed().as_millis();
 
     // The same, for imported playlists: a track the scan brought in takes
     // the place of every placeholder waiting for it. Library-wide too — a
@@ -1821,12 +1845,14 @@ pub(crate) async fn scan_folder_inner(
     // when the scan changed what the library holds: matching reads the
     // whole library, and a watcher rescan that found nothing new would
     // pay that for nothing.
+    let t_pass = Instant::now();
     let brought_tracks = summary.added + summary.updated + summary.moved > 0
         || crate::commands::playlist_import::available_in_folder(pool, folder_id).await
             != available_before;
     if brought_tracks {
         crate::commands::playlist_import::fill_placeholders_after_scan(pool, app_handle).await;
     }
+    let placeholders_ms = t_pass.elapsed().as_millis();
 
     // Marked whatever the individual files turned out to hold: the
     // point of the pass is that every file was *read once*, and a
@@ -1837,6 +1863,7 @@ pub(crate) async fn scan_folder_inner(
     // did not reach most of the folder, and recording it as done would
     // leave those files without their tags permanently. A stop does not
     // spend one of the folder's retries either.
+    let t_pass = Instant::now();
     tag_backfill
         .settle(pool, folder_id, summary.cancelled, tag_backfill_failed)
         .await;
@@ -1870,6 +1897,7 @@ pub(crate) async fn scan_folder_inner(
     rg_backfill
         .settle(pool, folder_id, summary.cancelled, rg_backfill_failed)
         .await;
+    let markers_ms = t_pass.elapsed().as_millis();
 
     // Per-phase breakdown so a slow scan on a big library is diagnosable
     // from the log alone. `*_ms` are wall-clock deltas between phases;
@@ -1895,6 +1923,15 @@ pub(crate) async fn scan_folder_inner(
         stat_ms = stat_ms.saturating_sub(meta_load_ms),
         extract_db_ms = extract_db_ms.saturating_sub(stat_ms),
         post_ms = t_scan.elapsed().as_millis().saturating_sub(extract_db_ms),
+        // `post_ms` pass by pass, in the order they run once the last
+        // batch is committed (the progress bar sits at its end meanwhile).
+        sweep_ms,
+        compilations_ms,
+        years_ms,
+        covers_ms,
+        plays_ms,
+        placeholders_ms,
+        markers_ms,
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,
         tag_cpu_ms_total = timings.tag_us.load(Ordering::Relaxed) / 1000,
