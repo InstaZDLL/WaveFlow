@@ -16,7 +16,9 @@ import { listen } from "@tauri-apps/api/event";
  * rescanned since is never shown. The one read without parameters is the
  * view's first render, which runs before the stored sort and source have
  * been read back: it takes the entry of the current scope whatever its
- * parameters, which are the ones that sort and source were last set to.
+ * parameters -- normally the ones sort and source were last set to, since
+ * only the latest fetch may write -- and the view checks them as soon as
+ * the preferences are in, going back to its skeleton if they differ.
  *
  * One entry per tab, not one per query, so what is held while the view
  * is away is one list per tab -- the track list being the large one.
@@ -118,10 +120,10 @@ export function writeLibraryList(
   entries.set(kind, { scope, params, value });
 }
 
-/** Forget `kind`'s list, or every list: the next mount fetches before it
- *  paints. */
-export function dropLibraryLists(kind?: LibraryListKind): void {
-  for (const k of kind ? [kind] : KINDS) {
+/** Forget these kinds' lists, or every list when none is named: the next
+ *  mount fetches before it paints. */
+export function dropLibraryLists(...kinds: LibraryListKind[]): void {
+  for (const k of kinds.length > 0 ? kinds : KINDS) {
     bump(k);
     entries.delete(k);
   }

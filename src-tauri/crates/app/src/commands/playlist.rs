@@ -368,7 +368,10 @@ pub async fn list_playlist_tracks(
     // listing, still blocking I/O.
     let artwork_dir_for_blocking = artwork_dir.clone();
     let items = tokio::task::spawn_blocking(move || {
-        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir_for_blocking, rows.len());
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir_for_blocking,
+            rows.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
         rows.into_iter()
             .map(|row| crate::commands::track::track_list_item_from_row(row, &thumbs))
             .collect()

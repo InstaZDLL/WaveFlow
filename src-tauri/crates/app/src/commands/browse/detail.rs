@@ -624,11 +624,7 @@ pub async fn get_genre_detail(
     .fetch_all(&*pool)
     .await?;
 
-    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, rows.len());
-    let tracks: Vec<crate::commands::track::Track> = rows
-        .into_iter()
-        .map(|row| detail_track(row, &thumbs))
-        .collect();
+    let tracks = detail_tracks(rows, artwork_dir.clone()).await?;
 
     let track_count = tracks.len() as i64;
     let total_duration_ms = tracks.iter().map(|t| t.duration_ms).sum();
@@ -691,10 +687,30 @@ pub(crate) fn detail_tracks_sql(join: &str, filter: &str) -> sqlx::AssertSqlSafe
     ))
 }
 
+/// Every [`DetailTrackRaw`] of a genre or a year page as the `Track`s the
+/// frontend plays. A genre or a year can run to thousands of tracks, so
+/// their covers are looked up through one index, built and read on the
+/// blocking pool like every other list's.
+pub(crate) async fn detail_tracks(
+    rows: Vec<DetailTrackRaw>,
+    artwork_dir: std::path::PathBuf,
+) -> crate::error::AppResult<Vec<crate::commands::track::Track>> {
+    tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            rows.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
+        rows.into_iter()
+            .map(|row| detail_track(row, &thumbs))
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("detail tracks join: {e}")))
+}
+
 /// A [`DetailTrackRaw`] as the `Track` the frontend plays, its cover
-/// resolved under the artwork directory `thumbs` indexes -- one index
-/// for the whole list, which a genre or a year can make thousands long.
-pub(crate) fn detail_track(
+/// resolved under the artwork directory `thumbs` indexes.
+fn detail_track(
     row: DetailTrackRaw,
     thumbs: &crate::thumbnails::ThumbnailIndex,
 ) -> crate::commands::track::Track {

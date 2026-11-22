@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use serde::Serialize;
 use sqlx::FromRow;
 
-use crate::commands::browse::{detail_track, detail_tracks_sql, DetailTrackRaw};
+use crate::commands::browse::{detail_tracks, detail_tracks_sql, DetailTrackRaw};
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
@@ -113,7 +113,10 @@ pub async fn list_years(
 /// Thumbnail-existence flags, off the async thread like `expand_genre_rows`.
 async fn expand_year_rows(raw: Vec<YearRawRow>, artwork_dir: PathBuf) -> AppResult<Vec<YearRow>> {
     tokio::task::spawn_blocking(move || {
-        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
         raw.into_iter()
             .map(|row| {
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
@@ -166,11 +169,7 @@ pub async fn get_year_detail(
             .fetch_all(&*pool)
             .await?;
 
-    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, rows.len());
-    let tracks: Vec<crate::commands::track::Track> = rows
-        .into_iter()
-        .map(|row| detail_track(row, &thumbs))
-        .collect();
+    let tracks = detail_tracks(rows, artwork_dir.clone()).await?;
 
     let cover = most_common_cover(&tracks);
     Ok(YearDetail {

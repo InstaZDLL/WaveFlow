@@ -140,42 +140,50 @@ pub async fn list_recent_plays(
     .fetch_all(&*pool)
     .await?;
 
-    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
-    let rows = raw
-        .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
-                row.artwork_hash.as_deref(),
-                row.artwork_format.as_deref(),
-                Some(&artwork_dir),
-            ) {
-                (Some(hash), Some(format), Some(dir)) => {
-                    let full = dir
-                        .join(format!("{hash}.{format}"))
-                        .to_string_lossy()
-                        .to_string();
-                    let (p1, p2) = thumbs.paths_for(hash);
-                    (Some(full), p1, p2)
+    // The covers' thumbnails are looked up on disk: blocking I/O, off the
+    // async runtime like every other list's.
+    let rows = tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
+        raw.into_iter()
+            .map(|row| {
+                let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
+                    row.artwork_hash.as_deref(),
+                    row.artwork_format.as_deref(),
+                    Some(&artwork_dir),
+                ) {
+                    (Some(hash), Some(format), Some(dir)) => {
+                        let full = dir
+                            .join(format!("{hash}.{format}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) = thumbs.paths_for(hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
+                RecentPlay {
+                    track_id: row.track_id,
+                    title: row.title,
+                    artist_id: row.artist_id,
+                    artist_name: row.artist_name,
+                    artist_ids: row.artist_ids,
+                    album_id: row.album_id,
+                    album_title: row.album_title,
+                    duration_ms: row.duration_ms,
+                    played_at: row.played_at,
+                    artwork_path,
+                    artwork_path_1x,
+                    artwork_path_2x,
+                    file_path: row.file_path,
                 }
-                _ => (None, None, None),
-            };
-            RecentPlay {
-                track_id: row.track_id,
-                title: row.title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                duration_ms: row.duration_ms,
-                played_at: row.played_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                file_path: row.file_path,
-            }
-        })
-        .collect();
+            })
+            .collect::<Vec<_>>()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("history rows join: {e}")))?;
 
     Ok(rows)
 }
@@ -285,45 +293,53 @@ pub async fn list_play_history(
     .fetch_all(&*pool)
     .await?;
 
-    let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
-    let rows = raw
-        .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
-                row.artwork_hash.as_deref(),
-                row.artwork_format.as_deref(),
-                Some(&artwork_dir),
-            ) {
-                (Some(hash), Some(format), Some(dir)) => {
-                    let full = dir
-                        .join(format!("{hash}.{format}"))
-                        .to_string_lossy()
-                        .to_string();
-                    let (p1, p2) = thumbs.paths_for(hash);
-                    (Some(full), p1, p2)
+    // The covers' thumbnails are looked up on disk: blocking I/O, off the
+    // async runtime like every other list's.
+    let rows = tokio::task::spawn_blocking(move || {
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir,
+            raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
+        raw.into_iter()
+            .map(|row| {
+                let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
+                    row.artwork_hash.as_deref(),
+                    row.artwork_format.as_deref(),
+                    Some(&artwork_dir),
+                ) {
+                    (Some(hash), Some(format), Some(dir)) => {
+                        let full = dir
+                            .join(format!("{hash}.{format}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) = thumbs.paths_for(hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
+                PlayHistoryRow {
+                    event_id: row.event_id,
+                    played_at: row.played_at,
+                    listened_ms: row.listened_ms,
+                    completed: row.completed != 0,
+                    track_id: row.track_id,
+                    title: row.title,
+                    artist_id: row.artist_id,
+                    artist_name: row.artist_name,
+                    artist_ids: row.artist_ids,
+                    album_id: row.album_id,
+                    album_title: row.album_title,
+                    duration_ms: row.duration_ms,
+                    artwork_path,
+                    artwork_path_1x,
+                    artwork_path_2x,
+                    file_path: row.file_path,
                 }
-                _ => (None, None, None),
-            };
-            PlayHistoryRow {
-                event_id: row.event_id,
-                played_at: row.played_at,
-                listened_ms: row.listened_ms,
-                completed: row.completed != 0,
-                track_id: row.track_id,
-                title: row.title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                duration_ms: row.duration_ms,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                file_path: row.file_path,
-            }
-        })
-        .collect();
+            })
+            .collect::<Vec<_>>()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("history rows join: {e}")))?;
 
     Ok(rows)
 }

@@ -331,6 +331,15 @@ export function LibraryView({
   // effects schedule; a cached list paints as it is.
   const uncached = (kind: LibraryListKind) =>
     readLibraryList(kind, listScope) === undefined;
+  // The sorted lists the first render restored, whatever parameters they
+  // were fetched under. Each fetch effect checks its own once the stored
+  // sort and source are in: a list fetched under others is not shown
+  // under these, and the tab goes back to its skeleton instead.
+  const restoredAtMount = useRef(
+    new Set<LibraryListKind>(
+      (["tracks", "albums", "artists"] as const).filter((k) => !uncached(k)),
+    ),
+  );
   const [loading, setLoading] = useState<Record<LibraryTab, boolean>>(() => ({
     tracks: uncached("tracks"),
     albums: uncached("albums"),
@@ -739,8 +748,10 @@ export function LibraryView({
       listScope,
       params,
     );
+    const restored = restoredAtMount.current.delete("tracks");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (cached) setTracks(cached);
+    else if (restored) setTracks([]);
     setLoading((p) => ({ ...p, tracks: cached === undefined }));
     const ticket = startLibraryListFetch("tracks");
     listLibraryTracks(
@@ -785,8 +796,10 @@ export function LibraryView({
       listScope,
       params,
     );
+    const restored = restoredAtMount.current.delete("albums");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (cached) setAlbums(cached);
+    else if (restored) setAlbums([]);
     setLoading((p) => ({ ...p, albums: cached === undefined }));
     const ticket = startLibraryListFetch("albums");
     listLibraryAlbums(
@@ -831,8 +844,10 @@ export function LibraryView({
       listScope,
       params,
     );
+    const restored = restoredAtMount.current.delete("artists");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (cached) setArtists(cached);
+    else if (restored) setArtists([]);
     setLoading((p) => ({ ...p, artists: cached === undefined }));
     const ticket = startLibraryListFetch("artists");
     listLibraryArtists(
@@ -2045,7 +2060,7 @@ export function LibraryView({
           isOpen={coverPickerAlbumId != null}
           onClose={() => setCoverPickerAlbumId(null)}
           onSuccess={() => {
-            dropLibraryLists("albums");
+            dropLibraryLists("albums", "tracks");
             setCoverReloadKey((k) => k + 1);
           }}
         />

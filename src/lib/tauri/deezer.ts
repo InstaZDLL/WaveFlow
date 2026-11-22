@@ -14,7 +14,8 @@ export function searchAlbumsDeezer(query: string): Promise<DeezerAlbumLite[]> {
 }
 
 // An album cover changes without an event, so the library's cached album
-// list is dropped here: a return to the grid must not paint the old one.
+// and track lists (a track shows its album's cover) are dropped here: a
+// return to the library must not paint the old one.
 
 export async function setAlbumArtworkFromDeezer(
   albumId: number,
@@ -24,7 +25,7 @@ export async function setAlbumArtworkFromDeezer(
     albumId,
     deezerAlbumId,
   });
-  dropLibraryLists("albums");
+  dropLibraryLists("albums", "tracks");
 }
 
 export async function setAlbumArtworkFromFile(
@@ -32,12 +33,12 @@ export async function setAlbumArtworkFromFile(
   filePath: string,
 ): Promise<void> {
   await invoke<void>("set_album_artwork_from_file", { albumId, filePath });
-  dropLibraryLists("albums");
+  dropLibraryLists("albums", "tracks");
 }
 
 export async function batchFetchMissingAlbumCovers(): Promise<number> {
   const filled = await invoke<number>("batch_fetch_missing_album_covers");
-  dropLibraryLists("albums");
+  dropLibraryLists("albums", "tracks");
   return filled;
 }
 

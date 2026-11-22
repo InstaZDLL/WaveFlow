@@ -172,7 +172,10 @@ pub async fn list_tracks(
     // to the blocking pool in one hop rather than spawning per row.
     let artwork_dir_for_blocking = artwork_dir.clone();
     let items = tokio::task::spawn_blocking(move || {
-        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir_for_blocking, rows.len());
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir_for_blocking,
+            rows.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
         rows.into_iter()
             .map(|row| track_list_item_from_row(row, &thumbs))
             .collect()
@@ -876,7 +879,10 @@ pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<L
     // Same blocking-pool offload as `list_tracks`.
     let artwork_dir_for_blocking = artwork_dir.clone();
     let items = tokio::task::spawn_blocking(move || {
-        let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir_for_blocking, rows.len());
+        let thumbs = crate::thumbnails::ThumbnailIndex::new(
+            &artwork_dir_for_blocking,
+            rows.iter().filter(|r| r.artwork_hash.is_some()).count(),
+        );
         rows.into_iter()
             .map(|row| track_list_item_from_row(row, &thumbs))
             .collect()

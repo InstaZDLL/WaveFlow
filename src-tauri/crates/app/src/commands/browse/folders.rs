@@ -275,7 +275,10 @@ pub async fn browse_folders(
         let artwork_dir = artwork_dir.clone();
         let low = low.clone();
         tokio::task::spawn_blocking(move || {
-            let thumbs = crate::thumbnails::ThumbnailIndex::new(&artwork_dir, raw.len());
+            let thumbs = crate::thumbnails::ThumbnailIndex::new(
+                &artwork_dir,
+                raw.iter().filter(|r| r.artwork_hash.is_some()).count(),
+            );
             raw.into_iter()
                 .map(|row| {
                     let (has_1x, has_2x) = match row.artwork_hash.as_deref() {
