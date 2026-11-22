@@ -1219,9 +1219,13 @@ export function PlaylistView({
         return (
           <div
             data-page-hero
-            className="flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64"
+            className="@container flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64"
           >
-            <div className="flex min-w-0 flex-col items-start gap-6 sm:flex-row sm:items-end">
+            {/* Cover beside the title once the header itself is wide enough
+                (`@xl`, the `@container` above), not the window: the sidebar
+                and the side panels narrow the page, and a title squeezed
+                next to the cover broke one letter per line. */}
+            <div className="flex min-w-0 flex-col items-start gap-6 @xl:flex-row @xl:items-end">
               {remote && remoteCoverHashes.length >= 4 ? (
                 <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 grid grid-cols-2">
                   {remoteCoverHashes.map((hash) => (
@@ -1303,7 +1307,13 @@ export function PlaylistView({
                     className="w-full mb-2 px-2 py-1 text-3xl font-bold rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
                   />
                 ) : (
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 break-words text-neutral-900 dark:text-white">
+                  // Sized on the header's own width (`cqi`), for the same
+                  // reason; the fluid layout sets its own size. Three lines
+                  // at most, the whole name in the tooltip.
+                  <h1
+                    title={playlist.name}
+                    className="text-[clamp(1.75rem,6.5cqi,3.75rem)] leading-tight font-extrabold mb-3 break-words line-clamp-3 text-neutral-900 dark:text-white"
+                  >
                     {playlist.name}
                   </h1>
                 )}
