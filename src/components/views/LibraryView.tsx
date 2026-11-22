@@ -2060,7 +2060,7 @@ export function LibraryView({
           isOpen={coverPickerAlbumId != null}
           onClose={() => setCoverPickerAlbumId(null)}
           onSuccess={() => {
-            dropLibraryLists("albums", "tracks");
+            dropLibraryLists("albums", "tracks", "years");
             setCoverReloadKey((k) => k + 1);
           }}
         />

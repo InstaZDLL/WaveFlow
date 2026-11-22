@@ -13,8 +13,9 @@ export function searchAlbumsDeezer(query: string): Promise<DeezerAlbumLite[]> {
   return invoke<DeezerAlbumLite[]>("search_albums_deezer", { query });
 }
 
-// An album cover changes without an event, so the library's cached album
-// and track lists (a track shows its album's cover) are dropped here: a
+// An album cover changes without an event, so the library's cached lists
+// that show it -- the albums, the tracks (a track shows its album's cover)
+// and the years (a year shows its main album's) -- are dropped here: a
 // return to the library must not paint the old one.
 
 export async function setAlbumArtworkFromDeezer(
@@ -25,7 +26,7 @@ export async function setAlbumArtworkFromDeezer(
     albumId,
     deezerAlbumId,
   });
-  dropLibraryLists("albums", "tracks");
+  dropLibraryLists("albums", "tracks", "years");
 }
 
 export async function setAlbumArtworkFromFile(
@@ -33,17 +34,20 @@ export async function setAlbumArtworkFromFile(
   filePath: string,
 ): Promise<void> {
   await invoke<void>("set_album_artwork_from_file", { albumId, filePath });
-  dropLibraryLists("albums", "tracks");
+  dropLibraryLists("albums", "tracks", "years");
 }
 
 export async function batchFetchMissingAlbumCovers(): Promise<number> {
   const filled = await invoke<number>("batch_fetch_missing_album_covers");
-  dropLibraryLists("albums", "tracks");
+  dropLibraryLists("albums", "tracks", "years");
   return filled;
 }
 
-export function batchFetchMissingArtistPictures(): Promise<number> {
-  return invoke<number>("batch_fetch_missing_artist_pictures");
+// Pictures fetched in bulk emit no `artist:updated`: same drop.
+export async function batchFetchMissingArtistPictures(): Promise<number> {
+  const filled = await invoke<number>("batch_fetch_missing_artist_pictures");
+  dropLibraryLists("artists");
+  return filled;
 }
 
 export interface DeezerArtistLite {
