@@ -181,7 +181,12 @@ fn on_loss(app: &AppHandle, loss: Loss) {
         return;
     }
     let shared = engine.shared();
-    let playing = shared.state() == PlayerState::Playing || crate::player_actions::clip_is_open();
+    // A track still loading counts: it would start on the device the
+    // server fell back to, and the rebuild on the other platforms parks a
+    // loading session too. The pause waits in the channel, and the track
+    // reads it at its first command poll, before it pushes any sample.
+    let playing = matches!(shared.state(), PlayerState::Playing | PlayerState::Loading)
+        || crate::player_actions::clip_is_open();
     if playing {
         tracing::info!(
             ?loss,
