@@ -61,6 +61,16 @@ interface CreatePlaylistModalProps {
    */
   initialName?: string;
   /**
+   * How many tracks the parent adds to the new playlist once it exists —
+   * a folder's, an album's, a saved queue's — so the preview counts what
+   * the playlist will hold rather than the empty row the create makes.
+   * Omitted or `0`: the playlist stays empty and the preview says so.
+   * `null`: tracks are added but the parent cannot count them without
+   * asking the backend, and the preview names no number rather than a
+   * wrong one. Ignored in edit mode.
+   */
+  incomingTrackCount?: number | null;
+  /**
    * Called whenever the cover changes from inside the modal (upload or
    * remove). The parent should refresh its playlist state so the new
    * `cover_path` flows down on the next render. Only meaningful in edit
@@ -75,6 +85,7 @@ export function CreatePlaylistModal({
   onCreate,
   existing,
   initialName,
+  incomingTrackCount,
   onCoverChanged,
 }: CreatePlaylistModalProps) {
   const { t } = useTranslation();
@@ -477,7 +488,13 @@ export function CreatePlaylistModal({
                 {displayName}
               </div>
               <div className={`text-xs ${previewInkSoft}`}>
-                {t("playlistModal.previewSubtitle")}
+                {incomingTrackCount === null
+                  ? t("playlistModal.previewSubtitleUncounted")
+                  : incomingTrackCount
+                    ? t("playlistModal.previewSubtitleCount", {
+                        count: incomingTrackCount,
+                      })
+                    : t("playlistModal.previewSubtitle")}
               </div>
             </div>
           </div>

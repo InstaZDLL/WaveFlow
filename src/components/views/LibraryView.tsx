@@ -263,11 +263,8 @@ export function LibraryView({
   // playlist" entry, remember which source triggered it so we can add
   // its tracks to the freshly created playlist in one step instead of
   // forcing the user to reopen the popover.
-  const [pendingSourceForCreate, setPendingSourceForCreate] = useState<
-    | { kind: "tracks"; ids: number[] }
-    | { kind: "folder" | "album" | "artist"; id: number }
-    | null
-  >(null);
+  const [pendingSourceForCreate, setPendingSourceForCreate] =
+    useState<PendingPlaylistSource | null>(null);
   const [coverPickerAlbumId, setCoverPickerAlbumId] = useState<number | null>(
     null,
   );
@@ -1975,6 +1972,11 @@ export function LibraryView({
       />
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
+        incomingTrackCount={pendingSourceTrackCount(
+          pendingSourceForCreate,
+          folders,
+          albums,
+        )}
         onClose={() => {
           setIsCreatePlaylistModalOpen(false);
           setPendingSourceForCreate(null);
@@ -2079,6 +2081,50 @@ export function LibraryView({
       )}
     </div>
   );
+}
+
+// =============================================================================
+// Create playlist from a source
+// =============================================================================
+
+/** What a "+ New playlist" entry hands the new playlist once it exists:
+ *  track ids already resolved, or a source the backend expands. */
+type PendingPlaylistSource =
+  | { kind: "tracks"; ids: number[] }
+  | { kind: "folder" | "album" | "artist"; id: number };
+
+/**
+ * How many tracks the playlist created for `source` receives, for the
+ * preview to count (#1156) — the number the add after the create inserts,
+ * not one that reads close to it.
+ *
+ * Resolved ids are counted once each, as the add inserts them. A library
+ * folder's `track_count` and an album's (the list is fetched for every
+ * library) count its available tracks by `folder_id` / `album_id`, the very
+ * rows `add_source_to_playlist` selects. An artist's does not: the list counts every track crediting them
+ * (`track_artist`) while the add takes only those they are the primary
+ * artist of, so an artist gets `null` and the preview no number. So does a
+ * row the list no longer holds.
+ */
+function pendingSourceTrackCount(
+  source: PendingPlaylistSource | null,
+  folders: FolderRow[],
+  albums: LibraryAlbumRow[],
+): number | null | undefined {
+  if (source == null) return undefined;
+  switch (source.kind) {
+    case "tracks":
+      return new Set(source.ids).size;
+    case "folder":
+      return folders.find((f) => f.id === source.id)?.track_count ?? null;
+    case "album":
+      return (
+        albums.find((a) => a.source === "local" && Number(a.id) === source.id)
+          ?.track_count ?? null
+      );
+    case "artist":
+      return null;
+  }
 }
 
 // =============================================================================

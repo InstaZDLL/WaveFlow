@@ -1280,6 +1280,8 @@
     "editTitle": "编辑播放列表",
     "previewDefault": "新建播放列表",
     "previewSubtitle": "0 首曲目 · 播放列表",
+    "previewSubtitleCount_other": "{{count}} 首曲目 · 播放列表",
+    "previewSubtitleUncounted": "播放列表",
     "nameLabel": "名称",
     "namePlaceholder": "例如：Chill Vibes、Workout Mix…",
     "descriptionLabel": "描述",
