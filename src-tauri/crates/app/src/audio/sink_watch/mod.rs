@@ -33,6 +33,13 @@
 //! other platforms. Play then resumes on the device the server chose,
 //! exactly as it does there after a park.
 //!
+//! **The session manager may pause first.** WirePlumber 0.5 pauses a
+//! media player itself, over MPRIS, when the sink its stream played on is
+//! removed — measured: its `Pause` reached us before the verdict did. It
+//! covers a sink that goes, not a jack pulled out of a built-in card,
+//! where no sink does. When playback is already paused that recently, the
+//! watch only posts the notice (see [`PAUSE_COINCIDENCE`]).
+//!
 //! **Fail-soft.** No server, a refused connection, a server that restarts:
 //! the thread logs, waits and tries again, and the app plays exactly as it
 //! did before this existed. Nothing here touches the audio callback or the
@@ -146,7 +153,22 @@ fn watch(app: &AppHandle) -> Result<(), Fault> {
     }
 }
 
+/// How close a pause made by someone else has to be to the loss to be
+/// the loss's own. WirePlumber's MPRIS pause lands within milliseconds of
+/// the sink's removal (measured); two seconds leaves room for a busy
+/// machine without reaching back to a pause the user made.
+const PAUSE_COINCIDENCE: Duration = Duration::from_secs(2);
+
 /// The device under our stream went away and the server moved it.
+///
+/// WirePlumber 0.5 pauses media players itself when the sink their
+/// stream played on is removed (`linking.pause-playback`, on by default),
+/// and it finds us by our MPRIS name. Its pause and this verdict race:
+/// measured on a removed sink, the pause had already landed when the
+/// verdict came. Playback is then paused already, and all that is left
+/// to do is say why. It does nothing for a jack pulled out of a built-in
+/// card, where no sink is removed — the reported case — so there the
+/// pause is ours.
 fn on_loss(app: &AppHandle, loss: Loss) {
     let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
         return;
@@ -158,20 +180,27 @@ fn on_loss(app: &AppHandle, loss: Loss) {
         );
         return;
     }
-    let playing =
-        engine.shared().state() == PlayerState::Playing || crate::player_actions::clip_is_open();
-    if !playing {
+    let shared = engine.shared();
+    let playing = shared.state() == PlayerState::Playing || crate::player_actions::clip_is_open();
+    if playing {
+        tracing::info!(
+            ?loss,
+            "the output device went away and the sound server moved the stream; pausing playback"
+        );
+        crate::player_actions::pause(app);
+    } else if shared.paused_within(PAUSE_COINCIDENCE) {
+        tracing::info!(
+            ?loss,
+            "the output device went away and playback was paused at the same moment, \
+             by the session manager; saying why"
+        );
+    } else {
         tracing::debug!(
             ?loss,
             "sink watch: the output device went away while nothing played"
         );
         return;
     }
-    tracing::info!(
-        ?loss,
-        "the output device went away and the sound server moved the stream; pausing playback"
-    );
-    crate::player_actions::pause(app);
     engine.emit_playback_notice(PlaybackNotice::PausedDeviceLost);
 }
 

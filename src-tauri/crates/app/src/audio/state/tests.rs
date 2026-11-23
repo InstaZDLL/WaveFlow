@@ -440,3 +440,18 @@ fn only_a_library_track_has_a_resume_point() {
         assert_eq!(s.finished_track_id(), None, "{track_id}");
     }
 }
+
+/// A pause is recent only while it lasts (#1158): playing again, or a
+/// window that has run out, both answer no.
+#[test]
+fn a_pause_is_recent_only_while_it_lasts() {
+    let shared = SharedPlayback::new();
+    let window = std::time::Duration::from_secs(60);
+    assert!(!shared.paused_within(window), "never paused");
+    shared.set_state(PlayerState::Playing);
+    shared.set_state(PlayerState::Paused);
+    assert!(shared.paused_within(window));
+    assert!(!shared.paused_within(std::time::Duration::ZERO));
+    shared.set_state(PlayerState::Playing);
+    assert!(!shared.paused_within(window), "playing again");
+}

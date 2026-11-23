@@ -138,6 +138,12 @@ pub const MAX_PITCH_SEMITONES: i32 = 12;
 ///   three goes through [`SharedPlayback::restart_clock`].
 pub struct SharedPlayback {
     pub state: AtomicU8,
+    /// When the state last became `Paused` (#1158). The Linux sink watch
+    /// reads it to tell a pause that came with a device leaving — the
+    /// session manager's own, sent over MPRIS at the same moment — from
+    /// one the user made long before. Written by [`Self::set_state`],
+    /// which the audio callback never calls.
+    paused_at: Mutex<Option<std::time::Instant>>,
     pub samples_played: AtomicU64,
     pub sample_rate: AtomicU32,
     pub channels: AtomicU16,
@@ -453,6 +459,7 @@ impl SharedPlayback {
     pub fn new() -> Self {
         Self {
             state: AtomicU8::new(PlayerState::Idle as u8),
+            paused_at: Mutex::new(None),
             samples_played: AtomicU64::new(0),
             sample_rate: AtomicU32::new(0),
             channels: AtomicU16::new(0),
@@ -725,6 +732,17 @@ impl SharedPlayback {
             .and_then(|guard| guard.as_ref().map(|load| load.intent))
     }
 
+    /// Whether playback is paused and became so less than `window` ago.
+    pub fn paused_within(&self, window: std::time::Duration) -> bool {
+        self.state() == PlayerState::Paused
+            && self
+                .paused_at
+                .lock()
+                .ok()
+                .and_then(|at| *at)
+                .is_some_and(|at| at.elapsed() < window)
+    }
+
     pub fn set_state(&self, state: PlayerState) {
         // Before the state, so a reader that sees `Ended` sees the track
         // as finished too.
@@ -739,6 +757,11 @@ impl SharedPlayback {
             }
         }
         self.state.store(state as u8, Ordering::Release);
+        if state == PlayerState::Paused {
+            if let Ok(mut at) = self.paused_at.lock() {
+                *at = Some(std::time::Instant::now());
+            }
+        }
         // Counted after the state is published, never before: a reader
         // that sees the new count then sees `Loading` (or what followed
         // it), and one that read the count first and the state before the
