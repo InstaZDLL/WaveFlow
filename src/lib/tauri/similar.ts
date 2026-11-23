@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /// Mirrors `commands::similar::SimilarArtistDto` on the backend.
 export interface SimilarArtist {

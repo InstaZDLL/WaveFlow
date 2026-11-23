@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** How the interface is being drawn. */
 export type RenderMode = "gpu" | "software";

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** Arm Linux's abnormal-exit marker before applying a skin. */
 export function recordSkin(skinId: string): Promise<void> {

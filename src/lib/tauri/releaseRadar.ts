@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** The id of the `ui` plugin this feature replaced. The sidebar leaves
  *  its entry out, and the view tells a user who still has it installed,

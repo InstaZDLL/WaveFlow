@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /**
  * Library row returned by the Rust backend (mirrors `commands::library::Library`).

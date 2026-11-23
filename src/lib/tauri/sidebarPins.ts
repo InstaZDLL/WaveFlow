@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** What a sidebar pin points at. Mirrors `PinKind` in core. */
 export type PinKind = "album" | "artist" | "playlist";

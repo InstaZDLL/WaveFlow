@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import type { Track } from "./track";
 
 /** Why Home suggests a track — see `waveflow_core::home_suggestion`. */

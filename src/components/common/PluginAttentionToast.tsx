@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { KeyRound, X } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/tauri/invoke";
 import { listen } from "@tauri-apps/api/event";
 
 import { listInstalledPlugins } from "../../lib/tauri/plugins";

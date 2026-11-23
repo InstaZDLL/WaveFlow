@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /**
  * Profile row as returned by the Rust backend (mirrors `commands::profile::Profile`).

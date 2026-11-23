@@ -3,7 +3,9 @@ use serde::{Serialize, Serializer};
 /// Top-level error type for the Tauri backend.
 ///
 /// Implements [`serde::Serialize`] so it can be returned from Tauri commands.
-/// The wire format is a single `String` (the `Display` representation).
+/// The wire format is a single `String` (the `Display` representation),
+/// except for [`AppError::Shown`], the error the interface says in the
+/// user's language (see the `Serialize` impl).
 ///
 /// During the Phase 1.a refactor (RFC-001) this type lives at the
 /// boundary: it wraps `waveflow_core::error::CoreError` for everything
@@ -168,8 +170,111 @@ pub enum AppError {
     #[error("token refresh failed: {0}")]
     RemoteRefreshUnanswered(String),
 
+    /// An error the interface shows the user, and says in their language.
+    /// The `kind` names the sentence (`errors.<kind>` in the locales), the
+    /// `params` fill its placeholders, and the English `message` is what
+    /// the log and a bug report read, and what the interface falls back to
+    /// for a kind it does not know. Built with [`AppError::shown`]; the
+    /// only variant that does not cross the IPC as a bare string (see the
+    /// `Serialize` impl below).
+    #[error("{message}")]
+    Shown {
+        kind: ShownKind,
+        message: String,
+        params: Vec<(&'static str, String)>,
+    },
+
     #[error("{0}")]
     Other(String),
+}
+
+/// Declares [`ShownKind`] and its `ShownKind::ALL` from one list, so
+/// the test that looks for each kind's sentence cannot miss one.
+macro_rules! error_kinds {
+    ($($(#[$doc:meta])* $kind:ident,)*) => {
+        /// What an [`AppError::Shown`] is about: the sentence the interface
+        /// says instead of the English message. Serialized in `snake_case`,
+        /// which is the key under `errors` in every locale; a kind added
+        /// here is added to the 17 locales, which a test checks.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+        #[serde(rename_all = "snake_case")]
+        pub enum ShownKind {
+            $($(#[$doc])* $kind,)*
+        }
+
+        impl ShownKind {
+            /// Every kind, in declaration order.
+            #[cfg(test)]
+            pub const ALL: &[ShownKind] = &[$(Self::$kind,)*];
+        }
+    };
+}
+
+error_kinds! {
+    /// Offline mode refused a request to the network, with nothing more
+    /// specific to say about what it was for.
+    Offline,
+    /// Offline mode refused the plugin store's catalogue.
+    OfflinePluginStore,
+    /// Offline mode refused a plugin's download.
+    OfflinePluginInstall,
+    /// Offline mode refused applying a MusicBrainz match.
+    OfflineEnrichment,
+    /// Offline mode refused fetching tags from MusicBrainz.
+    OfflineTagFetch,
+    /// Offline mode refused a MusicBrainz match in the tag workshop.
+    OfflineMusicbrainz,
+    /// Offline mode refused signing in to Last.fm.
+    OfflineLastfm,
+    /// Offline mode refused connecting ListenBrainz.
+    OfflineListenbrainz,
+    /// Offline mode refused downloading the Web Radio station catalogue.
+    OfflineRadioCatalogue,
+    /// Offline mode refused signing in to a server. Raised by the remote
+    /// source, which only a `sync_v2` build has.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+    OfflineServerSignIn,
+    /// Offline mode refused reaching a server. `sync_v2` only, like the
+    /// one above.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+    OfflineServer,
+    /// The ListenBrainz token field was left empty.
+    ListenbrainzTokenEmpty,
+    /// ListenBrainz did not accept the token.
+    ListenbrainzTokenRejected,
+    /// An image whose format is not JPEG, PNG or WebP.
+    UnsupportedImage,
+    /// A picture file with nothing in it.
+    ImageFileEmpty,
+    /// A video the user picked that is not an MP4.
+    UnsupportedVideo,
+    /// A file the user picked is over the size the app takes; `max` is
+    /// that size, written for a person ("10.0 MB").
+    FileTooLarge,
+    /// A track on a network share whose bytes are not cached on this
+    /// machine yet.
+    NetworkTrackNotCached,
+}
+
+impl AppError {
+    /// An error the interface says in the user's language: `kind` names
+    /// the sentence, `message` is the English one for the log.
+    pub fn shown(kind: ShownKind, message: impl Into<String>) -> Self {
+        Self::Shown {
+            kind,
+            message: message.into(),
+            params: Vec::new(),
+        }
+    }
+
+    /// Adds a value for the sentence's `{{name}}` placeholder to an error
+    /// built by [`AppError::shown`]. Any other error is returned as it was.
+    pub fn with_param(mut self, name: &'static str, value: impl Into<String>) -> Self {
+        if let Self::Shown { params, .. } = &mut self {
+            params.push((name, value.into()));
+        }
+        self
+    }
 }
 
 fn overlap_phrase(relation: &waveflow_core::scanner::folders::FolderRelation) -> &'static str {
@@ -181,13 +286,153 @@ fn overlap_phrase(relation: &waveflow_core::scanner::folders::FolderRelation) ->
     }
 }
 
+/// The wire format is the `Display` string for every variant but
+/// [`AppError::Shown`], which crosses as `{ kind, message, params }`
+/// (`params` an object of strings). The frontend's `invoke` wrapper
+/// (`src/lib/tauri/invoke.ts`) turns that object into an `Error` whose
+/// text is `message`, so a caller that reads an error as text reads what
+/// it always did.
 impl Serialize for AppError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        use serde::ser::SerializeStruct;
+
+        match self {
+            Self::Shown {
+                kind,
+                message,
+                params,
+            } => {
+                let mut shown = serializer.serialize_struct("AppError", 3)?;
+                shown.serialize_field("kind", kind)?;
+                shown.serialize_field("message", message)?;
+                shown.serialize_field("params", &Params(params))?;
+                shown.end()
+            }
+            other => serializer.serialize_str(&other.to_string()),
+        }
+    }
+}
+
+/// An error's placeholder values, as a JSON object.
+struct Params<'a>(&'a [(&'static str, String)]);
+
+impl Serialize for Params<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_map(self.0.iter().map(|(name, value)| (*name, value)))
     }
 }
 
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_shown_error_crosses_as_its_kind_message_and_params() {
+        let err = AppError::shown(
+            ShownKind::OfflinePluginStore,
+            "offline mode is on; the plugin store is unavailable",
+        );
+        assert_eq!(
+            serde_json::to_value(&err).unwrap(),
+            json!({
+                "kind": "offline_plugin_store",
+                "message": "offline mode is on; the plugin store is unavailable",
+                "params": {},
+            })
+        );
+    }
+
+    #[test]
+    fn a_shown_error_carries_its_params_by_name() {
+        let err = AppError::shown(
+            ShownKind::FileTooLarge,
+            "file too large: 12.0 MB (max 10.0 MB)",
+        )
+        .with_param("max", "10.0 MB")
+        .with_param("actual", "12.0 MB");
+        assert_eq!(
+            serde_json::to_value(&err).unwrap(),
+            json!({
+                "kind": "file_too_large",
+                "message": "file too large: 12.0 MB (max 10.0 MB)",
+                "params": { "max": "10.0 MB", "actual": "12.0 MB" },
+            })
+        );
+        // The log reads the English message, never the params.
+        assert_eq!(err.to_string(), "file too large: 12.0 MB (max 10.0 MB)");
+    }
+
+    #[test]
+    fn a_shown_error_logs_its_english_message() {
+        let err = AppError::shown(ShownKind::Offline, "offline mode is enabled");
+        assert_eq!(err.to_string(), "offline mode is enabled");
+    }
+
+    #[test]
+    fn every_other_error_still_crosses_as_its_text() {
+        let err = AppError::Other("something broke".into());
+        assert_eq!(
+            serde_json::to_value(&err).unwrap(),
+            json!("something broke")
+        );
+        // `with_param` leaves an error that has no sentence alone.
+        let err = AppError::Other("something broke".into()).with_param("path", "/music");
+        assert_eq!(
+            serde_json::to_value(&err).unwrap(),
+            json!("something broke")
+        );
+    }
+
+    #[test]
+    fn kinds_are_named_in_snake_case() {
+        // The locales' keys spell these; a rename here is a rename there.
+        for (kind, word) in [
+            (ShownKind::Offline, "offline"),
+            (ShownKind::OfflineMusicbrainz, "offline_musicbrainz"),
+            (ShownKind::FileTooLarge, "file_too_large"),
+            (
+                ShownKind::ListenbrainzTokenEmpty,
+                "listenbrainz_token_empty",
+            ),
+            (ShownKind::NetworkTrackNotCached, "network_track_not_cached"),
+        ] {
+            assert_eq!(serde_json::to_value(kind).unwrap(), json!(word));
+        }
+    }
+
+    #[test]
+    fn every_kind_has_a_sentence_in_every_locale() {
+        let dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../src/i18n/locales");
+        let mut locales = 0;
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                continue;
+            }
+            locales += 1;
+            let text = std::fs::read_to_string(&path).unwrap();
+            let locale: serde_json::Value = serde_json::from_str(&text).unwrap();
+            for kind in ShownKind::ALL {
+                let key = serde_json::to_value(kind).unwrap();
+                let key = key.as_str().unwrap();
+                let sentence = locale["errors"][key].as_str();
+                assert!(
+                    sentence.is_some_and(|s| !s.trim().is_empty()),
+                    "{} has no errors.{key}",
+                    path.display()
+                );
+            }
+        }
+        assert_eq!(locales, 17, "a locale was added or lost");
+    }
+}

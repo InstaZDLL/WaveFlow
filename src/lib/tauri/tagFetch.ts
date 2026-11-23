@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /**
  * Fetching an album's tags from Deezer, for review (#599).

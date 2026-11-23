@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import type { Track } from "./track";
 
 export type Mood = "focus" | "chill" | "workout" | "party" | "sleep";

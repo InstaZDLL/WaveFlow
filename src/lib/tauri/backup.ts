@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** Mirrors `backup::BackupConfig` returned by `get_backup_config`. */
 export interface BackupConfig {

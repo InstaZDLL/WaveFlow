@@ -1,5 +1,5 @@
 import type { LibrarySource } from "./browse";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import type { Track } from "./track";
 import type { AlbumCompleteness } from "../albumCompleteness";
 

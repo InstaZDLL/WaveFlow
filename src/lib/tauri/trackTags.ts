@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** A custom tag key the library holds, and how many tracks carry it. */
 export interface TrackTagKey {

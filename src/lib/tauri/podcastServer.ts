@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /**
  * A bound server's podcasts (RFC-009 decision 11). Mirrors

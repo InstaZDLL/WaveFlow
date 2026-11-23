@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** The version of the SQLite library the backend runs on, as it reports it. */
 export function getSqliteVersion(): Promise<string> {
