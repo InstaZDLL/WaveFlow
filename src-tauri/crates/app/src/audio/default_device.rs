@@ -17,11 +17,18 @@
 //!   `IMMDeviceEnumerator`, filtered to the render / console role.
 //! - **macOS** — a HAL property listener on
 //!   `kAudioHardwarePropertyDefaultOutputDevice`.
-//! - **Linux** — nothing: PipeWire and PulseAudio migrate a running
+//! - **Linux** — no follow: PipeWire and PulseAudio move a running
 //!   stream to the new default sink themselves, and our stream is one
-//!   of their clients (cpal opens the `default` ALSA alias). No
-//!   measurement says otherwise, so this stays a documented no-op
-//!   rather than speculative plumbing.
+//!   of their clients (cpal opens the `default` ALSA alias). Measured on
+//!   PipeWire 1.6 (#1158): a default picked in the system settings moves
+//!   the stream at once, with nothing for us to do.
+//!
+//!   The same move is why a device going away never reaches us there:
+//!   unplugging the sink under the stream moves it too, without a single
+//!   error on the ALSA side, so the device-loss recovery never ran and
+//!   `audio.pause_on_device_loss` did nothing. Linux therefore starts
+//!   `audio::sink_watch` instead, which asks the sound server whether
+//!   the device under our stream is gone.
 //!
 //! **Neither listener rebuilds anything itself.** Both hand the event to
 //! [`super::output::schedule_default_device_follow`], which puts it
@@ -50,16 +57,17 @@ pub fn spawn(app: AppHandle) {
     #[cfg(target_os = "macos")]
     macos_impl::spawn(app);
 
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    // See the module doc: the sound server already moves the stream on
+    // Linux, so what is watched there is the device going away.
+    #[cfg(target_os = "linux")]
+    super::sink_watch::spawn(app);
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
-        // See the module doc: the sound server already migrates the
-        // stream on Linux. Bind the parameter so the signature stays
-        // identical across platforms.
+        // Bind the parameter so the signature stays identical across
+        // platforms.
         let _ = app;
-        tracing::debug!(
-            "default-device watcher: not needed on this platform \
-             (the sound server migrates the stream)"
-        );
+        tracing::debug!("default-device watcher: not available on this platform");
     }
 }
 

@@ -36,7 +36,9 @@ pub use resume::{DetachedOrigin, LastLoad};
 pub(crate) use turns::TestEngine;
 pub(crate) use turns::Turns;
 
-use notice::PlaybackNotice;
+// Also posted from outside the engine: the Linux sink watch pauses on a
+// device loss without any rebuild (#1158).
+pub(in crate::audio) use notice::PlaybackNotice;
 use rebuild::{lets_go_of_readers, pause_pending_after, FlapWindow, RebuildGate};
 use resume::ParkedSession;
 

@@ -354,6 +354,12 @@ raw-window-handle = "0.6"
 # header bar (`adwaita_frame`). The same 0.18 tao and wry link, so no new
 # crate and no Flatpak source regeneration.
 gtk = "0.18"
+# The PulseAudio native protocol in pure Rust (#1158), spoken to
+# pipewire-pulse or PulseAudio: `audio::sink_watch` subscribes to it to
+# see the sound server move our stream off a device that went away,
+# which cpal never reports. No system library: it talks to the socket
+# itself, so the packages gain no new runtime dependency.
+pulseaudio = "0.3"
 
 # Windows-only: opt-in bit-perfect playback via WASAPI Exclusive Mode.
 # `wasapi` is a thin safe wrapper over the Win32 audio COM API — it

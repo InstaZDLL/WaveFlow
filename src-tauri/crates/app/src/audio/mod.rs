@@ -27,7 +27,8 @@ pub mod coreaudio_exclusive;
 pub mod crossfade;
 pub mod decoder;
 // Windows + macOS: subscribes to the system's default-output changes so
-// an unpinned stream follows them (#627). A documented no-op elsewhere.
+// an unpinned stream follows them (#627). On Linux it starts
+// `sink_watch` instead: the sound server already moves the stream.
 pub mod default_device;
 // Linux-only: asks the sound server for the card before we try to open
 // it exclusively. See the module doc for why an `EBUSY` is a question
@@ -50,6 +51,11 @@ pub mod pcm_scale;
 // Decoding, resampling and ReplayGain live in `waveflow_core::playback`;
 // `replay_gain` keeps its old path here for the many places that name it.
 pub use waveflow_core::playback::replay_gain;
+// Linux-only: watches the sink our stream plays through, since a device
+// that goes away under PipeWire / PulseAudio moves the stream instead
+// of failing it (#1158).
+#[cfg(target_os = "linux")]
+pub mod sink_watch;
 pub mod spectrum;
 pub mod state;
 pub mod stereo;

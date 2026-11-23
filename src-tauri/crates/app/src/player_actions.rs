@@ -105,6 +105,14 @@ pub fn set_clip_open(open: bool) {
     CLIP_OPEN.store(open, Ordering::Release);
 }
 
+/// Whether a music video is open, so something is audible while the track
+/// waits paused under it. Read by the Linux sink watch, which pauses the
+/// clip rather than nothing when the device under it goes away.
+#[cfg(target_os = "linux")]
+pub fn clip_is_open() -> bool {
+    CLIP_OPEN.load(Ordering::Acquire)
+}
+
 /// What a surface asked of the clip, as the `clip:control` payload.
 #[derive(Clone, Copy, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
