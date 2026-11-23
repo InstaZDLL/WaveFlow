@@ -560,7 +560,7 @@ A stream opened with no pin is bound to whatever endpoint was the default **at t
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Windows  | `IMMNotificationClient` registered on the `IMMDeviceEnumerator`, on a thread of its own                                                                          |
 | macOS    | a HAL property listener on `kAudioHardwarePropertyDefaultOutputDevice`                                                                                           |
-| Linux    | nothing — PipeWire and PulseAudio migrate a running stream to the new default sink themselves, and ours is one of their clients (cpal opens the `default` alias) |
+| Linux    | nothing to follow — PipeWire and PulseAudio move a running stream to the new default sink themselves, and ours is one of their clients (cpal opens the `default` alias); measured on PipeWire 1.6. What Linux watches instead is the device going away: [`sink_watch`](#a-device-that-goes-away-under-a-sound-server) |
 
 Four things about it are load-bearing:
 
@@ -610,6 +610,8 @@ Device loss reaches the recovery path from two independent places, since the two
 
 Both then call the shared [`output::notify_device_lost`](../../src-tauri/crates/app/src/audio/output/recovery.rs) (park the player, emit `player:state` + `player:error`, sync the OS media controls) and [`output::schedule_device_rebuild`](../../src-tauri/crates/app/src/audio/output/recovery.rs) (300 ms backoff, then a same-device rebuild).
 
+On Linux the shared stream mostly never fails at all: the sound server moves it instead. That case has [its own watch](#a-device-that-goes-away-under-a-sound-server), which pauses without rebuilding anything.
+
 ### What a rebuild puts back
 
 Every rebuild interrupts the decoder with an `Unload` before it can swap the ring producer, so it owes the session something afterwards. `Unload` takes the track away and touches neither the state nor the pause, because the rebuild reads both afterwards to decide what it owes. A `Stop` is the user's or a queue's end: it drops what is queued for the output and lands on `Idle`, whether it finds a track still decoding or one that already ran out and left the player on `Ended`. **What it owes is whatever the decoder was actually holding, not what was playing when the rebuild started** (#634).
@@ -635,9 +637,36 @@ The resume point is written against the profile that was active when the rebuild
 
 ### A device that disappears is not a default that changes
 
-Unplugging raises both signals at once: the stream breaks, **and** the system default moves. They arrive on two independent paths — the device-loss recovery above, and the [default-device follow](#following-the-os-default) — and each one takes the same `RebuildGate`, so whichever armed first decided what happened: the pause would land, or not, on a coin toss.
+On Windows and macOS, unplugging raises both signals at once: the stream breaks, **and** the system default moves (on Linux it raises neither — [below](#a-device-that-goes-away-under-a-sound-server)). They arrive on two independent paths — the device-loss recovery above, and the [default-device follow](#following-the-os-default) — and each one takes the same `RebuildGate`, so whichever armed first decided what happened: the pause would land, or not, on a coin toss.
 
 `notify_device_lost` therefore stamps `AudioEngine::note_device_loss` at the moment of the error, before either backoff, and the follow stands down for `DEVICE_LOSS_OWNERSHIP` (3 s). It settles rather than defers: the recovery ends on the endpoint the system fell back to, which is the very endpoint this follow would have opened. The follow keeps its own job — a default the user re-points elsewhere while the device they were on is still there is not a loss, and playback follows it without pausing.
+
+### A device that goes away under a sound server
+
+On Linux the shared stream is a client of PipeWire or PulseAudio (cpal opens the ALSA `default` alias), and the server, not the stream, decides what happens when a device disappears: it moves the stream to another sink. Measured on PipeWire 1.6 with an ALSA `default` stream (#1158):
+
+- **A sink removed under the stream** (a USB headset unplugged, a Bluetooth one switched off): the stream moves to the new default. On the ALSA side, nothing at all — no error, no underrun, every write succeeds. cpal has nothing to report, so `notify_device_lost` never ran, `audio.pause_on_device_loss` did nothing, and the album went on through the speakers.
+- **A default picked in the system settings, or the stream moved by hand** in the system mixer: the same move, and no sink removed.
+- **The headphone jack of a built-in card** is not a sink: the card has one sink with a speaker port and a headphone port, whose availability comes from jack detection. Unplugging marks the headphone port unavailable and makes the speaker port active, on the same sink. Nothing moves.
+
+So the only party that knows is the server, and [`audio::sink_watch`](../../src-tauri/crates/app/src/audio/sink_watch/mod.rs) asks it. It speaks the PulseAudio native protocol — pipewire-pulse serves it on PipeWire systems, PulseAudio itself elsewhere — through the pure-Rust `pulseaudio` crate, so the packages gain no runtime dependency. One thread (`sink-watch`, started by `default_device::spawn` where the other platforms start their default listener) subscribes to sink, stream and card events on one connection; on each event it reads the server's sinks, cards, clients and streams on a second one. **Our streams** are those whose client carries our process id in `application.process.id`, a property the ALSA plugin fills from inside the process, so it matches inside a Flatpak sandbox too.
+
+[`decision::Tracker`](../../src-tauri/crates/app/src/audio/sink_watch/decision.rs) compares each picture with the last, stream by stream, and calls a loss only when what the stream played through is no longer there:
+
+| What happened to the stream                                                        | Verdict                                                     |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| moved off a sink that still exists                                                 | not a loss — the default changed, or someone moved it       |
+| moved off a sink that is gone, whose card went too (or which had none)             | **loss** — the device itself left                           |
+| moved off a sink that is gone, on a card still here, whose port is now unavailable | **loss** — an HDMI or jack port unplugged, profile switched |
+| moved off a sink that is gone, on a card still here, whose port is still usable    | not a loss — a profile switch (a Bluetooth call profile)    |
+| same sink, and the port it played through became unavailable                       | **loss** — the jack pulled out                              |
+| same sink, the active port changed and the old one is still usable                 | not a loss — a port picked by hand                          |
+
+Three details keep it honest. It is keyed on the **stream's index**: an output WaveFlow rebuilds — a device picked in the app, the exclusive toggle, a recovery — closes the stream and opens another, which starts with no history, so a change made in WaveFlow is never judged as a move. A port counts as lost only on its way to unavailable: one already unavailable when first seen never does. And a stream that names a sink the server no longer lists is between the removal and the move, so the verdict waits for the next picture.
+
+**What a loss does.** The stream is healthy, only somewhere else, so nothing is rebuilt. With `audio.pause_on_device_loss` on and something playing (or a [music video](ui.md#music-videos) open), it pauses through `player_actions::pause` — the media keys' pause, which reaches the clip when one is open — and posts the same `paused-device-lost` notice the rebuild posts on the other platforms. Play resumes on the device the server chose, as it does there after a park. **Fail-soft**: with no server to ask, or one that restarts, the thread logs once, retries with a backoff (5 s, doubling up to 5 min), and playback behaves as it did before.
+
+Not covered: a PipeWire system without pipewire-pulse (the watch finds no socket), and a jack on a card without jack detection (the port stays `unknown`, and the server does not switch away from it either).
 
 Two gates keep the recovery from thrashing:
 
