@@ -41,7 +41,7 @@
 pub mod decision;
 
 use std::ffi::CString;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use std::os::unix::net::UnixStream;
 use std::sync::Arc;
 use std::time::Duration;
@@ -97,9 +97,9 @@ fn run(app: &AppHandle) {
 }
 
 /// One connection's life: subscribe, take the first picture, then judge
-/// every relevant event until the server goes away. Returns `Ok` when an
+/// every event until the server goes away. Returns `Ok` when an
 /// established connection breaks, `Err` when none could be made.
-fn watch(app: &AppHandle) -> Result<(), protocol::ProtocolError> {
+fn watch(app: &AppHandle) -> Result<(), Fault> {
     let mut events = Connection::open()?;
     let mut queries = Connection::open()?;
     events.subscribe(
@@ -109,28 +109,40 @@ fn watch(app: &AppHandle) -> Result<(), protocol::ProtocolError> {
 
     let pid = std::process::id();
     let mut tracker = Tracker::default();
+    let mut said_unreadable = false;
     // The first picture is the baseline: nothing is judged against it.
-    tracker.observe(&queries.snapshot(pid)?);
-
+    let mut next = queries.snapshot(pid, &tracker);
     loop {
+        match next {
+            Ok(snapshot) => {
+                if let Some(loss) = tracker.observe(&snapshot) {
+                    on_loss(app, loss);
+                }
+            }
+            // A reply that did not decode. Its frame was read whole, so
+            // the connection is still in step: skip this picture and
+            // judge on the next, with what we knew kept as it was.
+            Err(Fault::Reply(err)) if !said_unreadable => {
+                tracing::info!(%err, "sink watch: could not read the sound server's answer");
+                said_unreadable = true;
+            }
+            Err(Fault::Reply(err)) => {
+                tracing::debug!(%err, "sink watch: could not read the sound server's answer");
+            }
+            Err(Fault::Broken(err)) => {
+                tracing::info!(%err, "sink watch: the sound server stopped answering; reconnecting");
+                return Ok(());
+            }
+        }
         // Only the three subscribed kinds arrive. One unplug sends a
         // burst of them, and each gets its own picture: a local query
         // costs little, and the removal and the move are often two
         // events apart.
-        if let Err(err) = events.next_event() {
+        if let Err(err) = events.next_frame() {
             tracing::info!(%err, "sink watch: lost the sound server; reconnecting");
             return Ok(());
         }
-        let snapshot = match queries.snapshot(pid) {
-            Ok(snapshot) => snapshot,
-            Err(err) => {
-                tracing::info!(%err, "sink watch: the sound server stopped answering; reconnecting");
-                return Ok(());
-            }
-        };
-        if let Some(loss) = tracker.observe(&snapshot) {
-            on_loss(app, loss);
-        }
+        next = queries.snapshot(pid, &tracker);
     }
 }
 
@@ -163,9 +175,46 @@ fn on_loss(app: &AppHandle, loss: Loss) {
     engine.emit_playback_notice(PlaybackNotice::PausedDeviceLost);
 }
 
+/// The PulseAudio protocol's own cap on a frame. Anything larger is not a
+/// reply we asked for, and allocating it would be the bug.
+const MAX_FRAME: usize = 16 * 1024 * 1024;
+
+/// What went wrong with a request.
+#[derive(Debug)]
+enum Fault {
+    /// The connection cannot be used any more: no server, a closed
+    /// socket, a frame we could not read whole.
+    Broken(std::io::Error),
+    /// The server answered, with an error or with something the client
+    /// could not decode. The frame was read whole, so the connection is
+    /// still in step.
+    Reply(protocol::ProtocolError),
+}
+
+impl std::fmt::Display for Fault {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Broken(err) => write!(f, "{err}"),
+            Self::Reply(err) => write!(f, "{err}"),
+        }
+    }
+}
+
+impl From<std::io::Error> for Fault {
+    fn from(err: std::io::Error) -> Self {
+        Self::Broken(err)
+    }
+}
+
 /// One connection to the server, request and reply in lockstep. Two are
 /// opened because a subscribed connection interleaves events with
 /// replies, and reading them apart is more code than a second socket.
+///
+/// Every frame is read whole before it is decoded. The client's readers
+/// decode straight off the socket, and one that refuses a value — a
+/// negative latency offset on a card port, which this version of the
+/// client will not take — would leave the rest of the frame unread and
+/// every later reply out of step.
 struct Connection {
     socket: BufReader<UnixStream>,
     version: u16,
@@ -173,14 +222,18 @@ struct Connection {
 }
 
 impl Connection {
-    fn open() -> Result<Self, protocol::ProtocolError> {
+    fn open() -> Result<Self, Fault> {
         let path = pulseaudio::socket_path_from_env().ok_or_else(|| {
-            protocol::ProtocolError::Io(std::io::Error::new(
+            Fault::Broken(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 "no sound server socket",
             ))
         })?;
-        let mut socket = BufReader::new(UnixStream::connect(path)?);
+        let mut connection = Self {
+            socket: BufReader::new(UnixStream::connect(path)?),
+            version: protocol::MAX_VERSION,
+            seq: 0,
+        };
         // pipewire-pulse accepts any cookie from the same user; PulseAudio
         // wants the one it wrote, when it wrote one.
         let cookie = pulseaudio::cookie_path_from_env()
@@ -192,62 +245,69 @@ impl Connection {
             supports_memfd: false,
             cookie,
         };
-        protocol::write_command_message(
-            socket.get_mut(),
-            0,
-            &Command::Auth(auth),
-            protocol::MAX_VERSION,
-        )?;
-        let (_, reply) = protocol::read_reply_message::<protocol::AuthReply>(
-            &mut socket,
-            protocol::MAX_VERSION,
-        )?;
-        let mut connection = Self {
-            socket,
-            version: protocol::MAX_VERSION.min(reply.version),
-            seq: 0,
-        };
+        let reply = connection.request::<protocol::AuthReply>(Command::Auth(auth))?;
+        connection.version = protocol::MAX_VERSION.min(reply.version);
         let mut props = protocol::Props::new();
         props.set(Prop::ApplicationName, c"WaveFlow");
         connection.request::<protocol::SetClientNameReply>(Command::SetClientName(props))?;
         Ok(connection)
     }
 
-    fn send(&mut self, command: &Command) -> Result<u32, protocol::ProtocolError> {
+    fn send(&mut self, command: &Command) -> Result<(), Fault> {
         self.seq = self.seq.wrapping_add(1);
-        protocol::write_command_message(self.socket.get_mut(), self.seq, command, self.version)?;
-        Ok(self.seq)
+        protocol::write_command_message(self.socket.get_mut(), self.seq, command, self.version)
+            .map_err(|err| match err {
+                protocol::ProtocolError::Io(err) => Fault::Broken(err),
+                other => Fault::Reply(other),
+            })
     }
 
-    fn request<T: CommandReply>(&mut self, command: Command) -> Result<T, protocol::ProtocolError> {
+    /// The next frame, descriptor included, read whole.
+    fn next_frame(&mut self) -> std::io::Result<Vec<u8>> {
+        let mut frame = vec![0; protocol::DESCRIPTOR_SIZE];
+        self.socket.read_exact(&mut frame)?;
+        let length = u32::from_be_bytes([frame[0], frame[1], frame[2], frame[3]]) as usize;
+        if length > MAX_FRAME {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("a {length}-byte frame from the sound server"),
+            ));
+        }
+        frame.resize(protocol::DESCRIPTOR_SIZE + length, 0);
+        self.socket
+            .read_exact(&mut frame[protocol::DESCRIPTOR_SIZE..])?;
+        Ok(frame)
+    }
+
+    fn request<T: CommandReply>(&mut self, command: Command) -> Result<T, Fault> {
         self.send(&command)?;
-        let (_, reply) = protocol::read_reply_message::<T>(&mut self.socket, self.version)?;
+        let frame = self.next_frame()?;
+        let (_, reply) = protocol::read_reply_message::<T>(&mut frame.as_slice(), self.version)
+            .map_err(Fault::Reply)?;
         Ok(reply)
     }
 
-    fn subscribe(&mut self, mask: SubscriptionMask) -> Result<(), protocol::ProtocolError> {
+    fn subscribe(&mut self, mask: SubscriptionMask) -> Result<(), Fault> {
         self.send(&Command::Subscribe(mask))?;
-        protocol::read_ack_message(&mut self.socket)?;
+        let frame = self.next_frame()?;
+        protocol::read_ack_message(&mut frame.as_slice()).map_err(Fault::Reply)?;
         Ok(())
     }
 
-    /// Block until the server sends the next subscription event.
-    /// Anything else it volunteers is skipped.
-    fn next_event(&mut self) -> Result<(), protocol::ProtocolError> {
-        loop {
-            let (_, command) = protocol::read_command_message(&mut self.socket, self.version)?;
-            if matches!(command, Command::SubscribeEvent(_)) {
-                return Ok(());
-            }
-        }
-    }
-
-    /// The server's sinks, cards and our own streams, read now.
-    fn snapshot(&mut self, pid: u32) -> Result<Snapshot, protocol::ProtocolError> {
-        let sinks = self.request::<protocol::SinkInfoList>(Command::GetSinkInfoList)?;
-        let cards = self.request::<protocol::CardInfoList>(Command::GetCardInfoList)?;
-        let clients = self.request::<protocol::ClientInfoList>(Command::GetClientInfoList)?;
+    /// The server's sinks, our own streams, and the cards `tracker` is
+    /// about to ask about, read now.
+    ///
+    /// Streams first: the server removes a sink before it moves the
+    /// streams that were on it (measured), so reading the sinks first
+    /// could see the old sink still listed and our stream already moved
+    /// off it — a choice, by the rules — and the loss would never be
+    /// judged again. Read in this order, a stream still on the old sink
+    /// either finds it listed (nothing happened yet) or names a sink that
+    /// is gone, which waits for the next picture.
+    fn snapshot(&mut self, pid: u32, tracker: &Tracker) -> Result<Snapshot, Fault> {
         let inputs = self.request::<protocol::SinkInputInfoList>(Command::GetSinkInputInfoList)?;
+        let clients = self.request::<protocol::ClientInfoList>(Command::GetClientInfoList)?;
+        let sinks = self.request::<protocol::SinkInfoList>(Command::GetSinkInfoList)?;
 
         let mine: Vec<u32> = clients
             .iter()
@@ -282,18 +342,42 @@ impl Connection {
                     .collect(),
             })
             .collect();
-        let cards = cards
-            .iter()
-            .map(|card| CardView {
-                index: card.index,
-                ports: card
-                    .ports
-                    .iter()
-                    .map(|port| (text(&port.name), port_state(port.available)))
-                    .collect(),
-            })
-            .collect();
-        Ok(Snapshot { sinks, cards, ours })
+        let mut snapshot = Snapshot {
+            sinks,
+            cards: Vec::new(),
+            ours,
+        };
+        for index in tracker.cards_in_question(&snapshot) {
+            let query = Command::GetCardInfo(protocol::GetCardInfo {
+                index: Some(index),
+                name: None,
+            });
+            match self.request::<protocol::CardInfo>(query) {
+                Ok(card) => snapshot.cards.push(CardView {
+                    index,
+                    ports: card
+                        .ports
+                        .iter()
+                        .map(|port| (text(&port.name), port_state(port.available)))
+                        .collect(),
+                }),
+                // Gone: left out, which is what the decision reads.
+                Err(Fault::Reply(protocol::ProtocolError::ServerError(
+                    protocol::PulseError::NoEntity,
+                ))) => {}
+                // There, but unreadable: there with no ports, which never
+                // stops the music.
+                Err(Fault::Reply(err)) => {
+                    tracing::debug!(%err, index, "sink watch: could not read a card");
+                    snapshot.cards.push(CardView {
+                        index,
+                        ports: Vec::new(),
+                    });
+                }
+                Err(broken) => return Err(broken),
+            }
+        }
+        Ok(snapshot)
     }
 }
 

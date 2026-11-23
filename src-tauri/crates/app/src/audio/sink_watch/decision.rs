@@ -80,6 +80,10 @@ pub struct StreamView {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Snapshot {
     pub sinks: Vec<SinkView>,
+    /// Every card [`Tracker::cards_in_question`] named that still exists;
+    /// any other card may be left out, and a missing one counts as gone.
+    /// A card that exists but could not be read is here with no ports,
+    /// which never makes a loss.
     pub cards: Vec<CardView>,
     /// Our process's streams only. Usually one; two for the instant an
     /// output rebuild has opened the new stream before closing the old.
@@ -150,6 +154,24 @@ pub struct Tracker {
 }
 
 impl Tracker {
+    /// The cards the next [`Self::observe`] will look at: those of the
+    /// sinks our streams were on that `snapshot` no longer lists. Asked
+    /// before the cards are read, so only these are: a card's ports are
+    /// the one reply the server sends that we may fail to decode, and
+    /// reading all of them would let one card stop the watch for every
+    /// other.
+    pub fn cards_in_question(&self, snapshot: &Snapshot) -> Vec<u32> {
+        let mut cards: Vec<u32> = self
+            .seen
+            .values()
+            .filter(|seen| snapshot.sink(seen.sink).is_none())
+            .filter_map(|seen| seen.card)
+            .collect();
+        cards.sort_unstable();
+        cards.dedup();
+        cards
+    }
+
     /// Read the next snapshot. `Some` when one of our streams lost the
     /// device it was playing through since the previous one.
     pub fn observe(&mut self, snapshot: &Snapshot) -> Option<Loss> {
@@ -500,6 +522,43 @@ mod tests {
         tracker.observe(&snapshot(vec![b.clone()], vec![], vec![]));
         let reused = snapshot(vec![b], vec![], vec![ours(129, 122)]);
         assert_eq!(tracker.observe(&reused), None);
+    }
+
+    /// Only the cards of sinks that left are asked about, once each.
+    #[test]
+    fn only_the_cards_of_sinks_that_left_are_in_question() {
+        let mut tracker = Tracker::default();
+        let usb = sink(91, Some(70), None, &[]);
+        let virtual_sink = sink(92, None, None, &[]);
+        let speakers = builtin(SPEAKER, PortState::Unavailable);
+        let all = vec![usb, virtual_sink, speakers.clone()];
+        tracker.observe(&snapshot(
+            all.clone(),
+            vec![],
+            vec![ours(98, 91), ours(99, 91), ours(100, 92), ours(101, 53)],
+        ));
+        assert!(tracker
+            .cards_in_question(&snapshot(all, vec![], vec![]))
+            .is_empty());
+        let after = snapshot(vec![speakers], vec![], vec![]);
+        assert_eq!(tracker.cards_in_question(&after), vec![70]);
+    }
+
+    /// A card that is still there but whose ports could not be read is
+    /// not a reason to stop the music.
+    #[test]
+    fn an_unreadable_card_that_stays_is_not_a_loss() {
+        let mut tracker = Tracker::default();
+        let hdmi = sink(
+            60,
+            Some(43),
+            Some("hdmi-output-0"),
+            &[("hdmi-output-0", PortState::Available)],
+        );
+        let speakers = builtin(SPEAKER, PortState::Unavailable);
+        tracker.observe(&snapshot(vec![hdmi], vec![], vec![ours(99, 60)]));
+        let after = snapshot(vec![speakers], vec![card(43, &[])], vec![ours(99, 53)]);
+        assert_eq!(tracker.observe(&after), None);
     }
 
     /// While a rebuild holds two of our streams, the one that lost its
