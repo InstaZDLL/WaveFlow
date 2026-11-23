@@ -73,7 +73,8 @@ Inside `crates/app/src/`:
 
 One line each. **The reasoning, the failure mode and the exceptions are in [`docs/architecture/invariants.md`](docs/architecture/invariants.md) — read the matching section before touching one of these.**
 
-- **Tauri commands** — `commands/*.rs` + `generate_handler![]`; frontend camelCase, backend snake_case.
+- **Tauri commands** — `commands/*.rs` + `generate_handler![]`; frontend camelCase, backend snake_case; the frontend imports `invoke` from `src/lib/tauri/invoke.ts`, never `@tauri-apps/api/core`.
+- **An error shown to the user carries a kind** — `AppError::shown(ShownKind::…, "<English>")` (+ `.with_param`), never `AppError::Other` with a sentence for the user; the view shows it through `backendErrorText(err, t)`, which says `errors.<kind>` in all 17 locales and falls back to the English text. [→](docs/architecture/invariants.md#an-error-shown-to-the-user-carries-a-kind)
 - **Profile-scoped pool** — `state.require_profile_pool().await?` for anything touching user data; it's a _leased_ `ProfilePool`, so query with `&*pool`, keep the handle bound, and never re-resolve it mid-batch; pool + profile id together come from `require_profile_snapshot()`, never two calls. [→](docs/architecture/invariants.md#profile-scoped-pool)
 - **Settings persistence** — `profile_setting` / `app_setting` via `INSERT … ON CONFLICT DO UPDATE`; a React preference hook builds on [`useProfileSetting`](src/hooks/useProfileSetting.ts), never hand-rolled; its default lives once, in [`settingsRegistry.ts`](src/lib/settingsRegistry.ts), with an accessor in `settingsReset.ts` for the Settings "n modified · Reset". [→](docs/architecture/invariants.md#persistence-of-settings)
 - **Events** — backend emits `player:*`, `track:updated`, `library:rescanned`, `scan:progress`, `lyrics:updated`, …; frontend uses `listen()`. [→](docs/architecture/invariants.md#events)

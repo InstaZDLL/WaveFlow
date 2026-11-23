@@ -12,6 +12,16 @@ Rules are grouped by layer: [IPC & state](#ipc--state) · [Database](#database) 
 
 `#[tauri::command]` lives in `commands/*.rs`, is registered in `lib.rs::generate_handler![]`, and is called from React with `invoke("command_name", { args })`. Frontend uses camelCase, backend snake_case — Tauri converts at the boundary. A command missing from `generate_handler![]` compiles fine and fails at runtime.
 
+That `invoke` is [`src/lib/tauri/invoke.ts`](../../src/lib/tauri/invoke.ts)'s, never `@tauri-apps/api/core`'s (an ESLint rule holds it): see the next section for what it adds.
+
+### An error shown to the user carries a kind
+
+An `AppError` crosses the IPC as its `Display` text, which is English, and a view that put it on screen showed English in every locale (#1157: "offline mode is on; the plugin store is unavailable" in a Chinese interface). An error that is **meant for the user** — something they can act on or should understand: offline mode refusing a request, a file they picked that is too large or not an image, a token the service refused — is built with `AppError::shown(ShownKind::…, "<English message>")`, plus `.with_param("name", value)` for each `{{name}}` its sentence needs. It crosses as `{ kind, message, params }`; the `invoke` wrapper turns that into a `BackendError` whose text is still `message`, so a caller that reads the error as text — `String(err)`, `err.message`, a `.includes(…)` match — reads exactly what it read before. The view shows it through [`backendErrorText(err, t)`](../../src/lib/backendError.ts), which says `errors.<kind>` in the user's language and falls back to the caller's own sentence or the English text for any other error, including a kind this build does not know.
+
+- **One kind, one sentence, 17 locales.** `ShownKind` serializes in `snake_case`, the key under `errors`; a test in `error.rs` fails when a kind has no sentence in a locale.
+- **The English message stays what it was.** It is what the log and a bug report read, and some views still match it (`msg.includes("offline")` for the lyrics prefetch). Converting a site to `shown` changes nothing on the wire but its shape.
+- **Not every error is for the user.** A database failure, a decode error or a registry with a bad hash is a bug report, not a sentence: those stay `AppError::Other`. The older ad-hoc forms — `podcast: <word>`, `playlist-import: offline`, `avatar: too-large`, the `FolderOverlap` text — keep working; new user-facing errors use `shown`.
+
 ### Profile-scoped pool
 
 `state.require_profile_pool().await?` — every command that touches user data goes through this. The shared `app.db` is for the profile list and cross-profile settings (Last.fm key, Discord opt-in, offline mode, backup config).
