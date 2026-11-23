@@ -51,7 +51,7 @@ use std::ffi::CString;
 use std::io::{BufReader, Read};
 use std::os::unix::net::UnixStream;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use pulseaudio::protocol::{
     self, port_info::PortAvailable, Command, CommandReply, Prop, SubscriptionMask,
@@ -122,7 +122,7 @@ fn watch(app: &AppHandle) -> Result<(), Fault> {
     loop {
         match next {
             Ok(snapshot) => {
-                if let Some(loss) = tracker.observe(&snapshot) {
+                if let Some(loss) = tracker.observe(&snapshot, Instant::now()) {
                     on_loss(app, loss);
                 }
             }
@@ -208,6 +208,9 @@ fn on_loss(app: &AppHandle, loss: Loss) {
 /// reply we asked for, and allocating it would be the bug.
 const MAX_FRAME: usize = 16 * 1024 * 1024;
 
+/// The length of an authentication cookie in the PulseAudio protocol.
+const COOKIE_LEN: usize = 256;
+
 /// What went wrong with a request.
 #[derive(Debug)]
 enum Fault {
@@ -263,11 +266,15 @@ impl Connection {
             version: protocol::MAX_VERSION,
             seq: 0,
         };
-        // pipewire-pulse accepts any cookie from the same user; PulseAudio
-        // wants the one it wrote, when it wrote one.
+        // The cookie PulseAudio wrote, when it wrote one. pipewire-pulse
+        // never checks its bytes but refuses any length other than the
+        // protocol's 256 (measured: 0 and 16 bytes answered "invalid"), and
+        // a sandbox or a fresh account may have no file at all — so
+        // without a usable one, send 256 zero bytes, as accepted there.
         let cookie = pulseaudio::cookie_path_from_env()
             .and_then(|path| std::fs::read(path).ok())
-            .unwrap_or_default();
+            .filter(|cookie| cookie.len() == COOKIE_LEN)
+            .unwrap_or_else(|| vec![0; COOKIE_LEN]);
         let auth = protocol::AuthParams {
             version: protocol::MAX_VERSION,
             supports_shm: false,
