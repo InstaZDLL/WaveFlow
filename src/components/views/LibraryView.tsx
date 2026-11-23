@@ -2007,10 +2007,11 @@ export function LibraryView({
             }
             return created;
           } catch (err) {
+            // The source stays pending until the dialog closes: a retry
+            // after a failed create still fills the playlist, and the
+            // preview keeps its count while a cover uploads or fails.
             console.error("[LibraryView] create playlist failed", err);
             throw err;
-          } finally {
-            setPendingSourceForCreate(null);
           }
         }}
       />
