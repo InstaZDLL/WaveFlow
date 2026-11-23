@@ -160,7 +160,10 @@ pub async fn track_spectrogram(
     let (path, duration_ms, title) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path = crate::netlib::local_copy(&path).ok_or_else(|| {
-        AppError::Other("this track is on a network share and is not cached yet".into())
+        AppError::shown(
+            crate::error::ShownKind::NetworkTrackNotCached,
+            "this track is on a network share and is not cached yet",
+        )
     })?;
     let meta = {
         let path = path.clone();

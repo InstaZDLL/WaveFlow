@@ -10,6 +10,7 @@ import {
   setArtistBackgroundFromUrl,
 } from "../../lib/tauri/deezer";
 import { pickFile } from "../../lib/tauri/dialog";
+import { backendErrorText } from "../../lib/backendError";
 
 interface ArtistBackdropPickerModalProps {
   artistId: number;
@@ -110,12 +111,12 @@ export function ArtistBackdropPickerModal({
         onClose();
       } catch (err) {
         console.error(`[ArtistBackdropPicker] ${label} failed`, err);
-        setFailure({ artistId, message: String(err) });
+        setFailure({ artistId, message: backendErrorText(err, t) });
       } finally {
         setIsApplying(false);
       }
     },
-    [artistId, onClose, onSuccess],
+    [artistId, onClose, onSuccess, t],
   );
 
   const handlePickFile = useCallback(async () => {

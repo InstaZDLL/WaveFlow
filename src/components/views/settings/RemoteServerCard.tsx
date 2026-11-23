@@ -15,6 +15,7 @@ import {
   type RemoteStatus,
 } from "../../../lib/tauri/remoteServer";
 import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
+import { backendErrorText } from "../../../lib/backendError";
 
 /**
  * Settings → remote server binding (RFC-005).
@@ -105,12 +106,12 @@ export function RemoteServerCard() {
         // The sidebar remote-source section reads the same binding.
         notifyRemoteChanged();
       } catch (err) {
-        if (mountedRef.current) setError(String(err));
+        if (mountedRef.current) setError(backendErrorText(err, t));
       } finally {
         if (mountedRef.current) setBusy(null);
       }
     },
-    [refresh],
+    [refresh, t],
   );
 
   // Acknowledge the changes the server refused. They are never retried, so

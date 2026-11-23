@@ -40,9 +40,14 @@ fn read_cover_bytes(file_path: &str) -> AppResult<Vec<u8>> {
         .read_to_end(&mut bytes)
         .map_err(|e| AppError::Other(format!("read cover image: {e}")))?;
     if bytes.len() > MAX_UPLOAD_BYTES {
-        return Err(AppError::Other(format!(
-            "image too large: max {MAX_UPLOAD_BYTES} bytes"
-        )));
+        return Err(AppError::shown(
+            crate::error::ShownKind::FileTooLarge,
+            format!("image too large: max {MAX_UPLOAD_BYTES} bytes"),
+        )
+        .with_param(
+            "max",
+            crate::commands::media_file::human_bytes(MAX_UPLOAD_BYTES as u64),
+        ));
     }
     Ok(bytes)
 }
@@ -54,7 +59,10 @@ fn read_cover_bytes(file_path: &str) -> AppResult<Vec<u8>> {
 pub async fn preview_playlist_cover_from_file(file_path: String) -> AppResult<String> {
     let bytes = read_cover_bytes(&file_path)?;
     if detect_image_format(&bytes).is_none() {
-        return Err(AppError::Other("invalid playlist cover image".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            "invalid playlist cover image",
+        ));
     }
     let source = image::load_from_memory(&bytes)
         .map_err(|e| AppError::Other(format!("decode cover preview: {e}")))?;
@@ -94,8 +102,9 @@ pub async fn set_playlist_cover_from_file(
 
     let bytes = read_cover_bytes(&file_path)?;
     let Some(ext) = detect_image_format(&bytes) else {
-        return Err(AppError::Other(
-            "unsupported image format (expected jpg/png/webp)".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            "unsupported image format (expected jpg/png/webp)",
         ));
     };
     // We don't keep the original extension in the metadata cache because

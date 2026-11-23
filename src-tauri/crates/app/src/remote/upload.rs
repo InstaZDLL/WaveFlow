@@ -389,7 +389,7 @@ pub async fn upload(
     track_ids: &[i64],
 ) -> AppResult<UploadOutcome> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline".into()));
+        return Err(AppError::shown(crate::error::ShownKind::Offline, "offline"));
     }
     let _guard = RunGuard::claim()
         .ok_or_else(|| AppError::Other("an upload sweep is already running".into()))?;

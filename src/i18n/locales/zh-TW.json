@@ -4879,5 +4879,25 @@
     "goneBody": "伺服器已找不到此影片：自上次掃描以來它已被刪除或移動。曲目維持暫停在目前位置。",
     "unreachableTitle": "伺服器沒有回應",
     "unreachableBody": "無法向伺服器請求此音樂影片。請在伺服器可連線後重試；曲目維持暫停在目前位置。"
+  },
+  "errors": {
+    "offline": "離線模式已開啟。",
+    "offline_plugin_store": "離線模式已開啟，外掛商店無法使用。",
+    "offline_plugin_install": "離線模式已開啟，無法安裝外掛。",
+    "offline_enrichment": "離線模式已開啟，請關閉後再套用比對結果。",
+    "offline_tag_fetch": "離線模式已開啟，請關閉後再取得標籤。",
+    "offline_musicbrainz": "離線模式已開啟，請關閉後再與 MusicBrainz 比對。",
+    "offline_lastfm": "離線模式已開啟，請關閉後再登入 Last.fm。",
+    "offline_listenbrainz": "離線模式已開啟，請關閉後再連結 ListenBrainz。",
+    "offline_radio_catalogue": "離線模式已開啟，請關閉後再下載電台目錄。",
+    "offline_server_sign_in": "離線模式已開啟，請關閉後再登入伺服器。",
+    "offline_server": "離線模式已開啟，請關閉後再連線至伺服器。",
+    "listenbrainz_token_empty": "請輸入 ListenBrainz 權杖。",
+    "listenbrainz_token_rejected": "ListenBrainz 未接受此權杖。",
+    "unsupported_image": "此圖片不是 JPEG、PNG 或 WebP 格式。",
+    "image_file_empty": "此圖片檔案是空的。",
+    "unsupported_video": "此影片不是 MP4 格式。",
+    "file_too_large": "檔案過大（上限 {{max}}）。",
+    "network_track_not_cached": "此曲目位於網路共用資料夾，尚未快取到這台電腦。"
   }
 }

@@ -11,6 +11,7 @@ import {
   type DeezerAlbumLite,
 } from "../../lib/tauri/deezer";
 import { pickFile } from "../../lib/tauri/dialog";
+import { backendErrorText } from "../../lib/backendError";
 
 interface CoverPickerModalProps {
   albumId: number;
@@ -153,7 +154,7 @@ export function CoverPickerModal({
     } catch (err) {
       if (session !== sessionRef.current) return;
       console.error("[CoverPickerModal] set deezer cover failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       if (session === sessionRef.current) {
         setIsApplying(false);
@@ -183,7 +184,7 @@ export function CoverPickerModal({
     } catch (err) {
       if (session !== sessionRef.current) return;
       console.error("[CoverPickerModal] set file cover failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       if (session === sessionRef.current) {
         setIsApplying(false);

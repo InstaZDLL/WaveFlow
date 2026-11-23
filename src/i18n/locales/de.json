@@ -4884,5 +4884,25 @@
     "goneBody": "Der Server findet dieses Video nicht mehr: Es wurde seit dem letzten Scan gelöscht oder verschoben. Der Titel bleibt an seiner Position pausiert.",
     "unreachableTitle": "Der Server antwortet nicht",
     "unreachableBody": "Das Musikvideo konnte nicht vom Server angefordert werden. Versuche es erneut, sobald er erreichbar ist; der Titel bleibt an seiner Position pausiert."
+  },
+  "errors": {
+    "offline": "Der Offline-Modus ist aktiviert.",
+    "offline_plugin_store": "Der Offline-Modus ist aktiviert: Der Plugin-Store ist nicht verfügbar.",
+    "offline_plugin_install": "Der Offline-Modus ist aktiviert: Plugins können nicht installiert werden.",
+    "offline_enrichment": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um eine Zuordnung zu übernehmen.",
+    "offline_tag_fetch": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um Tags abzurufen.",
+    "offline_musicbrainz": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um mit MusicBrainz abzugleichen.",
+    "offline_lastfm": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um dich bei Last.fm anzumelden.",
+    "offline_listenbrainz": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um ListenBrainz zu verbinden.",
+    "offline_radio_catalogue": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um den Senderkatalog herunterzuladen.",
+    "offline_server_sign_in": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um dich beim Server anzumelden.",
+    "offline_server": "Der Offline-Modus ist aktiviert: Deaktiviere ihn, um den Server zu erreichen.",
+    "listenbrainz_token_empty": "Gib dein ListenBrainz-Token ein.",
+    "listenbrainz_token_rejected": "ListenBrainz hat dieses Token nicht akzeptiert.",
+    "unsupported_image": "Dieses Bild ist keine JPEG-, PNG- oder WebP-Datei.",
+    "image_file_empty": "Diese Bilddatei ist leer.",
+    "unsupported_video": "Dieses Video ist keine MP4-Datei.",
+    "file_too_large": "Diese Datei ist zu groß (höchstens {{max}}).",
+    "network_track_not_cached": "Dieser Titel liegt auf einer Netzwerkfreigabe und ist auf diesem Computer noch nicht zwischengespeichert."
   }
 }

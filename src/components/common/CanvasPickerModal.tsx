@@ -10,6 +10,7 @@ import {
 } from "../../lib/tauri/canvas";
 import { invalidateTrackCanvas } from "../../hooks/useTrackCanvas";
 import { pickFile } from "../../lib/tauri/dialog";
+import { backendErrorText } from "../../lib/backendError";
 
 interface CanvasPickerModalProps {
   trackId: number;
@@ -60,7 +61,7 @@ export function CanvasPickerModal({
       onClose();
     } catch (err) {
       console.error("[CanvasPickerModal] set file failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }

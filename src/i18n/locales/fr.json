@@ -5024,5 +5024,25 @@
     "goneBody": "Le serveur ne trouve plus cette vidéo : elle a été supprimée ou déplacée depuis son dernier scan. La piste reste en pause à sa position.",
     "unreachableTitle": "Le serveur ne répond pas",
     "unreachableBody": "Le clip n'a pas pu être demandé au serveur. Réessayez quand il sera de nouveau joignable ; la piste reste en pause à sa position."
+  },
+  "errors": {
+    "offline": "Le mode hors ligne est activé.",
+    "offline_plugin_store": "Le mode hors ligne est activé : le catalogue d'extensions n'est pas disponible.",
+    "offline_plugin_install": "Le mode hors ligne est activé : impossible d'installer des extensions.",
+    "offline_enrichment": "Le mode hors ligne est activé : désactivez-le pour appliquer une correspondance.",
+    "offline_tag_fetch": "Le mode hors ligne est activé : désactivez-le pour récupérer les tags.",
+    "offline_musicbrainz": "Le mode hors ligne est activé : désactivez-le pour chercher une correspondance dans MusicBrainz.",
+    "offline_lastfm": "Le mode hors ligne est activé : désactivez-le pour vous connecter à Last.fm.",
+    "offline_listenbrainz": "Le mode hors ligne est activé : désactivez-le pour connecter ListenBrainz.",
+    "offline_radio_catalogue": "Le mode hors ligne est activé : désactivez-le pour télécharger le catalogue de stations.",
+    "offline_server_sign_in": "Le mode hors ligne est activé : désactivez-le pour vous connecter au serveur.",
+    "offline_server": "Le mode hors ligne est activé : désactivez-le pour joindre le serveur.",
+    "listenbrainz_token_empty": "Saisissez votre jeton ListenBrainz.",
+    "listenbrainz_token_rejected": "ListenBrainz n'a pas accepté ce jeton.",
+    "unsupported_image": "Cette image n'est pas au format JPEG, PNG ou WebP.",
+    "image_file_empty": "Ce fichier image est vide.",
+    "unsupported_video": "Cette vidéo n'est pas au format MP4.",
+    "file_too_large": "Ce fichier est trop volumineux (maximum {{max}}).",
+    "network_track_not_cached": "Ce titre est sur un partage réseau et n'est pas encore en cache sur cet ordinateur."
   }
 }

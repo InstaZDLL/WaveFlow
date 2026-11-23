@@ -5024,5 +5024,25 @@
     "goneBody": "El servidor ya no encuentra este vídeo: se eliminó o se movió desde su último escaneo. La pista sigue en pausa en su posición.",
     "unreachableTitle": "El servidor no responde",
     "unreachableBody": "No se pudo solicitar el videoclip al servidor. Vuelve a intentarlo cuando esté accesible; la pista sigue en pausa en su posición."
+  },
+  "errors": {
+    "offline": "El modo sin conexión está activado.",
+    "offline_plugin_store": "El modo sin conexión está activado: la tienda de extensiones no está disponible.",
+    "offline_plugin_install": "El modo sin conexión está activado: no se pueden instalar extensiones.",
+    "offline_enrichment": "El modo sin conexión está activado: desactívalo para aplicar una coincidencia.",
+    "offline_tag_fetch": "El modo sin conexión está activado: desactívalo para obtener las etiquetas.",
+    "offline_musicbrainz": "El modo sin conexión está activado: desactívalo para buscar coincidencias en MusicBrainz.",
+    "offline_lastfm": "El modo sin conexión está activado: desactívalo para iniciar sesión en Last.fm.",
+    "offline_listenbrainz": "El modo sin conexión está activado: desactívalo para conectar ListenBrainz.",
+    "offline_radio_catalogue": "El modo sin conexión está activado: desactívalo para descargar el catálogo de emisoras.",
+    "offline_server_sign_in": "El modo sin conexión está activado: desactívalo para iniciar sesión en el servidor.",
+    "offline_server": "El modo sin conexión está activado: desactívalo para conectar con el servidor.",
+    "listenbrainz_token_empty": "Introduce tu token de ListenBrainz.",
+    "listenbrainz_token_rejected": "ListenBrainz no ha aceptado este token.",
+    "unsupported_image": "Esta imagen no está en formato JPEG, PNG o WebP.",
+    "image_file_empty": "Este archivo de imagen está vacío.",
+    "unsupported_video": "Este vídeo no está en formato MP4.",
+    "file_too_large": "Este archivo es demasiado grande (máximo {{max}}).",
+    "network_track_not_cached": "Esta pista está en una carpeta de red y aún no está en la caché de este equipo."
   }
 }

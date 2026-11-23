@@ -5037,5 +5037,25 @@
     "goneBody": "O servidor não encontra mais este vídeo: ele foi excluído ou movido desde a última varredura. A faixa fica pausada na posição atual.",
     "unreachableTitle": "O servidor não está respondendo",
     "unreachableBody": "Não foi possível solicitar o videoclipe ao servidor. Tente de novo quando ele estiver acessível; a faixa fica pausada na posição atual."
+  },
+  "errors": {
+    "offline": "O modo offline está ativado.",
+    "offline_plugin_store": "O modo offline está ativado: a loja de plugins não está disponível.",
+    "offline_plugin_install": "O modo offline está ativado: não é possível instalar plugins.",
+    "offline_enrichment": "O modo offline está ativado: desative-o para aplicar uma correspondência.",
+    "offline_tag_fetch": "O modo offline está ativado: desative-o para buscar as tags.",
+    "offline_musicbrainz": "O modo offline está ativado: desative-o para buscar correspondências no MusicBrainz.",
+    "offline_lastfm": "O modo offline está ativado: desative-o para entrar no Last.fm.",
+    "offline_listenbrainz": "O modo offline está ativado: desative-o para conectar o ListenBrainz.",
+    "offline_radio_catalogue": "O modo offline está ativado: desative-o para baixar o catálogo de estações.",
+    "offline_server_sign_in": "O modo offline está ativado: desative-o para entrar no servidor.",
+    "offline_server": "O modo offline está ativado: desative-o para acessar o servidor.",
+    "listenbrainz_token_empty": "Digite seu token do ListenBrainz.",
+    "listenbrainz_token_rejected": "O ListenBrainz não aceitou este token.",
+    "unsupported_image": "Esta imagem não está no formato JPEG, PNG ou WebP.",
+    "image_file_empty": "Este arquivo de imagem está vazio.",
+    "unsupported_video": "Este vídeo não está no formato MP4.",
+    "file_too_large": "Este arquivo é grande demais (máximo de {{max}}).",
+    "network_track_not_cached": "Esta faixa está em um compartilhamento de rede e ainda não está em cache neste computador."
   }
 }

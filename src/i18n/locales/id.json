@@ -4879,5 +4879,25 @@
     "goneBody": "Server tidak lagi menemukan video ini: video telah dihapus atau dipindahkan sejak pemindaian terakhir. Lagu tetap dijeda di posisinya.",
     "unreachableTitle": "Server tidak merespons",
     "unreachableBody": "Video musik tidak dapat diminta dari server. Coba lagi setelah server dapat dijangkau; lagu tetap dijeda di posisinya."
+  },
+  "errors": {
+    "offline": "Mode luring aktif.",
+    "offline_plugin_store": "Mode luring aktif: toko plugin tidak tersedia.",
+    "offline_plugin_install": "Mode luring aktif: plugin tidak dapat dipasang.",
+    "offline_enrichment": "Mode luring aktif: matikan untuk menerapkan kecocokan.",
+    "offline_tag_fetch": "Mode luring aktif: matikan untuk mengambil tag.",
+    "offline_musicbrainz": "Mode luring aktif: matikan untuk mencocokkan dengan MusicBrainz.",
+    "offline_lastfm": "Mode luring aktif: matikan untuk masuk ke Last.fm.",
+    "offline_listenbrainz": "Mode luring aktif: matikan untuk menghubungkan ListenBrainz.",
+    "offline_radio_catalogue": "Mode luring aktif: matikan untuk mengunduh katalog stasiun.",
+    "offline_server_sign_in": "Mode luring aktif: matikan untuk masuk ke server.",
+    "offline_server": "Mode luring aktif: matikan untuk menjangkau server.",
+    "listenbrainz_token_empty": "Masukkan token ListenBrainz Anda.",
+    "listenbrainz_token_rejected": "ListenBrainz tidak menerima token ini.",
+    "unsupported_image": "Gambar ini bukan berkas JPEG, PNG, atau WebP.",
+    "image_file_empty": "Berkas gambar ini kosong.",
+    "unsupported_video": "Video ini bukan berkas MP4.",
+    "file_too_large": "Berkas ini terlalu besar (maksimum {{max}}).",
+    "network_track_not_cached": "Lagu ini ada di folder berbagi jaringan dan belum tersimpan di cache komputer ini."
   }
 }

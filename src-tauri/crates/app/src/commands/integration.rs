@@ -341,8 +341,9 @@ pub async fn lastfm_login(
     // here would hang the Settings dialog for the full reqwest timeout —
     // surface a clear error instead.
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is enabled — disable it to sign in to Last.fm".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineLastfm,
+            "offline mode is enabled — disable it to sign in to Last.fm",
         ));
     }
     let api_key = read_lastfm_api_key(&state)
@@ -541,13 +542,17 @@ pub async fn listenbrainz_connect(
     token: String,
 ) -> AppResult<ListenBrainzStatus> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is enabled — disable it to connect ListenBrainz".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineListenbrainz,
+            "offline mode is enabled — disable it to connect ListenBrainz",
         ));
     }
     let token = token.trim().to_string();
     if token.is_empty() {
-        return Err(AppError::Other("the ListenBrainz token is empty".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::ListenbrainzTokenEmpty,
+            "the ListenBrainz token is empty",
+        ));
     }
     // Taken before the network call and held through it: a profile switch
     // while ListenBrainz answers must not file the token under the profile
@@ -557,7 +562,12 @@ pub async fn listenbrainz_connect(
         .validate_token(&token)
         .await
         .map_err(|e| AppError::Other(e.to_string()))?
-        .ok_or_else(|| AppError::Other("ListenBrainz did not accept this token".into()))?;
+        .ok_or_else(|| {
+            AppError::shown(
+                crate::error::ShownKind::ListenbrainzTokenRejected,
+                "ListenBrainz did not accept this token",
+            )
+        })?;
 
     let now = now_ms();
     sqlx::query(

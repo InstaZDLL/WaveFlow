@@ -29,6 +29,7 @@ import {
 } from "../../hooks/usePlaylistAccent";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTheme } from "../../hooks/useTheme";
+import { backendErrorText } from "../../lib/backendError";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -175,7 +176,9 @@ export function CreatePlaylistModal({
         console.error("[CreatePlaylistModal] preview cover failed", err);
         setPendingCoverPath(null);
         setPendingCoverPreviewUrl(null);
-        setSubmitError(t("playlistModal.coverSaveError"));
+        setSubmitError(
+          backendErrorText(err, t, t("playlistModal.coverSaveError")),
+        );
       } finally {
         setCoverBusy(false);
       }
@@ -188,7 +191,9 @@ export function CreatePlaylistModal({
       onCoverChanged?.();
     } catch (err) {
       console.error("[CreatePlaylistModal] set cover failed", err);
-      setSubmitError(t("playlistModal.coverSaveError"));
+      setSubmitError(
+        backendErrorText(err, t, t("playlistModal.coverSaveError")),
+      );
     } finally {
       setCoverBusy(false);
     }

@@ -12,6 +12,7 @@ import {
   type ImportOutcome,
   type ImportProgress,
 } from "../../lib/tauri/remoteServer";
+import { backendErrorText } from "../../lib/backendError";
 
 interface ImportToLibraryModalProps {
   isOpen: boolean;
@@ -133,14 +134,14 @@ export function ImportToLibraryModal({
       if (result.imported.length > 0) onImported?.(result);
     } catch (err) {
       console.error("[ImportToLibraryModal] import failed", err);
-      if (mountedRef.current) setError(String(err));
+      if (mountedRef.current) setError(backendErrorText(err, t));
     } finally {
       if (mountedRef.current) {
         setRunning(false);
         setProgress(null);
       }
     }
-  }, [selected, trackIds, rememberFolderId, onImported]);
+  }, [selected, trackIds, rememberFolderId, onImported, t]);
 
   const pct =
     progress && progress.total

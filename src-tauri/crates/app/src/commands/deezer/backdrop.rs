@@ -111,7 +111,10 @@ pub async fn set_artist_background_from_url(
     url: String,
 ) -> AppResult<()> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline mode is enabled".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::Offline,
+            "offline mode is enabled",
+        ));
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     let candidates = read_backdrop_candidates(&pool, artist_id).await?;
@@ -124,8 +127,12 @@ pub async fn set_artist_background_from_url(
     std::fs::create_dir_all(&profile_artwork_dir)?;
 
     let bytes = download_image_bytes(&url).await?;
-    let format = detect_image_format(&bytes)
-        .ok_or_else(|| AppError::Other("unsupported image format".into()))?;
+    let format = detect_image_format(&bytes).ok_or_else(|| {
+        AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            "unsupported image format",
+        )
+    })?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
     waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
@@ -157,13 +164,21 @@ pub async fn set_artist_background_from_file(
     // caps its own stream at the same size.
     let size = std::fs::metadata(&file_path)?.len();
     if size > MAX_IMAGE_BYTES as u64 {
-        return Err(AppError::Other(format!(
-            "image too large ({size} bytes, max {MAX_IMAGE_BYTES})"
-        )));
+        return Err(AppError::shown(
+            crate::error::ShownKind::FileTooLarge,
+            format!("image too large ({size} bytes, max {MAX_IMAGE_BYTES})"),
+        )
+        .with_param(
+            "max",
+            crate::commands::media_file::human_bytes(MAX_IMAGE_BYTES as u64),
+        ));
     }
     let bytes = std::fs::read(&file_path)?;
     let format = detect_image_format(&bytes).ok_or_else(|| {
-        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+        AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            "unsupported image format (expected jpg/png/webp)",
+        )
     })?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));

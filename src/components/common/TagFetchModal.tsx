@@ -14,6 +14,7 @@ import {
 import { updateTrackTags, type TrackEdit } from "../../lib/tauri/track";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
+import { backendErrorText } from "../../lib/backendError";
 
 /**
  * Fetch an album's tags and approve them, field by field (#599).
@@ -90,7 +91,7 @@ export function TagFetchModal({
   const [sources, setSources] = useState<AlbumSource[] | null>(null);
   const [proposals, setProposals] = useState<AlbumProposals | null>(null);
   const [accepted, setAccepted] = useState<Accepted>({});
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [applied, setApplied] = useState<{
     ok: number;
     failed: number;
@@ -143,7 +144,7 @@ export function TagFetchModal({
       .catch((err) => {
         if (!alive || fetchTokenRef.current !== token) return;
         console.error("[TagFetch] source search failed", err);
-        setError(String(err));
+        setError(err);
         setSources([]);
       });
     return () => {
@@ -167,7 +168,7 @@ export function TagFetchModal({
     } catch (err) {
       if (fetchTokenRef.current !== token) return;
       console.error("[TagFetch] proposals failed", err);
-      setError(String(err));
+      setError(err);
     } finally {
       if (fetchTokenRef.current === token) setIsLoading(false);
     }
@@ -343,7 +344,9 @@ export function TagFetchModal({
               onPick={pickSource}
             />
           )}
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error != null && (
+            <p className="text-xs text-red-500">{backendErrorText(error, t)}</p>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">

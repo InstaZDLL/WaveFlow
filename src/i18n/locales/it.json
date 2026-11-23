@@ -5027,5 +5027,25 @@
     "goneBody": "Il server non trova più questo video: è stato eliminato o spostato dall'ultima scansione. Il brano resta in pausa nella sua posizione.",
     "unreachableTitle": "Il server non risponde",
     "unreachableBody": "Non è stato possibile richiedere il videoclip al server. Riprova quando sarà raggiungibile; il brano resta in pausa nella sua posizione."
+  },
+  "errors": {
+    "offline": "La modalità offline è attiva.",
+    "offline_plugin_store": "La modalità offline è attiva: lo store delle estensioni non è disponibile.",
+    "offline_plugin_install": "La modalità offline è attiva: non è possibile installare estensioni.",
+    "offline_enrichment": "La modalità offline è attiva: disattivala per applicare una corrispondenza.",
+    "offline_tag_fetch": "La modalità offline è attiva: disattivala per recuperare i tag.",
+    "offline_musicbrainz": "La modalità offline è attiva: disattivala per cercare una corrispondenza su MusicBrainz.",
+    "offline_lastfm": "La modalità offline è attiva: disattivala per accedere a Last.fm.",
+    "offline_listenbrainz": "La modalità offline è attiva: disattivala per collegare ListenBrainz.",
+    "offline_radio_catalogue": "La modalità offline è attiva: disattivala per scaricare il catalogo delle stazioni.",
+    "offline_server_sign_in": "La modalità offline è attiva: disattivala per accedere al server.",
+    "offline_server": "La modalità offline è attiva: disattivala per raggiungere il server.",
+    "listenbrainz_token_empty": "Inserisci il tuo token di ListenBrainz.",
+    "listenbrainz_token_rejected": "ListenBrainz non ha accettato questo token.",
+    "unsupported_image": "Questa immagine non è in formato JPEG, PNG o WebP.",
+    "image_file_empty": "Questo file immagine è vuoto.",
+    "unsupported_video": "Questo video non è in formato MP4.",
+    "file_too_large": "Questo file è troppo grande (massimo {{max}}).",
+    "network_track_not_cached": "Questo brano si trova su una condivisione di rete e non è ancora nella cache di questo computer."
   }
 }

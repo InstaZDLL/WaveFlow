@@ -4879,5 +4879,25 @@
     "goneBody": "サーバーがこの動画を見つけられません。前回のスキャン以降に削除または移動されました。トラックは現在の位置で一時停止したままです。",
     "unreachableTitle": "サーバーが応答しません",
     "unreachableBody": "サーバーにミュージックビデオを要求できませんでした。接続できるようになったら再試行してください。トラックは現在の位置で一時停止したままです。"
+  },
+  "errors": {
+    "offline": "オフラインモードが有効です。",
+    "offline_plugin_store": "オフラインモードが有効です。プラグインストアは利用できません。",
+    "offline_plugin_install": "オフラインモードが有効です。プラグインをインストールできません。",
+    "offline_enrichment": "オフラインモードが有効です。一致を適用するにはオフにしてください。",
+    "offline_tag_fetch": "オフラインモードが有効です。タグを取得するにはオフにしてください。",
+    "offline_musicbrainz": "オフラインモードが有効です。MusicBrainz と照合するにはオフにしてください。",
+    "offline_lastfm": "オフラインモードが有効です。Last.fm にログインするにはオフにしてください。",
+    "offline_listenbrainz": "オフラインモードが有効です。ListenBrainz に接続するにはオフにしてください。",
+    "offline_radio_catalogue": "オフラインモードが有効です。ラジオ局カタログをダウンロードするにはオフにしてください。",
+    "offline_server_sign_in": "オフラインモードが有効です。サーバーにログインするにはオフにしてください。",
+    "offline_server": "オフラインモードが有効です。サーバーに接続するにはオフにしてください。",
+    "listenbrainz_token_empty": "ListenBrainz のトークンを入力してください。",
+    "listenbrainz_token_rejected": "ListenBrainz はこのトークンを受け付けませんでした。",
+    "unsupported_image": "この画像は JPEG、PNG、WebP のいずれの形式でもありません。",
+    "image_file_empty": "この画像ファイルは空です。",
+    "unsupported_video": "この動画は MP4 形式ではありません。",
+    "file_too_large": "ファイルが大きすぎます（上限 {{max}}）。",
+    "network_track_not_cached": "この曲はネットワーク共有上にあり、まだこのコンピューターにキャッシュされていません。"
   }
 }

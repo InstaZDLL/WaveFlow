@@ -15,6 +15,7 @@ import {
   type UploadProgress,
   type UploadSurveyProgress,
 } from "../../../lib/tauri/remoteServer";
+import { backendErrorText } from "../../../lib/backendError";
 
 /**
  * Settings → sending the server what it does not have.
@@ -211,14 +212,14 @@ export function UploadToServerCard() {
         setPlan(null);
       }
     } catch (err) {
-      if (current()) setError(String(err));
+      if (current()) setError(backendErrorText(err, t));
     } finally {
       if (current()) {
         setBusy(null);
         setUploadProgress(null);
       }
     }
-  }, [picked, plan]);
+  }, [picked, plan, t]);
 
   const cancel = useCallback(() => {
     void remoteCancelUpload().catch(() => {});

@@ -4879,5 +4879,25 @@
     "goneBody": "服务器已找不到此视频：自上次扫描以来它已被删除或移动。曲目保持暂停在当前位置。",
     "unreachableTitle": "服务器没有响应",
     "unreachableBody": "无法向服务器请求此音乐视频。请在服务器可访问后重试；曲目保持暂停在当前位置。"
+  },
+  "errors": {
+    "offline": "离线模式已开启。",
+    "offline_plugin_store": "离线模式已开启，插件商店不可用。",
+    "offline_plugin_install": "离线模式已开启，无法安装插件。",
+    "offline_enrichment": "离线模式已开启，请关闭后再应用匹配。",
+    "offline_tag_fetch": "离线模式已开启，请关闭后再获取标签。",
+    "offline_musicbrainz": "离线模式已开启，请关闭后再与 MusicBrainz 匹配。",
+    "offline_lastfm": "离线模式已开启，请关闭后再登录 Last.fm。",
+    "offline_listenbrainz": "离线模式已开启，请关闭后再连接 ListenBrainz。",
+    "offline_radio_catalogue": "离线模式已开启，请关闭后再下载电台目录。",
+    "offline_server_sign_in": "离线模式已开启，请关闭后再登录服务器。",
+    "offline_server": "离线模式已开启，请关闭后再连接服务器。",
+    "listenbrainz_token_empty": "请输入 ListenBrainz 令牌。",
+    "listenbrainz_token_rejected": "ListenBrainz 未接受此令牌。",
+    "unsupported_image": "此图片不是 JPEG、PNG 或 WebP 格式。",
+    "image_file_empty": "此图片文件为空。",
+    "unsupported_video": "此视频不是 MP4 格式。",
+    "file_too_large": "文件过大（最大 {{max}}）。",
+    "network_track_not_cached": "此曲目位于网络共享上，尚未缓存到这台电脑。"
   }
 }

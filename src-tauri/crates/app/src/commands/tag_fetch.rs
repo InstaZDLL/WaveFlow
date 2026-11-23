@@ -72,8 +72,9 @@ pub async fn search_album_tag_sources(
     // this command does afterwards is in service of a network call it
     // is not going to make.
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on — turn it off to fetch tags".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineTagFetch,
+            "offline mode is on — turn it off to fetch tags",
         ));
     }
 
@@ -161,8 +162,9 @@ pub async fn fetch_album_tag_proposals(
     let pool = state.require_profile_pool().await?;
 
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on — turn it off to fetch tags".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineTagFetch,
+            "offline mode is on — turn it off to fetch tags",
         ));
     }
 

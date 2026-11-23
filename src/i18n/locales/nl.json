@@ -4884,5 +4884,25 @@
     "goneBody": "De server kan deze video niet meer vinden: hij is sinds de laatste scan verwijderd of verplaatst. Het nummer blijft gepauzeerd op zijn positie.",
     "unreachableTitle": "De server reageert niet",
     "unreachableBody": "De videoclip kon niet bij de server worden opgevraagd. Probeer het opnieuw zodra die bereikbaar is; het nummer blijft gepauzeerd op zijn positie."
+  },
+  "errors": {
+    "offline": "De offlinemodus staat aan.",
+    "offline_plugin_store": "De offlinemodus staat aan: de plug-inwinkel is niet beschikbaar.",
+    "offline_plugin_install": "De offlinemodus staat aan: er kunnen geen plug-ins worden geïnstalleerd.",
+    "offline_enrichment": "De offlinemodus staat aan: zet hem uit om een overeenkomst toe te passen.",
+    "offline_tag_fetch": "De offlinemodus staat aan: zet hem uit om tags op te halen.",
+    "offline_musicbrainz": "De offlinemodus staat aan: zet hem uit om met MusicBrainz te vergelijken.",
+    "offline_lastfm": "De offlinemodus staat aan: zet hem uit om bij Last.fm in te loggen.",
+    "offline_listenbrainz": "De offlinemodus staat aan: zet hem uit om ListenBrainz te koppelen.",
+    "offline_radio_catalogue": "De offlinemodus staat aan: zet hem uit om de zendercatalogus te downloaden.",
+    "offline_server_sign_in": "De offlinemodus staat aan: zet hem uit om bij de server in te loggen.",
+    "offline_server": "De offlinemodus staat aan: zet hem uit om de server te bereiken.",
+    "listenbrainz_token_empty": "Voer je ListenBrainz-token in.",
+    "listenbrainz_token_rejected": "ListenBrainz heeft dit token niet geaccepteerd.",
+    "unsupported_image": "Deze afbeelding is geen JPEG-, PNG- of WebP-bestand.",
+    "image_file_empty": "Dit afbeeldingsbestand is leeg.",
+    "unsupported_video": "Deze video is geen MP4-bestand.",
+    "file_too_large": "Dit bestand is te groot (maximaal {{max}}).",
+    "network_track_not_cached": "Dit nummer staat op een netwerkshare en is nog niet in de cache van deze computer opgeslagen."
   }
 }

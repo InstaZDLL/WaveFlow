@@ -202,8 +202,9 @@ pub struct MarketplaceEntry {
 /// (the fallbacks mirror the same file, so retrying can't help).
 async fn fetch_registry() -> AppResult<Registry> {
     if offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on; the plugin store is unavailable".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflinePluginStore,
+            "offline mode is on; the plugin store is unavailable",
         ));
     }
     let client = reqwest::Client::builder()
@@ -405,8 +406,9 @@ async fn download_first(client: &reqwest::Client, sources: &[String]) -> AppResu
     let mut failures = Vec::with_capacity(sources.len());
     for (i, url) in sources.iter().enumerate() {
         if offline::is_offline() {
-            return Err(AppError::Other(
-                "offline mode is on; can't install plugins".into(),
+            return Err(AppError::shown(
+                crate::error::ShownKind::OfflinePluginInstall,
+                "offline mode is on; can't install plugins",
             ));
         }
         match download_archive(client, url).await {
@@ -653,8 +655,9 @@ pub async fn install_plugin_from_registry(
     super::plugins::validate_plugin_id_chars(&plugin_id)?;
 
     if offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on; can't install plugins".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflinePluginInstall,
+            "offline mode is on; can't install plugins",
         ));
     }
     // A bundled id is owned by the installer and re-seeded at boot; a store

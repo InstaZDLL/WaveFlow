@@ -225,7 +225,7 @@ pub async fn download(
     remote_track_id: &str,
 ) -> AppResult<DownloadedTrack> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline".into()));
+        return Err(AppError::shown(crate::error::ShownKind::Offline, "offline"));
     }
     // Pool and profile together: everything below — the existing-copy check,
     // the destination folder, the row written at the end — belongs to one

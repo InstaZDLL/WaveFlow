@@ -1166,8 +1166,9 @@ pub async fn tag_workshop_match(
     tagged_release: Option<String>,
 ) -> AppResult<Option<AlbumProposal>> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on — turn it off to match with MusicBrainz".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineMusicbrainz,
+            "offline mode is on — turn it off to match with MusicBrainz",
         ));
     }
     if tracks.is_empty() {

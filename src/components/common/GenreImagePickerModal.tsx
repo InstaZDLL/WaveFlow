@@ -9,6 +9,7 @@ import {
   setGenreArtworkFromFile,
 } from "../../lib/tauri/browse";
 import { pickFile } from "../../lib/tauri/dialog";
+import { backendErrorText } from "../../lib/backendError";
 
 interface GenreImagePickerModalProps {
   genreId: number;
@@ -58,7 +59,7 @@ export function GenreImagePickerModal({
       onClose();
     } catch (err) {
       console.error("[GenreImagePickerModal] set file failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }
@@ -74,7 +75,7 @@ export function GenreImagePickerModal({
       onClose();
     } catch (err) {
       console.error("[GenreImagePickerModal] clear failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }

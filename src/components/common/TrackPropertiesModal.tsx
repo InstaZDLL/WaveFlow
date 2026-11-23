@@ -59,6 +59,7 @@ import {
   getTrackAnalysis,
   type TrackAnalysis,
 } from "../../lib/tauri/analysis";
+import { backendErrorText } from "../../lib/backendError";
 
 interface TrackPropertiesModalProps {
   track: Track | null;
@@ -583,7 +584,7 @@ export function TrackPropertiesModal({
         staleRef.current = true;
         setFileStamp(null);
       }
-      setSaveError(String(err));
+      setSaveError(backendErrorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -657,7 +658,7 @@ export function TrackPropertiesModal({
       console.error("[TrackProperties] reread_track_folder failed", err);
       // `fileChanged` stays set: the file is still the changed one, and
       // the reload button has to stay there to be tried again.
-      setSaveError(String(err));
+      setSaveError(backendErrorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -685,7 +686,7 @@ export function TrackPropertiesModal({
       // the parent passes it back down.
     } catch (err) {
       console.error("[TrackProperties] update_track_cover failed", err);
-      setSaveError(String(err));
+      setSaveError(backendErrorText(err, t));
     } finally {
       setSaving(false);
     }

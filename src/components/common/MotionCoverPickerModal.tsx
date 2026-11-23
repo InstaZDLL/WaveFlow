@@ -11,6 +11,7 @@ import {
 } from "../../lib/tauri/plugins";
 import { pickFile } from "../../lib/tauri/dialog";
 import { invalidateAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
+import { backendErrorText } from "../../lib/backendError";
 
 interface MotionCoverPickerModalProps {
   albumId: number;
@@ -77,7 +78,7 @@ export function MotionCoverPickerModal({
       onClose();
     } catch (err) {
       console.error("[MotionCoverPickerModal] set file failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }

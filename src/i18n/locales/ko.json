@@ -4879,5 +4879,25 @@
     "goneBody": "서버에서 이 동영상을 더 이상 찾을 수 없습니다. 마지막 스캔 이후 삭제되었거나 이동되었습니다. 트랙은 현재 위치에서 일시정지 상태로 유지됩니다.",
     "unreachableTitle": "서버가 응답하지 않습니다",
     "unreachableBody": "서버에 뮤직비디오를 요청할 수 없었습니다. 서버에 다시 연결되면 다시 시도하세요. 트랙은 현재 위치에서 일시정지 상태로 유지됩니다."
+  },
+  "errors": {
+    "offline": "오프라인 모드가 켜져 있습니다.",
+    "offline_plugin_store": "오프라인 모드가 켜져 있습니다. 플러그인 스토어를 사용할 수 없습니다.",
+    "offline_plugin_install": "오프라인 모드가 켜져 있습니다. 플러그인을 설치할 수 없습니다.",
+    "offline_enrichment": "오프라인 모드가 켜져 있습니다. 일치 항목을 적용하려면 오프라인 모드를 끄세요.",
+    "offline_tag_fetch": "오프라인 모드가 켜져 있습니다. 태그를 가져오려면 오프라인 모드를 끄세요.",
+    "offline_musicbrainz": "오프라인 모드가 켜져 있습니다. MusicBrainz와 대조하려면 오프라인 모드를 끄세요.",
+    "offline_lastfm": "오프라인 모드가 켜져 있습니다. Last.fm에 로그인하려면 오프라인 모드를 끄세요.",
+    "offline_listenbrainz": "오프라인 모드가 켜져 있습니다. ListenBrainz를 연결하려면 오프라인 모드를 끄세요.",
+    "offline_radio_catalogue": "오프라인 모드가 켜져 있습니다. 방송국 카탈로그를 다운로드하려면 오프라인 모드를 끄세요.",
+    "offline_server_sign_in": "오프라인 모드가 켜져 있습니다. 서버에 로그인하려면 오프라인 모드를 끄세요.",
+    "offline_server": "오프라인 모드가 켜져 있습니다. 서버에 연결하려면 오프라인 모드를 끄세요.",
+    "listenbrainz_token_empty": "ListenBrainz 토큰을 입력하세요.",
+    "listenbrainz_token_rejected": "ListenBrainz가 이 토큰을 받아들이지 않았습니다.",
+    "unsupported_image": "이 이미지는 JPEG, PNG 또는 WebP 파일이 아닙니다.",
+    "image_file_empty": "이 이미지 파일은 비어 있습니다.",
+    "unsupported_video": "이 동영상은 MP4 파일이 아닙니다.",
+    "file_too_large": "파일이 너무 큽니다(최대 {{max}}).",
+    "network_track_not_cached": "이 곡은 네트워크 공유에 있으며 아직 이 컴퓨터에 캐시되지 않았습니다."
   }
 }

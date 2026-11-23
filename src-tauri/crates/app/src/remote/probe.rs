@@ -112,8 +112,9 @@ struct PingResponse {
 /// here: it still identifies itself.
 pub async fn detect(base_url: &str) -> AppResult<ServerFlavour> {
     if offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on; turn it off to reach a server".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineServer,
+            "offline mode is on; turn it off to reach a server",
         ));
     }
 
