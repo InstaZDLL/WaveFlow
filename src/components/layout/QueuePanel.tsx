@@ -287,8 +287,10 @@ export function QueuePanel({
           isSaveOpen ? new Set(savableQueueIds(items)).size : undefined
         }
         onCreate={async (data) => {
-          const created = await createFromModal(data);
+          // Read before the create, at the moment the preview's count
+          // was taken: the queue may move while it runs.
           const ids = savableQueueIds(items);
+          const created = await createFromModal(data);
           if (created?.id != null && ids.length > 0) {
             try {
               await addTracksToPlaylist(created.id, ids);

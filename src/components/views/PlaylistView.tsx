@@ -1766,8 +1766,10 @@ export function PlaylistView({
           isKeepOpen ? new Set(keptMixTrackIds(displayTracks)).size : undefined
         }
         onCreate={async (data) => {
-          const created = await createFromModal(data);
+          // Read before the create, at the moment the preview's count
+          // was taken: the mix may be rebuilt while it runs.
           const ids = keptMixTrackIds(displayTracksRef.current);
+          const created = await createFromModal(data);
           if (created?.id != null && ids.length > 0) {
             try {
               await addTracksToPlaylist(created.id, ids);

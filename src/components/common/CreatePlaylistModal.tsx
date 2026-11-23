@@ -122,6 +122,17 @@ export function CreatePlaylistModal({
   // never render the (unlocalized) option.
   const remote = useRemoteSource();
   const [alsoOnServer, setAlsoOnServer] = useState(false);
+  // `incomingTrackCount` as it stood when "Create" was pressed, which is
+  // what the parent's add after the create inserts. The preview shows it
+  // from then on: a queue that moves while a cover uploads must not
+  // make the preview count tracks the playlist did not receive. `null`
+  // until a submit, and again after one that failed.
+  const [submittedCount, setSubmittedCount] = useState<{
+    value: number | null | undefined;
+  } | null>(null);
+  const previewTrackCount = submittedCount
+    ? submittedCount.value
+    : incomingTrackCount;
 
   // Reset on close OR re-sync when `existing` changes (reopening the modal
   // on a different playlist). See CreateLibraryModal for why the new
@@ -137,6 +148,7 @@ export function CreatePlaylistModal({
       setPendingCoverPath(null);
       setPendingCoverPreviewUrl(null);
       setCreatedPlaylistId(null);
+      setSubmittedCount(null);
       setSubmitError(null);
       setAlsoOnServer(false);
       // Also collapse the cover "..." menu — call sites mount this
@@ -283,6 +295,7 @@ export function CreatePlaylistModal({
       return;
     setIsSubmitting(true);
     setSubmitError(null);
+    setSubmittedCount({ value: incomingTrackCount });
     try {
       const created = await onCreate({
         name: name.trim(),
@@ -298,10 +311,12 @@ export function CreatePlaylistModal({
         setCreatedPlaylistId(created.id);
         await finishCover(created.id);
       } else {
+        setSubmittedCount(null);
         setSubmitError(t("playlistModal.createError"));
       }
     } catch (err) {
       console.error("[CreatePlaylistModal] submit failed", err);
+      setSubmittedCount(null);
       setSubmitError(
         t(isEdit ? "playlistModal.editError" : "playlistModal.createError"),
       );
@@ -488,11 +503,11 @@ export function CreatePlaylistModal({
                 {displayName}
               </div>
               <div className={`text-xs ${previewInkSoft}`}>
-                {incomingTrackCount === null
+                {previewTrackCount === null
                   ? t("playlistModal.previewSubtitleUncounted")
-                  : incomingTrackCount
+                  : previewTrackCount
                     ? t("playlistModal.previewSubtitleCount", {
-                        count: incomingTrackCount,
+                        count: previewTrackCount,
                       })
                     : t("playlistModal.previewSubtitle")}
               </div>
