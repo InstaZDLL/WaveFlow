@@ -350,18 +350,23 @@ pub(crate) async fn refresh_custom_after_change(
     changed.len()
 }
 
-/// [`refresh_custom_after_change`] for a background pass: it waits while a
-/// scan holds the single writer, as every background writer does. The
-/// scan is the pass the user is watching, and it refreshes these
-/// playlists itself once its last batch is in.
-pub(crate) async fn refresh_custom_in_background(
-    pool: &sqlx::SqlitePool,
-    app: Option<&AppHandle>,
-) -> usize {
-    while crate::commands::scan::scan_in_flight() {
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-    }
-    refresh_custom_after_change(pool, app).await
+/// [`refresh_custom_after_change`] for a background pass, detached: the
+/// caller (an analysis run, an enrichment pass, the launch) goes on at
+/// once, so a run cancelled meanwhile releases its task and its slot
+/// without waiting for a scan. The detached task waits while a scan holds
+/// the single writer, as every background writer does — the scan is the
+/// pass the user is watching — then refreshes. It holds a clone of the
+/// pool, not a lease: a profile switch closes the pool under it, which
+/// the refresh takes as its cue to stop, and the next pass catches up.
+pub(crate) fn refresh_custom_in_background(pool: &sqlx::SqlitePool, app: Option<&AppHandle>) {
+    let pool = pool.clone();
+    let app = app.cloned();
+    tauri::async_runtime::spawn(async move {
+        while crate::commands::scan::scan_in_flight() {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+        refresh_custom_after_change(&pool, app.as_ref()).await;
+    });
 }
 
 fn is_custom_payload(raw: Option<&str>) -> bool {

@@ -404,12 +404,25 @@ pub async fn update_tracks_batch(
     }
 
     for track_id in &track_ids {
-        let row: Option<TrackRow> = sqlx::query_as::<_, TrackRow>(
+        // Collected like every other per-track failure rather than
+        // returned: the tracks before this one are already written, and
+        // the follow-ups after the loop (the smart playlist refresh, the
+        // events) are owed for them.
+        let row: Option<TrackRow> = match sqlx::query_as::<_, TrackRow>(
             "SELECT id, file_path, primary_artist, album_id FROM track WHERE id = ?",
         )
         .bind(track_id)
         .fetch_optional(&*pool)
-        .await?;
+        .await
+        {
+            Ok(row) => row,
+            Err(err) => {
+                summary
+                    .errors
+                    .push((*track_id, format!("track read failed: {err}")));
+                continue;
+            }
+        };
         let Some(row) = row else {
             summary.errors.push((*track_id, "track not found".into()));
             continue;

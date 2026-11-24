@@ -664,6 +664,70 @@ mod sql_tests {
         );
     }
 
+    /// A rule on a relative window is run again under the lock even when
+    /// nobody committed: the clock alone can move a track out between the
+    /// look and the lock. Here a track added 29 days before the look is
+    /// past the 30-day window by the time the lock is held, two days on.
+    #[tokio::test]
+    async fn a_window_the_clock_crossed_since_the_look_is_computed_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(dir.path().join("data.db"))
+            .create_if_missing(true);
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(2)
+            .connect_with(options)
+            .await
+            .unwrap();
+        let day = 86_400_000_i64;
+        sqlx::raw_sql(
+            "CREATE TABLE track (id INTEGER PRIMARY KEY, title TEXT NOT NULL,
+                                 added_at INTEGER NOT NULL, is_available INTEGER NOT NULL);
+             CREATE TABLE playlist (id INTEGER PRIMARY KEY, is_smart INTEGER NOT NULL,
+                                    smart_rules TEXT, updated_at INTEGER NOT NULL);
+             CREATE TABLE playlist_track (playlist_id INTEGER NOT NULL, track_id INTEGER NOT NULL,
+                                          position INTEGER NOT NULL, added_at INTEGER NOT NULL,
+                                          PRIMARY KEY (playlist_id, track_id));
+             INSERT INTO playlist VALUES (1, 1, 'raw', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO track VALUES (1, 'Old', ?, 1), (2, 'New', ?, 1)")
+            .bind(NOW - 29 * day)
+            .bind(NOW - day)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let r = rules(RuleNode::Leaf {
+            predicate: Predicate::AddedInLastDays { value: 30 },
+        });
+
+        let mut conn = pool.acquire().await.unwrap();
+        let look = Look {
+            version: data_version(&mut conn).await.unwrap(),
+            current: vec![],
+            wanted: run_query_at(&pool, &r, NOW).await.unwrap(),
+        };
+        assert_eq!(
+            look.wanted,
+            vec![2, 1],
+            "both inside the window at the look"
+        );
+        let later = || NOW + 2 * day;
+        assert!(write_if_changed(&mut conn, 1, "raw", &r, look, &later)
+            .await
+            .unwrap());
+        drop(conn);
+        let members: Vec<i64> = sqlx::query_scalar(
+            "SELECT track_id FROM playlist_track WHERE playlist_id = 1 ORDER BY position",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(members, vec![2], "the old track left the window meanwhile");
+    }
+
     /// A refresh of a random playlist keeps what still matches, where it
     /// was, and fills only the room the limit leaves.
     #[test]

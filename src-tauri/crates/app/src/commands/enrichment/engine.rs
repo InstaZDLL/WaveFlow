@@ -598,7 +598,7 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
     // fields move a track into or out of (#1169).
     if changed_tracks {
         if let Ok(pool) = db.lease().await {
-            crate::commands::smart_playlists::refresh_custom_in_background(&pool, Some(app)).await;
+            crate::commands::smart_playlists::refresh_custom_in_background(&pool, Some(app));
         }
     }
     tracing::info!(

@@ -626,7 +626,7 @@ async fn run_reserved(app: &AppHandle, pool: &SqlitePool) -> AppResult<LibraryAn
     // The measured tempos and fake-lossless verdicts are what the BPM and
     // "fake lossless" rules read: once for the run, not per track (#1169).
     if processed > failed {
-        crate::commands::smart_playlists::refresh_custom_in_background(pool, Some(app)).await;
+        crate::commands::smart_playlists::refresh_custom_in_background(pool, Some(app));
     }
 
     let summary = LibraryAnalysisSummary {

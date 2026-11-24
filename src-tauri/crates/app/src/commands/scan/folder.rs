@@ -111,6 +111,28 @@ pub(crate) async fn scan_folder_inner(
     app_handle: Option<&tauri::AppHandle>,
     deep: bool,
 ) -> AppResult<ScanSummary> {
+    let result = scan_folder_run(pool, artwork_dir, folder_id, app_handle, deep).await;
+    // A scan that failed partway may have committed batches before the
+    // failure, and returned before the custom smart playlist pass at its
+    // end (#1169). That pass, detached, once this scan's guard is gone. Not
+    // for a root that could not be read: that refusal comes before any
+    // write, and a watcher on an absent share would run it for nothing.
+    if let Err(err) = &result {
+        if !matches!(err, AppError::FolderUnreachable { .. }) {
+            crate::commands::smart_playlists::refresh_custom_in_background(pool, app_handle);
+        }
+    }
+    result
+}
+
+/// The body of [`scan_folder_inner`].
+async fn scan_folder_run(
+    pool: &SqlitePool,
+    artwork_dir: &Path,
+    folder_id: i64,
+    app_handle: Option<&tauri::AppHandle>,
+    deep: bool,
+) -> AppResult<ScanSummary> {
     // Mark a scan in flight for the whole body so the background
     // analyzer parks itself instead of contending on CPU + the single
     // SQLite writer. Dropped on every exit path (RAII).

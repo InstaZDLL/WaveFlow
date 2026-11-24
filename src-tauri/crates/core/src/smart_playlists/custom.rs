@@ -690,15 +690,30 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64
 /// re-inserts the results in the sorted order. The rule set is read
 /// from `playlist.smart_rules` so this command is idempotent (calling
 /// it twice yields the same membership unless the library changed).
+///
+/// The query runs before the write lock, as the refresh's look does, and
+/// the same check decides what is written: if another connection
+/// committed between the query and the lock (`data_version`), or the
+/// rules read the clock, the query runs again under the lock.
 #[cfg(feature = "sqlite")]
 pub async fn materialize(
     pool: &SqlitePool,
     playlist_id: i64,
     rules: &CustomRules,
 ) -> CoreResult<i64> {
-    let track_ids = run_query(pool, rules).await?;
+    let limit = Some(effective_limit(rules));
+    let mut conn = pool.acquire().await?;
+    let version = data_version(&mut conn).await?;
+    let track_ids = query_ids(&mut *conn, rules, now_ms(), limit).await?;
 
-    let mut tx = pool.begin().await?;
+    let mut tx =
+        crate::repository::sqlite::write_lock::begin_write_on_connection(&mut conn, "playlist")
+            .await?;
+    let track_ids = if look_still_holds(&mut tx, version, rules).await? {
+        track_ids
+    } else {
+        query_ids(&mut *tx, rules, now_ms(), limit).await?
+    };
     sqlx::query("DELETE FROM playlist_track WHERE playlist_id = ?")
         .bind(playlist_id)
         .execute(&mut *tx)
@@ -998,6 +1013,35 @@ struct Look {
     wanted: Vec<i64>,
 }
 
+/// Whether a list computed on `version` may be written as it is, once the
+/// lock is held: nobody committed since, and the rules do not read the
+/// clock. A relative window ("added in the last 30 days") can move a
+/// track out between the look and the lock with no write at all, and the
+/// wait for the lock is not bounded.
+#[cfg(feature = "sqlite")]
+async fn look_still_holds(
+    conn: &mut sqlx::SqliteConnection,
+    version: i64,
+    rules: &CustomRules,
+) -> CoreResult<bool> {
+    Ok(!reads_the_clock(&rules.tree) && data_version(conn).await? == version)
+}
+
+/// Whether any leaf of the tree is a window relative to now.
+#[cfg(feature = "sqlite")]
+fn reads_the_clock(node: &RuleNode) -> bool {
+    match node {
+        RuleNode::All { children } | RuleNode::Any { children } => {
+            children.iter().any(reads_the_clock)
+        }
+        RuleNode::Not { child } => reads_the_clock(child),
+        RuleNode::Leaf { predicate } => matches!(
+            predicate,
+            Predicate::AddedInLastDays { .. } | Predicate::PlayedInLastDays { .. }
+        ),
+    }
+}
+
 /// `PRAGMA data_version`: changes between two reads on one connection
 /// exactly when another connection committed in between.
 #[cfg(feature = "sqlite")]
@@ -1086,7 +1130,8 @@ fn keep_then_top_up(
 /// now. Returns whether the playlist was written.
 ///
 /// The look's list is written only if nobody committed since it was
-/// computed (`data_version` unchanged on this connection). Otherwise the
+/// computed (`data_version` unchanged on this connection) and the rules
+/// hold no window relative to now ([`look_still_holds`]). Otherwise the
 /// rules run again here, under the lock: another writer may have retagged
 /// a track out of the rules, or another pass written a newer list, and
 /// writing the older one over it would put back what the library no
@@ -1119,7 +1164,7 @@ async fn write_if_changed(
         tx.rollback().await?;
         return Ok(false);
     }
-    let (current, wanted) = if data_version(&mut tx).await? == look.version {
+    let (current, wanted) = if look_still_holds(&mut tx, look.version, rules).await? {
         (look.current, look.wanted)
     } else {
         let current = stored_members(&mut tx, playlist_id).await?;
