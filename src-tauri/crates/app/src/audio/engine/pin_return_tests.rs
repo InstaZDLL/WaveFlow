@@ -2,7 +2,9 @@
 //! reopen that lands elsewhere leaves to do, and when a pick of it may
 //! do nothing.
 
-use super::rebuild::{pick_is_noop, pin_reopen_outcome, should_reopen_pin, FollowOutcome};
+use super::rebuild::{
+    pick_is_noop, pin_reopen_outcome, rollback_target, should_reopen_pin, FollowOutcome,
+};
 
 const BUDS: &str = "Headphones (Buds2)";
 const SPEAKERS: &str = "Speakers (Realtek(R) Audio)";
@@ -101,4 +103,29 @@ fn the_os_default_is_judged_on_the_request() {
     // Following the default is the default-device follow's job.
     assert!(pick_is_noop(true, None, Some(SPEAKERS), None));
     assert!(pick_is_noop(true, None, None, None));
+}
+
+#[test]
+fn a_failed_open_after_a_fallback_rolls_back_to_the_os_default() {
+    // The old stream asked for the pin and reached the speakers. Asking
+    // for the pin again would retry the device that just refused, now
+    // that it is listed; the speakers come back as the OS default, not by
+    // name, so the caller can keep the pin as the request.
+    assert_eq!(rollback_target(Some(BUDS), Some(SPEAKERS)), None);
+}
+
+#[test]
+fn a_failed_open_rolls_back_to_the_device_that_was_open() {
+    assert_eq!(
+        rollback_target(Some(BUDS), Some(BUDS)),
+        Some(BUDS.to_owned())
+    );
+    assert_eq!(rollback_target(None, Some(SPEAKERS)), None);
+}
+
+#[test]
+fn an_unnamed_output_keeps_its_request_on_rollback() {
+    // No evidence of a fallback: the request is all there is.
+    assert_eq!(rollback_target(Some(BUDS), None), Some(BUDS.to_owned()));
+    assert_eq!(rollback_target(None, None), None);
 }

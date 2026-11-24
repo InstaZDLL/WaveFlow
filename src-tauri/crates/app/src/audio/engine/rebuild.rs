@@ -420,6 +420,24 @@ pub(super) fn pin_reopen_outcome(pinned: &str, landed: Option<&str>) -> FollowOu
     }
 }
 
+/// What to open when a replacement that released the old stream first
+/// will not open, so the user is not left with no output at all.
+///
+/// The old stream's request (`asked`), unless it is known to have been a
+/// fallback: a request naming one endpoint while another opened. Asking
+/// for that pin again would retry the very device that just failed —
+/// once it is listed again it no longer falls back (#1165) — so the
+/// endpoint the fallback reached is reopened as the OS default instead.
+/// Not by its name: the caller keeps `asked` as the new handle's request,
+/// and a name there would quietly become the pin. An output that cannot
+/// name what it opened gives no such evidence, and keeps its request.
+pub(super) fn rollback_target(asked: Option<&str>, opened: Option<&str>) -> Option<String> {
+    match (asked, opened) {
+        (Some(asked), Some(opened)) if asked != opened => None,
+        _ => asked.map(str::to_owned),
+    }
+}
+
 /// Whether a device pick can leave the stream alone.
 ///
 /// Only with a stream installed (#612, #630: with none, the pick is the
@@ -877,13 +895,17 @@ impl AudioEngine {
     ///    back, and a pin that returns a moment later would otherwise be
     ///    missed for good.
     /// 3. **is the pin listed?** See [`should_reopen_pin`]. A listing
-    ///    that fails counts as absent.
+    ///    that fails is deferred, not taken for an absent pin.
     /// 4. **is a rebuild already under way?** The #365 gate, armed only
     ///    now, deferring when busy.
     ///
     /// A reopen that fails, or lands on another endpoint again, is
     /// deferred too ([`pin_reopen_outcome`]): the scheduler comes back
-    /// after the settle window, a bounded number of times.
+    /// after the settle window, a bounded number of times. A failure
+    /// that had already released the old stream (an exclusive one) puts
+    /// back the endpoint it was on, inside the same rebuild — see
+    /// [`rollback_target`] — so a pin that is listed but will not open
+    /// costs a gap, not the output.
     fn return_to_pinned_output(&self, pinned: &str, opened: Option<&str>) -> FollowOutcome {
         use std::sync::atomic::Ordering;
 
@@ -897,11 +919,15 @@ impl AudioEngine {
             );
             return FollowOutcome::Deferred;
         }
-        let pin_listed = super::super::output::list_output_devices()
-            .inspect_err(|err| {
-                tracing::debug!(%err, "pinned-device check: the output listing failed");
-            })
-            .is_ok_and(|devices| devices.iter().any(|device| device.id == pinned));
+        let pin_listed = match super::super::output::list_output_devices() {
+            Ok(devices) => devices.iter().any(|device| device.id == pinned),
+            // Not "absent": a listing that fails says nothing about the
+            // pin, and settling on it would drop this event for good.
+            Err(err) => {
+                tracing::debug!(%err, "pinned-device check: the output listing failed; deferring");
+                return FollowOutcome::Deferred;
+            }
+        };
         if !should_reopen_pin(pinned, opened, pin_listed) {
             tracing::debug!(
                 device = %pinned,

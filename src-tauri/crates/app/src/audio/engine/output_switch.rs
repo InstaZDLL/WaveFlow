@@ -7,7 +7,7 @@ use super::super::output::{spawn_output_with_mode, RequestedFormat};
 use super::command::AudioCmd;
 use super::notice::PlaybackNotice;
 use super::rebuild::{
-    endpoint_moved, must_release_before_reopening, pick_is_noop, rebuild_resume,
+    endpoint_moved, must_release_before_reopening, pick_is_noop, rebuild_resume, rollback_target,
     track_needs_reopen, RebuildCause, RebuildDevice, RebuildResume,
 };
 use super::AudioEngine;
@@ -191,6 +191,9 @@ impl AudioEngine {
             .lock()
             .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
 
+        // Only the pinned device's return buys back a failed open after a
+        // release (#1165): the other callers keep their behaviour.
+        let rolls_back = matches!(device, RebuildDevice::PinnedIfElsewhere);
         // Resolve the target under the very lock this is about to swap
         // the handle with, so nothing can move it in between (#612).
         let device_name = match device {
@@ -271,16 +274,27 @@ impl AudioEngine {
         // evict it, see [`must_release_before_reopening`].
         let pre_release =
             must_release_before_reopening(guard.handle.as_ref().map(|h| h.exclusive), exclusive);
+        // The old stream's request and what to reopen in its place, kept
+        // when a release gives up the rollback spawn-first gets for free.
+        let mut previous = None;
         if pre_release {
             if was_playing {
                 self.stop_for_rebuild()
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             if let Some(old) = guard.handle.take() {
+                previous = Some((
+                    old.device_name.clone(),
+                    rollback_target(old.device_name.as_deref(), old.opened_device.as_deref()),
+                ));
                 old.stop();
             }
         }
 
+        // Set when the target refused to open and the previous endpoint
+        // came back instead: the session is restored, and the caller still
+        // gets the error, so the failure is not hidden.
+        let mut rebuild_error = None;
         let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
@@ -290,10 +304,48 @@ impl AudioEngine {
         ) {
             Ok(pair) => pair,
             Err(err) => {
-                // `pre_release` (an old exclusive stream) already took the
-                // handle above, so this is the no-output-at-all case.
-                self.publish_output_lost_if_gone(&guard.handle);
-                return Err(err);
+                // A pinned device that is listed but will not open, after
+                // an exclusive stream was released for it (#1165): put
+                // back the endpoint we were on, the way `set_output_device`
+                // does, rather than leave no output at all. Its request
+                // stays the old one, so the pin is untouched.
+                let reopened = previous.filter(|_| rolls_back).and_then(|(asked, target)| {
+                    spawn_output_with_mode(
+                        self.shared.clone(),
+                        self.app.clone(),
+                        target,
+                        exclusive,
+                        None,
+                    )
+                    .inspect_err(|reopen_err| {
+                        tracing::warn!(
+                            %reopen_err,
+                            "force_rebuild_output: the previous endpoint did not reopen either"
+                        );
+                    })
+                    .ok()
+                    .map(|(producer, mut handle)| {
+                        handle.device_name = asked;
+                        (producer, handle)
+                    })
+                });
+                match reopened {
+                    Some(pair) => {
+                        tracing::warn!(
+                            %err,
+                            "force_rebuild_output: the target did not open, back on the previous endpoint"
+                        );
+                        rebuild_error = Some(err);
+                        pair
+                    }
+                    None => {
+                        // `pre_release` (an old exclusive stream) already
+                        // took the handle above, so this is the
+                        // no-output-at-all case.
+                        self.publish_output_lost_if_gone(&guard.handle);
+                        return Err(err);
+                    }
+                }
             }
         };
 
@@ -370,7 +422,10 @@ impl AudioEngine {
             }
         }
 
-        Ok(())
+        match rebuild_error {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
     }
 
     /// Hot-swap the cpal output device without restarting the decoder
@@ -496,6 +551,11 @@ impl AudioEngine {
         // Only a pre-release needs one: spawn-first leaves the old stream
         // installed when the new one fails.
         let mut previous_device = None;
+        // What to open for it: the same request, unless the old stream was
+        // known to be a fallback — see [`rollback_target`]. Picking a pinned
+        // device that is listed again but will not open used to come back
+        // here and retry it, leaving no output at all (#1165).
+        let mut previous_target = None;
         if pre_release {
             if was_playing {
                 self.stop_for_rebuild()
@@ -503,6 +563,10 @@ impl AudioEngine {
             }
             if let Some(old) = guard.handle.take() {
                 previous_device = Some(old.device_name.clone());
+                previous_target = Some(rollback_target(
+                    old.device_name.as_deref(),
+                    old.opened_device.as_deref(),
+                ));
                 old.stop();
             }
         }
@@ -530,11 +594,11 @@ impl AudioEngine {
                 // name is no identity (ALSA reaches one card as `default`,
                 // `plughw:0,0` and `hw:0,0`), and a wrong "different" verdict
                 // would put #604 back.
-                let reopened = previous_device.clone().and_then(|previous| {
+                let reopened = previous_target.and_then(|target| {
                     spawn_output_with_mode(
                         self.shared.clone(),
                         self.app.clone(),
-                        previous,
+                        target,
                         entering_exclusive,
                         None,
                     )
@@ -545,6 +609,12 @@ impl AudioEngine {
                         );
                     })
                     .ok()
+                    // The old request, not the endpoint's name: the pin
+                    // stays what it was.
+                    .map(|(producer, mut handle)| {
+                        handle.device_name = previous_device.clone().flatten();
+                        (producer, handle)
+                    })
                 });
                 match reopened {
                     Some(pair) => {
