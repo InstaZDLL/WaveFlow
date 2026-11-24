@@ -146,7 +146,9 @@ fn watch(app: &AppHandle) -> Result<(), Fault> {
         // burst of them, and each gets its own picture: a local query
         // costs little, and the removal and the move are often two
         // events apart.
-        if let Err(err) = events.next_frame() {
+        // An event comes whenever something happens, which may be never:
+        // no deadline here.
+        if let Err(err) = events.next_frame(None) {
             tracing::info!(%err, "sink watch: lost the sound server; reconnecting");
             return Ok(());
         }
@@ -214,10 +216,11 @@ fn on_loss(app: &AppHandle, loss: Loss) {
 /// reply we asked for, and allocating it would be the bug.
 const MAX_FRAME: usize = 16 * 1024 * 1024;
 
-/// How long a reply may take. A local server answers in well under a
-/// millisecond; one that has not answered in five seconds is hung, and
-/// only a new connection will tell. A read that runs out breaks the
-/// connection like any other failed read, and the watch reconnects.
+/// How long a whole reply may take, from the request to its last byte. A
+/// local server answers in well under a millisecond; one that has not
+/// finished answering in five seconds is hung, and only a new connection
+/// will tell. A reply that runs out breaks the connection like any other
+/// failed read, and the watch reconnects.
 const REPLY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Where the server listens.
@@ -310,8 +313,6 @@ impl Connection {
             },
         )?;
         let socket = UnixStream::connect(path)?;
-        // Everything read here until `subscribe` lifts it is a reply.
-        socket.set_read_timeout(Some(REPLY_TIMEOUT))?;
         let mut connection = Self {
             socket: BufReader::new(socket),
             version: protocol::MAX_VERSION,
@@ -349,10 +350,11 @@ impl Connection {
             })
     }
 
-    /// The next frame, descriptor included, read whole.
-    fn next_frame(&mut self) -> std::io::Result<Vec<u8>> {
+    /// The next frame, descriptor included, read whole, by `deadline` when
+    /// there is one: a reply has one, an event does not.
+    fn next_frame(&mut self, deadline: Option<Instant>) -> std::io::Result<Vec<u8>> {
         let mut frame = vec![0; protocol::DESCRIPTOR_SIZE];
-        self.socket.read_exact(&mut frame)?;
+        self.fill(&mut frame, deadline)?;
         let length = u32::from_be_bytes([frame[0], frame[1], frame[2], frame[3]]) as usize;
         if length > MAX_FRAME {
             return Err(std::io::Error::new(
@@ -361,14 +363,44 @@ impl Connection {
             ));
         }
         frame.resize(protocol::DESCRIPTOR_SIZE + length, 0);
-        self.socket
-            .read_exact(&mut frame[protocol::DESCRIPTOR_SIZE..])?;
+        self.fill(&mut frame[protocol::DESCRIPTOR_SIZE..], deadline)?;
         Ok(frame)
+    }
+
+    /// Fill `buf` from the socket. With a deadline every read waits only
+    /// for what is left of it, so a server that sends a reply a few bytes
+    /// at a time cannot stretch it past the deadline either. Without one,
+    /// a read waits as long as it takes: silence between events is normal.
+    fn fill(&mut self, buf: &mut [u8], deadline: Option<Instant>) -> std::io::Result<()> {
+        let mut filled = 0;
+        while filled < buf.len() {
+            let wait = match deadline {
+                None => None,
+                Some(deadline) => {
+                    let left = deadline.saturating_duration_since(Instant::now());
+                    if left.is_zero() {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::TimedOut,
+                            "the sound server did not finish its answer in time",
+                        ));
+                    }
+                    Some(left)
+                }
+            };
+            self.socket.get_ref().set_read_timeout(wait)?;
+            match self.socket.read(&mut buf[filled..]) {
+                Ok(0) => return Err(std::io::ErrorKind::UnexpectedEof.into()),
+                Ok(read) => filled += read,
+                Err(err) if err.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(err) => return Err(err),
+            }
+        }
+        Ok(())
     }
 
     fn request<T: CommandReply>(&mut self, command: Command) -> Result<T, Fault> {
         self.send(&command)?;
-        let frame = self.next_frame()?;
+        let frame = self.next_frame(Some(Instant::now() + REPLY_TIMEOUT))?;
         let (_, reply) = protocol::read_reply_message::<T>(&mut frame.as_slice(), self.version)
             .map_err(Fault::Reply)?;
         Ok(reply)
@@ -376,11 +408,8 @@ impl Connection {
 
     fn subscribe(&mut self, mask: SubscriptionMask) -> Result<(), Fault> {
         self.send(&Command::Subscribe(mask))?;
-        let frame = self.next_frame()?;
+        let frame = self.next_frame(Some(Instant::now() + REPLY_TIMEOUT))?;
         protocol::read_ack_message(&mut frame.as_slice()).map_err(Fault::Reply)?;
-        // From here on this connection only waits for events, and an event
-        // comes whenever something happens, which may be never.
-        self.socket.get_ref().set_read_timeout(None)?;
         Ok(())
     }
 
@@ -550,6 +579,61 @@ mod tests {
             assert_eq!(socket_path(env(&vars), everywhere), None, "{server}");
         }
         assert_eq!(socket_path(env(&[]), everywhere), None);
+    }
+
+    /// A frame sent whole is read whole; one dribbled a byte at a time,
+    /// each byte well inside any per-read timeout, still runs out at the
+    /// reply's deadline.
+    #[test]
+    fn a_reply_is_bounded_as_a_whole_not_read_by_read() {
+        use std::io::Write;
+
+        let frame = |body: &[u8]| {
+            let mut out = (body.len() as u32).to_be_bytes().to_vec();
+            out.resize(protocol::DESCRIPTOR_SIZE, 0);
+            out.extend_from_slice(body);
+            out
+        };
+        let connection = |socket: UnixStream| Connection {
+            socket: BufReader::new(socket),
+            version: protocol::MAX_VERSION,
+            seq: 0,
+        };
+
+        let (ours, mut server) = UnixStream::pair().expect("socket pair");
+        server.write_all(&frame(b"ping")).expect("write");
+        let mut whole = connection(ours);
+        let read = whole
+            .next_frame(Some(Instant::now() + Duration::from_secs(2)))
+            .expect("a whole frame");
+        assert_eq!(&read[protocol::DESCRIPTOR_SIZE..], b"ping");
+
+        let (ours, mut server) = UnixStream::pair().expect("socket pair");
+        let sent = frame(b"slow");
+        let writer = std::thread::spawn(move || {
+            server.write_all(&sent[..protocol::DESCRIPTOR_SIZE]).ok();
+            for byte in &sent[protocol::DESCRIPTOR_SIZE..] {
+                std::thread::sleep(Duration::from_millis(150));
+                if server.write_all(&[*byte]).is_err() {
+                    break;
+                }
+            }
+        });
+        let mut dribbled = connection(ours);
+        let started = Instant::now();
+        let err = dribbled
+            .next_frame(Some(started + Duration::from_millis(300)))
+            .expect_err("the deadline runs out");
+        assert!(
+            matches!(
+                err.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+            ),
+            "{err:?}"
+        );
+        assert!(started.elapsed() < Duration::from_millis(500));
+        drop(dribbled);
+        writer.join().ok();
     }
 
     #[test]
