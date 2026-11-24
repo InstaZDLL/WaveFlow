@@ -910,11 +910,23 @@ items from the source queue around them — so shuffling an album
 silently cost both. A shuffle and its undo now move the rows themselves
 ([`write_row_order`](../../src-tauri/crates/app/src/queue/shuffle.rs)):
 each keeps its source, whether it was queued by hand, when it was added
-and its `id`, which MPD clients hold as the entry's `Id`. The undo
-matches the snapshot's track ids to entries one per occurrence, so a
-queue holding the same track twice puts both back, and skips a track
-removed since (a folder's removal cascades to the queue without
-touching the snapshot), where it used to queue it again. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
+and its `id`, which MPD clients hold as the entry's `Id`. The
+pre-shuffle snapshot records those entry ids (`Preshuffle::Rows`), so
+the undo gives every entry back its own position, each copy of a track
+queued twice included. Matching by track id swapped the two copies of
+a track that was both in the list and queued by hand, which put the
+queued one behind the cursor, where the next list dropped it as
+played. A snapshot written before that (`Preshuffle::Tracks`, a plain
+array of track ids) is still read, matched one entry per occurrence in
+queue order. Either way an entry removed since (a folder's removal
+cascades to the queue without touching the snapshot) is skipped, where
+it used to be queued again.
+
+**Edits keep the cursor where it was read.** A cursor left past the
+end of the queue is read as the last row, the track playing. "Add to
+queue" and "Play next" write that clamped position back before they
+insert, so the out-of-range value cannot land on a row they just added
+and make it the current track. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
 
 **User queue vs context tail.** Every `queue_item` carries a `source_type` (`'album'`, `'playlist'`, `'manual'`, …) and `queued_by_hand`, set on the rows "Play next" and "Add to queue" write. The source alone cannot draw the Spotify-style split: a selection, the history, the Release Radar and files opened from the system fill the queue as `'manual'` too, and those are a context like an album.
 

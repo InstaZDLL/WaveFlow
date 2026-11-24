@@ -173,17 +173,34 @@ async fn pending_by_hand(tx: &mut SqliteConnection) -> AppResult<Vec<HandQueued>
     .await?)
 }
 
-/// `queue.current_index` read inside `tx`, clamped into `[0, len)`.
-/// `len` must be positive.
+/// `queue.current_index` read inside `tx`, clamped into `[0, len)`, and
+/// written back when the clamp moved it. `len` must be positive.
+///
+/// A cursor left past the end — the queue shrank under it, a folder's
+/// removal cascading to its rows — is read everywhere as the last row,
+/// the track playing. An edit that grows the queue acts on that clamped
+/// position, so it has to keep it: left stored as it was, the same
+/// out-of-range value would clamp onto a row the edit just added, and
+/// that row would become the current track.
 async fn read_cursor(tx: &mut SqliteConnection, len: i64) -> AppResult<i64> {
     let raw: Option<String> =
         sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = 'queue.current_index'")
             .fetch_optional(&mut *tx)
             .await?;
-    Ok(raw
-        .and_then(|s| s.parse::<i64>().ok())
-        .unwrap_or(0)
-        .clamp(0, len - 1))
+    let stored = raw.and_then(|s| s.parse::<i64>().ok());
+    let cursor = stored.unwrap_or(0).clamp(0, len - 1);
+    if stored != Some(cursor) {
+        sqlx::query(
+            "UPDATE profile_setting
+                SET value = ?, updated_at = ?
+              WHERE key = 'queue.current_index'",
+        )
+        .bind(cursor.to_string())
+        .bind(Utc::now().timestamp_millis())
+        .execute(&mut *tx)
+        .await?;
+    }
+    Ok(cursor)
 }
 
 /// One row per track at consecutive positions from `first`, all from
