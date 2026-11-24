@@ -140,16 +140,23 @@ export function TopBar({
   // A track the results show was edited (rated from its menu, retagged in
   // the properties dialog…): read that row again, as every track list
   // does on `track:updated`, or reopening its menu shows the old rating.
-  // Only that row, and only while it is still among the results.
+  // Only that row, and only while it is still among the results. Two
+  // edits in a row read it twice: only the latest read of a track is
+  // applied, so an earlier one answering last cannot bring the old row
+  // back (per track, since a batch edits many at once).
   const searchResultsRef = useRef(searchResults);
   useEffect(() => {
     searchResultsRef.current = searchResults;
   }, [searchResults]);
+  const rowReadsRef = useRef(new Map<number, number>());
   useTrackUpdated(
     useCallback((trackId: number) => {
       if (!searchResultsRef.current.some((t) => t.id === trackId)) return;
+      const read = (rowReadsRef.current.get(trackId) ?? 0) + 1;
+      rowReadsRef.current.set(trackId, read);
       getTrack(trackId)
         .then((fresh) => {
+          if (rowReadsRef.current.get(trackId) !== read) return;
           if (fresh == null) return;
           setSearchResults((prev) =>
             prev.map((t) => (t.id === trackId ? fresh : t)),
