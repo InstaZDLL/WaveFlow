@@ -245,12 +245,19 @@ impl Tracker {
                     Judgement::Lost(lost) => loss = loss.or(Some(lost)),
                     Judgement::Watch(departure) => seen.departure = Some(departure),
                     Judgement::Nothing => {
-                        // Still on the sink it moved to, with the card it
-                        // left still in view: did that card turn out to be
-                        // a device leaving?
+                        // With the card it left still in view: did that card
+                        // turn out to be a device leaving? Wherever the
+                        // stream is now — the server may move it again, to
+                        // a better fallback, before the card goes — unless
+                        // it has just been moved off a sink of that very
+                        // card, which is still there: someone chose to leave
+                        // the device, and it going later is not our loss.
+                        let left_by_choice = |departure: &Departure| {
+                            previous.sink != sink.index && previous.card == Some(departure.card)
+                        };
                         let in_view = previous.departure.as_ref().filter(|departure| {
-                            previous.sink == sink.index
-                                && now.saturating_duration_since(departure.at) < DEPARTURE_GRACE
+                            now.saturating_duration_since(departure.at) < DEPARTURE_GRACE
+                                && !left_by_choice(departure)
                         });
                         if let Some(departure) = in_view {
                             match departed(departure, snapshot) {
@@ -692,6 +699,88 @@ mod tests {
             Some(Loss::SinkGone)
         );
         assert_eq!(tracker.observe(&gone, t0 + Duration::from_millis(40)), None);
+    }
+
+    /// The server moves the stream a second time, to a better fallback,
+    /// before the card it left goes: the departure follows the stream.
+    #[test]
+    fn a_card_that_goes_after_a_second_move_is_still_a_loss() {
+        let mut tracker = Tracker::default();
+        let t0 = Instant::now();
+        let usb = sink(
+            91,
+            Some(70),
+            Some("analog-output"),
+            &[("analog-output", PortState::Unknown)],
+        );
+        let usb_card = card(70, &[("analog-output", PortState::Unknown)]);
+        let hdmi = sink(60, Some(43), None, &[]);
+        let speakers = builtin(SPEAKER, PortState::Unavailable);
+        tracker.observe(
+            &snapshot(
+                vec![usb, hdmi.clone(), speakers.clone()],
+                vec![usb_card.clone()],
+                vec![ours(99, 91)],
+            ),
+            t0,
+        );
+        let first = snapshot(
+            vec![hdmi.clone(), speakers.clone()],
+            vec![usb_card],
+            vec![ours(99, 60)],
+        );
+        assert_eq!(tracker.observe(&first, t0), None);
+        let second = snapshot(vec![hdmi, speakers], vec![], vec![ours(99, 53)]);
+        assert_eq!(tracker.cards_in_question(&second), vec![70]);
+        assert_eq!(
+            tracker.observe(&second, t0 + Duration::from_millis(20)),
+            Some(Loss::SinkGone)
+        );
+    }
+
+    /// A Bluetooth headset switched to its call profile, then the stream
+    /// moved to the speakers by hand: the headset going a moment later is
+    /// not a loss, the stream had left it.
+    #[test]
+    fn a_device_left_by_choice_inside_the_grace_is_not_a_loss() {
+        let mut tracker = Tracker::default();
+        let t0 = Instant::now();
+        let a2dp = sink(
+            140,
+            Some(80),
+            Some("headset-output"),
+            &[("headset-output", PortState::Unknown)],
+        );
+        let hfp = sink(
+            141,
+            Some(80),
+            Some("headset-hf-output"),
+            &[("headset-hf-output", PortState::Unknown)],
+        );
+        let speakers = builtin(SPEAKER, PortState::Unavailable);
+        let bt = card(80, &[("headset-output", PortState::Unknown)]);
+        tracker.observe(
+            &snapshot(
+                vec![a2dp, speakers.clone()],
+                vec![bt.clone()],
+                vec![ours(150, 140)],
+            ),
+            t0,
+        );
+        let switched = snapshot(
+            vec![hfp.clone(), speakers.clone()],
+            vec![bt.clone()],
+            vec![ours(150, 141)],
+        );
+        assert_eq!(tracker.observe(&switched, t0), None);
+        let moved = snapshot(vec![hfp, speakers.clone()], vec![bt], vec![ours(150, 53)]);
+        assert_eq!(
+            tracker.observe(&moved, t0 + Duration::from_millis(500)),
+            None
+        );
+        let gone = snapshot(vec![speakers], vec![], vec![ours(150, 53)]);
+        assert!(tracker.cards_in_question(&gone).is_empty());
+        assert_eq!(tracker.observe(&gone, t0 + Duration::from_secs(1)), None);
     }
 
     /// A card that outlives the grace is a profile switch: whatever
