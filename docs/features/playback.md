@@ -521,9 +521,9 @@ So the handle now carries both. `device_name` is still the pin. `opened_device` 
 - **ALSA** — the pin itself: `resolve_hw_device` either places it on a real card or fails outright, never quietly taking another. An absent pin lands on card 0, which has no name in the picker's terms, so it reports unknown.
 - **CoreAudio** — the pin when it matched, unknown after the fallback: a device id is all we have there, and inventing a name would be the very bug.
 
-`player_list_output_devices` flags `is_active` from the opened device (falling back to the pin, then to the OS default) and `is_pinned` from the pin. They differ exactly during a fallback, which is what lets the menu mark the pinned row unavailable rather than pretend it is playing.
+`player_list_output_devices` flags `is_active` from the opened device (falling back to the pin, then to the OS default) and `is_pinned` from the pin. They differ exactly during a fallback, which is what lets the menu mark the pinned row rather than pretend it is playing.
 
-A pin that has vanished matches no enumerated row, so the listing appends it as a row of its own — `is_pinned`, never `is_active`, since it isn't there to be playing. Without that the flag would be absent in the one case it exists for, and the menu would say nothing at all about the fallback.
+A pin that has vanished matches no enumerated row, so the listing appends it as a row of its own — `is_pinned`, never `is_active`, since it isn't there to be playing, and `is_present: false`, the one row that carries it. Without that the flag would be absent in the one case it exists for, and the menu would say nothing at all about the fallback. The menu calls that row "Pinned, unavailable"; a pinned row that **is** listed but not active is a device that has come back and is not playing yet ([below](#a-pinned-device-that-comes-back)), and it says "Pinned" only — it used to say unavailable too, on a headset sitting right there in the list (#1165).
 
 Both names come from `current_output_devices()`, which reads them under a **single** lock. Two separate reads let a rebuild swap the handle in between, and the listing would then describe one stream's endpoint next to another stream's pin.
 
@@ -536,7 +536,7 @@ The pin needs to survive the handle because the handle really does go away — `
 `OutputSlot::pinned_device()` answers from the live handle first and falls back to the seeded pin, and it is what `RebuildDevice::Pinned`, the DoP re-open and both accessors resolve through. Two details are deliberate:
 
 - **One lock, not two.** A separate mutex for the pin would let a reader pair "nothing is playing" with a pin read after a new stream was installed — the same shape of defect the single-lock read above had to fix.
-- **`set_output_device` still compares the _handle_, not `pinned_device()`.** With no stream installed, picking the pinned device again has to reach the rebuild; comparing against the pin would early-return on the equality check and leave the user no way back.
+- **`set_output_device` still compares the _handle_, not `pinned_device()`.** With no stream installed, picking the pinned device again has to reach the rebuild; comparing against the pin would early-return on the equality check and leave the user no way back. And the handle's request is not enough either: after a fallback it still names the pin, so picking the pinned device that had just come back was a no-op (#1165). `pick_is_noop` short-circuits only when the stream is **open on** the device asked for (`opened_device`); an output that cannot name what it opened keeps the no-op, since the picker ticks the pinned row then and its click goes to the reopen below.
 
 ### Reading the device under the lock that replaces it
 
@@ -558,8 +558,8 @@ A stream opened with no pin is bound to whatever endpoint was the default **at t
 
 | Platform | Mechanism                                                                                                                                                        |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows  | `IMMNotificationClient` registered on the `IMMDeviceEnumerator`, on a thread of its own                                                                          |
-| macOS    | a HAL property listener on `kAudioHardwarePropertyDefaultOutputDevice`                                                                                           |
+| Windows  | `IMMNotificationClient` registered on the `IMMDeviceEnumerator`, on a thread of its own: `OnDefaultDeviceChanged`, plus `OnDeviceAdded` and `OnDeviceStateChanged` to `ACTIVE` for a [returning pin](#a-pinned-device-that-comes-back) |
+| macOS    | HAL property listeners on `kAudioHardwarePropertyDefaultOutputDevice`, and on `kAudioHardwarePropertyDevices` for a [returning pin](#a-pinned-device-that-comes-back)                                                           |
 | Linux    | nothing to follow — PipeWire and PulseAudio move a running stream to the new default sink themselves, and ours is one of their clients (cpal opens the `default` alias); measured on PipeWire 1.6. What Linux watches instead is the device going away: [`sink_watch`](#a-device-that-goes-away-under-a-sound-server) |
 
 Four things about it are load-bearing:
@@ -569,8 +569,23 @@ Four things about it are load-bearing:
 
   Two details keep the shared gate honest in both directions. It is armed **only once the cheap checks say a rebuild will really happen** — arming for a follow that turns out to be a no-op would open a settle window a genuine `DeviceNotAvailable` gets swallowed by, dropped and never retried, which is silence until the user intervenes. And a gate that is busy makes the follow **defer, not drop**: `FollowOutcome::Deferred` sends the scheduler back after the settle window, three times at most. A default moved twice inside two seconds is two notifications, not a repeating signal, so a dropped one would leave the stream on the intermediate device for good. Every retry re-reads the pin and the default, so it converges on the current state rather than replaying a stale one.
 
-- **Only while nothing is pinned**, and the decision is made **inside the lock that installs pins**. A user who picked a device asked for that device. `AudioEngine::follow_os_default_output` reads the pin first, but that read is advisory — a pick landing between it and the rebuild would slip through; `RebuildDevice::OsDefaultIfUnpinned` asks again under `force_rebuild_output`'s own acquisition, and that answer is the binding one. Same lesson as #629 above.
+- **Only while nothing is pinned**, and the decision is made **inside the lock that installs pins**. A user who picked a device asked for that device: a pinned output goes to the [pin's return](#a-pinned-device-that-comes-back) instead, and an endpoint arriving (`OutputEvent::EndpointArrived`) moves no default, so with nothing pinned it does nothing. `AudioEngine::follow_os_default_output` reads the pin first, but that read is advisory — a pick landing between it and the rebuild would slip through; `RebuildDevice::OsDefaultIfUnpinned` asks again under `force_rebuild_output`'s own acquisition, and that answer is the binding one. Same lesson as #629 above.
 - **Nothing that changes is left unchanged, nothing else is touched.** A default that is already the endpoint we are playing on is not reopened (a rebuild is an audible gap), and a default that vanished entirely is not followed at all — rebuilding onto "no device" would drop audio we still have, and a device we really lost arrives as `DeviceNotAvailable`, which owns its own recovery. `should_follow_default` is that decision, pure and unit-tested. Exclusive output follows the preference minus the #322 session suppression, but does **not** reset it and does **not** record a flap: the system moving its default is not a device resetting under us, and counting it would let a few legitimate switches disable exclusive for the session.
+
+### A pinned device that comes back
+
+Every open path falls back to the default endpoint when the pin is not enumerated, and keeps the pin as the request so that it "survives until the device returns". Until #1165 nothing made it return: a Bluetooth headset that dropped (`DeviceNotAvailable`, then the recovery falling back to the speakers) and reconnected left the music on the speakers, because the follow above answered every notification with "a device is pinned; staying on it" without asking whether the stream was **on** it — and clicking the headset in the menu was the no-op described [above](#the-pin-outlives-the-handle).
+
+`AudioEngine::return_to_pinned_output` is that question, asked for a pinned output on every event the listeners report — a default change, and an endpoint arriving (a reconnecting Bluetooth headset sends `OnDeviceStateChanged` to `ACTIVE`, and is not always made the default again, nor listed yet when it is). Same discipline as the follow:
+
+- **already on the pin?** A lock read, and the end of it for every notification but the first of a burst.
+- **a device loss in flight?** The recovery owns the rebuild for `DEVICE_LOSS_OWNERSHIP`. Deferred rather than settled, unlike the follow: the recovery reopens the pin only if it is already back, and a pin returning a moment later would otherwise be missed for good.
+- **is the pin listed?** `should_reopen_pin`: a pin still absent would only fall back again, an audible gap for every unrelated device that comes and goes; an output that cannot name what it opened is reopened, since CoreAudio hog mode reports exactly that after its fallback.
+- **the gate**, armed only now and deferring when busy; the rebuild is `RebuildDevice::PinnedIfElsewhere`, re-checked under the lock that installs pins, so a pick or a reopen landing in between is not undone. The cause is `Deliberate`: landing on the device the user chose pauses nothing, and a session the loss parked (#617) stays parked.
+
+A reopen that fails, or lands on another named endpoint again, is **deferred** (`pin_reopen_outcome`): a Bluetooth endpoint can be listed a moment before it opens, and sends nothing more once it does. The scheduler comes back after the settle window, three times at most, the same bound the follow has.
+
+Linux has no such listener: the sound server moves the stream itself, and [`sink_watch`](#a-device-that-goes-away-under-a-sound-server) watches the device going away, not coming back. There, as everywhere, picking the pinned device in the menu reopens it.
 
 ## Output-stream lifecycle & recovery
 
