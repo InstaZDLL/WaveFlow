@@ -852,6 +852,10 @@ export interface OutputDevice {
   /** The device the user picked, opened or not. Differs from
    *  `is_active` exactly during such a fallback. */
   is_pinned: boolean;
+  /** Enumerated right now. False only for a pin that is not, which the
+   *  backend appends as a row of its own; a pin that is present but not
+   *  active is one the engine has not reopened yet (#1165). */
+  is_present: boolean;
 }
 
 /**

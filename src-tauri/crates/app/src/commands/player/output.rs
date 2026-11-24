@@ -34,6 +34,11 @@ pub struct OutputDeviceRow {
     /// Differs from [`Self::is_active`] exactly during such a fallback,
     /// which is what lets the picker say so instead of hiding it.
     pub is_pinned: bool,
+    /// Whether the device is enumerated right now. False only for a pin
+    /// that is not, appended below: the picker calls that row
+    /// unavailable, and a pin that is listed but not the active row a
+    /// device to go back to (#1165).
+    pub is_present: bool,
 }
 
 /// Enumerate every output device and flag which one the engine is
@@ -91,6 +96,7 @@ pub async fn player_list_output_devices(
                 id: d.id,
                 name: d.name,
                 is_default: d.is_default,
+                is_present: true,
             }
         })
         .collect();
@@ -107,6 +113,7 @@ pub async fn player_list_output_devices(
                 is_default: false,
                 is_active: false,
                 is_pinned: true,
+                is_present: false,
             });
         }
     }

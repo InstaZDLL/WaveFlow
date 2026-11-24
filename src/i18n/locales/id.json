@@ -1169,6 +1169,7 @@
     "empty": "Tidak ada perangkat keluaran yang tersedia",
     "systemDefault": "Bawaan sistem",
     "pinnedUnavailable": "Disematkan, tidak tersedia",
+    "pinned": "Disematkan",
     "reopen": "Buka ulang perangkat ini",
     "capabilities": {
       "probing": "Membaca kemampuan…",

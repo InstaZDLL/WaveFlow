@@ -332,7 +332,10 @@ export function DeviceMenu() {
                     onClick={() => handleSelect(device)}
                     disabled={switching != null}
                     title={
-                      device.is_active ? t("deviceMenu.reopen") : undefined
+                      device.is_active ||
+                      (device.is_pinned && device.is_present)
+                        ? t("deviceMenu.reopen")
+                        : undefined
                     }
                     className="px-4 py-2 text-sm cursor-pointer flex items-center space-x-3 text-start disabled:opacity-60 disabled:cursor-wait flex-1 min-w-0"
                   >
@@ -341,9 +344,16 @@ export function DeviceMenu() {
                       <span className="truncate">{device.name}</span>
                       <CapabilitySummary caps={capabilities[device.id]} t={t} />
                     </span>
+                    {/* A pin that is listed is there to go back to, not
+                        unavailable: the engine reopens it when it returns,
+                        and a click does it now (#1165). */}
                     {device.is_pinned && !device.is_active && (
                       <span className="text-[10px] uppercase tracking-wide text-amber-500 shrink-0">
-                        {t("deviceMenu.pinnedUnavailable")}
+                        {t(
+                          device.is_present
+                            ? "deviceMenu.pinned"
+                            : "deviceMenu.pinnedUnavailable",
+                        )}
                       </span>
                     )}
                     {device.is_default &&

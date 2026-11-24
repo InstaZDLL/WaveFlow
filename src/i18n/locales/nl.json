@@ -1171,6 +1171,7 @@
     "empty": "Geen uitvoerapparaat beschikbaar",
     "systemDefault": "Systeemstandaard",
     "pinnedUnavailable": "Vastgezet, niet beschikbaar",
+    "pinned": "Vastgezet",
     "reopen": "Dit apparaat opnieuw openen",
     "capabilities": {
       "probing": "Mogelijkheden worden gelezen…",

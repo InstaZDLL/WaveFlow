@@ -1318,6 +1318,7 @@
     "empty": "لا يوجد جهاز خرج متاح",
     "systemDefault": "افتراضي النظام",
     "pinnedUnavailable": "مثبّت، غير متاح",
+    "pinned": "مثبّت",
     "reopen": "إعادة فتح هذا الجهاز",
     "capabilities": {
       "probing": "جارٍ قراءة القدرات…",

@@ -1169,6 +1169,7 @@
     "empty": "사용 가능한 출력 장치가 없습니다",
     "systemDefault": "시스템 기본값",
     "pinnedUnavailable": "고정됨, 사용 불가",
+    "pinned": "고정됨",
     "reopen": "이 장치 다시 열기",
     "capabilities": {
       "probing": "지원 정보를 읽는 중…",

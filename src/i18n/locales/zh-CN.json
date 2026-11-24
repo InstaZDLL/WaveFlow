@@ -1169,6 +1169,7 @@
     "empty": "没有可用的输出设备",
     "systemDefault": "系统默认",
     "pinnedUnavailable": "已固定，不可用",
+    "pinned": "已固定",
     "reopen": "重新打开此设备",
     "capabilities": {
       "probing": "正在读取设备能力…",

@@ -1171,6 +1171,7 @@
     "empty": "Kullanılabilir çıkış aygıtı yok",
     "systemDefault": "Sistem varsayılanı",
     "pinnedUnavailable": "Sabitlendi, kullanılamıyor",
+    "pinned": "Sabitlendi",
     "reopen": "Bu aygıtı yeniden aç",
     "capabilities": {
       "probing": "Desteklenen özellikler okunuyor…",

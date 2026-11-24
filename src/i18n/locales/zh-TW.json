@@ -1169,6 +1169,7 @@
     "empty": "沒有可用的輸出裝置",
     "systemDefault": "預設",
     "pinnedUnavailable": "已釘選，無法使用",
+    "pinned": "已釘選",
     "reopen": "重新開啟此裝置",
     "capabilities": {
       "probing": "正在讀取裝置能力…",

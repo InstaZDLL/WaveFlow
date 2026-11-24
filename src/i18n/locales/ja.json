@@ -1169,6 +1169,7 @@
     "empty": "利用可能な出力デバイスがありません",
     "systemDefault": "既定",
     "pinnedUnavailable": "固定中・利用不可",
+    "pinned": "固定中",
     "reopen": "このデバイスを開き直す",
     "capabilities": {
       "probing": "対応状況を読み取り中…",
