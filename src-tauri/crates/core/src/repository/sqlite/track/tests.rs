@@ -54,10 +54,15 @@ async fn fixture_pool() -> SqlitePool {
                  pinyin TEXT,
                  is_available INTEGER NOT NULL DEFAULT 1
              );
+             -- As the migrations define it: a credit points at real rows,
+             -- and one artist may hold two roles on the same track.
              CREATE TABLE track_artist (
-                 track_id INTEGER NOT NULL,
-                 artist_id INTEGER NOT NULL,
-                 position INTEGER NOT NULL
+                 track_id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE,
+                 artist_id INTEGER NOT NULL REFERENCES artist(id) ON DELETE CASCADE,
+                 role TEXT NOT NULL DEFAULT 'main'
+                     CHECK (role IN ('main','feature','remixer','producer','composer')),
+                 position INTEGER NOT NULL DEFAULT 0,
+                 PRIMARY KEY (track_id, artist_id, role)
              );
              -- What `effective_musical_key_sql!` reads.
              CREATE TABLE track_analysis (
@@ -186,6 +191,57 @@ async fn an_artist_filter_matches_credits_and_album_artists_by_id() {
         "album artist only"
     );
     assert_eq!(listed_for_artist(&pool, 4).await, vec![3, 4]);
+}
+
+/// "Add this artist to a playlist" takes every track crediting them:
+/// their own, a guest appearance on someone else's, once each even when
+/// they hold two roles on one track, and never an unavailable one. In the
+/// artist page's order: primary artist, album, disc, track.
+#[tokio::test]
+async fn an_artist_source_takes_every_credit_once() {
+    let pool = fixture_pool().await;
+    sqlx::raw_sql(
+        "INSERT INTO artist (id, name, canonical_name) VALUES
+                 (1, 'Lead', 'lead'), (2, 'Host', 'host'), (3, 'Stranger', 'stranger');
+             INSERT INTO album (id, title, canonical_title, artist_id) VALUES
+                 (1, 'Own', 'own', 1), (2, 'Hosted', 'hosted', 2);
+             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path,
+                                disc_number, track_number)
+             VALUES (1, 1, 'Second', 1, 1, '/1', 1, 2),
+                    (2, 1, 'First', 1, 1, '/2', 1, 1),
+                    (3, 1, 'Featuring Lead', 2, 2, '/3', 1, 1),
+                    (4, 1, 'Not theirs', 2, 3, '/4', 1, 2);
+             INSERT INTO track (id, library_id, title, album_id, primary_artist, file_path,
+                                is_available)
+             VALUES (5, 1, 'Gone', 1, 1, '/5', 0);
+             INSERT INTO track_artist (track_id, artist_id, role, position) VALUES
+                 (1, 1, 'main', 0),
+                 (2, 1, 'main', 0), (2, 1, 'producer', 1),
+                 (3, 2, 'main', 0), (3, 1, 'feature', 1),
+                 (4, 3, 'main', 0),
+                 (5, 1, 'main', 0);",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let repo = SqliteTrackRepository::new(pool.clone());
+
+    let ids = repo
+        .list_ids_in_source(TrackSource::Artist(1))
+        .await
+        .unwrap();
+    assert_eq!(
+        ids,
+        vec![3, 2, 1],
+        "the guest appearance (on Host's record, sorted under Host), then          their own album in disc and track order; no duplicate for two          roles, no unavailable track"
+    );
+    assert_eq!(
+        repo.list_ids_in_source(TrackSource::Artist(2))
+            .await
+            .unwrap(),
+        vec![3],
+        "the host gets their own track, not the stranger's on their album"
+    );
 }
 
 async fn ids_for(pool: &SqlitePool, query: &str) -> Vec<i64> {

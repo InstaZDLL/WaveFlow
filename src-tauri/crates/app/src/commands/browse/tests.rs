@@ -1393,3 +1393,69 @@ async fn the_artist_filters_behave_like_the_album_ones() {
     assert_eq!(scoped.len(), 1);
     assert_eq!(scoped[0].0, "local");
 }
+
+/// "Add this artist to a playlist" inserts exactly what the artist list
+/// counts, so the create dialog can announce that number: a guest
+/// appearance is in, a track crediting them in two roles is one row, an
+/// unavailable one is out — on the real schema, foreign keys on.
+#[tokio::test]
+async fn an_artist_added_to_a_playlist_is_the_set_the_list_counts() {
+    use waveflow_core::repository::{
+        sqlite::SqliteTrackRepository,
+        track::{TrackRepository, TrackSource},
+    };
+
+    let pool = pool().await;
+    seed(&pool).await;
+    for statement in [
+        "INSERT INTO artist (id, name, canonical_name) VALUES (2, 'Guest', 'guest')",
+        "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (2, 1, '/m/2.flac', 'h2', 1, 0, 'Duet', 1, 1000, 500, 1, 0, 0, 0, 0),
+                    (3, 1, '/m/3.flac', 'h3', 1, 0, 'Own', NULL, 1000, 500, 1, 0, 0, 0, 0),
+                    (4, 1, '/m/4.flac', 'h4', 1, 0, 'Gone', NULL, 1000, 500, 0, 0, 0, 0, 0)",
+        // Björk leads the duet, the guest is credited second; the guest's
+        // own track credits them twice, as main and as producer; their
+        // third is no longer on disk.
+        "UPDATE track SET primary_artist = 1 WHERE id = 2",
+        "UPDATE track SET primary_artist = 2 WHERE id IN (3, 4)",
+        "INSERT INTO track_artist (track_id, artist_id, role, position) VALUES
+             (2, 1, 'main', 0), (2, 2, 'feature', 1),
+             (3, 2, 'main', 0), (3, 2, 'producer', 1),
+             (4, 2, 'main', 0)",
+    ] {
+        sqlx::raw_sql(statement).execute(&pool).await.unwrap();
+    }
+
+    let listed = artists(
+        &pool,
+        None,
+        Some("local"),
+        library_artist_order_clause(None, None),
+    )
+    .await;
+    let count_for = |name: &str| {
+        listed
+            .iter()
+            .find(|row| row.1 == name)
+            .map(|row| row.2)
+            .unwrap()
+    };
+    let repo = SqliteTrackRepository::new(pool.clone());
+    let added = |artist_id| {
+        let repo = &repo;
+        async move {
+            repo.list_ids_in_source(TrackSource::Artist(artist_id))
+                .await
+                .unwrap()
+        }
+    };
+
+    let guest = added(2).await;
+    assert_eq!(guest, vec![2, 3], "the duet under Björk, then their own");
+    assert_eq!(guest.len() as i64, count_for("Guest"));
+    let lead = added(1).await;
+    assert_eq!(lead, vec![2, 1], "same album, no track numbers: by title");
+    assert_eq!(lead.len() as i64, count_for("Björk"));
+}

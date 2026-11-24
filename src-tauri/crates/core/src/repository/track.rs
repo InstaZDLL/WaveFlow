@@ -149,9 +149,11 @@ pub trait TrackRepository: Send + Sync {
     /// something (see the module docs for why that is not an edge case).
     async fn search(&self, plan: &SearchPlan, limit: i64) -> CoreResult<Vec<TrackRow>>;
 
-    /// Track ids belonging to a folder / album / artist. The variant
-    /// picks the column; ordering follows the natural "Disc → Track →
-    /// Title" for folders/albums and pure title for artist.
+    /// Track ids belonging to a folder / album / artist, available ones
+    /// only. A folder or an album is its `folder_id` / `album_id` rows,
+    /// "Disc → Track → Title"; an artist is every track crediting them in
+    /// `track_artist`, guest appearances included, once each — the set the
+    /// artist list counts — in the artist page's order.
     async fn list_ids_in_source(&self, source: TrackSource) -> CoreResult<Vec<i64>>;
 
     // ── liked_track ────────────────────────────────────────────────
