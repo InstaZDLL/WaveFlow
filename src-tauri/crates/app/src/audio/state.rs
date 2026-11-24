@@ -733,6 +733,10 @@ impl SharedPlayback {
     }
 
     /// Whether playback is paused and became so less than `window` ago.
+    ///
+    /// The state is read first and the moment second, the reverse of the
+    /// order [`Self::set_state`] writes them in, so the two always belong
+    /// to the same pause.
     pub fn paused_within(&self, window: std::time::Duration) -> bool {
         self.state() == PlayerState::Paused
             && self
@@ -756,12 +760,16 @@ impl SharedPlayback {
                 self.track_finished.store(false, Ordering::Release)
             }
         }
-        self.state.store(state as u8, Ordering::Release);
+        // Before the state too: a reader that sees `Paused` then finds the
+        // moment it began, never the previous pause's — the lock's release
+        // is ordered before the store below. A reader that sees the new
+        // moment early still reads `Playing` first, and says no.
         if state == PlayerState::Paused {
             if let Ok(mut at) = self.paused_at.lock() {
                 *at = Some(std::time::Instant::now());
             }
         }
+        self.state.store(state as u8, Ordering::Release);
         // Counted after the state is published, never before: a reader
         // that sees the new count then sees `Loading` (or what followed
         // it), and one that read the count first and the state before the
