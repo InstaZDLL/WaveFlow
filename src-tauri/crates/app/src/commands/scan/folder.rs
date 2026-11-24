@@ -722,6 +722,11 @@ pub(crate) async fn scan_folder_inner(
     // Tracks removed, or whose file was rewritten, while the scan stepped
     // aside: left to the next scan.
     let mut touched_meanwhile: HashSet<String> = HashSet::new();
+    // An unchanged file read again anyway (a backfill, a deep rescan): its
+    // genres, artists, custom tags or rating may have been rewritten
+    // although the file counts as skipped, and a smart playlist rule reads
+    // every one of them.
+    let mut reread_unchanged = false;
     let mut processed: usize = summary.skipped as usize;
     // Memo for artist / genre id lookups — see `UpsertCache`. Lives as
     // long as the scan holds the write lock (a batch), so every track on
@@ -1258,6 +1263,7 @@ pub(crate) async fn scan_folder_inner(
                 // forever.
                 write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
 
+                reread_unchanged = true;
                 summary.skipped += 1;
                 tx_count += 1;
             } else {
@@ -1856,13 +1862,14 @@ pub(crate) async fn scan_folder_inner(
 
     // Custom smart playlists hold their tracks, they do not compute them
     // on read: a track the scan brought in, retagged or lost joins or
-    // leaves one only when its rules run again (#1169). Under the same
-    // condition as the placeholders, so a watcher rescan that changed
+    // leaves one only when its rules run again (#1169). Under the
+    // placeholders' condition, or when an unchanged file was read again
+    // and its stored fields rewritten, so a watcher rescan that changed
     // nothing costs nothing; once per scan, never per file; after the
     // last batch, reading without the lock and writing only the
     // playlists that changed.
     let t_pass = Instant::now();
-    if brought_tracks {
+    if brought_tracks || reread_unchanged {
         crate::commands::smart_playlists::refresh_custom_after_change(pool, app_handle).await;
     }
     let smart_playlists_ms = t_pass.elapsed().as_millis();

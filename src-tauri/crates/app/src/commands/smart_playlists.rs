@@ -309,29 +309,18 @@ const REFRESH_ATTEMPTS: usize = 4;
 /// and a playlist that lags behind it until the next pass is not worth
 /// undoing that for. A busy database is waited out a few times, which is
 /// safe because the pass is idempotent; past that, or on any other error,
-/// it is logged and the next pass catches up.
+/// it is logged and the next pass catches up. Whatever was written before
+/// the pass stopped is still announced: `changed` outlives the attempts.
 pub(crate) async fn refresh_custom_after_change(
     pool: &sqlx::SqlitePool,
     app: Option<&AppHandle>,
 ) -> usize {
     use waveflow_core::error::CoreError;
+    let mut changed = Vec::new();
     let mut backoff = std::time::Duration::from_millis(50);
     for attempt in 1..=REFRESH_ATTEMPTS {
-        match custom::refresh_all(pool).await {
-            Ok(changed) => {
-                if !changed.is_empty() {
-                    tracing::info!(
-                        playlists = changed.len(),
-                        "custom smart playlists refreshed"
-                    );
-                }
-                if let Some(app) = app {
-                    for playlist_id in &changed {
-                        let _ = app.emit("playlist:changed", *playlist_id);
-                    }
-                }
-                return changed.len();
-            }
+        match custom::refresh_all(pool, &mut changed).await {
+            Ok(()) => break,
             Err(CoreError::Database(err))
                 if custom::is_busy(&err) && attempt < REFRESH_ATTEMPTS =>
             {
@@ -340,14 +329,25 @@ pub(crate) async fn refresh_custom_after_change(
             }
             // The profile was closed under the pass: the app quitting or
             // a switch to another profile. The next pass on it catches up.
-            Err(CoreError::Database(sqlx::Error::PoolClosed)) => return 0,
+            Err(CoreError::Database(sqlx::Error::PoolClosed)) => break,
             Err(err) => {
                 tracing::warn!(%err, "custom smart playlist refresh failed (non-fatal)");
-                return 0;
+                break;
             }
         }
     }
-    0
+    if !changed.is_empty() {
+        tracing::info!(
+            playlists = changed.len(),
+            "custom smart playlists refreshed"
+        );
+    }
+    if let Some(app) = app {
+        for playlist_id in &changed {
+            let _ = app.emit("playlist:changed", *playlist_id);
+        }
+    }
+    changed.len()
 }
 
 /// [`refresh_custom_after_change`] for a background pass: it waits while a

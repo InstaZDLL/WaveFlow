@@ -66,8 +66,13 @@ impl Library {
     }
 
     async fn scan(&self) {
+        self.scan_with(false).await;
+    }
+
+    /// `deep`: every file read again, the unchanged ones included.
+    async fn scan_with(&self, deep: bool) {
         let artwork = self.dir.path().join("artwork");
-        let summary = scan_folder_inner(&self.pool, &artwork, 1, None, false)
+        let summary = scan_folder_inner(&self.pool, &artwork, 1, None, deep)
             .await
             .expect("scan");
         assert_eq!(summary.errors, 0, "every file here is readable");
@@ -102,6 +107,13 @@ impl Library {
         .last_insert_rowid();
         custom::materialize(&self.pool, id, &rules).await.unwrap();
         id
+    }
+
+    /// One refresh pass on its own, outside any scan: the playlists written.
+    async fn refresh(&self) -> Vec<i64> {
+        let mut changed = Vec::new();
+        custom::refresh_all(&self.pool, &mut changed).await.unwrap();
+        changed
     }
 
     async fn members(&self, playlist_id: i64) -> Vec<i64> {
@@ -235,7 +247,7 @@ async fn a_pass_writes_only_what_changed() {
         .await
         .unwrap();
 
-    assert!(custom::refresh_all(&lib.pool).await.unwrap().is_empty());
+    assert!(lib.refresh().await.is_empty());
     assert_eq!(lib.updated_at(playlist).await, 7, "nothing was written");
 
     let b = lib.flac("b.flac", "Keep B");
@@ -275,7 +287,7 @@ async fn other_playlists_are_left_alone() {
     .unwrap();
     // Both empty, and both stay empty although every track would match
     // an empty rule tree.
-    assert!(custom::refresh_all(&lib.pool).await.unwrap().is_empty());
+    assert!(lib.refresh().await.is_empty());
     assert!(lib.members(100).await.is_empty());
     assert!(lib.members(101).await.is_empty());
 
@@ -287,4 +299,48 @@ async fn other_playlists_are_left_alone() {
         })
         .await;
     assert_eq!(lib.members(everything).await, vec![a_id]);
+}
+
+/// A file read again although it has not changed (a deep rescan, a
+/// backfill) counts as skipped, yet the fields it rewrites are fields a
+/// rule reads: the playlist follows them too. Here a custom tag the
+/// database lost comes back from the file.
+#[tokio::test]
+async fn a_field_rewritten_from_an_unchanged_file_moves_the_playlist() {
+    let lib = Library::new().await;
+    let path = lib.flac("a.flac", "Tagged");
+    let mut tag = VorbisComments::default();
+    tag.push("TITLE".to_string(), "Tagged".to_string());
+    tag.push("RIPPER".to_string(), "EAC".to_string());
+    tag.save_to_path(&path, WriteOptions::default())
+        .expect("write comments");
+    lib.scan().await;
+    let id = lib.id(&path).await;
+    let playlist = lib
+        .smart_playlist(CustomRules {
+            tree: RuleNode::Leaf {
+                predicate: Predicate::TagPresent {
+                    key: "Ripper".to_string(),
+                },
+            },
+            sort: None,
+            limit: None,
+        })
+        .await;
+    assert_eq!(lib.members(playlist).await, vec![id]);
+
+    sqlx::query("DELETE FROM track_tag WHERE track_id = ?")
+        .bind(id)
+        .execute(&lib.pool)
+        .await
+        .unwrap();
+    assert_eq!(lib.refresh().await, vec![playlist]);
+    assert!(lib.members(playlist).await.is_empty());
+
+    lib.scan_with(true).await;
+    assert_eq!(
+        lib.members(playlist).await,
+        vec![id],
+        "the deep rescan wrote the tag back, and the playlist took the track back"
+    );
 }

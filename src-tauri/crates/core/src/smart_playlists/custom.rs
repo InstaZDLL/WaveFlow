@@ -818,7 +818,7 @@ pub async fn run_query_at(
 /// (`None`: all of them).
 #[cfg(feature = "sqlite")]
 async fn query_ids(
-    pool: &SqlitePool,
+    executor: impl sqlx::SqliteExecutor<'_>,
     rules: &CustomRules,
     now_ms: i64,
     limit: Option<i64>,
@@ -842,9 +842,8 @@ async fn query_ids(
         sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
         binds,
     )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| CoreError::Other(format!("custom smart playlist query failed: {e}")))?;
+    .fetch_all(executor)
+    .await?;
     Ok(rows)
 }
 
@@ -871,25 +870,36 @@ fn bind_all<'q, O>(
 // =============================================================================
 
 /// Bring every custom smart playlist in line with the library as it is
-/// now, and return the ids of the playlists that changed.
+/// now, pushing onto `changed` the id of each playlist written.
 ///
 /// Membership is stored (`playlist_track`), not computed on read, so a
 /// track the scan brings in, or a tag edit takes out of a rule, is not
 /// in or out of the playlist until something re-runs the rules — which,
 /// before this pass, only saving the rules did (#1169).
 ///
-/// The rules are run without the write lock, and only a playlist whose
-/// list differs from the stored one is written, each in a transaction of
-/// its own. A playlist that cannot be refreshed (its rules fail to run)
-/// is logged and left as it was; the others still are.
+/// Each playlist's rules are first run without the write lock; only a
+/// playlist whose list differs from the stored one goes on to a
+/// transaction of its own, where they are run again under the lock
+/// before anything is written (see [`write_if_changed`]). A playlist
+/// that cannot be refreshed (its rules fail to run) is logged and left as
+/// it was; the others still are.
+///
+/// A busy database stops the pass and is returned, for the caller to
+/// wait out and run the pass again: it is idempotent, and `changed`
+/// keeps what was written before the stop, which the run after it finds
+/// already in line and does not report again.
 #[cfg(feature = "sqlite")]
-pub async fn refresh_all(pool: &SqlitePool) -> CoreResult<Vec<i64>> {
-    refresh_all_at(pool, now_ms()).await
+pub async fn refresh_all(pool: &SqlitePool, changed: &mut Vec<i64>) -> CoreResult<()> {
+    refresh_all_at(pool, now_ms(), changed).await
 }
 
 /// [`refresh_all`] with the clock supplied — see [`count_matches_at`].
 #[cfg(feature = "sqlite")]
-pub async fn refresh_all_at(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i64>> {
+pub async fn refresh_all_at(
+    pool: &SqlitePool,
+    now_ms: i64,
+    changed: &mut Vec<i64>,
+) -> CoreResult<()> {
     let rows: Vec<(i64, String)> = sqlx::query_as(
         "SELECT id, smart_rules FROM playlist
           WHERE is_smart = 1 AND smart_rules IS NOT NULL
@@ -898,7 +908,6 @@ pub async fn refresh_all_at(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i6
     .fetch_all(pool)
     .await?;
 
-    let mut changed = Vec::new();
     for (playlist_id, raw) in rows {
         // The generated families (Daily Mix, On Repeat, …) share the
         // column and are rebuilt by their own generators.
@@ -908,10 +917,12 @@ pub async fn refresh_all_at(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i6
             continue;
         };
         match refresh_one(pool, playlist_id, &raw, &rules, now_ms).await {
-            Ok(true) => changed.push(playlist_id),
+            Ok(true) => {
+                if !changed.contains(&playlist_id) {
+                    changed.push(playlist_id);
+                }
+            }
             Ok(false) => {}
-            // A busy database is the caller's to wait out: the whole pass
-            // is idempotent, so running it again is the retry.
             Err(CoreError::Database(err)) if is_busy(&err) => {
                 return Err(CoreError::Database(err));
             }
@@ -920,7 +931,7 @@ pub async fn refresh_all_at(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i6
             }
         }
     }
-    Ok(changed)
+    Ok(())
 }
 
 /// Busy / locked, in any of SQLite's flavours: the primary result code
@@ -946,30 +957,57 @@ async fn refresh_one(
     rules: &CustomRules,
     now_ms: i64,
 ) -> CoreResult<bool> {
-    let current: Vec<(i64, i64)> = sqlx::query_as(
+    // The look without the lock, which is all most playlists ever get: a
+    // pass that finds nothing to change takes no lock and writes nothing.
+    let mut conn = pool.acquire().await?;
+    let current = stored_members(&mut conn, playlist_id).await?;
+    let wanted = wanted_members(&mut conn, rules, &current, now_ms).await?;
+    drop(conn);
+    if same_list(&current, &wanted) {
+        return Ok(false);
+    }
+    write_if_changed(pool, playlist_id, raw, rules, now_ms).await
+}
+
+/// The playlist's tracks in their order, with the date each was added.
+#[cfg(feature = "sqlite")]
+async fn stored_members(
+    conn: &mut sqlx::SqliteConnection,
+    playlist_id: i64,
+) -> CoreResult<Vec<(i64, i64)>> {
+    Ok(sqlx::query_as(
         "SELECT track_id, added_at FROM playlist_track
           WHERE playlist_id = ?
           ORDER BY position, track_id",
     )
     .bind(playlist_id)
-    .fetch_all(pool)
-    .await?;
+    .fetch_all(&mut *conn)
+    .await?)
+}
 
-    let wanted = if matches!(rules.sort, Some(CustomSort::Random)) {
-        let shuffled = query_ids(pool, rules, now_ms, None).await?;
-        keep_then_top_up(
+/// What the playlist should hold now, given what it holds.
+#[cfg(feature = "sqlite")]
+async fn wanted_members(
+    conn: &mut sqlx::SqliteConnection,
+    rules: &CustomRules,
+    current: &[(i64, i64)],
+    now_ms: i64,
+) -> CoreResult<Vec<i64>> {
+    if matches!(rules.sort, Some(CustomSort::Random)) {
+        let shuffled = query_ids(&mut *conn, rules, now_ms, None).await?;
+        Ok(keep_then_top_up(
             current.iter().map(|(id, _)| *id),
             &shuffled,
             effective_limit(rules) as usize,
-        )
+        ))
     } else {
-        run_query_at(pool, rules, now_ms).await?
-    };
-
-    if current.iter().map(|(id, _)| *id).eq(wanted.iter().copied()) {
-        return Ok(false);
+        query_ids(&mut *conn, rules, now_ms, Some(effective_limit(rules))).await
     }
-    write_members(pool, playlist_id, raw, &current, &wanted, now_ms).await
+}
+
+#[cfg(feature = "sqlite")]
+fn same_list(current: &[(i64, i64)], wanted: &[i64]) -> bool {
+    current.iter().map(|(id, _)| *id).eq(wanted.iter().copied())
 }
 
 /// The members a `Random` playlist keeps through a refresh: the ones it
@@ -1004,26 +1042,28 @@ fn keep_then_top_up(
     kept
 }
 
-/// Replace the playlist's tracks with `wanted`, in that order, under the
-/// write lock. A track it already held keeps the date it was added on;
-/// only a newcomer is dated now.
+/// Run the rules again under the write lock and, if the list still
+/// differs from the stored one, replace the playlist's tracks with it. A
+/// track it already held keeps the date it was added on; only a newcomer
+/// is dated now. Returns whether the playlist was written.
 ///
-/// Skipped, returning `false`, when the playlist's rules are no longer
-/// `raw`: the user saved new ones while this pass was running them, and
-/// that save materialized its own list, which this one must not replace.
-/// A track deleted or gone missing since the read is skipped rather than
-/// failing the insert; the next pass has nothing of it to take out.
+/// Again, and not the list found without the lock: between that look
+/// and this lock another writer may have retagged a track out of the
+/// rules, or another pass written a newer list, and writing the older
+/// one over it would put back what the library no longer says. Under the
+/// lock nothing can commit, so what is computed here is what is written.
+/// Only the playlists the first look found changed pay for it.
+///
+/// Skipped too when the playlist's rules are no longer `raw`: the user
+/// saved new ones meanwhile, and that save materialized its own list.
 #[cfg(feature = "sqlite")]
-async fn write_members(
+async fn write_if_changed(
     pool: &SqlitePool,
     playlist_id: i64,
     raw: &str,
-    current: &[(i64, i64)],
-    wanted: &[i64],
+    rules: &CustomRules,
     now_ms: i64,
 ) -> CoreResult<bool> {
-    let added_at: std::collections::HashMap<i64, i64> = current.iter().copied().collect();
-
     let mut tx = crate::repository::sqlite::write_lock::begin_write_on(pool, "playlist").await?;
     let rules_now: Option<String> =
         sqlx::query_scalar("SELECT smart_rules FROM playlist WHERE id = ? AND is_smart = 1")
@@ -1035,25 +1075,29 @@ async fn write_members(
         tx.rollback().await?;
         return Ok(false);
     }
+    let current = stored_members(&mut tx, playlist_id).await?;
+    let wanted = wanted_members(&mut tx, rules, &current, now_ms).await?;
+    if same_list(&current, &wanted) {
+        tx.rollback().await?;
+        return Ok(false);
+    }
 
+    let added_at: std::collections::HashMap<i64, i64> = current.into_iter().collect();
     sqlx::query("DELETE FROM playlist_track WHERE playlist_id = ?")
         .bind(playlist_id)
         .execute(&mut *tx)
         .await?;
-    let mut position = 0_i64;
-    for track_id in wanted {
-        let inserted = sqlx::query(
+    for (position, track_id) in wanted.iter().enumerate() {
+        sqlx::query(
             "INSERT INTO playlist_track (playlist_id, track_id, position, added_at)
-             SELECT ?, id, ?, ? FROM track WHERE id = ? AND is_available = 1",
+             VALUES (?, ?, ?, ?)",
         )
         .bind(playlist_id)
-        .bind(position)
-        .bind(added_at.get(track_id).copied().unwrap_or(now_ms))
         .bind(track_id)
+        .bind(position as i64)
+        .bind(added_at.get(track_id).copied().unwrap_or(now_ms))
         .execute(&mut *tx)
-        .await?
-        .rows_affected();
-        position += inserted as i64;
+        .await?;
     }
     sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
         .bind(now_ms)
