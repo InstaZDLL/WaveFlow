@@ -456,6 +456,32 @@ fn a_pause_is_recent_only_while_it_lasts() {
     assert!(!shared.paused_within(window), "playing again");
 }
 
+/// A resume and a new pause published while the state is being read: the
+/// two reads of the moment disagree, the reads start over, and the pause
+/// now published is answered for rather than missed (#1158).
+#[test]
+fn a_pause_landing_between_the_reads_is_read_again() {
+    let shared = SharedPlayback::new();
+    let window = std::time::Duration::from_secs(60);
+    shared.set_state(PlayerState::Paused);
+    let mut first = true;
+    let answer = shared.paused_within_reading(window, || {
+        if std::mem::take(&mut first) {
+            // The state as it was, read just before a resume and a new
+            // pause land.
+            let seen = shared.state();
+            shared.set_state(PlayerState::Playing);
+            std::thread::sleep(std::time::Duration::from_millis(1));
+            shared.set_state(PlayerState::Paused);
+            seen
+        } else {
+            shared.state()
+        }
+    });
+    assert!(answer);
+    assert!(!first, "the state was read through the hook");
+}
+
 /// A resume, then a new pause whose moment is written but whose `Paused`
 /// is not published yet: the moment belongs to no published pause, and
 /// the answer is no until the state says `Paused` (#1158).

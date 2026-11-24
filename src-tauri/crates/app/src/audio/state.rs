@@ -750,19 +750,37 @@ impl SharedPlayback {
     /// Whether playback is paused and became so less than `window` ago.
     ///
     /// [`Self::set_state`] writes the moment of a pause before it publishes
-    /// `Paused`. The moment is read on both sides of the state, and the
-    /// answer is yes only when the two reads agree: a `Paused` seen after
-    /// the first read is then the pause that moment belongs to. A resume
-    /// and a new pause in between change the moment and the answer is no;
-    /// so is it while the state reads anything but `Paused`.
+    /// `Paused`. The moment is read on both sides of the state, and a
+    /// `Paused` seen between two equal reads is the pause that moment
+    /// belongs to. Unequal reads mean a resume and a new pause landed in
+    /// between: the reads start over, a few times at most, so the pause now
+    /// published is answered for. While the state reads anything but
+    /// `Paused` the answer is no.
     pub fn paused_within(&self, window: std::time::Duration) -> bool {
-        let before = self.paused_at.load(Ordering::Acquire);
-        let paused = self.state() == PlayerState::Paused;
-        let after = self.paused_at.load(Ordering::Acquire);
-        paused
-            && before != 0
-            && before == after
-            && u128::from(self.clock_now().saturating_sub(before)) < window.as_nanos()
+        self.paused_within_reading(window, || self.state())
+    }
+
+    /// [`Self::paused_within`] with the state read through `state`, which
+    /// is how a test lands a resume and a pause between the reads.
+    fn paused_within_reading(
+        &self,
+        window: std::time::Duration,
+        mut state: impl FnMut() -> PlayerState,
+    ) -> bool {
+        // Each retry needs another resume and pause inside two atomic
+        // loads; past a few, the transitions are a storm and no is safe.
+        const READS: usize = 4;
+        for _ in 0..READS {
+            let before = self.paused_at.load(Ordering::Acquire);
+            let paused = state() == PlayerState::Paused;
+            let after = self.paused_at.load(Ordering::Acquire);
+            if before == after {
+                return paused
+                    && before != 0
+                    && u128::from(self.clock_now().saturating_sub(before)) < window.as_nanos();
+            }
+        }
+        false
     }
 
     pub fn set_state(&self, state: PlayerState) {
