@@ -153,21 +153,23 @@ pub(in crate::audio) fn os_default_output_name() -> Option<String> {
 
 /// How many times a deferred default-device follow comes back before
 /// giving up. Three attempts spread over ~6 s outlast one rebuild and
-/// its settle window; past that, a gate this busy means device errors
-/// are storming, and the recovery — which reopens the OS default when
-/// nothing is pinned — is the better judge of where to land.
+/// its settle window, and a device loss's ownership of the rebuild; past
+/// that, a gate this busy means device errors are storming, and the
+/// recovery — which reopens the OS default when nothing is pinned — is
+/// the better judge of where to land.
 const FOLLOW_DEFAULT_ATTEMPTS: usize = 3;
 
 /// Added to the settle window before a retry, so the retry wakes just
 /// *after* it rather than racing its boundary.
 const FOLLOW_RETRY_MARGIN: std::time::Duration = std::time::Duration::from_millis(100);
 
-/// Schedule a move onto the system's new default output (#627).
-/// Returns immediately — the work happens on a tokio task.
+/// Schedule a move onto the system's new default output (#627), or
+/// back onto a pinned device that returned (#1165). Returns
+/// immediately — the work happens on a tokio task.
 ///
 /// Called from the platform listeners in
 /// [`super::super::default_device`], which run on an OS thread and must not
-/// block. Everything that decides *whether* to move lives in
+/// block; `event` is what they saw. Everything that decides *whether* to move lives in
 /// [`super::super::AudioEngine::follow_os_default_output`]; this function is
 /// only the hop onto our own runtime, plus the two delays that make the
 /// storm survivable:
@@ -187,7 +189,13 @@ const FOLLOW_RETRY_MARGIN: std::time::Duration = std::time::Duration::from_milli
 /// for good, because each change is one notification and not a
 /// repeating signal. Each retry re-reads the pin and the default, so it
 /// converges on the current state rather than replaying a stale one.
-pub(in crate::audio) fn schedule_default_device_follow(app: &AppHandle) {
+/// A pinned device that is listed but falls back once more on open is
+/// deferred the same way: a Bluetooth endpoint can show up a moment
+/// before it can be opened, and sends nothing more once it can.
+pub(in crate::audio) fn schedule_default_device_follow(
+    app: &AppHandle,
+    event: super::super::engine::OutputEvent,
+) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
@@ -212,7 +220,7 @@ pub(in crate::audio) fn schedule_default_device_follow(app: &AppHandle) {
         for attempt in 1..=FOLLOW_DEFAULT_ATTEMPTS {
             let engine = engine.clone();
             let joined =
-                tokio::task::spawn_blocking(move || engine.follow_os_default_output()).await;
+                tokio::task::spawn_blocking(move || engine.follow_os_default_output(event)).await;
             let outcome = match joined {
                 Ok(outcome) => outcome,
                 Err(err) => {
@@ -230,8 +238,8 @@ pub(in crate::audio) fn schedule_default_device_follow(app: &AppHandle) {
                     if attempt == FOLLOW_DEFAULT_ATTEMPTS {
                         tracing::warn!(
                             attempts = FOLLOW_DEFAULT_ATTEMPTS,
-                            "gave up following the new default output device: the rebuild \
-                             gate stayed busy"
+                            ?event,
+                            "gave up on an output device change: it was deferred at every attempt"
                         );
                         return;
                     }

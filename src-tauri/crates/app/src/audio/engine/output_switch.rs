@@ -7,8 +7,8 @@ use super::super::output::{spawn_output_with_mode, RequestedFormat};
 use super::command::AudioCmd;
 use super::notice::PlaybackNotice;
 use super::rebuild::{
-    endpoint_moved, must_release_before_reopening, rebuild_resume, track_needs_reopen,
-    RebuildCause, RebuildDevice, RebuildResume,
+    endpoint_moved, must_release_before_reopening, pick_is_noop, rebuild_resume,
+    track_needs_reopen, RebuildCause, RebuildDevice, RebuildResume,
 };
 use super::AudioEngine;
 
@@ -211,6 +211,25 @@ impl AudioEngine {
                 }
                 None
             }
+            // Same lock, same reason (#1165): a pick or a reopen landing
+            // between the pinned-device check and here has either moved
+            // the pin or already put the stream on it.
+            RebuildDevice::PinnedIfElsewhere => {
+                let opened = guard
+                    .handle
+                    .as_ref()
+                    .and_then(|handle| handle.opened_device.as_deref());
+                match guard.pinned_device() {
+                    Some(pinned) if opened != Some(pinned.as_str()) => Some(pinned),
+                    _ => {
+                        tracing::debug!(
+                            "pinned-device return abandoned: the pin moved or the stream \
+                             is already on it"
+                        );
+                        return Ok(());
+                    }
+                }
+            }
         };
 
         let track_id = self
@@ -396,10 +415,18 @@ impl AudioEngine {
         // exists**: without one, `current` is `None`, so a user asking for
         // the OS default matched `None == None` and got a no-op in exactly
         // the state they were trying to recover from. Spamming the menu is
-        // only worth a no-op when there is a stream to leave alone.
-        let current = guard.handle.as_ref().and_then(|h| h.device_name.as_deref());
-        let requested = device_name.as_deref();
-        if guard.handle.is_some() && current == requested {
+        // only worth a no-op when there is a stream to leave alone — and
+        // only when that stream is on the device asked for: after a
+        // fallback the handle still names the pin, and the pick that
+        // should have brought the returning headset back did nothing
+        // (#1165). See [`pick_is_noop`].
+        let handle = guard.handle.as_ref();
+        if pick_is_noop(
+            handle.is_some(),
+            handle.and_then(|h| h.device_name.as_deref()),
+            handle.and_then(|h| h.opened_device.as_deref()),
+            device_name.as_deref(),
+        ) {
             return Ok(());
         }
         // Kept before the spawn below consumes `device_name`: this is the
