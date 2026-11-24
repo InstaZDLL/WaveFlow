@@ -972,14 +972,39 @@ async fn refresh_one(
 ) -> CoreResult<bool> {
     // The look without the lock, which is all most playlists ever get: a
     // pass that finds nothing to change takes no lock and writes nothing.
+    // On one connection throughout, so the write below can tell whether
+    // anyone committed between this look and its lock.
     let mut conn = pool.acquire().await?;
+    let version = data_version(&mut conn).await?;
     let current = stored_members(&mut conn, playlist_id).await?;
     let wanted = wanted_members(&mut conn, rules, &current, clock()).await?;
-    drop(conn);
     if same_list(&current, &wanted) {
         return Ok(false);
     }
-    write_if_changed(pool, playlist_id, raw, rules, clock).await
+    let look = Look {
+        version,
+        current,
+        wanted,
+    };
+    write_if_changed(&mut conn, playlist_id, raw, rules, look, clock).await
+}
+
+/// What the look without the lock found, and on which version of the
+/// database.
+#[cfg(feature = "sqlite")]
+struct Look {
+    version: i64,
+    current: Vec<(i64, i64)>,
+    wanted: Vec<i64>,
+}
+
+/// `PRAGMA data_version`: changes between two reads on one connection
+/// exactly when another connection committed in between.
+#[cfg(feature = "sqlite")]
+async fn data_version(conn: &mut sqlx::SqliteConnection) -> CoreResult<i64> {
+    Ok(sqlx::query_scalar("PRAGMA data_version")
+        .fetch_one(&mut *conn)
+        .await?)
 }
 
 /// The playlist's tracks in their order, with the date each was added.
@@ -1055,29 +1080,33 @@ fn keep_then_top_up(
     kept
 }
 
-/// Run the rules again under the write lock and, if the list still
-/// differs from the stored one, replace the playlist's tracks with it. A
-/// track it already held keeps the date it was added on; only a newcomer
-/// is dated now. Returns whether the playlist was written.
+/// Under the write lock, replace the playlist's tracks with the list the
+/// look found, if the list still differs from the stored one. A track it
+/// already held keeps the date it was added on; only a newcomer is dated
+/// now. Returns whether the playlist was written.
 ///
-/// Again, and not the list found without the lock: between that look
-/// and this lock another writer may have retagged a track out of the
-/// rules, or another pass written a newer list, and writing the older
-/// one over it would put back what the library no longer says. Under the
-/// lock nothing can commit, so what is computed here is what is written.
-/// Only the playlists the first look found changed pay for it.
+/// The look's list is written only if nobody committed since it was
+/// computed (`data_version` unchanged on this connection). Otherwise the
+/// rules run again here, under the lock: another writer may have retagged
+/// a track out of the rules, or another pass written a newer list, and
+/// writing the older one over it would put back what the library no
+/// longer says. The rules that read plays take a second on a library of a
+/// hundred thousand tracks, so the lock is not held through a run of them
+/// unless the database moved.
 ///
 /// Skipped too when the playlist's rules are no longer `raw`: the user
 /// saved new ones meanwhile, and that save materialized its own list.
 #[cfg(feature = "sqlite")]
 async fn write_if_changed(
-    pool: &SqlitePool,
+    conn: &mut sqlx::SqliteConnection,
     playlist_id: i64,
     raw: &str,
     rules: &CustomRules,
+    look: Look,
     clock: &(dyn Fn() -> i64 + Sync),
 ) -> CoreResult<bool> {
-    let mut tx = crate::repository::sqlite::write_lock::begin_write_on(pool, "playlist").await?;
+    let mut tx =
+        crate::repository::sqlite::write_lock::begin_write_on_connection(conn, "playlist").await?;
     // Read once the lock is held, not before the wait for it.
     let now_ms = clock();
     let rules_now: Option<String> =
@@ -1090,8 +1119,13 @@ async fn write_if_changed(
         tx.rollback().await?;
         return Ok(false);
     }
-    let current = stored_members(&mut tx, playlist_id).await?;
-    let wanted = wanted_members(&mut tx, rules, &current, now_ms).await?;
+    let (current, wanted) = if data_version(&mut tx).await? == look.version {
+        (look.current, look.wanted)
+    } else {
+        let current = stored_members(&mut tx, playlist_id).await?;
+        let wanted = wanted_members(&mut tx, rules, &current, now_ms).await?;
+        (current, wanted)
+    };
     if same_list(&current, &wanted) {
         tx.rollback().await?;
         return Ok(false);
