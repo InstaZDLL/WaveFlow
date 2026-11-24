@@ -92,11 +92,11 @@ mod windows_impl {
         eConsole, eRender, EDataFlow, ERole, IMMDeviceEnumerator, IMMNotificationClient,
         IMMNotificationClient_Impl, MMDeviceEnumerator, DEVICE_STATE, DEVICE_STATE_ACTIVE,
     };
-
-    use crate::audio::engine::OutputEvent;
     use windows::Win32::System::Com::{
         CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED,
     };
+
+    use crate::audio::engine::OutputEvent;
 
     /// The COM sink. Holds the `AppHandle` so a notification can reach
     /// the engine without a global.
