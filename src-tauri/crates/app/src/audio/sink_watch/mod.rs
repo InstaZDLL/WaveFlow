@@ -50,6 +50,7 @@ pub mod decision;
 use std::ffi::CString;
 use std::io::{BufReader, Read};
 use std::os::unix::net::UnixStream;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -213,6 +214,46 @@ fn on_loss(app: &AppHandle, loss: Loss) {
 /// reply we asked for, and allocating it would be the bug.
 const MAX_FRAME: usize = 16 * 1024 * 1024;
 
+/// How long a reply may take. A local server answers in well under a
+/// millisecond; one that has not answered in five seconds is hung, and
+/// only a new connection will tell. A read that runs out breaks the
+/// connection like any other failed read, and the watch reconnects.
+const REPLY_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Where the server listens.
+///
+/// A `PULSE_SERVER` that is set is the user's choice, and it is followed
+/// only when it names one local socket, `unix:/path` or a bare `/path` —
+/// what a Flatpak sandbox sets, for one. Anything else (a list, a remote
+/// server, a `{machine}` prefix) is a choice libpulse resolves at connect
+/// time, by trying servers in turn; guessing its outcome could watch
+/// another server than the one playback uses, so the watch stays off.
+/// Without it, `$PULSE_RUNTIME_PATH/native`, then
+/// `$XDG_RUNTIME_DIR/pulse/native`; the first that exists. (The client
+/// crate's own lookup appends `pulse/native` to `PULSE_RUNTIME_PATH`,
+/// which already is the `pulse` directory, and gives up at the first
+/// candidate that is missing instead of trying the next.)
+fn socket_path(
+    var: impl Fn(&str) -> Option<String>,
+    exists: impl Fn(&Path) -> bool,
+) -> Option<PathBuf> {
+    if let Some(server) = var("PULSE_SERVER").filter(|server| !server.trim().is_empty()) {
+        let mut servers = server.split_whitespace();
+        let only = servers.next()?;
+        if servers.next().is_some() {
+            return None;
+        }
+        let path = only.strip_prefix("unix:").unwrap_or(only);
+        return Some(PathBuf::from(path)).filter(|path| path.is_absolute() && exists(path));
+    }
+    let runtime = var("PULSE_RUNTIME_PATH").map(|dir| PathBuf::from(dir).join("native"));
+    let xdg = var("XDG_RUNTIME_DIR").map(|dir| PathBuf::from(dir).join("pulse/native"));
+    [runtime, xdg]
+        .into_iter()
+        .flatten()
+        .find(|path| exists(path))
+}
+
 /// The length of an authentication cookie in the PulseAudio protocol.
 const COOKIE_LEN: usize = 256;
 
@@ -260,14 +301,19 @@ struct Connection {
 
 impl Connection {
     fn open() -> Result<Self, Fault> {
-        let path = pulseaudio::socket_path_from_env().ok_or_else(|| {
-            Fault::Broken(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "no sound server socket",
-            ))
-        })?;
+        let path = socket_path(|name| std::env::var(name).ok(), |path| path.exists()).ok_or_else(
+            || {
+                Fault::Broken(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "no sound server socket",
+                ))
+            },
+        )?;
+        let socket = UnixStream::connect(path)?;
+        // Everything read here until `subscribe` lifts it is a reply.
+        socket.set_read_timeout(Some(REPLY_TIMEOUT))?;
         let mut connection = Self {
-            socket: BufReader::new(UnixStream::connect(path)?),
+            socket: BufReader::new(socket),
             version: protocol::MAX_VERSION,
             seq: 0,
         };
@@ -332,6 +378,9 @@ impl Connection {
         self.send(&Command::Subscribe(mask))?;
         let frame = self.next_frame()?;
         protocol::read_ack_message(&mut frame.as_slice()).map_err(Fault::Reply)?;
+        // From here on this connection only waits for events, and an event
+        // comes whenever something happens, which may be never.
+        self.socket.get_ref().set_read_timeout(None)?;
         Ok(())
     }
 
@@ -445,6 +494,63 @@ fn prop_u32(props: &protocol::Props, prop: Prop) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn env<'a>(vars: &'a [(&str, &str)]) -> impl Fn(&str) -> Option<String> + 'a {
+        move |name| {
+            vars.iter()
+                .find(|(key, _)| *key == name)
+                .map(|(_, value)| (*value).to_owned())
+        }
+    }
+
+    #[test]
+    fn the_socket_is_looked_for_where_libpulse_looks() {
+        let all = [
+            ("PULSE_SERVER", "unix:/srv/pulse.sock"),
+            ("PULSE_RUNTIME_PATH", "/tmp/waveflow-pulse"),
+            ("XDG_RUNTIME_DIR", "/run/user/1000"),
+        ];
+        let everywhere = |_: &Path| true;
+        assert_eq!(
+            socket_path(env(&all), everywhere),
+            Some(PathBuf::from("/srv/pulse.sock"))
+        );
+        // The runtime path is the `pulse` directory itself.
+        assert_eq!(
+            socket_path(env(&all[1..]), everywhere),
+            Some(PathBuf::from("/tmp/waveflow-pulse/native"))
+        );
+        // Without an explicit server, a missing candidate hands over to
+        // the next one.
+        let only_xdg = |path: &Path| path == Path::new("/run/user/1000/pulse/native");
+        assert_eq!(
+            socket_path(env(&all[1..]), only_xdg),
+            Some(PathBuf::from("/run/user/1000/pulse/native"))
+        );
+        // An explicit server is the only one: a remote one turns the watch
+        // off instead of falling back to the local socket.
+        let tcp = [
+            ("PULSE_SERVER", "tcp:192.0.2.1"),
+            ("XDG_RUNTIME_DIR", "/run/user/1000"),
+        ];
+        assert_eq!(socket_path(env(&tcp), everywhere), None);
+        // A bare path is a local socket too.
+        let bare = [("PULSE_SERVER", "/run/flatpak/pulse/native")];
+        assert_eq!(
+            socket_path(env(&bare), everywhere),
+            Some(PathBuf::from("/run/flatpak/pulse/native"))
+        );
+        // A list or a machine prefix is resolved by libpulse at connect
+        // time: not guessed, the watch stays off.
+        for server in ["unix:/a unix:/b", "tcp:192.0.2.1 unix:/b", "{abc}unix:/a"] {
+            let vars = [
+                ("PULSE_SERVER", server),
+                ("XDG_RUNTIME_DIR", "/run/user/1000"),
+            ];
+            assert_eq!(socket_path(env(&vars), everywhere), None, "{server}");
+        }
+        assert_eq!(socket_path(env(&[]), everywhere), None);
+    }
 
     #[test]
     fn a_process_id_is_read_with_or_without_its_terminator() {
