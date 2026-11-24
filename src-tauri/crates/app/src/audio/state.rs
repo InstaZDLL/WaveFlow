@@ -138,12 +138,18 @@ pub const MAX_PITCH_SEMITONES: i32 = 12;
 ///   three goes through [`SharedPlayback::restart_clock`].
 pub struct SharedPlayback {
     pub state: AtomicU8,
-    /// When the state last became `Paused` (#1158). The Linux sink watch
-    /// reads it to tell a pause that came with a device leaving — the
-    /// session manager's own, sent over MPRIS at the same moment — from
-    /// one the user made long before. Written by [`Self::set_state`],
-    /// which the audio callback never calls.
-    paused_at: Mutex<Option<std::time::Instant>>,
+    /// When the state last became `Paused` (#1158), in nanoseconds since
+    /// [`Self::clock_base`] plus one, `0` before the first pause. The
+    /// Linux sink watch reads it to tell a pause that came with a device
+    /// leaving — the session manager's own, sent over MPRIS at the same
+    /// moment — from one the user made long before.
+    ///
+    /// An atomic and not a lock: [`Self::set_state`] writes it, and cpal's
+    /// error callback reaches `set_state` through the device-loss report,
+    /// on the audio thread itself under ALSA and WASAPI.
+    paused_at: AtomicU64,
+    /// The instant `paused_at` counts from, fixed when this block is made.
+    clock_base: std::time::Instant,
     pub samples_played: AtomicU64,
     pub sample_rate: AtomicU32,
     pub channels: AtomicU16,
@@ -459,7 +465,8 @@ impl SharedPlayback {
     pub fn new() -> Self {
         Self {
             state: AtomicU8::new(PlayerState::Idle as u8),
-            paused_at: Mutex::new(None),
+            paused_at: AtomicU64::new(0),
+            clock_base: std::time::Instant::now(),
             samples_played: AtomicU64::new(0),
             sample_rate: AtomicU32::new(0),
             channels: AtomicU16::new(0),
@@ -732,19 +739,30 @@ impl SharedPlayback {
             .and_then(|guard| guard.as_ref().map(|load| load.intent))
     }
 
+    /// Nanoseconds since [`Self::clock_base`], plus one so that `0` can
+    /// mean "never".
+    fn clock_now(&self) -> u64 {
+        u64::try_from(self.clock_base.elapsed().as_nanos())
+            .unwrap_or(u64::MAX)
+            .saturating_add(1)
+    }
+
     /// Whether playback is paused and became so less than `window` ago.
     ///
-    /// The state is read first and the moment second, the reverse of the
-    /// order [`Self::set_state`] writes them in, so the two always belong
-    /// to the same pause.
+    /// [`Self::set_state`] writes the moment of a pause before it publishes
+    /// `Paused`. The moment is read on both sides of the state, and the
+    /// answer is yes only when the two reads agree: a `Paused` seen after
+    /// the first read is then the pause that moment belongs to. A resume
+    /// and a new pause in between change the moment and the answer is no;
+    /// so is it while the state reads anything but `Paused`.
     pub fn paused_within(&self, window: std::time::Duration) -> bool {
-        self.state() == PlayerState::Paused
-            && self
-                .paused_at
-                .lock()
-                .ok()
-                .and_then(|at| *at)
-                .is_some_and(|at| at.elapsed() < window)
+        let before = self.paused_at.load(Ordering::Acquire);
+        let paused = self.state() == PlayerState::Paused;
+        let after = self.paused_at.load(Ordering::Acquire);
+        paused
+            && before != 0
+            && before == after
+            && u128::from(self.clock_now().saturating_sub(before)) < window.as_nanos()
     }
 
     pub fn set_state(&self, state: PlayerState) {
@@ -760,14 +778,12 @@ impl SharedPlayback {
                 self.track_finished.store(false, Ordering::Release)
             }
         }
-        // Before the state too: a reader that sees `Paused` then finds the
-        // moment it began, never the previous pause's — the lock's release
-        // is ordered before the store below. A reader that sees the new
-        // moment early still reads `Playing` first, and says no.
+        // Before the state too, so a reader that sees `Paused` after the
+        // moment finds the moment of that pause (see `paused_within`).
+        // Atomic: this runs on the audio thread when cpal reports a lost
+        // device.
         if state == PlayerState::Paused {
-            if let Ok(mut at) = self.paused_at.lock() {
-                *at = Some(std::time::Instant::now());
-            }
+            self.paused_at.store(self.clock_now(), Ordering::Release);
         }
         self.state.store(state as u8, Ordering::Release);
         // Counted after the state is published, never before: a reader

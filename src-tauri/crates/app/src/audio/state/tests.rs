@@ -455,3 +455,21 @@ fn a_pause_is_recent_only_while_it_lasts() {
     shared.set_state(PlayerState::Playing);
     assert!(!shared.paused_within(window), "playing again");
 }
+
+/// A resume, then a new pause whose moment is written but whose `Paused`
+/// is not published yet: the moment belongs to no published pause, and
+/// the answer is no until the state says `Paused` (#1158).
+#[test]
+fn a_pause_moment_counts_only_with_its_published_state() {
+    let shared = SharedPlayback::new();
+    let window = std::time::Duration::from_secs(60);
+    shared.set_state(PlayerState::Paused);
+    shared.set_state(PlayerState::Playing);
+    // `set_state(Paused)` halfway: the moment first, the state not yet.
+    shared
+        .paused_at
+        .store(shared.clock_now(), Ordering::Release);
+    assert!(!shared.paused_within(window));
+    shared.set_state(PlayerState::Paused);
+    assert!(shared.paused_within(window));
+}
