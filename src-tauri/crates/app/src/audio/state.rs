@@ -138,6 +138,18 @@ pub const MAX_PITCH_SEMITONES: i32 = 12;
 ///   three goes through [`SharedPlayback::restart_clock`].
 pub struct SharedPlayback {
     pub state: AtomicU8,
+    /// When the state last became `Paused` (#1158), in nanoseconds since
+    /// [`Self::clock_base`] plus one, `0` before the first pause. The
+    /// Linux sink watch reads it to tell a pause that came with a device
+    /// leaving — the session manager's own, sent over MPRIS at the same
+    /// moment — from one the user made long before.
+    ///
+    /// An atomic and not a lock: [`Self::set_state`] writes it, and cpal's
+    /// error callback reaches `set_state` through the device-loss report,
+    /// on the audio thread itself under ALSA and WASAPI.
+    paused_at: AtomicU64,
+    /// The instant `paused_at` counts from, fixed when this block is made.
+    clock_base: std::time::Instant,
     pub samples_played: AtomicU64,
     pub sample_rate: AtomicU32,
     pub channels: AtomicU16,
@@ -453,6 +465,8 @@ impl SharedPlayback {
     pub fn new() -> Self {
         Self {
             state: AtomicU8::new(PlayerState::Idle as u8),
+            paused_at: AtomicU64::new(0),
+            clock_base: std::time::Instant::now(),
             samples_played: AtomicU64::new(0),
             sample_rate: AtomicU32::new(0),
             channels: AtomicU16::new(0),
@@ -725,6 +739,50 @@ impl SharedPlayback {
             .and_then(|guard| guard.as_ref().map(|load| load.intent))
     }
 
+    /// Nanoseconds since [`Self::clock_base`], plus one so that `0` can
+    /// mean "never".
+    fn clock_now(&self) -> u64 {
+        u64::try_from(self.clock_base.elapsed().as_nanos())
+            .unwrap_or(u64::MAX)
+            .saturating_add(1)
+    }
+
+    /// Whether playback is paused and became so less than `window` ago.
+    ///
+    /// [`Self::set_state`] writes the moment of a pause before it publishes
+    /// `Paused`. The moment is read on both sides of the state, and a
+    /// `Paused` seen between two equal reads is the pause that moment
+    /// belongs to. Unequal reads mean a resume and a new pause landed in
+    /// between: the reads start over, a few times at most, so the pause now
+    /// published is answered for. While the state reads anything but
+    /// `Paused` the answer is no.
+    pub fn paused_within(&self, window: std::time::Duration) -> bool {
+        self.paused_within_reading(window, || self.state())
+    }
+
+    /// [`Self::paused_within`] with the state read through `state`, which
+    /// is how a test lands a resume and a pause between the reads.
+    fn paused_within_reading(
+        &self,
+        window: std::time::Duration,
+        mut state: impl FnMut() -> PlayerState,
+    ) -> bool {
+        // Each retry needs another resume and pause inside two atomic
+        // loads; past a few, the transitions are a storm and no is safe.
+        const READS: usize = 4;
+        for _ in 0..READS {
+            let before = self.paused_at.load(Ordering::Acquire);
+            let paused = state() == PlayerState::Paused;
+            let after = self.paused_at.load(Ordering::Acquire);
+            if before == after {
+                return paused
+                    && before != 0
+                    && u128::from(self.clock_now().saturating_sub(before)) < window.as_nanos();
+            }
+        }
+        false
+    }
+
     pub fn set_state(&self, state: PlayerState) {
         // Before the state, so a reader that sees `Ended` sees the track
         // as finished too.
@@ -737,6 +795,13 @@ impl SharedPlayback {
             PlayerState::Loading | PlayerState::Playing | PlayerState::Paused => {
                 self.track_finished.store(false, Ordering::Release)
             }
+        }
+        // Before the state too, so a reader that sees `Paused` after the
+        // moment finds the moment of that pause (see `paused_within`).
+        // Atomic: this runs on the audio thread when cpal reports a lost
+        // device.
+        if state == PlayerState::Paused {
+            self.paused_at.store(self.clock_now(), Ordering::Release);
         }
         self.state.store(state as u8, Ordering::Release);
         // Counted after the state is published, never before: a reader
