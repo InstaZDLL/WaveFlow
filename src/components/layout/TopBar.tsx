@@ -45,7 +45,9 @@ import { FOCUS_SEARCH_EVENT } from "../../lib/shortcuts";
 import { ProfileAvatar } from "../common/ProfileAvatar";
 import { MenuActionItem } from "../common/MenuActionItem";
 import { Artwork } from "../common/Artwork";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import {
+  getTrack,
   searchTracks,
   searchTracksAdvanced,
   formatDuration,
@@ -134,6 +136,30 @@ export function TopBar({
   // state when its id is still current, so a slow older request can't
   // clobber the results of a newer one.
   const searchSeqRef = useRef(0);
+
+  // A track the results show was edited (rated from its menu, retagged in
+  // the properties dialog…): read that row again, as every track list
+  // does on `track:updated`, or reopening its menu shows the old rating.
+  // Only that row, and only while it is still among the results.
+  const searchResultsRef = useRef(searchResults);
+  useEffect(() => {
+    searchResultsRef.current = searchResults;
+  }, [searchResults]);
+  useTrackUpdated(
+    useCallback((trackId: number) => {
+      if (!searchResultsRef.current.some((t) => t.id === trackId)) return;
+      getTrack(trackId)
+        .then((fresh) => {
+          if (fresh == null) return;
+          setSearchResults((prev) =>
+            prev.map((t) => (t.id === trackId ? fresh : t)),
+          );
+        })
+        .catch((err) =>
+          console.error("[TopBar] search result refresh failed", err),
+        );
+    }, []),
+  );
 
   // Advanced filters state. Empty/null fields mean "no constraint".
   const [filtersOpen, setFiltersOpen] = useState(false);
