@@ -131,9 +131,10 @@ struct Seen {
     /// The sink's active port, kept only while it could be heard: a port
     /// already unavailable when seen must not count as lost later.
     port: Option<String>,
-    /// The sink the stream last left, gone while its card stayed, still
-    /// in view (see [`DEPARTURE_GRACE`]).
-    departure: Option<Departure>,
+    /// The sinks the stream left, gone while their card stayed, still in
+    /// view (see [`DEPARTURE_GRACE`]). Several when the server moves it
+    /// off one vanishing sink after another before the cards go.
+    departures: Vec<Departure>,
 }
 
 /// A sink our stream left, gone, on a card that was still listed.
@@ -154,7 +155,7 @@ impl Seen {
             sink: sink.index,
             card: sink.card,
             port,
-            departure: None,
+            departures: Vec::new(),
         }
     }
 }
@@ -215,7 +216,7 @@ impl Tracker {
         let in_view = self
             .seen
             .values()
-            .filter_map(|seen| seen.departure.as_ref().map(|departure| departure.card));
+            .flat_map(|seen| seen.departures.iter().map(|departure| departure.card));
         let mut cards: Vec<u32> = left.chain(in_view).collect();
         cards.sort_unstable();
         cards.dedup();
@@ -241,31 +242,32 @@ impl Tracker {
             };
             let mut seen = Seen::of(sink);
             if let Some(previous) = previous {
+                // The cards it left still in view: did one turn out to be a
+                // device leaving? Wherever the stream is now — the server
+                // may move it again, to a better fallback, before the card
+                // goes — unless it has just been moved off a sink of that
+                // very card, which is still there: someone chose to leave
+                // the device, and it going later is not our loss. Checked
+                // before this picture's own verdict, which may add one.
+                let left_by_choice = |departure: &Departure| {
+                    previous.sink != sink.index
+                        && previous.card == Some(departure.card)
+                        && snapshot.sink(previous.sink).is_some()
+                };
+                let in_view = previous.departures.iter().filter(|departure| {
+                    now.saturating_duration_since(departure.at) < DEPARTURE_GRACE
+                        && !left_by_choice(departure)
+                });
+                for departure in in_view {
+                    match departed(departure, snapshot) {
+                        Some(lost) => loss = loss.or(Some(lost)),
+                        None => seen.departures.push(departure.clone()),
+                    }
+                }
                 match judge(previous, sink, snapshot, now) {
                     Judgement::Lost(lost) => loss = loss.or(Some(lost)),
-                    Judgement::Watch(departure) => seen.departure = Some(departure),
-                    Judgement::Nothing => {
-                        // With the card it left still in view: did that card
-                        // turn out to be a device leaving? Wherever the
-                        // stream is now — the server may move it again, to
-                        // a better fallback, before the card goes — unless
-                        // it has just been moved off a sink of that very
-                        // card, which is still there: someone chose to leave
-                        // the device, and it going later is not our loss.
-                        let left_by_choice = |departure: &Departure| {
-                            previous.sink != sink.index && previous.card == Some(departure.card)
-                        };
-                        let in_view = previous.departure.as_ref().filter(|departure| {
-                            now.saturating_duration_since(departure.at) < DEPARTURE_GRACE
-                                && !left_by_choice(departure)
-                        });
-                        if let Some(departure) = in_view {
-                            match departed(departure, snapshot) {
-                                Some(lost) => loss = loss.or(Some(lost)),
-                                None => seen.departure = Some(departure.clone()),
-                            }
-                        }
-                    }
+                    Judgement::Watch(departure) => seen.departures.push(departure),
+                    Judgement::Nothing => {}
                 }
             }
             next.insert(stream.index, seen);
@@ -734,6 +736,62 @@ mod tests {
         assert_eq!(tracker.cards_in_question(&second), vec![70]);
         assert_eq!(
             tracker.observe(&second, t0 + Duration::from_millis(20)),
+            Some(Loss::SinkGone)
+        );
+    }
+
+    /// Two sinks gone one after the other while their cards are still
+    /// listed: the second departure does not replace the first, and the
+    /// first card going is still the loss.
+    #[test]
+    fn two_departures_in_a_row_are_both_kept_in_view() {
+        let mut tracker = Tracker::default();
+        let t0 = Instant::now();
+        let usb_a = sink(
+            91,
+            Some(70),
+            Some("analog-output"),
+            &[("analog-output", PortState::Unknown)],
+        );
+        let usb_b = sink(
+            92,
+            Some(71),
+            Some("analog-output"),
+            &[("analog-output", PortState::Unknown)],
+        );
+        let card_a = card(70, &[("analog-output", PortState::Unknown)]);
+        let card_b = card(71, &[("analog-output", PortState::Unknown)]);
+        let speakers = builtin(SPEAKER, PortState::Unavailable);
+        tracker.observe(
+            &snapshot(
+                vec![usb_a, usb_b.clone(), speakers.clone()],
+                vec![card_a.clone(), card_b.clone()],
+                vec![ours(99, 91)],
+            ),
+            t0,
+        );
+        // A goes, its card still listed: the stream lands on B.
+        let on_b = snapshot(
+            vec![usb_b, speakers.clone()],
+            vec![card_a.clone(), card_b.clone()],
+            vec![ours(99, 92)],
+        );
+        assert_eq!(tracker.observe(&on_b, t0), None);
+        // B goes too, its card still listed: the stream lands on the speakers.
+        let on_speakers = snapshot(
+            vec![speakers.clone()],
+            vec![card_a, card_b.clone()],
+            vec![ours(99, 53)],
+        );
+        assert_eq!(
+            tracker.observe(&on_speakers, t0 + Duration::from_millis(10)),
+            None
+        );
+        assert_eq!(tracker.cards_in_question(&on_speakers), vec![70, 71]);
+        // A's card goes: that is the loss, B's departure notwithstanding.
+        let a_gone = snapshot(vec![speakers], vec![card_b], vec![ours(99, 53)]);
+        assert_eq!(
+            tracker.observe(&a_gone, t0 + Duration::from_millis(20)),
             Some(Loss::SinkGone)
         );
     }
