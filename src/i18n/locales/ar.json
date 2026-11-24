@@ -2962,10 +2962,6 @@
       "increaseAria": "تكبير",
       "resetAria": "إعادة التكبير إلى 100%"
     },
-    "showAudioQualityFooter": {
-      "title": "إظهار شريط جودة الصوت",
-      "subtitle": "تفاصيل تقنية (kHz، وkbps، وبرنامج الترميز، وعمق البت) أسفل شريط المشغّل. مُعطّل افتراضيًا لشريط أرفع."
-    },
     "categoryNavLabel": "فئات الإعدادات",
     "appearance": {
       "theme": {

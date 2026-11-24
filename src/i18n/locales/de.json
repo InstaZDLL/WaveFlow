@@ -2728,10 +2728,6 @@
       "increaseAria": "Vergrößern",
       "resetAria": "Zoom auf 100 % zurücksetzen"
     },
-    "showAudioQualityFooter": {
-      "title": "Audioqualitäts-Streifen anzeigen",
-      "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig ausgeblendet, damit die Leiste schlanker bleibt."
-    },
     "categoryNavLabel": "Einstellungskategorien",
     "appearance": {
       "theme": {

@@ -2901,10 +2901,6 @@
       "increaseAria": "Zoomer l'interface",
       "resetAria": "Réinitialiser le zoom à 100 %"
     },
-    "showAudioQualityFooter": {
-      "title": "Afficher la qualité audio sous la barre",
-      "subtitle": "Détails techniques (kHz, kbit/s, codec, profondeur) sous la barre de lecture. Désactivé par défaut pour une barre plus fine."
-    },
     "playerBarLayout": {
       "title": "Disposition de la barre de lecture",
       "subtitle": "Choisissez quels boutons apparaissent dans la barre et ce que fait un clic sur la pochette. L'aperçu se met à jour en direct.",

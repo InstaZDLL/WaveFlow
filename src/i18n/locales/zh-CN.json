@@ -2627,10 +2627,6 @@
       "increaseAria": "放大",
       "resetAria": "重置缩放为 100%"
     },
-    "showAudioQualityFooter": {
-      "title": "显示音质信息条",
-      "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码器、位深）。为保持播放栏简洁，默认关闭。"
-    },
     "categoryNavLabel": "设置分类",
     "appearance": {
       "theme": {

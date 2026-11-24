@@ -2725,10 +2725,6 @@
       "increaseAria": "확대",
       "resetAria": "확대/축소를 100%로 초기화"
     },
-    "showAudioQualityFooter": {
-      "title": "오디오 품질 바 표시",
-      "subtitle": "플레이어 바 아래에 기술 정보(kHz, kbps, 코덱, 비트 심도)를 표시합니다. 더 간결한 바를 위해 기본적으로 꺼져 있습니다."
-    },
     "categoryNavLabel": "설정 카테고리",
     "appearance": {
       "theme": {

@@ -2800,10 +2800,6 @@
       "increaseAria": "Ingrandisci",
       "resetAria": "Ripristina lo zoom al 100 %"
     },
-    "showAudioQualityFooter": {
-      "title": "Mostra la barra della qualità audio",
-      "subtitle": "Dettagli tecnici (kHz, kbps, codec, profondità in bit) sotto la barra di riproduzione. Disattivata per impostazione predefinita, per una barra più snella."
-    },
     "categoryNavLabel": "Categorie delle impostazioni",
     "appearance": {
       "theme": {

@@ -2728,10 +2728,6 @@
       "increaseAria": "Inzoomen",
       "resetAria": "Zoom terugzetten op 100%"
     },
-    "showAudioQualityFooter": {
-      "title": "Audiokwaliteitsbalk tonen",
-      "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de afspeelbalk. Standaard uit voor een smallere balk."
-    },
     "categoryNavLabel": "Instellingscategorieën",
     "appearance": {
       "theme": {
