@@ -4,7 +4,6 @@ import { Clock } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
-import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
   isPlayClick,
@@ -25,7 +24,6 @@ import {
   listLikedTrackIds,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 interface HistoryViewProps {
   onNavigateToAlbum: (albumId: number) => void;
@@ -129,7 +127,6 @@ export function HistoryView({
 }: HistoryViewProps) {
   const { value: singleClickPlay } = useSingleClickPlay();
   const { t, i18n } = useTranslation();
-  const createFromModal = useCreatePlaylistFromModal();
   const locale = i18n.language;
   const { playbackState, currentTrack, playTracks } = usePlayer();
 
@@ -139,8 +136,6 @@ export function HistoryView({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
   // `beforeMs` for the next page: the `played_at` of the oldest row
   // we already have. `null` = first page.
   const [cursor, setCursor] = useState<number | null>(null);
@@ -259,7 +254,6 @@ export function HistoryView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
   });
@@ -414,19 +408,6 @@ export function HistoryView({
           </ul>
         </aside>
       )}
-
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[HistoryView] create playlist failed", err);
-            throw err;
-          }
-        }}
-      />
 
       {trackContextMenu.render()}
     </div>

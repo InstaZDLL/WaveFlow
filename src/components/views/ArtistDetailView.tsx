@@ -15,7 +15,6 @@ import { Artwork } from "../common/Artwork";
 import { ArtistHeroBackdrop } from "../common/ArtistHeroBackdrop";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
-import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { ArtistImagePickerModal } from "../common/ArtistImagePickerModal";
 import { ArtistBackdropPickerModal } from "../common/ArtistBackdropPickerModal";
 import { ArtistMetadataEditorModal } from "../common/ArtistMetadataEditorModal";
@@ -57,7 +56,6 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 import type { Translator } from "../../lib/translator";
 
@@ -139,7 +137,6 @@ export function ArtistDetailView({
   onNavigateToArtist,
 }: ArtistDetailViewProps) {
   const { t } = useTranslation();
-  const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this artist came from. Everything keyed on a local rowid
   // is gated on it.
   const remote = remoteArtistId != null;
@@ -164,8 +161,6 @@ export function ArtistDetailView({
   // "artist not found" flash before the fetch effect schedules).
   const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
   const [isBackdropPickerOpen, setIsBackdropPickerOpen] = useState(false);
   const [isMetadataEditorOpen, setIsMetadataEditorOpen] = useState(false);
@@ -185,7 +180,6 @@ export function ArtistDetailView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     // No `onNavigateToArtist` — we're already on the artist page.
   });
@@ -896,19 +890,6 @@ export function ArtistDetailView({
           />
         </div>
       )}
-
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[ArtistDetailView] create playlist failed", err);
-            throw err;
-          }
-        }}
-      />
 
       {trackContextMenu.render()}
       {tileMenu.render()}

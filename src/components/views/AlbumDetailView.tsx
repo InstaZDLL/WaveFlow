@@ -22,7 +22,6 @@ import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
-import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { TagFetchModal } from "../common/TagFetchModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
 import { MotionCoverPickerModal } from "../common/MotionCoverPickerModal";
@@ -53,7 +52,6 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import type { Translator } from "../../lib/translator";
 
 /**
@@ -146,7 +144,6 @@ export function AlbumDetailView({
   onNavigateToRemoteArtist,
 }: AlbumDetailViewProps) {
   const { t } = useTranslation();
-  const createFromModal = useCreatePlaylistFromModal();
   // Which catalogue this album came from. Everything that touches a local
   // rowid, a file or the local user data is gated on it.
   const remote = remoteAlbumId != null;
@@ -179,8 +176,6 @@ export function AlbumDetailView({
   const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isTagFetchOpen, setIsTagFetchOpen] = useState(false);
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [isMotionCoverPickerOpen, setIsMotionCoverPickerOpen] = useState(false);
   const [coverReloadKey, setCoverReloadKey] = useState(0);
@@ -196,7 +191,6 @@ export function AlbumDetailView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     // No `onNavigateToAlbum` — we're already on the album page.
     onNavigateToArtist,
     selectedTrackIds: [...selection.selectedIds],
@@ -678,18 +672,6 @@ export function AlbumDetailView({
           onApplied={() => setEditRefetch((n) => n + 1)}
         />
       )}
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[AlbumDetailView] create playlist failed", err);
-            throw err;
-          }
-        }}
-      />
 
       {/* Mounted only for a local album: their buttons are hidden for a
           server one, but mounting them anyway would hand each a rowid that
@@ -732,7 +714,6 @@ export function AlbumDetailView({
           trackIds={[...selection.selectedIds]}
           context={{ type: "album", albumId }}
           onClear={selection.clear}
-          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
         />
       )}
     </div>

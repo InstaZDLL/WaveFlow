@@ -483,7 +483,6 @@ export function LibraryView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
     selectedTrackIds: [...selection.selectedIds],
@@ -2077,7 +2076,6 @@ export function LibraryView({
         <SelectionActionBar
           trackIds={[...selection.selectedIds]}
           onClear={selection.clear}
-          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
         />
       )}
     </div>

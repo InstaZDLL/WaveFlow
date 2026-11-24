@@ -6,18 +6,17 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { CreatePlaylistModal } from "../components/common/CreatePlaylistModal";
 import { useTrackContextMenu } from "./useTrackContextMenu";
 import { useProfile } from "./useProfile";
 import { listLikedTrackIds, type Track } from "../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "./useCreatePlaylistFromModal";
 
 /**
  * Track context menu for the player surfaces (ImmersiveView, QueuePanel)
  * that don't own a track list of their own. Bundles the liked-id lookup
- * and the "create playlist" modal the base [`useTrackContextMenu`] needs,
- * so a caller only wires `onContextMenu={(e) => open(e, track)}` on the
- * row and `{render()}` near its root — reaching "Show in Explorer" and
+ * the base [`useTrackContextMenu`] needs (which mounts its own "New
+ * playlist" dialog), so a caller only wires
+ * `onContextMenu={(e) => open(e, track)}` on the row and `{render()}`
+ * near its root — reaching "Show in Explorer" and
  * the rest of the menu from the immersive view and the queue (mail
  * reporter request).
  *
@@ -30,9 +29,7 @@ import { useCreatePlaylistFromModal } from "./useCreatePlaylistFromModal";
  */
 export function usePlayerTrackContextMenu() {
   const { activeProfile } = useProfile();
-  const createFromModal = useCreatePlaylistFromModal();
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   // Toggles the user made through `onLikedChanged` while the per-profile
   // fetch was still in flight. Re-applied on top of the fetched base so a
   // late response can't revert a like/unlike the user just performed.
@@ -80,7 +77,6 @@ export function usePlayerTrackContextMenu() {
         return next;
       });
     },
-    onCreatePlaylist: () => setIsCreatePlaylistOpen(true),
     enableRating: false,
   });
 
@@ -98,28 +94,7 @@ export function usePlayerTrackContextMenu() {
     [menu],
   );
 
-  const render = useCallback(
-    () => (
-      <>
-        {menu.render()}
-        <CreatePlaylistModal
-          isOpen={isCreatePlaylistOpen}
-          onClose={() => setIsCreatePlaylistOpen(false)}
-          onCreate={async (data) => {
-            try {
-              await createFromModal(data);
-            } catch (err) {
-              console.error(
-                "[usePlayerTrackContextMenu] create playlist failed",
-                err,
-              );
-            }
-          }}
-        />
-      </>
-    ),
-    [menu, isCreatePlaylistOpen, createFromModal],
-  );
+  const render = menu.render;
 
   return { open, openFromKeyboard, render };
 }

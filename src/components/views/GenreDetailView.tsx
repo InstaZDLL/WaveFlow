@@ -13,7 +13,6 @@ import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
-import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { GenreImagePickerModal } from "../common/GenreImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
@@ -32,7 +31,6 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import type { Translator } from "../../lib/translator";
 
 interface GenreDetailViewProps {
@@ -47,7 +45,6 @@ export function GenreDetailView({
   onNavigateToArtist,
 }: GenreDetailViewProps) {
   const { t } = useTranslation();
-  const createFromModal = useCreatePlaylistFromModal();
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
 
@@ -57,8 +54,6 @@ export function GenreDetailView({
   // "genre not found" flash before the fetch effect schedules).
   const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
 
   const trackContextMenu = useTrackContextMenu({
@@ -70,7 +65,6 @@ export function GenreDetailView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
   });
@@ -247,19 +241,6 @@ export function GenreDetailView({
         isOpen={isImagePickerOpen}
         onClose={() => setIsImagePickerOpen(false)}
         onSuccess={() => setEditRefetch((k) => k + 1)}
-      />
-
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[GenreDetailView] create playlist failed", err);
-            throw err;
-          }
-        }}
       />
 
       {trackContextMenu.render()}

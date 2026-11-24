@@ -4,7 +4,6 @@ import { Play, Shuffle, Music2, CalendarDays } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
-import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { DetailTrackTable } from "./GenreDetailView";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
@@ -15,7 +14,6 @@ import {
   listLikedTrackIds,
   toggleLikeTrack,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 
 interface YearDetailViewProps {
   /** `null` is the tracks with no usable year; `undefined`, no year was
@@ -36,7 +34,6 @@ export function YearDetailView({
   onNavigateToArtist,
 }: YearDetailViewProps) {
   const { t } = useTranslation();
-  const createFromModal = useCreatePlaylistFromModal();
   const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
     usePlayer();
 
@@ -44,8 +41,6 @@ export function YearDetailView({
   // Starts true so the skeleton paints first, not a "not found" flash.
   const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -56,7 +51,6 @@ export function YearDetailView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
   });
@@ -222,19 +216,6 @@ export function YearDetailView({
           className="py-20"
         />
       )}
-
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[YearDetailView] create playlist failed", err);
-            throw err;
-          }
-        }}
-      />
 
       {trackContextMenu.render()}
     </div>

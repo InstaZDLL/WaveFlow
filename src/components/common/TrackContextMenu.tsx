@@ -49,7 +49,8 @@ export interface TrackContextMenuProps {
   onAddToQueue: (trackId: number) => void;
   onStartRadio: (trackId: number) => void;
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
-  onCreatePlaylist: () => void;
+  /** "New playlist" with this track in it. */
+  onCreatePlaylist: (trackId: number) => void;
   onToggleLike: (trackId: number) => void;
   /** Set a 0-5 star rating, or `null` to clear. Wired through to
    *  the `set_track_rating` backend command (which writes POPM into
@@ -208,7 +209,7 @@ export function TrackContextMenu({
         <ContextMenuItem
           icon={<Plus size={14} />}
           label={t("trackActions.createPlaylist")}
-          onSelect={closeAfter(onCreatePlaylist)}
+          onSelect={closeAfter(() => onCreatePlaylist(track.id))}
         />
       </ContextMenuSub>
 

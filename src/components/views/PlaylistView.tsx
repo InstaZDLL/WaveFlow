@@ -268,8 +268,6 @@ export function PlaylistView({
     addTracksToPlaylist,
     refresh: refreshPlaylists,
   } = usePlaylist();
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
   // "Keep as playlist" on a mix: a smart playlist rebuilds itself, so the
   // tracks it holds today are gone at the next refresh unless copied.
   const [isKeepOpen, setIsKeepOpen] = useState(false);
@@ -737,15 +735,9 @@ export function PlaylistView({
     [],
   );
 
-  const handleOpenCreatePlaylistModal = useCallback(
-    () => setIsCreatePlaylistModalOpen(true),
-    [],
-  );
-
   const trackContextMenu = useTrackContextMenu({
     likedIds,
     onLikedChanged: handleLikedChanged,
-    onCreatePlaylist: handleOpenCreatePlaylistModal,
     onNavigateToAlbum,
     onNavigateToArtist,
     currentPlaylistId: playlistId,
@@ -1783,18 +1775,6 @@ export function PlaylistView({
           return created;
         }}
       />
-      <CreatePlaylistModal
-        isOpen={!remote && isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[PlaylistView] create playlist failed", err);
-            throw err;
-          }
-        }}
-      />
 
       {!remote && trackContextMenu.render()}
 
@@ -1803,7 +1783,6 @@ export function PlaylistView({
           trackIds={[...selection.selectedIds]}
           context={{ type: "playlist", playlistId }}
           onClear={selection.clear}
-          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
           onAfterRemoveFromPlaylist={(removedIds) => {
             const removed = new Set(removedIds);
             setTracks((prev) => prev.filter((t) => !removed.has(t.id)));
