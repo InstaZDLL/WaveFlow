@@ -106,12 +106,16 @@ fn the_os_default_is_judged_on_the_request() {
 }
 
 #[test]
-fn a_failed_open_after_a_fallback_rolls_back_to_the_os_default() {
+fn a_failed_open_after_a_fallback_rolls_back_to_the_endpoint_reached() {
     // The old stream asked for the pin and reached the speakers. Asking
     // for the pin again would retry the device that just refused, now
-    // that it is listed; the speakers come back as the OS default, not by
-    // name, so the caller can keep the pin as the request.
-    assert_eq!(rollback_target(Some(BUDS), Some(SPEAKERS)), None);
+    // that it is listed; and by then the returning headset is often the
+    // OS default again, so "the default" would retry it too. The speakers
+    // come back by name.
+    assert_eq!(
+        rollback_target(Some(BUDS), Some(SPEAKERS)),
+        Some(SPEAKERS.to_owned())
+    );
 }
 
 #[test]
@@ -120,12 +124,18 @@ fn a_failed_open_rolls_back_to_the_device_that_was_open() {
         rollback_target(Some(BUDS), Some(BUDS)),
         Some(BUDS.to_owned())
     );
-    assert_eq!(rollback_target(None, Some(SPEAKERS)), None);
+    // Unpinned: the endpoint the default was when it opened, whatever the
+    // default has become since. The caller writes `None` back as the
+    // request, so nothing gets pinned.
+    assert_eq!(
+        rollback_target(None, Some(SPEAKERS)),
+        Some(SPEAKERS.to_owned())
+    );
 }
 
 #[test]
 fn an_unnamed_output_keeps_its_request_on_rollback() {
-    // No evidence of a fallback: the request is all there is.
+    // Nothing better to go on than the request.
     assert_eq!(rollback_target(Some(BUDS), None), Some(BUDS.to_owned()));
     assert_eq!(rollback_target(None, None), None);
 }

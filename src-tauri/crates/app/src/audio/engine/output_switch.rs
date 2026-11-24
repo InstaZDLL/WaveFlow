@@ -551,10 +551,11 @@ impl AudioEngine {
         // Only a pre-release needs one: spawn-first leaves the old stream
         // installed when the new one fails.
         let mut previous_device = None;
-        // What to open for it: the same request, unless the old stream was
-        // known to be a fallback — see [`rollback_target`]. Picking a pinned
-        // device that is listed again but will not open used to come back
-        // here and retry it, leaving no output at all (#1165).
+        // What to open for it: the endpoint the old stream really reached —
+        // see [`rollback_target`]. Its request was the pin after a fallback,
+        // and picking a pinned device that is listed again but will not
+        // open used to come back here and retry it, leaving no output at
+        // all (#1165).
         let mut previous_target = None;
         if pre_release {
             if was_playing {

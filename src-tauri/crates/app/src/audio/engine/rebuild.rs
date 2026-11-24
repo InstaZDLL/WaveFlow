@@ -423,19 +423,18 @@ pub(super) fn pin_reopen_outcome(pinned: &str, landed: Option<&str>) -> FollowOu
 /// What to open when a replacement that released the old stream first
 /// will not open, so the user is not left with no output at all.
 ///
-/// The old stream's request (`asked`), unless it is known to have been a
-/// fallback: a request naming one endpoint while another opened. Asking
-/// for that pin again would retry the very device that just failed —
-/// once it is listed again it no longer falls back (#1165) — so the
-/// endpoint the fallback reached is reopened as the OS default instead.
-/// Not by its name: the caller keeps `asked` as the new handle's request,
-/// and a name there would quietly become the pin. An output that cannot
-/// name what it opened gives no such evidence, and keeps its request.
+/// The endpoint the old stream really opened, when it could name it —
+/// not its request. After a fallback the request is the pin, which is
+/// listed again and is the device that just refused (#1165); and not the
+/// OS default either, which a returning Bluetooth headset often is again
+/// by then. The lookup is by name and falls back to the default if that
+/// endpoint has gone too. An output that cannot name what it opened
+/// leaves its request as the best answer.
+///
+/// Only the device to open: both callers write the old request back onto
+/// the new handle, so the endpoint's name never becomes the pin.
 pub(super) fn rollback_target(asked: Option<&str>, opened: Option<&str>) -> Option<String> {
-    match (asked, opened) {
-        (Some(asked), Some(opened)) if asked != opened => None,
-        _ => asked.map(str::to_owned),
-    }
+    opened.or(asked).map(str::to_owned)
 }
 
 /// Whether a device pick can leave the stream alone.
