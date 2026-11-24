@@ -11,8 +11,9 @@ use super::{read_setting_i64, read_setting_string, write_setting_string};
 
 /// Randomize the queue, keeping the currently-playing track at
 /// position 0. Stashes the pre-shuffle ordering in
-/// `profile_setting['queue.preshuffle']` (JSON array of track ids, in
-/// their original order) so [`unshuffle`] can restore it.
+/// `profile_setting['queue.preshuffle']` (the entries' `queue_item.id`s,
+/// in their original order — see [`Preshuffle`]) so [`unshuffle`] can
+/// restore it.
 ///
 /// The tracks queued by hand and still to come are not shuffled: they
 /// follow the current track in the order they were queued, and the
@@ -38,7 +39,7 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
         .unwrap_or(0)
         .clamp(0, rows.len() as i64 - 1) as usize;
 
-    snapshot_preshuffle_order(pool, &rows.iter().map(|row| row.1).collect::<Vec<_>>()).await?;
+    snapshot_preshuffle_order(pool, &rows.iter().map(|row| row.0).collect::<Vec<_>>()).await?;
 
     // Build the new ordering: [current, ...waiting, ...shuffled rest].
     let (current, waiting, mut rest) = split_user_queue(&rows, current_index);
@@ -93,16 +94,36 @@ pub(super) fn split_user_queue(
 /// can now go from grouping tracks to grouping albums without passing
 /// through off. The queue-replacing paths clear the key, so "a
 /// snapshot exists" means "we are already shuffled" and nothing else.
-async fn snapshot_preshuffle_order(pool: &SqlitePool, ids: &[i64]) -> AppResult<()> {
+async fn snapshot_preshuffle_order(pool: &SqlitePool, row_ids: &[i64]) -> AppResult<()> {
     if read_setting_string(pool, "queue.preshuffle")
         .await?
         .is_some()
     {
         return Ok(());
     }
-    let json =
-        serde_json::to_string(ids).map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
+    let snapshot = Preshuffle::Rows {
+        rows: row_ids.to_vec(),
+    };
+    let json = serde_json::to_string(&snapshot)
+        .map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
     write_setting_string(pool, "queue.preshuffle", &json).await
+}
+
+/// What `queue.preshuffle` holds.
+///
+/// Entries, not tracks: a track queued twice is two entries, and only
+/// the entry's id says which copy went where. Matched by track id, the
+/// two copies of `[X, current, X queued by hand]` came back swapped,
+/// putting the hand-queued copy behind the cursor, where the next list
+/// started drops it as already played (#1168).
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+enum Preshuffle {
+    /// `{"rows": [queue_item.id, …]}`, written since #1168.
+    Rows { rows: Vec<i64> },
+    /// `[track_id, …]`, written before and still read: a snapshot
+    /// survives a restart, so an upgrade can find one.
+    Tracks(Vec<i64>),
 }
 
 /// Shuffle whole records instead of individual tracks (#618).
@@ -150,7 +171,7 @@ pub async fn shuffle_by_album(pool: &SqlitePool) -> AppResult<()> {
 
     // The order the listener built, so turning shuffle off restores it
     // exactly as it does after a track shuffle.
-    snapshot_preshuffle_order(pool, &rows.iter().map(|row| row.1).collect::<Vec<_>>()).await?;
+    snapshot_preshuffle_order(pool, &rows.iter().map(|row| row.0).collect::<Vec<_>>()).await?;
 
     let shuffled: Vec<QueuedRow> = rows
         .iter()
@@ -265,21 +286,18 @@ pub(super) fn album_runs(rows: &[QueuedAlbumTrack], current_id: i64) -> Vec<Vec<
 /// the cursor onto the currently-playing entry's position in that
 /// restored ordering.
 ///
-/// The snapshot holds track ids; each is matched to an entry of the
-/// queue, one per occurrence in queue order, so a track queued twice
-/// puts both entries back. A track no longer in the queue — removed
-/// with its folder, which cascades without touching the snapshot — is
-/// skipped rather than queued again.
+/// The snapshot names the entries themselves. An entry no longer in the
+/// queue — removed with its folder, which cascades without touching the
+/// snapshot — is skipped rather than queued again. A snapshot from
+/// before #1168 names tracks instead, each matched to an entry one per
+/// occurrence in queue order.
 pub async fn unshuffle(pool: &SqlitePool) -> AppResult<()> {
     let json = match read_setting_string(pool, "queue.preshuffle").await? {
         Some(s) => s,
         None => return Ok(()),
     };
-    let original: Vec<i64> = serde_json::from_str(&json)
+    let original: Preshuffle = serde_json::from_str(&json)
         .map_err(|e| AppError::Other(format!("preshuffle parse: {e}")))?;
-    if original.is_empty() {
-        return Ok(());
-    }
 
     let rows: Vec<(i64, i64)> =
         sqlx::query_as("SELECT id, track_id FROM queue_item ORDER BY position")
@@ -290,14 +308,19 @@ pub async fn unshuffle(pool: &SqlitePool) -> AppResult<()> {
             .await?
             .unwrap_or(0)
             .clamp(0, rows.len() as i64 - 1) as usize;
-        let mut entries: HashMap<i64, VecDeque<i64>> = HashMap::new();
-        for (row_id, track_id) in &rows {
-            entries.entry(*track_id).or_default().push_back(*row_id);
-        }
-        let ordered: Vec<i64> = original
-            .iter()
-            .filter_map(|track_id| entries.get_mut(track_id).and_then(VecDeque::pop_front))
-            .collect();
+        let ordered: Vec<i64> = match original {
+            Preshuffle::Rows { rows } => rows,
+            Preshuffle::Tracks(tracks) => {
+                let mut entries: HashMap<i64, VecDeque<i64>> = HashMap::new();
+                for (row_id, track_id) in &rows {
+                    entries.entry(*track_id).or_default().push_back(*row_id);
+                }
+                tracks
+                    .iter()
+                    .filter_map(|track_id| entries.get_mut(track_id).and_then(VecDeque::pop_front))
+                    .collect()
+            }
+        };
         write_row_order(pool, &ordered, rows[current_index].0).await?;
     }
     sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")

@@ -448,3 +448,63 @@ async fn unshuffle_skips_a_track_removed_since() {
     assert_eq!(positions, vec![0, 1, 2]);
     assert_eq!(current_track(&pool).await.unwrap().unwrap().id, 2);
 }
+
+/// Turning shuffle off puts each entry back in its own place, not each
+/// track: with the same track once in the list and once queued by
+/// hand, matching by track id swapped the two copies and left the
+/// hand-queued one behind the cursor, where the next list dropped it.
+#[tokio::test]
+async fn unshuffle_puts_each_copy_of_a_track_back_in_its_place() {
+    let pool = pool_with_tracks().await;
+    fill_queue(&pool, "album", Some(1), &[1, 2], 1, false, UserQueue::Drop)
+        .await
+        .unwrap();
+    append_to_user_queue(&pool, &[1], None).await.unwrap();
+    let before = rows(&pool).await;
+    assert_eq!(
+        before,
+        vec![
+            (1, "album".to_string(), false),
+            (2, "album".to_string(), false),
+            manual(1)
+        ]
+    );
+
+    apply_shuffle_mode(&pool, ShuffleMode::Tracks)
+        .await
+        .unwrap();
+    apply_shuffle_mode(&pool, ShuffleMode::Off).await.unwrap();
+    assert_eq!(rows(&pool).await, before);
+    assert_eq!(super::current_index(&pool).await, 1);
+
+    fill_queue(&pool, "album", Some(2), &[4], 0, false, UserQueue::Keep)
+        .await
+        .unwrap();
+    assert_eq!(rows(&pool).await[1], manual(1), "still queued");
+}
+
+/// A snapshot written before entries were recorded names tracks, and
+/// is still read: it survives a restart, so an upgrade can find one.
+#[tokio::test]
+async fn unshuffle_reads_a_snapshot_of_track_ids() {
+    let pool = pool_with_tracks().await;
+    fill_queue(
+        &pool,
+        "album",
+        Some(1),
+        &[3, 1, 2],
+        1,
+        false,
+        UserQueue::Drop,
+    )
+    .await
+    .unwrap();
+    super::write_setting_string(&pool, "queue.preshuffle", "[1,2,3]")
+        .await
+        .unwrap();
+
+    apply_shuffle_mode(&pool, ShuffleMode::Off).await.unwrap();
+
+    assert_eq!(track_order(&pool).await, vec![1, 2, 3]);
+    assert_eq!(current_track(&pool).await.unwrap().unwrap().id, 1);
+}
