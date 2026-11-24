@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -56,6 +62,9 @@ import {
 } from "../../lib/tauri/browse";
 import { endCornerOrigin } from "../../lib/direction";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
+import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
+import { useAnyModalOpen } from "../../hooks/useModalA11y";
+import { OPEN_TAG_WORKSHOP_EVENT } from "../../lib/tagWorkshop";
 
 interface TopBarProps {
   activeView: ViewId;
@@ -306,10 +315,6 @@ export function TopBar({
     closeSearch();
   };
 
-  // Right-click on an artist or album result: pin it to the sidebar.
-  const resultMenu = useAlbumArtistContextMenu();
-  const resultMenuOpen = resultMenu.isOpen;
-
   const handleAlbumResultClick = (id: number) => {
     remember(resultsQueryRef.current);
     onNavigateToAlbum(id);
@@ -321,6 +326,22 @@ export function TopBar({
     onNavigateToArtist(id);
     closeSearch();
   };
+
+  // Right-click on an artist or album result: pin it to the sidebar.
+  const resultMenu = useAlbumArtistContextMenu();
+  // Right-click on a track result: the menu every track list has (#1170).
+  // Queue, playlist, like and rating leave the results open, to take
+  // several tracks from one search; going to the album or the artist is
+  // going somewhere from it, like a click on that result.
+  const trackMenu = usePlayerTrackContextMenu({
+    enableRating: true,
+    onNavigateToAlbum: handleAlbumResultClick,
+    onNavigateToArtist: handleArtistResultClick,
+  });
+  const resultMenuOpen = resultMenu.isOpen || trackMenu.isOpen;
+  // A dialog opened from a result's menu (properties, new playlist…)
+  // holds Escape and its own clicks: neither closes the results under it.
+  const dialogOpen = useAnyModalOpen();
 
   const runRecentSearch = (query: string) => {
     if (searchTimerRef.current != null) {
@@ -365,9 +386,28 @@ export function TopBar({
     return () => window.removeEventListener(FOCUS_SEARCH_EVENT, focus);
   }, []);
 
+  // "Edit tags" in a result's menu (an album's, a track's) opens the tag
+  // workshop's view: going somewhere from the search, like a result's
+  // click. The layout opens the view on the same event.
+  const closeSearchRef = useRef(closeSearch);
+  useLayoutEffect(() => {
+    closeSearchRef.current = closeSearch;
+  });
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    const onOpenWorkshop = () => {
+      remember(resultsQueryRef.current);
+      closeSearchRef.current();
+    };
+    window.addEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpenWorkshop);
+    return () =>
+      window.removeEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpenWorkshop);
+  }, [isSearchOpen, remember]);
+
   // Close search dropdown / filter panel on click outside.
   useEffect(() => {
     if (!isSearchOpen && !filtersOpen) return;
+    if (dialogOpen) return;
     const handleClick = (e: MouseEvent) => {
       // A result's right-click menu is portalled out of the dropdown;
       // choosing in it is not a click away from the results.
@@ -391,7 +431,7 @@ export function TopBar({
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [isSearchOpen, filtersOpen, resultMenuOpen]);
+  }, [isSearchOpen, filtersOpen, resultMenuOpen, dialogOpen]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -854,6 +894,10 @@ export function TopBar({
                             onClick={() =>
                               handleSearchResultClick(searchResults, index)
                             }
+                            onContextMenu={(e) => trackMenu.open(e, track)}
+                            onKeyDown={(e) =>
+                              trackMenu.openFromKeyboard(e, track)
+                            }
                             className="flex w-full items-center space-x-3 px-4 py-2.5 text-start hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
@@ -1056,6 +1100,10 @@ export function TopBar({
         </div>
       </div>
       {resultMenu.render()}
+      {/* Outside the dropdown, so a dialog opened from the menu outlives
+          the results; the menu and every dialog are portalled out of the
+          header's `backdrop-filter`. */}
+      {trackMenu.render()}
     </header>
   );
 }
