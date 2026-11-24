@@ -195,6 +195,15 @@ function toPlaylist(
   };
 }
 
+/** What "Keep as playlist" copies out of a mix: in the order shown, local
+ *  rows only — a mix holds library tracks, and a copy is what the user
+ *  sees right now. */
+function keptMixTrackIds(tracks: PlaylistTrack[]): number[] {
+  return tracks
+    .filter((track) => track.source !== "remote" && track.id > 0)
+    .map((track) => track.id);
+}
+
 /** Cross-platform basename — handles both Windows (`\`) and POSIX
  *  (`/`) separators since profiles can ship libraries scanned on
  *  either OS, and an imported `.waveflow` archive may cross
@@ -1752,13 +1761,15 @@ export function PlaylistView({
         isOpen={!remote && isKeepOpen}
         onClose={() => setIsKeepOpen(false)}
         initialName={playlist?.name ?? ""}
+        // Distinct ids: the add skips a track the copy already holds.
+        incomingTrackCount={
+          isKeepOpen ? new Set(keptMixTrackIds(displayTracks)).size : undefined
+        }
         onCreate={async (data) => {
+          // Read before the create, at the moment the preview's count
+          // was taken: the mix may be rebuilt while it runs.
+          const ids = keptMixTrackIds(displayTracksRef.current);
           const created = await createFromModal(data);
-          // In the order shown, local rows only: a mix holds library
-          // tracks, and a copy is what the user sees right now.
-          const ids = displayTracksRef.current
-            .filter((track) => track.source !== "remote" && track.id > 0)
-            .map((track) => track.id);
           if (created?.id != null && ids.length > 0) {
             try {
               await addTracksToPlaylist(created.id, ids);

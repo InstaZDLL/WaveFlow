@@ -1280,6 +1280,8 @@
     "editTitle": "Sunting daftar putar",
     "previewDefault": "Daftar putar baru",
     "previewSubtitle": "0 lagu · Daftar putar",
+    "previewSubtitleCount_other": "{{count}} lagu · Daftar putar",
+    "previewSubtitleUncounted": "Daftar putar",
     "nameLabel": "Nama",
     "namePlaceholder": "mis. Chill Vibes, Workout Mix…",
     "descriptionLabel": "Deskripsi",

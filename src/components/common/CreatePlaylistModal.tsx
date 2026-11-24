@@ -61,6 +61,16 @@ interface CreatePlaylistModalProps {
    */
   initialName?: string;
   /**
+   * How many tracks the parent adds to the new playlist once it exists —
+   * a folder's, an album's, a saved queue's — so the preview counts what
+   * the playlist will hold rather than the empty row the create makes.
+   * Omitted or `0`: the playlist stays empty and the preview says so.
+   * `null`: tracks are added but the parent cannot count them without
+   * asking the backend, and the preview names no number rather than a
+   * wrong one. Ignored in edit mode.
+   */
+  incomingTrackCount?: number | null;
+  /**
    * Called whenever the cover changes from inside the modal (upload or
    * remove). The parent should refresh its playlist state so the new
    * `cover_path` flows down on the next render. Only meaningful in edit
@@ -75,6 +85,7 @@ export function CreatePlaylistModal({
   onCreate,
   existing,
   initialName,
+  incomingTrackCount,
   onCoverChanged,
 }: CreatePlaylistModalProps) {
   const { t } = useTranslation();
@@ -111,6 +122,17 @@ export function CreatePlaylistModal({
   // never render the (unlocalized) option.
   const remote = useRemoteSource();
   const [alsoOnServer, setAlsoOnServer] = useState(false);
+  // `incomingTrackCount` as it stood when "Create" was pressed, which is
+  // what the parent's add after the create inserts. The preview shows it
+  // from then on: a queue that moves while a cover uploads must not
+  // make the preview count tracks the playlist did not receive. `null`
+  // until a submit, and again after one that failed.
+  const [submittedCount, setSubmittedCount] = useState<{
+    value: number | null | undefined;
+  } | null>(null);
+  const previewTrackCount = submittedCount
+    ? submittedCount.value
+    : incomingTrackCount;
 
   // Reset on close OR re-sync when `existing` changes (reopening the modal
   // on a different playlist). See CreateLibraryModal for why the new
@@ -126,6 +148,7 @@ export function CreatePlaylistModal({
       setPendingCoverPath(null);
       setPendingCoverPreviewUrl(null);
       setCreatedPlaylistId(null);
+      setSubmittedCount(null);
       setSubmitError(null);
       setAlsoOnServer(false);
       // Also collapse the cover "..." menu — call sites mount this
@@ -272,6 +295,7 @@ export function CreatePlaylistModal({
       return;
     setIsSubmitting(true);
     setSubmitError(null);
+    setSubmittedCount({ value: incomingTrackCount });
     try {
       const created = await onCreate({
         name: name.trim(),
@@ -287,10 +311,12 @@ export function CreatePlaylistModal({
         setCreatedPlaylistId(created.id);
         await finishCover(created.id);
       } else {
+        setSubmittedCount(null);
         setSubmitError(t("playlistModal.createError"));
       }
     } catch (err) {
       console.error("[CreatePlaylistModal] submit failed", err);
+      setSubmittedCount(null);
       setSubmitError(
         t(isEdit ? "playlistModal.editError" : "playlistModal.createError"),
       );
@@ -477,7 +503,13 @@ export function CreatePlaylistModal({
                 {displayName}
               </div>
               <div className={`text-xs ${previewInkSoft}`}>
-                {t("playlistModal.previewSubtitle")}
+                {previewTrackCount === null
+                  ? t("playlistModal.previewSubtitleUncounted")
+                  : previewTrackCount
+                    ? t("playlistModal.previewSubtitleCount", {
+                        count: previewTrackCount,
+                      })
+                    : t("playlistModal.previewSubtitle")}
               </div>
             </div>
           </div>

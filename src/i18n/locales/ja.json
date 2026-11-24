@@ -1280,6 +1280,8 @@
     "editTitle": "プレイリストを編集する",
     "previewDefault": "新しいプレイリスト",
     "previewSubtitle": "0曲 · プレイリスト",
+    "previewSubtitleCount_other": "{{count}}曲 · プレイリスト",
+    "previewSubtitleUncounted": "プレイリスト",
     "nameLabel": "名前",
     "namePlaceholder": "例：チル、ワークアウトミックス…",
     "descriptionLabel": "説明",

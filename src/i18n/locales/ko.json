@@ -1280,6 +1280,8 @@
     "editTitle": "재생 목록 수정",
     "previewDefault": "새 재생 목록",
     "previewSubtitle": "0곡 · 재생 목록",
+    "previewSubtitleCount_other": "{{count}}곡 · 재생 목록",
+    "previewSubtitleUncounted": "재생 목록",
     "nameLabel": "이름",
     "namePlaceholder": "예: Chill Vibes, Workout Mix…",
     "descriptionLabel": "설명",

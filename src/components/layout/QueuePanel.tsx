@@ -282,11 +282,15 @@ export function QueuePanel({
         initialName={t("queue.defaultPlaylistName", {
           date: new Date().toLocaleDateString(i18n.language),
         })}
+        // Distinct ids: a track queued twice is one playlist row.
+        incomingTrackCount={
+          isSaveOpen ? new Set(savableQueueIds(items)).size : undefined
+        }
         onCreate={async (data) => {
+          // Read before the create, at the moment the preview's count
+          // was taken: the queue may move while it runs.
+          const ids = savableQueueIds(items);
           const created = await createFromModal(data);
-          // Library rows only: a negative id is a sentinel for a row
-          // with no local track, which no playlist can hold.
-          const ids = items.map((item) => item.id).filter((id) => id > 0);
           if (created?.id != null && ids.length > 0) {
             try {
               await addTracksToPlaylist(created.id, ids);
@@ -385,6 +389,13 @@ export function QueuePanel({
       {body}
     </motion.aside>
   );
+}
+
+/** What saving the queue as a playlist adds, in queue order. Library rows
+ *  only: a negative id is a sentinel for a row with no local track, which
+ *  no playlist can hold. */
+function savableQueueIds(items: QueueTrackPayload[]): number[] {
+  return items.map((item) => item.id).filter((id) => id > 0);
 }
 
 /**
