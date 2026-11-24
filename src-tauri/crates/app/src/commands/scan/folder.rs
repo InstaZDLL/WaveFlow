@@ -1854,6 +1854,19 @@ pub(crate) async fn scan_folder_inner(
     }
     let placeholders_ms = t_pass.elapsed().as_millis();
 
+    // Custom smart playlists hold their tracks, they do not compute them
+    // on read: a track the scan brought in, retagged or lost joins or
+    // leaves one only when its rules run again (#1169). Under the same
+    // condition as the placeholders, so a watcher rescan that changed
+    // nothing costs nothing; once per scan, never per file; after the
+    // last batch, reading without the lock and writing only the
+    // playlists that changed.
+    let t_pass = Instant::now();
+    if brought_tracks {
+        crate::commands::smart_playlists::refresh_custom_after_change(pool, app_handle).await;
+    }
+    let smart_playlists_ms = t_pass.elapsed().as_millis();
+
     // Marked whatever the individual files turned out to hold: the
     // point of the pass is that every file was *read once*, and a
     // folder of tracks that carry no custom tags must not be re-read on
@@ -1931,6 +1944,7 @@ pub(crate) async fn scan_folder_inner(
         covers_ms,
         plays_ms,
         placeholders_ms,
+        smart_playlists_ms,
         markers_ms,
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,

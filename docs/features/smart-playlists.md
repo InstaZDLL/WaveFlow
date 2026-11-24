@@ -50,11 +50,11 @@ Lookback is **90 days** so a one-off binge doesn't dominate forever. Below `MIN_
 
 Each artist is routed to **one** bucket based on the average **energy** of their tracks (analysis version 2, 0 calm to 1 intense — [library.md](library.md#tempo-and-energy-analysis-version-2)):
 
-| Slot | Label                | Energy         | Tempo, for older rows |
-| ---- | -------------------- | -------------- | --------------------- |
-| 1    | Daily Mix 1 (Calm)   | `< 0.4`        | `< 95`                |
-| 2    | Daily Mix 2 (Groove) | `[0.4, 0.65)`  | `[95, 130)`           |
-| 3    | Daily Mix 3 (Energy) | `≥ 0.65`       | `≥ 130`               |
+| Slot | Label                | Energy        | Tempo, for older rows |
+| ---- | -------------------- | ------------- | --------------------- |
+| 1    | Daily Mix 1 (Calm)   | `< 0.4`       | `< 95`                |
+| 2    | Daily Mix 2 (Groove) | `[0.4, 0.65)` | `[95, 130)`           |
+| 3    | Daily Mix 3 (Energy) | `≥ 0.65`      | `≥ 130`               |
 
 The tempo was the only measure before, and a poor one here: a slow song can be intense and a fast one airy, and a tempo read an octave out moved an artist into the wrong mix outright. Measured on a real library (829 artists, `analysis_bench`), the tempo rule put 407 of 670 artists in Groove; the energy cuts are that library's per-artist tertiles (0.39 / 0.66, rounded), and give 266 / 278 / 285. An artist whose tracks were analysed before energy existed falls back to the tempo column until the sweep re-measures them, and one with **no** analysis at all goes to slot 2 — a missing analysis doesn't black-hole an artist.
 
@@ -308,7 +308,32 @@ Bounds on a nullable column (`sample_rate`, `bit_depth`, `disc_number`, `year`, 
 
 The clock is a parameter, not a call inside the builder: `run_query_at` / `count_matches_at` take `now_ms`, so the relative windows are testable against a pinned instant instead of racing midnight. `run_query` / `count_matches` read the clock and delegate.
 
-`custom::materialize` rewrites `playlist_track` in a transaction so a partial failure can't leave the playlist half-empty. `playlist.smart_rules` stores the full `Custom { rules }` JSON so a future regen pass can re-evaluate the same rule set without the editor reopening.
+`custom::materialize` rewrites `playlist_track` in a transaction so a partial failure can't leave the playlist half-empty. `playlist.smart_rules` stores the full `Custom { rules }` JSON so the refresh below can re-evaluate the same rule set without the editor reopening.
+
+Every order but `random` ends on the track id (`t.added_at DESC, t.id DESC`, `t.title ASC, t.id ASC`, …): one scan batch shares its `added_at` and two songs share a title, and the refresh compares lists — a tie two identical queries could resolve differently would read as a change.
+
+### Keeping up with the library
+
+The membership is **stored**, not computed on read, so a track is in or out of a custom playlist only when its rules run again. Before #1169, only saving the rules ran them: a file that matched, copied in and scanned, never joined the playlist until it was deleted and made again.
+
+`custom::refresh_all` runs every custom playlist's stored rules and writes **only the playlists whose list changed** — reading without the write lock, then one `begin_write_on` transaction per changed playlist, which re-reads `smart_rules` under the lock and skips the playlist if the user saved new rules in the meantime (that save materialized its own list). A track it already held keeps its `playlist_track.added_at`; a newcomer is dated now; `playlist.updated_at` is bumped, which is what the playlist view refetches on. A `random` playlist is not drawn again: it keeps the tracks it holds that still match, in their order, and fills only the room the limit leaves (`keep_then_top_up`), so a watcher noticing a file does not reshuffle it. The generated families (Daily Mix, On Repeat, Release Radar, the mixes) are not touched: they share the column and have their generators.
+
+The app calls it through [`refresh_custom_after_change`](../../src-tauri/crates/app/src/commands/smart_playlists.rs), which retries a busy database (the pass is idempotent), never fails its caller and emits `playlist:changed` for each playlist it wrote:
+
+| When                                                                                                            | Where                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| After a scan's last batch, when the scan added, rewrote, relinked or lost a track (the placeholders' condition) | `scan_folder_inner` — which is also the watcher's rescan, the startup scan, a remote import, a file replaced and a track re-read from disk |
+| After a tag edit, one track or a batch                                                                          | `update_track_tags`, `update_tracks_batch`                                                                                                 |
+| After a tag workshop batch, and its undo                                                                        | `tag_workshop_apply`, `tag_workshop_undo`                                                                                                  |
+| After an artist split                                                                                           | `split_artist`                                                                                                                             |
+| After duplicates are moved to the trash and a folder is removed                                                 | `move_tracks_to_trash`, `remove_folder_inner` — the rows leave by cascade, and a playlist at its limit takes the next match                |
+| After enrichment fills or undoes an album, and at the end of a pass that changed something                      | `enrichment_accept_album`, `enrichment_undo_album`, `enrichment_forget_album`, the engine's `run_pass`                                     |
+| At the end of a library analysis that measured something (BPM, fake lossless)                                   | `run_reserved`                                                                                                                             |
+| Once a launch, after the startup scan or in its place                                                           | `startup/setup.rs` — the relative windows ("added in the last 30 days") move with the calendar and nothing else                            |
+
+The background ones (enrichment's pass, analysis, startup) go through `refresh_custom_in_background`, which parks while a scan is in flight. A pass costs one query per custom playlist and no write when nothing changed; it never runs per file.
+
+**Not refreshed on a play, a like or a rating.** The rules on plays (`play_count_*`, `played_in_last_days`), on `liked` and on `rating_min` read state that changes with listening; those playlists catch up at the next pass above, not as the user listens.
 
 ### v1 → v2 auto-migration
 
@@ -320,7 +345,7 @@ Pre-tree user data lives in flat predicates (`title_contains: "foo", year_min: 2
 
 - `create_custom_smart_playlist(input)` — insert the row + materialise tracks.
 - `update_custom_smart_playlist(playlist_id, input)` — update + re-materialise. Errors out when the target isn't a custom smart playlist (e.g. a Daily Mix slot or a manual playlist) so the editor never overwrites a wrong row.
-- `regenerate_custom_smart_playlist(playlist_id)` — re-runs the stored rules without changing the definition. Useful after a library import so newly added tracks get picked up.
+- `regenerate_custom_smart_playlist(playlist_id)` — re-runs the stored rules without changing the definition, one playlist, rewriting it whether or not it changed (no frontend caller today; the library changes go through `refresh_all` above).
 - `get_custom_smart_playlist_rules(playlist_id)` — rehydrates the editor.
 - `count_custom_smart_playlist(rules)` — what the rules match right now, as `{ total, kept }`: every available track the tree matches, and what survives the limit. `COUNT(*)` only — no sort, no truncation, no ids crossing the IPC boundary, because the editor calls it after every edit. It replaces the old `preview_custom_smart_playlist`, whose first-200-ids half no caller ever used and whose count the live counter now serves.
 

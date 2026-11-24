@@ -584,6 +584,56 @@ mod sql_tests {
         assert!(s.contains(" AND "));
         assert!(s.contains("NOT ("));
     }
+
+    /// A refresh of a random playlist keeps what still matches, where it
+    /// was, and fills only the room the limit leaves.
+    #[test]
+    fn a_random_playlist_keeps_its_draw_through_a_refresh() {
+        // Held 1, 2, 3; 2 no longer matches; 4 and 5 are new matches.
+        let shuffled = [5, 3, 4, 1];
+        assert_eq!(
+            keep_then_top_up([1, 2, 3].into_iter(), &shuffled, 3),
+            vec![1, 3, 5],
+            "the kept tracks first, in their order, then the draw"
+        );
+        assert_eq!(
+            keep_then_top_up([1, 2, 3].into_iter(), &shuffled, 10),
+            vec![1, 3, 5, 4],
+            "room for every match"
+        );
+        assert_eq!(
+            keep_then_top_up([1, 3, 5, 4].into_iter(), &shuffled, 2),
+            vec![1, 3],
+            "a lower limit cuts from the end"
+        );
+        assert_eq!(
+            keep_then_top_up(std::iter::empty(), &shuffled, 2),
+            vec![5, 3],
+            "an empty playlist takes the draw as it comes"
+        );
+    }
+
+    /// Ties under the sort key come out in one order, every time: the
+    /// refresh compares lists, and a tie resolved differently by two
+    /// runs of the same query would read as a change.
+    #[tokio::test]
+    async fn ties_under_the_sort_key_have_one_order() {
+        let pool = fixture_pool(NOW).await;
+        sqlx::query("UPDATE track SET added_at = ?, title = 'Same' WHERE id IN (1, 2)")
+            .bind(NOW)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let mut r = rules(RuleNode::All { children: vec![] });
+        for (sort, expected) in [
+            (CustomSort::AddedDesc, vec![2, 1]),
+            (CustomSort::AddedAsc, vec![1, 2]),
+            (CustomSort::TitleAsc, vec![1, 2]),
+        ] {
+            r.sort = Some(sort);
+            assert_eq!(run_query_at(&pool, &r, NOW).await.unwrap(), expected);
+        }
+    }
 }
 
 #[test]

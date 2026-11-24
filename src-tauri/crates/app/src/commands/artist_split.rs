@@ -70,6 +70,9 @@ pub async fn split_artist(
 ) -> AppResult<SplitArtistResult> {
     let pool = state.require_profile_pool_for(expected_profile_id).await?;
     let result = split_artist_inner(&pool, artist_id).await?;
+    // The tracks now credit artists of other names: a rule on the artist
+    // matches another set of them (#1169).
+    crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
 
     // Announce it, like every other command that rewrites library rows
     // (`edit`, `duplicates`, `library`, the filesystem watcher). This

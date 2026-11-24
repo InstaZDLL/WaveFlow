@@ -298,6 +298,72 @@ pub async fn count_custom_smart_playlist(
     Ok(custom::count_matches(&pool, &rules).await?)
 }
 
+/// Retries of the whole pass when the database is busy.
+const REFRESH_ATTEMPTS: usize = 4;
+
+/// Bring the custom smart playlists in line with the library after a
+/// write that may have changed what their rules match — a scan, a tag
+/// edit, tracks deleted — and say which changed (#1169).
+///
+/// Never fails its caller: the write that called it already happened,
+/// and a playlist that lags behind it until the next pass is not worth
+/// undoing that for. A busy database is waited out a few times, which is
+/// safe because the pass is idempotent; past that, or on any other error,
+/// it is logged and the next pass catches up.
+pub(crate) async fn refresh_custom_after_change(
+    pool: &sqlx::SqlitePool,
+    app: Option<&AppHandle>,
+) -> usize {
+    use waveflow_core::error::CoreError;
+    let mut backoff = std::time::Duration::from_millis(50);
+    for attempt in 1..=REFRESH_ATTEMPTS {
+        match custom::refresh_all(pool).await {
+            Ok(changed) => {
+                if !changed.is_empty() {
+                    tracing::info!(
+                        playlists = changed.len(),
+                        "custom smart playlists refreshed"
+                    );
+                }
+                if let Some(app) = app {
+                    for playlist_id in &changed {
+                        let _ = app.emit("playlist:changed", *playlist_id);
+                    }
+                }
+                return changed.len();
+            }
+            Err(CoreError::Database(err))
+                if custom::is_busy(&err) && attempt < REFRESH_ATTEMPTS =>
+            {
+                tokio::time::sleep(backoff).await;
+                backoff *= 2;
+            }
+            // The profile was closed under the pass: the app quitting or
+            // a switch to another profile. The next pass on it catches up.
+            Err(CoreError::Database(sqlx::Error::PoolClosed)) => return 0,
+            Err(err) => {
+                tracing::warn!(%err, "custom smart playlist refresh failed (non-fatal)");
+                return 0;
+            }
+        }
+    }
+    0
+}
+
+/// [`refresh_custom_after_change`] for a background pass: it waits while a
+/// scan holds the single writer, as every background writer does. The
+/// scan is the pass the user is watching, and it refreshes these
+/// playlists itself once its last batch is in.
+pub(crate) async fn refresh_custom_in_background(
+    pool: &sqlx::SqlitePool,
+    app: Option<&AppHandle>,
+) -> usize {
+    while crate::commands::scan::scan_in_flight() {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    }
+    refresh_custom_after_change(pool, app).await
+}
+
 fn is_custom_payload(raw: Option<&str>) -> bool {
     let Some(raw) = raw else {
         return false;

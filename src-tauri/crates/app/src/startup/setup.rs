@@ -298,6 +298,11 @@ pub(crate) fn setup(
             // one (`maybe_auto_analyze` honours the toggle).
             commands::analysis::maybe_auto_analyze(&scan_handle);
             commands::enrichment::maybe_run(&scan_handle);
+            // A rule's relative window ("added in the last 30 days")
+            // moves with the calendar and with nothing else: once a
+            // launch, the custom smart playlists catch up with it.
+            commands::smart_playlists::refresh_custom_in_background(&pool, Some(&scan_handle))
+                .await;
             return;
         }
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -332,6 +337,9 @@ pub(crate) fn setup(
         // a scan that added nothing triggers none of its own.
         commands::analysis::maybe_auto_analyze(&scan_handle);
         commands::enrichment::maybe_run(&scan_handle);
+        // Whether or not the walk changed anything: the relative
+        // windows moved with the calendar since the last launch.
+        commands::smart_playlists::refresh_custom_in_background(&pool, Some(&scan_handle)).await;
     });
 
     // OS media controls (SMTC / MPRIS / MediaRemote) via

@@ -323,6 +323,9 @@ pub async fn move_tracks_to_trash(
         // Ship the per-track delete ops now rather than at the drain's
         // next idle poll, like every other sync-emitting command.
         state.drain.notify();
+        // The deleted rows left the playlists that held them; a custom
+        // smart playlist at its limit takes the next match in their place.
+        crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
         let _ = app.emit("library:rescanned", ());
     }
     Ok(report)

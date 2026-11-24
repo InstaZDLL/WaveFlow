@@ -321,6 +321,10 @@ pub async fn update_track_tags(
     //    track in a weird intermediate state.
     sync_db(&pool, track_id, &edit).await?;
 
+    // A new title, artist, genre or year can move the track into or out
+    // of a custom smart playlist's rules (#1169).
+    crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
+
     // 5. Emit a typed event so any open view can refresh the affected
     //    track without reloading everything. Payload is the track ID
     //    so the frontend doesn't need a hash to know what changed.
@@ -460,6 +464,12 @@ pub async fn update_tracks_batch(
 
         summary.updated += 1;
         let _ = app.emit("track:updated", *track_id);
+    }
+
+    // Once for the batch, like the events below: the custom smart
+    // playlists whose rules the new tags move a track into or out of.
+    if summary.updated > 0 {
+        crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
     }
 
     // Single library + queue refresh at the end — every consumer view

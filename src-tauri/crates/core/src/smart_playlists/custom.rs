@@ -20,11 +20,18 @@
 //!
 //! ## Refresh strategy
 //!
-//! Re-evaluated on demand (`regenerate_custom_smart_playlist`) and
-//! once at app startup so tracks imported since the last run are
-//! picked up. Live re-materialize on every library write would be
-//! wasteful (a 10k import would burn it once per file); the
-//! on-startup pass is the practical compromise.
+//! Materialized when the rules are saved, then kept in line with the
+//! library by [`refresh_all`]: the app runs it once a scan has committed
+//! its last batch (the watcher's rescans and imports go through the same
+//! scan), after the writes that change what a rule reads without a scan
+//! (tag edits, enrichment, analysis, tracks deleted), and once at
+//! startup, which is what moves the relative windows ("added in the last
+//! 30 days") along with the calendar. Never once per file: a 10k import
+//! runs it once, at its end.
+//!
+//! The pass reads without the write lock and writes only the playlists
+//! whose membership or order actually changed, so a rescan that found
+//! nothing new costs one query per custom playlist and no write.
 
 use serde::{Deserialize, Deserializer, Serialize};
 // `SqlitePool` is only used by the materialiser functions below
@@ -224,17 +231,22 @@ pub enum CustomSort {
     Random,
 }
 
+/// Every order but `Random` ends on the track id, so two tracks the sort
+/// key ties (one scan batch shares its `added_at`, two songs share a
+/// title) always come out in the same order. [`refresh_all`] compares the
+/// list it computes with the one stored, and an order that could change
+/// between two identical queries would rewrite the playlist for nothing.
 #[cfg(feature = "sqlite")]
 fn order_by_sql(sort: &CustomSort) -> &'static str {
     match sort {
-        CustomSort::AddedDesc => "t.added_at DESC",
-        CustomSort::AddedAsc => "t.added_at ASC",
-        CustomSort::YearDesc => "COALESCE(t.year, 0) DESC, t.title ASC",
-        CustomSort::YearAsc => "COALESCE(t.year, 9999) ASC, t.title ASC",
-        CustomSort::TitleAsc => "t.title ASC",
+        CustomSort::AddedDesc => "t.added_at DESC, t.id DESC",
+        CustomSort::AddedAsc => "t.added_at ASC, t.id ASC",
+        CustomSort::YearDesc => "COALESCE(t.year, 0) DESC, t.title ASC, t.id ASC",
+        CustomSort::YearAsc => "COALESCE(t.year, 9999) ASC, t.title ASC, t.id ASC",
+        CustomSort::TitleAsc => "t.title ASC, t.id ASC",
         CustomSort::ArtistAsc => {
             "COALESCE((SELECT name FROM artist WHERE id = t.primary_artist), '') ASC, \
-             t.title ASC"
+             t.title ASC, t.id ASC"
         }
         CustomSort::Random => "RANDOM()",
     }
@@ -799,6 +811,18 @@ pub async fn run_query_at(
     rules: &CustomRules,
     now_ms: i64,
 ) -> CoreResult<Vec<i64>> {
+    query_ids(pool, rules, now_ms, Some(effective_limit(rules))).await
+}
+
+/// The ids the tree matches, in the rules' order, at most `limit` of them
+/// (`None`: all of them).
+#[cfg(feature = "sqlite")]
+async fn query_ids(
+    pool: &SqlitePool,
+    rules: &CustomRules,
+    now_ms: i64,
+    limit: Option<i64>,
+) -> CoreResult<Vec<i64>> {
     let mut binds = Vec::<BindValue>::new();
     let tree_where = build_node_sql(&rules.tree, &mut binds, now_ms);
 
@@ -809,8 +833,10 @@ pub async fn run_query_at(
         rules.sort.as_ref().unwrap_or(&CustomSort::AddedDesc),
     ));
 
-    sql.push_str(" LIMIT ?");
-    binds.push(BindValue::Int(effective_limit(rules)));
+    if let Some(limit) = limit {
+        sql.push_str(" LIMIT ?");
+        binds.push(BindValue::Int(limit));
+    }
 
     let rows = bind_all(
         sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql)),
@@ -838,6 +864,204 @@ fn bind_all<'q, O>(
         };
     }
     q
+}
+
+// =============================================================================
+// Keeping materialized playlists in line with the library (sqlite-only)
+// =============================================================================
+
+/// Bring every custom smart playlist in line with the library as it is
+/// now, and return the ids of the playlists that changed.
+///
+/// Membership is stored (`playlist_track`), not computed on read, so a
+/// track the scan brings in, or a tag edit takes out of a rule, is not
+/// in or out of the playlist until something re-runs the rules — which,
+/// before this pass, only saving the rules did (#1169).
+///
+/// The rules are run without the write lock, and only a playlist whose
+/// list differs from the stored one is written, each in a transaction of
+/// its own. A playlist that cannot be refreshed (its rules fail to run)
+/// is logged and left as it was; the others still are.
+#[cfg(feature = "sqlite")]
+pub async fn refresh_all(pool: &SqlitePool) -> CoreResult<Vec<i64>> {
+    refresh_all_at(pool, now_ms()).await
+}
+
+/// [`refresh_all`] with the clock supplied — see [`count_matches_at`].
+#[cfg(feature = "sqlite")]
+pub async fn refresh_all_at(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i64>> {
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT id, smart_rules FROM playlist
+          WHERE is_smart = 1 AND smart_rules IS NOT NULL
+          ORDER BY id",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut changed = Vec::new();
+    for (playlist_id, raw) in rows {
+        // The generated families (Daily Mix, On Repeat, …) share the
+        // column and are rebuilt by their own generators.
+        let Ok(super::SmartPlaylistRules::Custom { rules }) =
+            serde_json::from_str::<super::SmartPlaylistRules>(&raw)
+        else {
+            continue;
+        };
+        match refresh_one(pool, playlist_id, &raw, &rules, now_ms).await {
+            Ok(true) => changed.push(playlist_id),
+            Ok(false) => {}
+            // A busy database is the caller's to wait out: the whole pass
+            // is idempotent, so running it again is the retry.
+            Err(CoreError::Database(err)) if is_busy(&err) => {
+                return Err(CoreError::Database(err));
+            }
+            Err(err) => {
+                tracing::warn!(playlist_id, %err, "custom smart playlist refresh failed");
+            }
+        }
+    }
+    Ok(changed)
+}
+
+/// Busy / locked, in any of SQLite's flavours: the primary result code
+/// lives in the low byte, the high bits carry the extended detail.
+#[cfg(feature = "sqlite")]
+pub fn is_busy(err: &sqlx::Error) -> bool {
+    let sqlx::Error::Database(db) = err else {
+        return false;
+    };
+    db.code()
+        .and_then(|code| code.parse::<i32>().ok())
+        .is_some_and(|code| matches!(code & 0xff, 5 | 6))
+}
+
+/// Re-run one playlist's rules and write the result if it differs from
+/// what is stored. `raw` is the `smart_rules` text the rules were parsed
+/// from. Returns whether the playlist was written.
+#[cfg(feature = "sqlite")]
+async fn refresh_one(
+    pool: &SqlitePool,
+    playlist_id: i64,
+    raw: &str,
+    rules: &CustomRules,
+    now_ms: i64,
+) -> CoreResult<bool> {
+    let current: Vec<(i64, i64)> = sqlx::query_as(
+        "SELECT track_id, added_at FROM playlist_track
+          WHERE playlist_id = ?
+          ORDER BY position, track_id",
+    )
+    .bind(playlist_id)
+    .fetch_all(pool)
+    .await?;
+
+    let wanted = if matches!(rules.sort, Some(CustomSort::Random)) {
+        let shuffled = query_ids(pool, rules, now_ms, None).await?;
+        keep_then_top_up(
+            current.iter().map(|(id, _)| *id),
+            &shuffled,
+            effective_limit(rules) as usize,
+        )
+    } else {
+        run_query_at(pool, rules, now_ms).await?
+    };
+
+    if current.iter().map(|(id, _)| *id).eq(wanted.iter().copied()) {
+        return Ok(false);
+    }
+    write_members(pool, playlist_id, raw, &current, &wanted, now_ms).await
+}
+
+/// The members a `Random` playlist keeps through a refresh: the ones it
+/// holds that still match, in the order it holds them, then as many of
+/// the other matches as the limit leaves room for, in `shuffled`'s order.
+///
+/// A random order drawn again on every refresh would reshuffle the
+/// playlist each time the watcher saw a file change, and with a limit
+/// below the match count, swap out its tracks for others. The draw is
+/// the user's when they save the rules; a refresh only takes out what
+/// no longer matches and fills the gaps.
+#[cfg(feature = "sqlite")]
+fn keep_then_top_up(
+    current: impl Iterator<Item = i64>,
+    shuffled: &[i64],
+    limit: usize,
+) -> Vec<i64> {
+    let matching: std::collections::HashSet<i64> = shuffled.iter().copied().collect();
+    let mut seen = std::collections::HashSet::new();
+    let mut kept: Vec<i64> = current
+        .filter(|id| matching.contains(id) && seen.insert(*id))
+        .take(limit)
+        .collect();
+    for &id in shuffled {
+        if kept.len() >= limit {
+            break;
+        }
+        if seen.insert(id) {
+            kept.push(id);
+        }
+    }
+    kept
+}
+
+/// Replace the playlist's tracks with `wanted`, in that order, under the
+/// write lock. A track it already held keeps the date it was added on;
+/// only a newcomer is dated now.
+///
+/// Skipped, returning `false`, when the playlist's rules are no longer
+/// `raw`: the user saved new ones while this pass was running them, and
+/// that save materialized its own list, which this one must not replace.
+/// A track deleted or gone missing since the read is skipped rather than
+/// failing the insert; the next pass has nothing of it to take out.
+#[cfg(feature = "sqlite")]
+async fn write_members(
+    pool: &SqlitePool,
+    playlist_id: i64,
+    raw: &str,
+    current: &[(i64, i64)],
+    wanted: &[i64],
+    now_ms: i64,
+) -> CoreResult<bool> {
+    let added_at: std::collections::HashMap<i64, i64> = current.iter().copied().collect();
+
+    let mut tx = crate::repository::sqlite::write_lock::begin_write_on(pool, "playlist").await?;
+    let rules_now: Option<String> =
+        sqlx::query_scalar("SELECT smart_rules FROM playlist WHERE id = ? AND is_smart = 1")
+            .bind(playlist_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .flatten();
+    if rules_now.as_deref() != Some(raw) {
+        tx.rollback().await?;
+        return Ok(false);
+    }
+
+    sqlx::query("DELETE FROM playlist_track WHERE playlist_id = ?")
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await?;
+    let mut position = 0_i64;
+    for track_id in wanted {
+        let inserted = sqlx::query(
+            "INSERT INTO playlist_track (playlist_id, track_id, position, added_at)
+             SELECT ?, id, ?, ? FROM track WHERE id = ? AND is_available = 1",
+        )
+        .bind(playlist_id)
+        .bind(position)
+        .bind(added_at.get(track_id).copied().unwrap_or(now_ms))
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        position += inserted as i64;
+    }
+    sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
+        .bind(now_ms)
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(true)
 }
 
 /// Wall clock in epoch milliseconds — the unit `play_event.played_at`

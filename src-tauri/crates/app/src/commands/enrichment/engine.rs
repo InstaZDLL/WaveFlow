@@ -376,6 +376,9 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
     let mut summary = PassSummary::default();
     let mut last_library_emit = Instant::now();
     let mut library_dirty = false;
+    // Whether the pass changed a field a smart playlist rule reads
+    // (genres, dates, credits), whatever `library_dirty` was reset to.
+    let mut changed_tracks = false;
 
     // What a scan emptied since the last pass comes back first, with no
     // network at all — one album per transaction, so a library of
@@ -393,6 +396,7 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
             .write(|conn| Box::pin(store::reapply_album(conn, album_id, fields)))
             .await?;
         library_dirty |= refilled;
+        changed_tracks |= refilled;
     }
 
     let retry_before = now_ms() - NO_MATCH_RETRY_MS;
@@ -443,6 +447,7 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
                     }
                     summary.covers += u32::from(outcome.cover);
                     library_dirty |= outcome.changed_library;
+                    changed_tracks |= outcome.changed_library;
                 }
                 Err(err) => {
                     summary.failed += 1;
@@ -587,6 +592,14 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
 
     if library_dirty {
         let _ = app.emit("library:rescanned", ());
+    }
+    // Once, at the end of the pass, rather than per album: the custom
+    // smart playlists whose genre, year or artist rules the filled
+    // fields move a track into or out of (#1169).
+    if changed_tracks {
+        if let Ok(pool) = db.lease().await {
+            crate::commands::smart_playlists::refresh_custom_in_background(&pool, Some(app)).await;
+        }
     }
     tracing::info!(
         applied = summary.applied,

@@ -175,6 +175,11 @@ pub async fn enrichment_accept_album(
         fields,
     )
     .await?;
+    // The filled genres, dates and credits can move the album's tracks
+    // into or out of a custom smart playlist's rules (#1169).
+    if let Ok(pool) = db.lease().await {
+        crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
+    }
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());
     Ok(())
@@ -210,6 +215,8 @@ pub async fn enrichment_undo_album(
         Box::pin(store::undo_album(conn, album_id, now))
     })
     .await?;
+    // What the undo puts back can take tracks out of a rule again.
+    crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());
     Ok(())
@@ -228,6 +235,8 @@ pub async fn enrichment_forget_album(
         Box::pin(store::forget_album(conn, album_id, now))
     })
     .await?;
+    // Forgetting undoes what was filled first, as the undo does.
+    crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());
     Ok(())
