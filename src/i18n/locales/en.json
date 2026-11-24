@@ -1171,6 +1171,7 @@
     "empty": "No output device available",
     "systemDefault": "System default",
     "pinnedUnavailable": "Pinned, unavailable",
+    "pinned": "Pinned",
     "reopen": "Reopen this device",
     "capabilities": {
       "probing": "Reading capabilities…",

@@ -1216,6 +1216,7 @@
     "empty": "Aucun périphérique de sortie disponible",
     "systemDefault": "Par défaut",
     "pinnedUnavailable": "Épinglé, indisponible",
+    "pinned": "Épinglé",
     "reopen": "Rouvrir ce périphérique",
     "capabilities": {
       "probing": "Lecture des capacités…",

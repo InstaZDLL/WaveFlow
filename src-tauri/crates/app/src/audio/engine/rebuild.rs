@@ -276,18 +276,41 @@ pub(super) enum RebuildDevice {
     /// the rebuild's own lock, so a pin installed in the meantime wins
     /// and no rebuild happens at all.
     OsDefaultIfUnpinned,
+    /// The pinned device, but only while the stream is open somewhere
+    /// else — the return of a pinned device (#1165). Re-checked under
+    /// the rebuild's own lock like [`Self::OsDefaultIfUnpinned`]: a pin
+    /// removed in the meantime, or a stream already back on the pin,
+    /// means no rebuild at all.
+    PinnedIfElsewhere,
+}
+
+/// What the platform listener saw, which decides what an unpinned
+/// output does about it (#627, #1165).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::audio) enum OutputEvent {
+    /// The system default output moved.
+    DefaultChanged,
+    /// An endpoint appeared or became usable — Windows'
+    /// `OnDeviceAdded`, or `OnDeviceStateChanged` to `ACTIVE`, and a
+    /// change to the device list on macOS. It moves no default, so it
+    /// only matters to a pinned device that is not the one playing.
+    EndpointArrived,
 }
 
 /// What a default-device follow did, so its caller knows whether the
 /// change was actually dealt with (#627).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::audio) enum FollowOutcome {
     /// Dealt with: a rebuild ran, or the checks said none was needed.
     Settled,
-    /// Not dealt with — the rebuild gate was busy. Nothing was changed,
-    /// and the caller has to come back, or the system default and the
-    /// open device stay apart until the next notification, which may
-    /// never come: moving the default twice in quick succession is one
-    /// notification per change, not a repeating signal.
+    /// Not dealt with — the rebuild gate was busy, a device loss was
+    /// still being recovered, or a reopen of the pinned device landed
+    /// somewhere else. The caller has to come back, or the stream stays
+    /// on the wrong device until the next notification, which may never
+    /// come: moving the default twice in quick succession is one
+    /// notification per change, not a repeating signal, and a Bluetooth
+    /// endpoint that is listed a moment before it opens sends nothing
+    /// more once it does.
     Deferred,
 }
 
@@ -355,6 +378,92 @@ pub(super) fn should_follow_default(opened: Option<&str>, new_default: Option<&s
         (_, None) => false,
         (None, Some(_)) => true,
         (Some(opened), Some(new_default)) => opened != new_default,
+    }
+}
+
+/// Whether a pinned device is worth reopening (#1165).
+///
+/// Every open path falls back to the default endpoint when the pin is
+/// no longer enumerated, and keeps the pin as the request so it
+/// "survives until the device returns". Nothing used to make it return:
+/// the stream stayed on the fallback until the user picked another
+/// device and came back.
+///
+/// - a pin that is not listed is still gone, and reopening would only
+///   fall back again — an audible gap for nothing;
+/// - an output already open on the pin needs nothing;
+/// - an output that cannot name itself (`None`) is reopened. CoreAudio
+///   hog mode reports exactly that after its fallback, and on the
+///   shared path a device that cannot be named is too rare to cost the
+///   pinned device its return.
+///
+/// The names compare exactly, for the reason [`should_follow_default`]
+/// gives: the pin, the listing and `opened_device` read the same
+/// friendly name, and a looser match could only hide a real difference.
+pub(super) fn should_reopen_pin(pinned: &str, opened: Option<&str>, pin_listed: bool) -> bool {
+    pin_listed && opened != Some(pinned)
+}
+
+/// What a reopen of the pinned device leaves its caller to do (#1165).
+///
+/// A Bluetooth endpoint can be listed a moment before it can be opened,
+/// and the open then falls back to the default once more, with no
+/// further notification to come. Landing on another *named* endpoint
+/// is therefore [`FollowOutcome::Deferred`], so the scheduler retries
+/// after the settle window. Landing on something unnamed settles: it
+/// cannot be told from the pin, and retrying on it would reopen the
+/// stream three times for what may already be the right device.
+pub(super) fn pin_reopen_outcome(pinned: &str, landed: Option<&str>) -> FollowOutcome {
+    match landed {
+        Some(landed) if landed != pinned => FollowOutcome::Deferred,
+        _ => FollowOutcome::Settled,
+    }
+}
+
+/// What to open when a replacement that released the old stream first
+/// will not open, so the user is not left with no output at all.
+///
+/// The endpoint the old stream really opened, when it could name it —
+/// not its request. After a fallback the request is the pin, which is
+/// listed again and is the device that just refused (#1165); and not the
+/// OS default either, which a returning Bluetooth headset often is again
+/// by then. The lookup is by name and falls back to the default if that
+/// endpoint has gone too. An output that cannot name what it opened
+/// leaves its request as the best answer.
+///
+/// Only the device to open: both callers write the old request back onto
+/// the new handle, so the endpoint's name never becomes the pin.
+pub(super) fn rollback_target(asked: Option<&str>, opened: Option<&str>) -> Option<String> {
+    opened.or(asked).map(str::to_owned)
+}
+
+/// Whether a device pick can leave the stream alone.
+///
+/// Only with a stream installed (#612, #630: with none, the pick is the
+/// way back), only when it was asked for the same device, and — for a
+/// named device — only when that is where it opened. `asked` is the
+/// handle's request, which keeps naming the pin after the backend fell
+/// back to the default, so on its own it answered "already there" for a
+/// headset that had just come back, and clicking it did nothing (#1165).
+///
+/// An output that cannot name what it opened (`None`) keeps the no-op:
+/// the picker ticks the pinned row in that case and clicking it goes to
+/// `reopen_output_device`, so this path is the menu being spammed.
+/// Asking for the OS default (`None`) is judged on the request alone, as
+/// before: whether the stream is still on the default is the
+/// default-device follow's question.
+pub(super) fn pick_is_noop(
+    has_handle: bool,
+    asked: Option<&str>,
+    opened: Option<&str>,
+    requested: Option<&str>,
+) -> bool {
+    if !has_handle || asked != requested {
+        return false;
+    }
+    match (requested, opened) {
+        (Some(requested), Some(opened)) => requested == opened,
+        _ => true,
     }
 }
 
@@ -459,7 +568,8 @@ impl AudioEngine {
     /// Re-open the output on the device it is already pinned to.
     ///
     /// [`Self::set_output_device`] short-circuits when the request
-    /// equals the current pin. That is right for a pick, but it left the
+    /// equals the current pin and the stream is on it ([`pick_is_noop`]).
+    /// That is right for a pick, but it left the
     /// user no way back when the stream was bound to an endpoint that is
     /// no longer the one they want — and the picker disabled its active
     /// row, so "choose another device, then choose this one again" was
@@ -643,20 +753,25 @@ impl AudioEngine {
     }
 
     /// Move an unpinned output onto the system's new default device
-    /// (#627).
+    /// (#627), or a pinned one back onto its device when it returns
+    /// (#1165).
     ///
     /// Called (after a backoff) by
     /// [`super::super::output::schedule_default_device_follow`] when the
     /// platform listener in [`super::super::default_device`] reports that the
-    /// system default moved. Four questions, in this order:
+    /// system default moved or an endpoint arrived. Four questions, in
+    /// this order:
     ///
     /// 1. **is anything pinned?** A user who picked a device asked for
-    ///    that device; following the system would undo the pin. The
-    ///    answer here is advisory — a pick landing between this read and
-    ///    the rebuild would slip through it — so the rebuild asks again
-    ///    under the lock that installs pins, and that answer is the
-    ///    binding one. This early read only keeps the common case from
-    ///    doing any work.
+    ///    that device; following the system would undo the pin, so a
+    ///    pinned output goes to [`Self::return_to_pinned_output`]
+    ///    instead, whatever the event. The answer here is advisory — a
+    ///    pick landing between this read and the rebuild would slip
+    ///    through it — so the rebuild asks again under the lock that
+    ///    installs pins, and that answer is the binding one. This early
+    ///    read only keeps the common case from doing any work. An
+    ///    endpoint arriving moves no default, so with nothing pinned it
+    ///    stops here.
     /// 2. **would the move change anything?** Interrupting playback to
     ///    reopen the endpoint we are already on is a gap in the music
     ///    for no reason, and a default that disappeared entirely is
@@ -674,15 +789,17 @@ impl AudioEngine {
     ///    [`FollowOutcome::Deferred`] rather than swallowed, because the
     ///    system default and the open device would otherwise stay apart
     ///    for good.
-    pub(in crate::audio) fn follow_os_default_output(&self) -> AppResult<FollowOutcome> {
+    pub(in crate::audio) fn follow_os_default_output(
+        &self,
+        event: OutputEvent,
+    ) -> AppResult<FollowOutcome> {
         use std::sync::atomic::Ordering;
 
         let (opened, pinned) = self.current_output_devices();
         if let Some(pinned) = pinned {
-            tracing::debug!(
-                device = %pinned,
-                "default output device changed, but a device is pinned; staying on it"
-            );
+            return Ok(self.return_to_pinned_output(&pinned, opened.as_deref()));
+        }
+        if event == OutputEvent::EndpointArrived {
             return Ok(FollowOutcome::Settled);
         }
 
@@ -753,6 +870,110 @@ impl AudioEngine {
             RebuildCause::Deliberate,
         )?;
         Ok(FollowOutcome::Settled)
+    }
+
+    /// Put a pinned output back on its device once that device is there
+    /// again (#1165).
+    ///
+    /// The pin outlives a fallback on purpose — the open paths keep it
+    /// as the request so it survives until the device returns — but
+    /// nothing used to bring the stream back: a Bluetooth headset that
+    /// dropped and reconnected left the music on the speakers, and the
+    /// listener answered every notification with "a device is pinned;
+    /// staying on it" without asking whether the stream was on it.
+    ///
+    /// Run for a default change and for an endpoint arriving alike: a
+    /// returning device is not always made the default, and when it is,
+    /// that notification can come before the endpoint is listed. Same
+    /// discipline as the follow above:
+    ///
+    /// 1. **already on the pin?** The common case, and a lock read only.
+    /// 2. **a device loss in flight?** The recovery owns the rebuild for
+    ///    [`DEVICE_LOSS_OWNERSHIP`]. Deferred rather than settled, unlike
+    ///    the follow: the recovery reopens the pin only if it is already
+    ///    back, and a pin that returns a moment later would otherwise be
+    ///    missed for good.
+    /// 3. **is the pin listed?** See [`should_reopen_pin`]. A listing
+    ///    that fails is deferred, not taken for an absent pin.
+    /// 4. **is a rebuild already under way?** The #365 gate, armed only
+    ///    now, deferring when busy.
+    ///
+    /// A reopen that fails, or lands on another endpoint again, is
+    /// deferred too ([`pin_reopen_outcome`]): the scheduler comes back
+    /// after the settle window, a bounded number of times. A failure
+    /// that had already released the old stream (an exclusive one) puts
+    /// back the endpoint it was on, inside the same rebuild — see
+    /// [`rollback_target`] — so a pin that is listed but will not open
+    /// costs a gap, not the output.
+    fn return_to_pinned_output(&self, pinned: &str, opened: Option<&str>) -> FollowOutcome {
+        use std::sync::atomic::Ordering;
+
+        if opened == Some(pinned) {
+            return FollowOutcome::Settled;
+        }
+        if self.device_loss_in_flight() {
+            tracing::debug!(
+                device = %pinned,
+                "output event while a device loss is being recovered; checking the pin again later"
+            );
+            return FollowOutcome::Deferred;
+        }
+        let pin_listed = match super::super::output::list_output_devices() {
+            Ok(devices) => devices.iter().any(|device| device.id == pinned),
+            // Not "absent": a listing that fails says nothing about the
+            // pin, and settling on it would drop this event for good.
+            Err(err) => {
+                tracing::debug!(%err, "pinned-device check: the output listing failed; deferring");
+                return FollowOutcome::Deferred;
+            }
+        };
+        if !should_reopen_pin(pinned, opened, pin_listed) {
+            tracing::debug!(
+                device = %pinned,
+                opened = opened.unwrap_or("<unnamed>"),
+                pin_listed,
+                "output event needs no rebuild for the pinned device"
+            );
+            return FollowOutcome::Settled;
+        }
+        if !self.try_arm_device_rebuild() {
+            tracing::debug!(
+                "pinned-device return: a rebuild is already armed or the settle window \
+                 is open; deferring"
+            );
+            return FollowOutcome::Deferred;
+        }
+        let _gate = RebuildGateGuard(&self.rebuild_gate);
+
+        let exclusive = self.exclusive_output.load(Ordering::Relaxed)
+            && !self.exclusive_suppressed.load(Ordering::Relaxed);
+        tracing::info!(
+            device = %pinned,
+            from = opened.unwrap_or("<unnamed>"),
+            exclusive,
+            "the pinned output device is back; reopening it"
+        );
+        // Deliberate: the user picked this device, so landing on it is
+        // the point, and #617 has nothing to pause. A session parked by
+        // the loss stays parked — `force_rebuild_output` reads that.
+        if let Err(err) = self.force_rebuild_output(
+            RebuildDevice::PinnedIfElsewhere,
+            exclusive,
+            RebuildCause::Deliberate,
+        ) {
+            tracing::warn!(%err, device = %pinned, "reopening the pinned output device failed");
+            return FollowOutcome::Deferred;
+        }
+        let (landed, _) = self.current_output_devices();
+        let outcome = pin_reopen_outcome(pinned, landed.as_deref());
+        if outcome == FollowOutcome::Deferred {
+            tracing::info!(
+                device = %pinned,
+                landed = landed.as_deref().unwrap_or("<unnamed>"),
+                "the pinned output device did not open yet; trying again shortly"
+            );
+        }
+        outcome
     }
 
     /// Publish "no output thread at all" when a rebuild bailed out after

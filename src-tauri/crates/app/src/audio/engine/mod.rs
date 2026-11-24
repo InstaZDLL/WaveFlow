@@ -29,7 +29,7 @@ mod turns;
 
 pub use command::{AudioCmd, LoadIntent};
 pub use notice::{ExclusiveRefusal, OutputMode};
-pub(super) use rebuild::{FollowOutcome, REBUILD_SETTLE_WINDOW};
+pub(super) use rebuild::{FollowOutcome, OutputEvent, REBUILD_SETTLE_WINDOW};
 pub(crate) use resume::LastLoadSource;
 pub use resume::{DetachedOrigin, LastLoad};
 #[cfg(test)]
@@ -654,3 +654,6 @@ mod output_mode_tests;
 
 #[cfg(test)]
 mod default_follow_tests;
+
+#[cfg(test)]
+mod pin_return_tests;

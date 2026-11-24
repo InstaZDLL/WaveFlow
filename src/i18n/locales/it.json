@@ -1216,6 +1216,7 @@
     "empty": "Nessun dispositivo di uscita disponibile",
     "systemDefault": "Predefinito del sistema",
     "pinnedUnavailable": "Fissato, non disponibile",
+    "pinned": "Fissato",
     "reopen": "Riapri questo dispositivo",
     "capabilities": {
       "probing": "Lettura delle capacità…",

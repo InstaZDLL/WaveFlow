@@ -1171,6 +1171,7 @@
     "empty": "Kein Ausgabegerät verfügbar",
     "systemDefault": "Systemstandard",
     "pinnedUnavailable": "Angeheftet, nicht verfügbar",
+    "pinned": "Angeheftet",
     "reopen": "Gerät erneut öffnen",
     "capabilities": {
       "probing": "Gerätefunktionen werden ermittelt…",

@@ -1217,6 +1217,7 @@
     "empty": "Não há nenhum dispositivo de saída disponível",
     "systemDefault": "Predefinição do sistema",
     "pinnedUnavailable": "Fixado, indisponível",
+    "pinned": "Fixado",
     "reopen": "Reabrir este dispositivo",
     "capabilities": {
       "probing": "A ler as capacidades…",
