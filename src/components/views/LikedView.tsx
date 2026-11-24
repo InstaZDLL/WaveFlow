@@ -6,7 +6,6 @@ import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
-import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
   isPlayClick,
@@ -22,7 +21,6 @@ import {
   formatDuration,
   type Track,
 } from "../../lib/tauri/track";
-import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import type { Translator } from "../../lib/translator";
 
 interface LikedViewProps {
@@ -35,14 +33,11 @@ export function LikedView({
   onNavigateToArtist,
 }: LikedViewProps) {
   const { t } = useTranslation();
-  const createFromModal = useCreatePlaylistFromModal();
   const { playTracks, currentTrack, playbackState } = usePlayer();
   const [tracks, setTracks] = useState<Track[]>([]);
   // Init to `true` so the skeleton paints on first render — otherwise
   // we'd flash the empty-state for one frame before the effect schedules.
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
-    useState(false);
   // Local liked-set built from `tracks`: every loaded row is liked by
   // definition, so we just rebuild on each fetch / unlike.
   const likedIds = new Set(tracks.map((t) => t.id));
@@ -55,7 +50,6 @@ export function LikedView({
         setTracks((prev) => prev.filter((t) => t.id !== trackId));
       }
     },
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
   });
@@ -185,19 +179,6 @@ export function LikedView({
           className="py-20"
         />
       )}
-
-      <CreatePlaylistModal
-        isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
-        onCreate={async (data) => {
-          try {
-            return await createFromModal(data);
-          } catch (err) {
-            console.error("[LikedView] create playlist failed", err);
-            throw err;
-          }
-        }}
-      />
 
       {trackContextMenu.render()}
     </div>

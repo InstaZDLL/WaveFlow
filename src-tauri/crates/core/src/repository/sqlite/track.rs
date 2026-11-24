@@ -237,9 +237,22 @@ impl TrackRepository for SqliteTrackRepository {
                  ORDER BY disc_number, track_number, title COLLATE FOLD",
                 id,
             ),
+            // Every track crediting the artist, in any position (guest
+            // appearances included), once each: the very set the artist
+            // list counts (`COUNT(DISTINCT t.id)` over `track_artist`), so
+            // the create dialog can name that number. The `IN` keeps a track
+            // that credits them in two roles to one row. Same order as the
+            // artist page's list (primary artist, album, disc, track, title),
+            // with the id as the last tie-break.
             TrackSource::Artist(id) => (
-                "SELECT id FROM track WHERE primary_artist = ? AND is_available = 1
-                 ORDER BY title COLLATE FOLD",
+                "SELECT t.id FROM track t
+                   LEFT JOIN album  al ON al.id = t.album_id
+                   LEFT JOIN artist ar ON ar.id = t.primary_artist
+                  WHERE t.id IN (SELECT track_id FROM track_artist WHERE artist_id = ?)
+                    AND t.is_available = 1
+                  ORDER BY ar.canonical_name COLLATE NAME,
+                           al.canonical_title COLLATE NAME,
+                           t.disc_number, t.track_number, t.title COLLATE FOLD, t.id",
                 id,
             ),
         };

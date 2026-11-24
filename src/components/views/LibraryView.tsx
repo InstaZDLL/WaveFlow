@@ -483,7 +483,6 @@ export function LibraryView({
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
     selectedTrackIds: [...selection.selectedIds],
@@ -1976,6 +1975,7 @@ export function LibraryView({
           pendingSourceForCreate,
           folders,
           albums,
+          artists,
         )}
         onClose={() => {
           setIsCreatePlaylistModalOpen(false);
@@ -2077,7 +2077,6 @@ export function LibraryView({
         <SelectionActionBar
           trackIds={[...selection.selectedIds]}
           onClear={selection.clear}
-          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
         />
       )}
     </div>
@@ -2102,15 +2101,17 @@ type PendingPlaylistSource =
  * Resolved ids are counted once each, as the add inserts them. A library
  * folder's `track_count` and an album's (the list is fetched for every
  * library) count its available tracks by `folder_id` / `album_id`, the very
- * rows `add_source_to_playlist` selects. An artist's does not: the list counts every track crediting them
- * (`track_artist`) while the add takes only those they are the primary
- * artist of, so an artist gets `null` and the preview no number. So does a
- * row the list no longer holds.
+ * rows `add_source_to_playlist` selects; an artist's (fetched for every
+ * library too) counts every available track crediting them in
+ * `track_artist`, guest appearances included, which is what the add takes
+ * for an artist. A row the list no longer holds gets `null`, and the
+ * preview no number.
  */
 function pendingSourceTrackCount(
   source: PendingPlaylistSource | null,
   folders: FolderRow[],
   albums: LibraryAlbumRow[],
+  artists: LibraryArtistRow[],
 ): number | null | undefined {
   if (source == null) return undefined;
   switch (source.kind) {
@@ -2124,7 +2125,10 @@ function pendingSourceTrackCount(
           ?.track_count ?? null
       );
     case "artist":
-      return null;
+      return (
+        artists.find((a) => a.source === "local" && Number(a.id) === source.id)
+          ?.track_count ?? null
+      );
   }
 }
 

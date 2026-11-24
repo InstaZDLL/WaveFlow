@@ -21,6 +21,7 @@ import {
 } from "../lib/tauri/player";
 import { startRadio } from "../lib/tauri/radio";
 import { usePlaylist } from "./usePlaylist";
+import { useCreatePlaylistWithTracks } from "./useCreatePlaylistWithTracks";
 import type { ContextMenuPoint } from "../components/common/ContextMenu";
 
 interface UseTrackContextMenuArgs {
@@ -28,9 +29,6 @@ interface UseTrackContextMenuArgs {
   likedIds: Set<number>;
   /** Called after a successful like/unlike so the parent can update its set. */
   onLikedChanged: (trackId: number, nowLiked: boolean) => void;
-  /** Opens the "create playlist" modal — owned by the parent so it can
-   *  share the same modal across other UI affordances. */
-  onCreatePlaylist: () => void;
   /** Optional: navigation handlers (omit on screens that don't support it). */
   onNavigateToAlbum?: (albumId: number) => void;
   onNavigateToArtist?: (artistId: number) => void;
@@ -56,14 +54,15 @@ interface UseTrackContextMenuArgs {
  * and a single `{render()}` call near its root.
  *
  * The like/queue/add-to-playlist actions are wired internally so views
- * don't repeat the tauri invocations or error handling. Navigation and
+ * don't repeat the tauri invocations or error handling — "New playlist"
+ * included, whose dialog this hook mounts and which adds the
+ * right-clicked track once the playlist exists. Navigation and
  * remove-from-playlist stay caller-controlled because they depend on
  * the surrounding view's state.
  */
 export function useTrackContextMenu({
   likedIds,
   onLikedChanged,
-  onCreatePlaylist,
   onNavigateToAlbum,
   onNavigateToArtist,
   currentPlaylistId,
@@ -72,6 +71,9 @@ export function useTrackContextMenu({
   enableRating = true,
 }: UseTrackContextMenuArgs) {
   const { playlists, addTracksToPlaylist } = usePlaylist();
+  const newPlaylist = useCreatePlaylistWithTracks();
+  const openNewPlaylist = newPlaylist.open;
+  const renderNewPlaylist = newPlaylist.render;
   const [state, setState] = useState<{
     point: ContextMenuPoint;
     track: Track;
@@ -202,6 +204,11 @@ export function useTrackContextMenu({
 
   const closeProperties = useCallback(() => setPropertiesTrack(null), []);
 
+  const handleCreatePlaylist = useCallback(
+    (trackId: number) => openNewPlaylist([trackId]),
+    [openNewPlaylist],
+  );
+
   const handleShowBatchEdit = useCallback((ids: number[]) => {
     setBatchEditIds(ids);
   }, []);
@@ -223,7 +230,7 @@ export function useTrackContextMenu({
             onAddToQueue={handleAddToQueue}
             onStartRadio={handleStartRadio}
             onAddToPlaylist={handleAddToPlaylist}
-            onCreatePlaylist={onCreatePlaylist}
+            onCreatePlaylist={handleCreatePlaylist}
             onToggleLike={handleToggleLike}
             onSetRating={enableRating ? handleSetRating : undefined}
             onRemoveFromPlaylist={onRemoveFromPlaylist}
@@ -244,6 +251,7 @@ export function useTrackContextMenu({
           onClose={closeProperties}
         />
         <BatchTagEditModal trackIds={batchEditIds} onClose={closeBatchEdit} />
+        {renderNewPlaylist()}
         {/* Keyed so each opening starts from the picker, not the last
             dialog's outcome. */}
         <ReplaceFileModal
@@ -263,7 +271,8 @@ export function useTrackContextMenu({
     handleAddToQueue,
     handleStartRadio,
     handleAddToPlaylist,
-    onCreatePlaylist,
+    handleCreatePlaylist,
+    renderNewPlaylist,
     handleToggleLike,
     handleSetRating,
     enableRating,
