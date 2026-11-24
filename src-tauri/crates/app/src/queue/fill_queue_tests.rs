@@ -508,3 +508,47 @@ async fn unshuffle_reads_a_snapshot_of_track_ids() {
     assert_eq!(track_order(&pool).await, vec![1, 2, 3]);
     assert_eq!(current_track(&pool).await.unwrap().unwrap().id, 1);
 }
+
+/// A cursor left past the end — the queue shrank under it, a folder's
+/// removal cascading to its rows — stands for the last row, the track
+/// playing. Growing the queue must not hand that part to the rows just
+/// added: the clamped cursor is what both edits act on, so it is the one
+/// they keep.
+#[tokio::test]
+async fn growing_the_queue_keeps_a_stale_cursor_on_the_track_it_stood_for() {
+    for label in ["add to queue", "play next"] {
+        let pool = pool_with_tracks().await;
+        fill_queue(
+            &pool,
+            "playlist",
+            Some(1),
+            &[1, 2],
+            0,
+            false,
+            UserQueue::Drop,
+        )
+        .await
+        .unwrap();
+        write_setting_i64(&pool, "queue.current_index", 99)
+            .await
+            .unwrap();
+        assert_eq!(current_track(&pool).await.unwrap().unwrap().id, 2);
+
+        if label == "add to queue" {
+            append_to_user_queue(&pool, &[3], None).await.unwrap();
+        } else {
+            insert_after_current(&pool, &[3], "manual", None)
+                .await
+                .unwrap();
+        }
+
+        assert_eq!(track_order(&pool).await, vec![1, 2, 3], "{label}");
+        assert_eq!(
+            current_track(&pool).await.unwrap().unwrap().id,
+            2,
+            "{label}: the playing track is still current"
+        );
+        let next = peek_next(&pool, RepeatMode::Off).await.unwrap().unwrap();
+        assert_eq!(next.id, 3, "{label}: the added track plays next");
+    }
+}
