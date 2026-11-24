@@ -261,6 +261,8 @@ pub async fn play_paths_with_intent(
                 ids,
                 0,
                 None,
+                // Opening a file is playing it now, like a click.
+                crate::queue::UserQueue::Keep,
                 intent,
             )
             .await;
@@ -333,6 +335,9 @@ pub async fn take_over(
                 ids,
                 index,
                 None,
+                // What was handed over is the whole queue: the tracks
+                // queued here would put themselves in its order.
+                crate::queue::UserQueue::Drop,
                 intent,
             )
             .await?;

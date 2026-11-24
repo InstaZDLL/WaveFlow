@@ -32,7 +32,9 @@ mod edit;
 mod remove;
 mod shuffle;
 
-pub use edit::{append, append_to_user_queue, fill_queue, insert_after_current, reorder};
+pub use edit::{
+    append, append_to_user_queue, fill_queue, insert_after_current, reorder, UserQueue,
+};
 pub use remove::{clear, position_of_queue_id, remove_by_queue_id, remove_range};
 pub use shuffle::{shuffle, shuffle_by_album, unshuffle};
 

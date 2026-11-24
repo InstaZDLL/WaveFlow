@@ -68,6 +68,11 @@ pub async fn player_jump_to_index(
 /// `queue_item.source_type` ('album'|'playlist'|'artist'|'library'|
 /// 'liked'|'manual'|'radio').
 ///
+/// The tracks queued by hand and not heard yet stay in the queue, right
+/// after the one that starts (#1168): whatever the list is — an album, a
+/// playlist, a radio or mix, a selection, the history — starting it is
+/// not asking for them to go.
+///
 /// `album_ordered` is for the one caller that knows something the
 /// source type cannot express: a Mood Radio answered in whole records.
 /// Omitted everywhere else, and then the answer is worked out here —
@@ -96,6 +101,7 @@ pub async fn player_play_tracks(
         track_ids,
         start_index,
         album_ordered,
+        queue::UserQueue::Keep,
         intent,
     )
     .await
@@ -104,7 +110,8 @@ pub async fn player_play_tracks(
 /// [`player_play_tracks`] under an intent the caller claimed: a caller
 /// whose preparation started earlier (files opened from the system, which
 /// first walk and look them up) is ordered from that moment, not from
-/// this call (#622).
+/// this call (#622). `user_queue` says whether the tracks queued by hand
+/// survive the new list ([`queue::fill_queue`]).
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn play_tracks_with_intent(
     app: AppHandle,
@@ -115,6 +122,7 @@ pub(crate) async fn play_tracks_with_intent(
     track_ids: Vec<i64>,
     start_index: usize,
     album_ordered: Option<bool>,
+    user_queue: queue::UserQueue,
     intent: crate::audio::engine::LoadIntent,
 ) -> AppResult<()> {
     let (pool, profile_id) = state.require_profile_snapshot().await?;
@@ -141,6 +149,7 @@ pub(crate) async fn play_tracks_with_intent(
         &track_ids,
         start_index,
         album_ordered,
+        user_queue,
     )
     .await?;
     // Mirrored after the write that persists it, the way the shuffle
@@ -152,7 +161,8 @@ pub(crate) async fn play_tracks_with_intent(
 
     // Spotify-style: if the user has shuffle enabled, randomize the
     // queue in place immediately after filling it, keeping the track
-    // they clicked in position 0. Without this, enabling shuffle
+    // they clicked in position 0 and the user queue the fill kept
+    // right behind it. Without this, enabling shuffle
     // before clicking a track would leave the queue sequential and
     // Next would advance alphabetically — visibly "not random".
     // The flag above is deliberately not cleared when this reorders the
