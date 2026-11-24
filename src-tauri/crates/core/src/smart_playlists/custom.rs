@@ -890,14 +890,27 @@ fn bind_all<'q, O>(
 /// already in line and does not report again.
 #[cfg(feature = "sqlite")]
 pub async fn refresh_all(pool: &SqlitePool, changed: &mut Vec<i64>) -> CoreResult<()> {
-    refresh_all_at(pool, now_ms(), changed).await
+    refresh_with_clock(pool, &now_ms, changed).await
 }
 
-/// [`refresh_all`] with the clock supplied — see [`count_matches_at`].
+/// [`refresh_all`] with the clock pinned — see [`count_matches_at`].
 #[cfg(feature = "sqlite")]
 pub async fn refresh_all_at(
     pool: &SqlitePool,
     now_ms: i64,
+    changed: &mut Vec<i64>,
+) -> CoreResult<()> {
+    refresh_with_clock(pool, &|| now_ms, changed).await
+}
+
+/// The pass, reading the clock each time it runs a rule set rather than
+/// once at its start: the run under the lock may come after a wait, and a
+/// relative window measured from before that wait could put back a track
+/// a newer pass had already let expire.
+#[cfg(feature = "sqlite")]
+async fn refresh_with_clock(
+    pool: &SqlitePool,
+    clock: &(dyn Fn() -> i64 + Sync),
     changed: &mut Vec<i64>,
 ) -> CoreResult<()> {
     let rows: Vec<(i64, String)> = sqlx::query_as(
@@ -916,7 +929,7 @@ pub async fn refresh_all_at(
         else {
             continue;
         };
-        match refresh_one(pool, playlist_id, &raw, &rules, now_ms).await {
+        match refresh_one(pool, playlist_id, &raw, &rules, clock).await {
             Ok(true) => {
                 if !changed.contains(&playlist_id) {
                     changed.push(playlist_id);
@@ -955,18 +968,18 @@ async fn refresh_one(
     playlist_id: i64,
     raw: &str,
     rules: &CustomRules,
-    now_ms: i64,
+    clock: &(dyn Fn() -> i64 + Sync),
 ) -> CoreResult<bool> {
     // The look without the lock, which is all most playlists ever get: a
     // pass that finds nothing to change takes no lock and writes nothing.
     let mut conn = pool.acquire().await?;
     let current = stored_members(&mut conn, playlist_id).await?;
-    let wanted = wanted_members(&mut conn, rules, &current, now_ms).await?;
+    let wanted = wanted_members(&mut conn, rules, &current, clock()).await?;
     drop(conn);
     if same_list(&current, &wanted) {
         return Ok(false);
     }
-    write_if_changed(pool, playlist_id, raw, rules, now_ms).await
+    write_if_changed(pool, playlist_id, raw, rules, clock).await
 }
 
 /// The playlist's tracks in their order, with the date each was added.
@@ -1062,9 +1075,11 @@ async fn write_if_changed(
     playlist_id: i64,
     raw: &str,
     rules: &CustomRules,
-    now_ms: i64,
+    clock: &(dyn Fn() -> i64 + Sync),
 ) -> CoreResult<bool> {
     let mut tx = crate::repository::sqlite::write_lock::begin_write_on(pool, "playlist").await?;
+    // Read once the lock is held, not before the wait for it.
+    let now_ms = clock();
     let rules_now: Option<String> =
         sqlx::query_scalar("SELECT smart_rules FROM playlist WHERE id = ? AND is_smart = 1")
             .bind(playlist_id)
