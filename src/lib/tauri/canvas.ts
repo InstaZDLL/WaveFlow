@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** A track's looping Canvas clip (issue #442), resolved to a local absolute
  *  path the webview renders through `convertFileSrc`. Mirrors

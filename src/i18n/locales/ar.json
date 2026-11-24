@@ -5404,5 +5404,25 @@
     "goneBody": "لم يعد الخادم يجد هذا الفيديو: فقد حُذف أو نُقل منذ آخر فحص. يبقى المقطع متوقفًا مؤقتًا عند موضعه.",
     "unreachableTitle": "الخادم لا يستجيب",
     "unreachableBody": "تعذّر طلب الفيديو الموسيقي من الخادم. أعد المحاولة عندما يصبح متاحًا؛ يبقى المقطع متوقفًا مؤقتًا عند موضعه."
+  },
+  "errors": {
+    "offline": "وضع عدم الاتصال مفعّل.",
+    "offline_plugin_store": "وضع عدم الاتصال مفعّل: متجر الإضافات غير متاح.",
+    "offline_plugin_install": "وضع عدم الاتصال مفعّل: لا يمكن تثبيت الإضافات.",
+    "offline_enrichment": "وضع عدم الاتصال مفعّل: أوقفه لتطبيق المطابقة.",
+    "offline_tag_fetch": "وضع عدم الاتصال مفعّل: أوقفه لجلب الوسوم.",
+    "offline_musicbrainz": "وضع عدم الاتصال مفعّل: أوقفه للمطابقة مع MusicBrainz.",
+    "offline_lastfm": "وضع عدم الاتصال مفعّل: أوقفه لتسجيل الدخول إلى Last.fm.",
+    "offline_listenbrainz": "وضع عدم الاتصال مفعّل: أوقفه لربط ListenBrainz.",
+    "offline_radio_catalogue": "وضع عدم الاتصال مفعّل: أوقفه لتنزيل كتالوج المحطات.",
+    "offline_server_sign_in": "وضع عدم الاتصال مفعّل: أوقفه لتسجيل الدخول إلى الخادم.",
+    "offline_server": "وضع عدم الاتصال مفعّل: أوقفه للوصول إلى الخادم.",
+    "listenbrainz_token_empty": "أدخل رمز ListenBrainz الخاص بك.",
+    "listenbrainz_token_rejected": "لم يقبل ListenBrainz هذا الرمز.",
+    "unsupported_image": "هذه الصورة ليست بصيغة JPEG أو PNG أو WebP.",
+    "image_file_empty": "ملف الصورة هذا فارغ.",
+    "unsupported_video": "هذا الفيديو ليس بصيغة MP4.",
+    "file_too_large": "هذا الملف كبير جدًا (الحد الأقصى {{max}}).",
+    "network_track_not_cached": "هذا المقطع موجود على مجلد شبكة مشترك ولم يُخزَّن مؤقتًا على هذا الحاسوب بعد."
   }
 }

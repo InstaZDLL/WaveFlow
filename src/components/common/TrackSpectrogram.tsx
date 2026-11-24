@@ -7,6 +7,7 @@ import {
   trackSpectrogram,
   type TrackSpectrogram as Spectrogram,
 } from "../../lib/tauri/analysis";
+import { backendErrorText } from "../../lib/backendError";
 
 /** Columns asked of the backend: the chart's width at 1.5× scale. */
 const WIDTH = 900;
@@ -111,11 +112,11 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
       const result = await trackSpectrogram(trackId, WIDTH);
       if (result) setPicture(result);
     } catch (err) {
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setRunning(false);
     }
-  }, [trackId]);
+  }, [trackId, t]);
 
   const stop = useCallback(() => {
     void cancelTrackSpectrogram().catch(() => {});

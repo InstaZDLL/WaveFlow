@@ -107,8 +107,9 @@ fn random_token() -> String {
 /// succeeded.
 pub async fn begin_login(state: &AppState, server_url: &str) -> AppResult<RemoteBinding> {
     if offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on; turn it off to sign in".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineServerSignIn,
+            "offline mode is on; turn it off to sign in",
         ));
     }
 
@@ -316,8 +317,9 @@ async fn exchange_code(
     // Tested again here: `begin_login` asked before opening the browser, and
     // the person can spend minutes there.
     if offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on; turn it off to sign in".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineServerSignIn,
+            "offline mode is on; turn it off to sign in",
         ));
     }
 

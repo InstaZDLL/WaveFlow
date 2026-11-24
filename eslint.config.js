@@ -42,6 +42,27 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // A command's error that carries a kind reaches the UI as a
+      // `BackendError` only through the wrapper (#1157).
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@tauri-apps/api/core",
+              importNames: ["invoke"],
+              message:
+                "Import invoke from src/lib/tauri/invoke.ts, which turns an error with a kind into a BackendError.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/lib/tauri/invoke.ts"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
   {

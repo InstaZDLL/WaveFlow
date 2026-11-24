@@ -148,16 +148,21 @@ pub async fn set_genre_artwork_from_file(
             let actual = std::fs::metadata(&file_path)
                 .map(|m| format!("{} ", crate::commands::media_file::human_bytes(m.len())))
                 .unwrap_or_default();
-            return Err(AppError::Other(format!(
-                "file too large: {actual}(max {})",
-                crate::commands::media_file::human_bytes(
-                    crate::commands::deezer::MAX_IMAGE_BYTES as u64
-                )
-            )));
+            let max = crate::commands::media_file::human_bytes(
+                crate::commands::deezer::MAX_IMAGE_BYTES as u64,
+            );
+            return Err(AppError::shown(
+                crate::error::ShownKind::FileTooLarge,
+                format!("file too large: {actual}(max {max})"),
+            )
+            .with_param("max", max));
         }
         let format =
             waveflow_core::artwork::image_format::detect_image_format(&bytes).ok_or_else(|| {
-                AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+                AppError::shown(
+                    crate::error::ShownKind::UnsupportedImage,
+                    "unsupported image format (expected jpg/png/webp)",
+                )
             })?;
 
         let hash = blake3::hash(&bytes).to_hex().to_string();

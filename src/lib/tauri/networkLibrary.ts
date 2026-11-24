@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** Broadcast after the cache budget is written. */
 export const NETWORK_CACHE_LIMIT_EVENT = "waveflow:network-cache-limit";

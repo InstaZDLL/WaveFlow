@@ -308,7 +308,10 @@ fn available_by_default() -> bool {
 /// `remote:mirror-progress` and honouring [`request_cancel`].
 pub async fn mirror_catalogue(state: &AppState, app: AppHandle) -> AppResult<MirrorReport> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline mode is enabled".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::Offline,
+            "offline mode is enabled",
+        ));
     }
     // Claim the slot atomically: a second walk would interleave its progress
     // and its cancel state with the first one's.

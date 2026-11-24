@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** Event carrying the whole list whenever it changes. */
 export const TASKS_CHANGED = "tasks:changed";

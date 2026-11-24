@@ -18,6 +18,7 @@ import {
   type DeezerArtistLite,
 } from "../../lib/tauri/deezer";
 import { pickFile } from "../../lib/tauri/dialog";
+import { backendErrorText } from "../../lib/backendError";
 
 interface ArtistImagePickerModalProps {
   artistId: number;
@@ -125,7 +126,7 @@ export function ArtistImagePickerModal({
       onClose();
     } catch (err) {
       console.error("[ArtistImagePickerModal] set deezer image failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }
@@ -146,7 +147,7 @@ export function ArtistImagePickerModal({
       onClose();
     } catch (err) {
       console.error("[ArtistImagePickerModal] set file image failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }
@@ -162,7 +163,7 @@ export function ArtistImagePickerModal({
       onClose();
     } catch (err) {
       console.error("[ArtistImagePickerModal] clear image failed", err);
-      setError(String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setIsApplying(false);
     }

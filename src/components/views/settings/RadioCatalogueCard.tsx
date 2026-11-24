@@ -13,6 +13,7 @@ import {
 } from "../../../lib/tauri/webRadioCatalogue";
 import { getOfflineMode } from "../../../lib/tauri/offline";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
+import { backendErrorText } from "../../../lib/backendError";
 
 interface RadioCatalogueCardProps {
   language: string;
@@ -94,7 +95,13 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
     } catch (err) {
       if (downloadSeqRef.current !== seq) return;
       console.error("[RadioCatalogueCard] download failed", err);
-      setError(t("settings.radioCatalogue.errors.downloadFailed"));
+      setError(
+        backendErrorText(
+          err,
+          t,
+          t("settings.radioCatalogue.errors.downloadFailed"),
+        ),
+      );
     } finally {
       if (downloadSeqRef.current === seq) {
         setDownloading(false);

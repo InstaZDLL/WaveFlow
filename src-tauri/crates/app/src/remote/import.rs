@@ -206,7 +206,7 @@ pub async fn import(
     folder_id: i64,
 ) -> AppResult<ImportOutcome> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline".into()));
+        return Err(AppError::shown(crate::error::ShownKind::Offline, "offline"));
     }
     // Pool and profile together, held across every await below: resolving them
     // separately is what would let a profile switch mid-import file one

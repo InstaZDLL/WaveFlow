@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 export type StatsRange = "7d" | "30d" | "90d" | "1y" | "all";
 

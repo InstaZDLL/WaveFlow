@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** One curated similar-artist entry, resolved for the editor chips. */
 export interface ArtistOverrideSimilar {

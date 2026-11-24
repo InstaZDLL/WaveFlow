@@ -56,6 +56,7 @@ import {
 } from "../../lib/tagWorkshop";
 import { EmptyState } from "../common/EmptyState";
 import { WorkshopPreviewModal } from "./tagWorkshop/WorkshopPreviewModal";
+import { backendErrorText } from "../../lib/backendError";
 
 type Group = "tags" | "numbers" | "ids";
 
@@ -1129,11 +1130,11 @@ function MatchTool({
       onProposal(found);
       setNoMatch(found == null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setSearching(false);
     }
-  }, [album, artist, release, taggedRelease, targets, valueOf, onProposal]);
+  }, [album, artist, release, taggedRelease, targets, valueOf, onProposal, t]);
 
   // Opened from the enrichment review with the release it proposed:
   // match against it at once, once the files are read.

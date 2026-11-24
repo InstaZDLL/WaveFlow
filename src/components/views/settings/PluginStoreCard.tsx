@@ -25,6 +25,7 @@ import { useLocalizedText } from "../../../hooks/useLocalizedText";
 import { pluginWorldLabelKey } from "../../../lib/pluginWorlds";
 import { foldForSearch, searchTerms } from "../../../lib/searchFold";
 import { PluginWorldBadge } from "./PluginWorldBadge";
+import { backendErrorText } from "../../../lib/backendError";
 
 /**
  * Settings → Plugins → Store (Phase 2). Browses the curated registry
@@ -79,11 +80,11 @@ export function PluginStoreCard({
       },
       (e: unknown) => {
         if (mine !== seqRef.current) return;
-        setError(e instanceof Error ? e.message : String(e));
+        setError(backendErrorText(e, t));
         setLoading(false);
       },
     );
-  }, []);
+  }, [t]);
 
   // The manual button: an event handler, so a synchronous
   // `setLoading(true)` is fine here (the mount effect below must not
@@ -107,22 +108,25 @@ export function PluginStoreCard({
     };
   }, [load]);
 
-  const onInstall = useCallback(async (entry: MarketplaceEntry) => {
-    setBusyId(entry.id);
-    setError(null);
-    try {
-      await installPluginFromRegistry(entry.id);
-      // Reflect the new on-disk state (installed / version / no-update)
-      // and let the sidebar, the source views and the installed list
-      // beside this store re-evaluate availability; this store re-reads
-      // on the same event.
-      window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusyId(null);
-    }
-  }, []);
+  const onInstall = useCallback(
+    async (entry: MarketplaceEntry) => {
+      setBusyId(entry.id);
+      setError(null);
+      try {
+        await installPluginFromRegistry(entry.id);
+        // Reflect the new on-disk state (installed / version / no-update)
+        // and let the sidebar, the source views and the installed list
+        // beside this store re-evaluate availability; this store re-reads
+        // on the same event.
+        window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
+      } catch (e) {
+        setError(backendErrorText(e, t));
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [t],
+  );
 
   // On the page, an entry already on disk belongs to the installed list
   // beneath; the store shows what is left to get, or to update.

@@ -39,6 +39,7 @@ import { openUrl } from "../../lib/tauri/external";
 import { openTagWorkshop } from "../../lib/tagWorkshop";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
+import { backendErrorText } from "../../lib/backendError";
 
 type Tab = "albums" | "applied" | "artists" | "accepted" | "rejected";
 
@@ -169,7 +170,7 @@ export function EnrichmentReviewModal({
       await action();
       await load(tabRef.current);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setBusy((prev) => {
         const next = new Set(prev);

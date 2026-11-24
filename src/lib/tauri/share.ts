@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /**
  * Persist a frontend-rendered PNG at `targetPath`. `bytes` is expected

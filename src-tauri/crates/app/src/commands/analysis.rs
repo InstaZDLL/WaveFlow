@@ -282,7 +282,10 @@ pub async fn analyze_track(
         .await?;
     let path = path.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path_buf = crate::netlib::local_copy(&path).ok_or_else(|| {
-        AppError::Other("this track is on a network share and is not cached yet".into())
+        AppError::shown(
+            crate::error::ShownKind::NetworkTrackNotCached,
+            "this track is on a network share and is not cached yet",
+        )
     })?;
 
     // Decode is blocking + CPU-bound; keep it off the tokio reactor.

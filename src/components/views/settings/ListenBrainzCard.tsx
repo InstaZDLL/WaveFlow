@@ -9,6 +9,7 @@ import {
   listenbrainzGetStatus,
   type ListenBrainzStatus,
 } from "../../../lib/tauri/integration";
+import { backendErrorText } from "../../../lib/backendError";
 
 /** Where a ListenBrainz user finds their token. */
 const TOKEN_PAGE = "https://listenbrainz.org/settings/";
@@ -48,7 +49,7 @@ export function ListenBrainzCard() {
       setStatus(await listenbrainzConnect(token.trim()));
       setToken("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setBusy(false);
     }
@@ -62,7 +63,7 @@ export function ListenBrainzCard() {
       await listenbrainzDisconnect();
       setStatus({ connected: false, username: null });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setBusy(false);
     }

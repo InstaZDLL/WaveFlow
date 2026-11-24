@@ -4887,5 +4887,25 @@
     "goneBody": "Sunucu bu videoyu artık bulamıyor: son taramadan bu yana silinmiş veya taşınmış. Parça bulunduğu konumda duraklatılmış olarak kalır.",
     "unreachableTitle": "Sunucu yanıt vermiyor",
     "unreachableBody": "Müzik videosu sunucudan istenemedi. Sunucuya yeniden ulaşılabildiğinde tekrar deneyin; parça bulunduğu konumda duraklatılmış olarak kalır."
+  },
+  "errors": {
+    "offline": "Çevrimdışı mod açık.",
+    "offline_plugin_store": "Çevrimdışı mod açık: eklenti mağazası kullanılamıyor.",
+    "offline_plugin_install": "Çevrimdışı mod açık: eklenti yüklenemiyor.",
+    "offline_enrichment": "Çevrimdışı mod açık: bir eşleşmeyi uygulamak için kapatın.",
+    "offline_tag_fetch": "Çevrimdışı mod açık: etiketleri almak için kapatın.",
+    "offline_musicbrainz": "Çevrimdışı mod açık: MusicBrainz ile eşleştirmek için kapatın.",
+    "offline_lastfm": "Çevrimdışı mod açık: Last.fm'e giriş yapmak için kapatın.",
+    "offline_listenbrainz": "Çevrimdışı mod açık: ListenBrainz'i bağlamak için kapatın.",
+    "offline_radio_catalogue": "Çevrimdışı mod açık: istasyon kataloğunu indirmek için kapatın.",
+    "offline_server_sign_in": "Çevrimdışı mod açık: sunucuya giriş yapmak için kapatın.",
+    "offline_server": "Çevrimdışı mod açık: sunucuya ulaşmak için kapatın.",
+    "listenbrainz_token_empty": "ListenBrainz belirtecinizi girin.",
+    "listenbrainz_token_rejected": "ListenBrainz bu belirteci kabul etmedi.",
+    "unsupported_image": "Bu görsel JPEG, PNG veya WebP biçiminde değil.",
+    "image_file_empty": "Bu görsel dosyası boş.",
+    "unsupported_video": "Bu video MP4 biçiminde değil.",
+    "file_too_large": "Bu dosya çok büyük (en fazla {{max}}).",
+    "network_track_not_cached": "Bu parça bir ağ paylaşımında ve henüz bu bilgisayarın önbelleğinde değil."
   }
 }

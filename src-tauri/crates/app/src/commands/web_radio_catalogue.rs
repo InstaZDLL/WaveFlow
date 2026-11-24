@@ -275,8 +275,9 @@ pub async fn download_radio_catalogue(
     // Downloading is inherently a network op — refuse up front when offline
     // mode is on rather than failing deep in the fetch.
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is enabled — disable it to download the station catalogue".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineRadioCatalogue,
+            "offline mode is enabled — disable it to download the station catalogue",
         ));
     }
 

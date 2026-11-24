@@ -22,6 +22,7 @@ import {
   type CatalogueStats,
 } from "../../../lib/tauri/remoteServer";
 import { notifyRemoteChanged } from "../../../hooks/useRemoteSource";
+import { backendErrorText } from "../../../lib/backendError";
 
 /** Mebibytes with one decimal, in the interface's language. Covers are tens
  *  of kilobytes each, so the interesting figure is always the total. */
@@ -142,14 +143,14 @@ export function CatalogueMirrorCard() {
       notifyRemoteChanged();
       await refreshStats();
     } catch (err) {
-      if (mountedRef.current) setError(String(err));
+      if (mountedRef.current) setError(backendErrorText(err, t));
     } finally {
       if (mountedRef.current) {
         setBusy(null);
         setProgress(null);
       }
     }
-  }, [refreshStats]);
+  }, [refreshStats, t]);
 
   const cancel = useCallback(() => {
     void remoteCancelCatalogueMirror().catch(() => {});

@@ -119,7 +119,7 @@ import { usePageScroll } from "../../hooks/usePageScroll";
 import { useProfileScopedToggle } from "../../hooks/useProfileScopedToggle";
 import { useAutoplay } from "../../hooks/useAutoplay";
 import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/tauri/invoke";
 import {
   regenerateThumbnails,
   pruneCachedAlbumCovers,
@@ -143,6 +143,7 @@ import {
   ProfileArchivePreviewModal,
   type ArchivePreviewState,
 } from "../common/ProfileArchivePreviewModal";
+import { backendErrorText } from "../../lib/backendError";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -1549,7 +1550,7 @@ function SettingsViewContent({
       setLastfmUsername("");
       setLastfmPassword("");
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = backendErrorText(err, t);
       setLastfmLoginError(message);
       console.error("[SettingsView] Last.fm login failed", err);
     } finally {

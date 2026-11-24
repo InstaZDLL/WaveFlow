@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { dropLibraryLists } from "../libraryListCache";
 
 /** Album row returned by `list_albums`. UI-facing shape — paths are

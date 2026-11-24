@@ -46,7 +46,10 @@ pub async fn update_track_cover(
     let bytes = std::fs::read(&image_path)
         .map_err(|e| AppError::Other(format!("cover read failed: {e}")))?;
     if bytes.is_empty() {
-        return Err(AppError::Other("cover file is empty".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::ImageFileEmpty,
+            "cover file is empty",
+        ));
     }
     let (mime, ext) = sniff_image_mime(&bytes, &image_path);
 

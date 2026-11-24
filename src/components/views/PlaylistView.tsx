@@ -86,6 +86,7 @@ import {
 import { PlaylistTrackTable } from "./playlist/PlaylistTrackTable";
 import { PlaylistSortMenu } from "./playlist/PlaylistSortMenu";
 import { PlaylistSkeleton } from "./playlist/PlaylistSkeleton";
+import { backendErrorText } from "../../lib/backendError";
 
 const PLAYLIST_SORT_MODES: ReadonlyArray<PlaylistSortMode> = [
   "custom",
@@ -699,12 +700,12 @@ export function PlaylistView({
     } catch (err) {
       // Stop at the first failure rather than hammering a server that just
       // refused; what was already kept stays kept.
-      setRemoteError(String(err));
+      setRemoteError(backendErrorText(err, t));
     } finally {
       setOfflineIds(kept);
       setKeeping(null);
     }
-  }, [offlineIds]);
+  }, [offlineIds, t]);
 
   /** Remote only: append server tracks picked from the catalogue search. */
   const handleAddRemoteTracks = useCallback(

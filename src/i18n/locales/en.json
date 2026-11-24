@@ -4887,5 +4887,25 @@
     "goneBody": "The server can no longer find this video: it was deleted or moved since its last scan. The track stays paused at its position.",
     "unreachableTitle": "The server is not responding",
     "unreachableBody": "The music video could not be requested from the server. Try again once it can be reached; the track stays paused at its position."
+  },
+  "errors": {
+    "offline": "Offline mode is on.",
+    "offline_plugin_store": "Offline mode is on: the plugin catalogue is unavailable.",
+    "offline_plugin_install": "Offline mode is on: plugins can't be installed.",
+    "offline_enrichment": "Offline mode is on: turn it off to apply a match.",
+    "offline_tag_fetch": "Offline mode is on: turn it off to fetch tags.",
+    "offline_musicbrainz": "Offline mode is on: turn it off to match with MusicBrainz.",
+    "offline_lastfm": "Offline mode is on: turn it off to sign in to Last.fm.",
+    "offline_listenbrainz": "Offline mode is on: turn it off to connect ListenBrainz.",
+    "offline_radio_catalogue": "Offline mode is on: turn it off to download the station catalogue.",
+    "offline_server_sign_in": "Offline mode is on: turn it off to sign in to the server.",
+    "offline_server": "Offline mode is on: turn it off to reach the server.",
+    "listenbrainz_token_empty": "Enter your ListenBrainz token.",
+    "listenbrainz_token_rejected": "ListenBrainz did not accept this token.",
+    "unsupported_image": "This image is not a JPEG, PNG or WebP file.",
+    "image_file_empty": "This image file is empty.",
+    "unsupported_video": "This video is not an MP4 file.",
+    "file_too_large": "This file is too large (maximum {{max}}).",
+    "network_track_not_cached": "This track is on a network share and is not cached on this computer yet."
   }
 }

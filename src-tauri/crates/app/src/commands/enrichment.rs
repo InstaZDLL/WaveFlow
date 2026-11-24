@@ -141,8 +141,9 @@ pub async fn enrichment_accept_album(
     album_id: i64,
 ) -> AppResult<()> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on — turn it off to apply a match".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineEnrichment,
+            "offline mode is on — turn it off to apply a match",
         ));
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
@@ -253,8 +254,9 @@ pub async fn enrichment_accept_artists(
     artist_ids: Vec<i64>,
 ) -> AppResult<u32> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other(
-            "offline mode is on — turn it off to apply a match".into(),
+        return Err(AppError::shown(
+            crate::error::ShownKind::OfflineEnrichment,
+            "offline mode is on — turn it off to apply a match",
         ));
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;

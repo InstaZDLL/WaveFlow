@@ -40,6 +40,7 @@ import {
   getRadioPreferredCountry,
   setRadioPreferredCountry,
 } from "../../lib/tauri/webRadioCatalogue";
+import { backendErrorText } from "../../lib/backendError";
 
 const PLUGIN_ID = WEB_RADIO_PLUGIN_ID;
 
@@ -584,11 +585,11 @@ export function WebRadioView() {
         if (started !== null) setPlayingId(track.id);
       } catch (e) {
         if (streamReqRef.current !== token) return;
-        setError(e instanceof Error ? e.message : String(e));
+        setError(backendErrorText(e, t));
         setLoadingId(null);
       }
     },
-    [playingId, loadingId],
+    [playingId, loadingId, t],
   );
 
   const showCategoryList =

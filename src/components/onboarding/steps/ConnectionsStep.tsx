@@ -26,6 +26,7 @@ import { useEnrichmentSwitch } from "../../../hooks/useEnrichmentSettings";
 import { openView } from "../../../lib/discovery";
 import { FeatureCard } from "../../discovery/FeatureCard";
 import { StepHeading } from "./StepHeading";
+import { backendErrorText } from "../../../lib/backendError";
 
 /**
  * Connections: Last.fm (the sign-in Settings → Integrations has), the
@@ -246,7 +247,7 @@ function LastfmCard({ onTouch }: { onTouch: () => void }) {
       setOpen(false);
     } catch (err) {
       console.error("[Onboarding] lastfm login failed", err);
-      setError(err instanceof Error ? err.message : String(err));
+      setError(backendErrorText(err, t));
     } finally {
       setBusy(false);
     }

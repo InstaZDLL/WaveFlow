@@ -82,7 +82,10 @@ pub async fn player_play_url(
     // chatter by a stale tab.
     if crate::offline::is_offline() {
         tracing::warn!("player_play_url short-circuited: offline mode enabled");
-        return Err(AppError::Other("offline mode is enabled".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::Offline,
+            "offline mode is enabled",
+        ));
     }
 
     let track_id = next_radio_track_id();

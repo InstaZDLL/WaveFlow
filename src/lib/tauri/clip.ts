@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** Where a track's music video was found. Mirrors
  *  `waveflow_core::scanner::clips::ClipOrigin`. */

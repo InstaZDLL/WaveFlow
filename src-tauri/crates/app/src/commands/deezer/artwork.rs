@@ -60,7 +60,10 @@ pub async fn set_album_artwork_from_deezer(
     deezer_album_id: i64,
 ) -> AppResult<()> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline mode is enabled".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::Offline,
+            "offline mode is enabled",
+        ));
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -120,7 +123,10 @@ pub async fn set_album_artwork_from_file(
 
     let bytes = std::fs::read(&file_path)?;
     let format = detect_image_format(&bytes).ok_or_else(|| {
-        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+        AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            "unsupported image format (expected jpg/png/webp)",
+        )
     })?;
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
@@ -251,7 +257,10 @@ pub async fn set_artist_artwork_from_deezer(
     deezer_artist_id: i64,
 ) -> AppResult<()> {
     if crate::offline::is_offline() {
-        return Err(AppError::Other("offline mode is enabled".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::Offline,
+            "offline mode is enabled",
+        ));
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -317,7 +326,10 @@ pub async fn set_artist_artwork_from_file(
 
     let bytes = std::fs::read(&file_path)?;
     let format = detect_image_format(&bytes).ok_or_else(|| {
-        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+        AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            "unsupported image format (expected jpg/png/webp)",
+        )
     })?;
 
     let hash = blake3::hash(&bytes).to_hex().to_string();

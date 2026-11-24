@@ -80,13 +80,18 @@ pub async fn store_hash_addressed_mp4(
             .await
             .map(|m| format!("{} ", human_bytes(m.len())))
             .unwrap_or_default();
-        return Err(AppError::Other(format!(
-            "file too large: {actual}(max {})",
-            human_bytes(max_bytes)
-        )));
+        let max = human_bytes(max_bytes);
+        return Err(AppError::shown(
+            crate::error::ShownKind::FileTooLarge,
+            format!("file too large: {actual}(max {max})"),
+        )
+        .with_param("max", max));
     }
     if !is_mp4(&bytes) {
-        return Err(AppError::Other("unsupported format (expected mp4)".into()));
+        return Err(AppError::shown(
+            crate::error::ShownKind::UnsupportedVideo,
+            "unsupported format (expected mp4)",
+        ));
     }
 
     let hash = blake3::hash(&bytes).to_hex().to_string();

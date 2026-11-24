@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 
 /** What a file is, as the confirmation shows it. */
 export interface FileFacts {
