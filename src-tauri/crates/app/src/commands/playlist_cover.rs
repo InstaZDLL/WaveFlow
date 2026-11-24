@@ -52,20 +52,45 @@ fn read_cover_bytes(file_path: &str) -> AppResult<Vec<u8>> {
     Ok(bytes)
 }
 
+/// Write why a cover command failed to the log before the error goes back
+/// to the webview. The dialog says one generic sentence for most of them,
+/// so without this line a failure leaves nothing to go on (#1173). The
+/// error's text names the step and the OS's reason; of the paths, only a
+/// failed write to the artwork cache names its folder (it may have been
+/// moved), never the picked file's.
+fn logged<T>(
+    command: &'static str,
+    playlist_id: Option<i64>,
+    result: AppResult<T>,
+) -> AppResult<T> {
+    if let Err(err) = &result {
+        tracing::warn!(command, playlist_id, error = %err, "playlist cover: command failed");
+    }
+    result
+}
+
 /// Return a small, validated in-memory preview for a file selected before
 /// the playlist exists. The asset protocol cannot serve arbitrary paths
 /// outside app data, so the UI must not pass a picker path to convertFileSrc.
 #[tauri::command]
 pub async fn preview_playlist_cover_from_file(file_path: String) -> AppResult<String> {
-    let bytes = read_cover_bytes(&file_path)?;
+    logged("preview", None, preview_inner(&file_path))
+}
+
+fn preview_inner(file_path: &str) -> AppResult<String> {
+    let bytes = read_cover_bytes(file_path)?;
     if detect_image_format(&bytes).is_none() {
         return Err(AppError::shown(
             crate::error::ShownKind::UnsupportedImage,
             "invalid playlist cover image",
         ));
     }
-    let source = image::load_from_memory(&bytes)
-        .map_err(|e| AppError::Other(format!("decode cover preview: {e}")))?;
+    let source = image::load_from_memory(&bytes).map_err(|e| {
+        AppError::shown(
+            crate::error::ShownKind::UnsupportedImage,
+            format!("decode cover preview: {e}"),
+        )
+    })?;
     let preview = source.resize_to_fill(320, 320, image::imageops::FilterType::Triangle);
     let mut encoded = Vec::new();
     image::codecs::jpeg::JpegEncoder::new_with_quality(&mut encoded, 80)
@@ -97,17 +122,38 @@ pub async fn set_playlist_cover_from_file(
     playlist_id: i64,
     file_path: String,
 ) -> AppResult<()> {
+    logged(
+        "set_from_file",
+        Some(playlist_id),
+        set_from_file_inner(&state, playlist_id, &file_path).await,
+    )
+}
+
+async fn set_from_file_inner(state: &AppState, playlist_id: i64, file_path: &str) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     ensure_user_playlist(&pool, playlist_id).await?;
 
-    let bytes = read_cover_bytes(&file_path)?;
-    let Some(ext) = detect_image_format(&bytes) else {
+    let bytes = read_cover_bytes(file_path)?;
+    if detect_image_format(&bytes).is_none() {
         return Err(AppError::shown(
             crate::error::ShownKind::UnsupportedImage,
             "unsupported image format (expected jpg/png/webp)",
         ));
-    };
-    // We don't keep the original extension in the metadata cache because
+    }
+    // Decoded in memory: the codec comes from the bytes, and nothing goes
+    // through the system temp directory, which a broken `TMP` makes
+    // unwritable (#1173). An image with the right magic bytes that still
+    // does not decode (cut short, a variant the decoder lacks) is the
+    // user's to change, so it is said as one.
+    let image = image::load_from_memory(&bytes)
+        .map_err(|e| {
+            AppError::shown(
+                crate::error::ShownKind::UnsupportedImage,
+                format!("cover image decode: {e}"),
+            )
+        })?
+        .to_rgb8();
+    // We don't keep the original format in the metadata cache because
     // every smart-playlist cover is JPEG. Re-encode through the compositor
     // pipeline (single-tile fill) for two wins:
     //   1. Format normalisation — every `cover_hash` resolves to .jpg, no
@@ -115,21 +161,7 @@ pub async fn set_playlist_cover_from_file(
     //   2. Resize-to-canvas — uploads larger than 640×640 get downscaled
     //      to the on-disk standard, capping disk usage and keeping the
     //      sidebar / carousel render fast.
-    // `image::open` infers the codec from the path extension, so the temp
-    // file MUST carry the real image extension — `.bin` falls back to
-    // PathExtension(Format) and the compositor rejects the input.
-    let tmp = std::env::temp_dir().join(format!(
-        "waveflow-upload-{}.{}",
-        blake3::hash(&bytes).to_hex(),
-        ext
-    ));
-    std::fs::write(&tmp, &bytes).map_err(|e| AppError::Other(format!("temp write: {e}")))?;
-    let result = cover::build_composite_cover(
-        std::slice::from_ref(&tmp),
-        &state.paths.metadata_artwork_dir,
-    );
-    let _ = std::fs::remove_file(&tmp);
-    let hash = result?;
+    let hash = cover::build_single_cover(&image, &state.paths.metadata_artwork_dir)?;
 
     update_cover(&pool, playlist_id, Some(&hash), 0).await?;
     Ok(())
@@ -144,9 +176,13 @@ pub async fn regenerate_playlist_auto_cover(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<()> {
-    let (pool, profile_id) = state.require_profile_snapshot().await?;
-    ensure_user_playlist(&pool, playlist_id).await?;
-    regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await
+    let result = async {
+        let (pool, profile_id) = state.require_profile_snapshot().await?;
+        ensure_user_playlist(&pool, playlist_id).await?;
+        regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await
+    }
+    .await;
+    logged("regenerate", Some(playlist_id), result)
 }
 
 /// Drop the manual cover and switch back to auto. Immediately re-runs the
@@ -157,13 +193,20 @@ pub async fn clear_playlist_cover(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<()> {
-    let (pool, profile_id) = state.require_profile_snapshot().await?;
-    ensure_user_playlist(&pool, playlist_id).await?;
-    update_cover(&pool, playlist_id, None, 1).await?;
-    // Best-effort regen — a brand new playlist with < 4 tracks legitimately
-    // has nothing to compose yet, so a "nothing to do" return is fine.
-    let _ = regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await;
-    Ok(())
+    let result = async {
+        let (pool, profile_id) = state.require_profile_snapshot().await?;
+        ensure_user_playlist(&pool, playlist_id).await?;
+        update_cover(&pool, playlist_id, None, 1).await?;
+        // Best-effort regen — a playlist with no artwork to compose keeps
+        // the gradient tile, and that is no reason to undo the clear. A
+        // failure to compose is still written to the log.
+        if let Err(err) = regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await {
+            tracing::warn!(playlist_id, error = %err, "auto-cover regen after clear failed (non-fatal)");
+        }
+        Ok(())
+    }
+    .await;
+    logged("clear", Some(playlist_id), result)
 }
 
 /// Hook called by playlist-mutation commands (add/remove/reorder/source).
@@ -177,12 +220,17 @@ pub async fn maybe_regen_auto_cover(
     playlist_id: i64,
 ) {
     let flags: Option<PlaylistFlags> =
-        sqlx::query_as("SELECT is_smart, cover_is_auto FROM playlist WHERE id = ?")
+        match sqlx::query_as("SELECT is_smart, cover_is_auto FROM playlist WHERE id = ?")
             .bind(playlist_id)
             .fetch_optional(pool)
             .await
-            .ok()
-            .flatten();
+        {
+            Ok(flags) => flags,
+            Err(err) => {
+                tracing::warn!(playlist_id, error = %err, "auto-cover: playlist flags unreadable");
+                return;
+            }
+        };
     let Some(flags) = flags else { return };
     if flags.is_smart == 1 || flags.cover_is_auto == 0 {
         return;
@@ -191,7 +239,7 @@ pub async fn maybe_regen_auto_cover(
         // Auto-regen failures are never fatal to the mutation that
         // triggered them — the user still gets their add/remove/reorder
         // outcome, just without the cover refresh.
-        tracing::warn!(playlist_id, ?err, "auto-cover regen failed (non-fatal)");
+        tracing::warn!(playlist_id, error = %err, "auto-cover regen failed (non-fatal)");
     }
 }
 
@@ -256,7 +304,10 @@ async fn top_track_artwork_paths(
     .bind(playlist_id)
     .fetch_all(pool)
     .await
-    .unwrap_or_default();
+    .unwrap_or_else(|err| {
+        tracing::warn!(playlist_id, error = %err, "auto-cover: artwork query failed");
+        Vec::new()
+    });
 
     // Dedupe by artwork hash so a playlist whose first 4 tracks share a
     // cover collapses to a single full-canvas image instead of a 2×2
@@ -267,6 +318,7 @@ async fn top_track_artwork_paths(
     let mut out = Vec::with_capacity(take);
     let mut seen: std::collections::HashSet<String> =
         std::collections::HashSet::with_capacity(take);
+    let mut missing = 0usize;
     for row in rows {
         if out.len() >= take {
             break;
@@ -277,7 +329,16 @@ async fn top_track_artwork_paths(
         let p = artwork_dir.join(format!("{}.{}", row.hash, row.format));
         if p.exists() {
             out.push(p);
+        } else {
+            missing += 1;
         }
+    }
+    if missing > 0 {
+        tracing::info!(
+            playlist_id,
+            missing,
+            "auto-cover: skipped artworks whose file is not in the cache"
+        );
     }
     out
 }
