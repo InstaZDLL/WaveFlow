@@ -50,6 +50,12 @@ navigation and be handed to whichever entry came back, which is exactly the bug
 #745 fixed: Back returned to the library and landed on whatever tab the bar
 happened to hold.
 
+The mouse's side buttons and the keyboard's BrowserBack / BrowserForward keys
+move through the same history, in the main window only (the mini-player and the
+desktop lyrics do not mount `AppLayout`). A shortcut the user saved on one of
+those keys wins: `useGlobalShortcuts` prevents the key's default, and the page
+does not move.
+
 The library tab is optional on the entry. The six places that name one (the
 sidebar's five rows and Home's Playlists card) go through `navigateToLibraryTab`
 and push an entry carrying it; a plain visit pushes one without, and falls back

@@ -730,6 +730,11 @@ export function AppLayout() {
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
+      // A shortcut saved on BrowserBack / BrowserForward (Settings →
+      // Shortcuts) ran first, from useGlobalShortcuts' listener registered
+      // above, and prevented the default: the key belongs to that action,
+      // and the page stays where it is.
+      if (event.defaultPrevented) return;
       if (event.key === "BrowserBack") {
         event.preventDefault();
         goBack();
