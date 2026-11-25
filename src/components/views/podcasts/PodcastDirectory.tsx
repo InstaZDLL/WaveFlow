@@ -40,13 +40,14 @@ import {
 const TILE_MIN_WIDTH = 176;
 const TILE_GAP = 24;
 
-/** The pictures already asked for, by show id, so scrolling back asks the
- *  backend nothing. At most {@link MAX_PICTURES}, the oldest out first; the
- *  backend keeps its own, bounded too. */
-const pictures = new Map<number, string | null>();
+/** The pictures already received, by show id, so scrolling back asks the
+ *  backend nothing. At most {@link MAX_PICTURES}, the oldest out first. A show
+ *  without one is not kept here: the backend knows which absences last, and
+ *  asks again for the others. */
+const pictures = new Map<number, string>();
 const MAX_PICTURES = 400;
 
-function keepPicture(id: number, picture: string | null) {
+function keepPicture(id: number, picture: string) {
   pictures.set(id, picture);
   while (pictures.size > MAX_PICTURES) {
     const oldest = pictures.keys().next();
@@ -491,7 +492,7 @@ function DirectoryCover({
     let current = true;
     podcastDirectoryArtwork(show.id).then(
       (picture) => {
-        keepPicture(show.id, picture);
+        if (picture != null) keepPicture(show.id, picture);
         if (current) setSrc(picture);
       },
       () => {
