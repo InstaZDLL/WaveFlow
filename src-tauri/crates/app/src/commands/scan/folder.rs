@@ -1885,13 +1885,16 @@ async fn scan_folder_run(
     // Custom smart playlists hold their tracks, they do not compute them
     // on read: a track the scan brought in, retagged or lost joins or
     // leaves one only when its rules run again (#1169). Under the
-    // placeholders' condition, or when an unchanged file was read again
-    // and its stored fields rewritten, so a watcher rescan that changed
-    // nothing costs nothing; once per scan, never per file; after the
-    // last batch, reading without the lock and writing only the
-    // playlists that changed.
+    // placeholders' condition, when an unchanged file was read again and
+    // its stored fields rewritten, or when the pass above gave orphaned
+    // plays their track back (a play-count rule reads them, and a scan
+    // that changed no file can still re-attach: a copy of a removed
+    // track found by name, a pass that failed last time), so a watcher
+    // rescan that changed nothing costs nothing; once per scan, never
+    // per file; after the last batch, reading without the lock and
+    // writing only the playlists that changed.
     let t_pass = Instant::now();
-    if brought_tracks || reread_unchanged {
+    if brought_tracks || reread_unchanged || reattached_plays > 0 {
         crate::commands::smart_playlists::refresh_custom_after_change(pool, app_handle).await;
     }
     let smart_playlists_ms = t_pass.elapsed().as_millis();
