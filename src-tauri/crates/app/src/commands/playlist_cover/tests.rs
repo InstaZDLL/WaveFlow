@@ -254,3 +254,24 @@ async fn the_auto_cover_follows_a_refresh_that_changed_the_first_tracks() {
     assert_eq!(auto, 1);
     assert_eq!(fx.cover(user).await, (None, 1), "only what was written");
 }
+
+#[tokio::test]
+async fn an_upload_that_lands_while_the_auto_cover_is_composed_is_kept() {
+    let fx = Fixture::new().await;
+    let custom = fx.custom_playlist().await;
+    // The upload committed after the hook read `cover_is_auto = 1`.
+    update_cover(&fx.pool, custom, Some("mine"), 0)
+        .await
+        .unwrap();
+
+    assert!(!write_auto_cover(&fx.pool, custom, "mosaic", false)
+        .await
+        .unwrap());
+    assert_eq!(fx.cover(custom).await, (Some("mine".into()), 0));
+
+    // The explicit regenerate command replaces it, as it always did.
+    assert!(write_auto_cover(&fx.pool, custom, "mosaic", true)
+        .await
+        .unwrap());
+    assert_eq!(fx.cover(custom).await, (Some("mosaic".into()), 1));
+}

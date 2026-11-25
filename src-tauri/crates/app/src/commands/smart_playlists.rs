@@ -160,7 +160,8 @@ pub async fn create_custom_smart_playlist(
 
     let track_count = custom::materialize(&pool, playlist_id, &input.rules).await?;
     // Born with `cover_is_auto = 1`: its first tracks make its cover, like
-    // a user playlist's (#1173). After the write, which holds the lock.
+    // a user playlist's (#1173). Once the write has committed: composing
+    // reads image files, never under the write lock.
     playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id).await;
     let _ = app.emit("playlist:changed", playlist_id);
 
@@ -366,7 +367,8 @@ pub(crate) async fn refresh_custom_after_change(
 /// The auto-covers of `playlist_ids`, read from the profile `pool` belongs
 /// to. Its artworks are under that profile's cache, so the active profile
 /// must be the pool's: a pass still running after a switch holds the
-/// profile left, and leaves its covers to that profile's next pass.
+/// profile left, and leaves those covers as they were until the next
+/// change to their tracks.
 async fn regen_covers_of_pool(app: &AppHandle, pool: &sqlx::SqlitePool, playlist_ids: &[i64]) {
     let state = app.state::<AppState>();
     let Ok((active, profile_id)) = state.require_profile_snapshot().await else {

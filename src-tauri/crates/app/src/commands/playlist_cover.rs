@@ -204,7 +204,7 @@ pub async fn regenerate_playlist_auto_cover(
     let result = async {
         let (pool, profile_id) = state.require_profile_snapshot().await?;
         ensure_user_cover(&pool, playlist_id).await?;
-        regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await
+        regenerate_inner(&pool, &state.paths, profile_id, playlist_id, true).await
     }
     .await;
     logged("regenerate", Some(playlist_id), result)
@@ -225,7 +225,9 @@ pub async fn clear_playlist_cover(
         // Best-effort regen — a playlist with no artwork to compose keeps
         // the gradient tile, and that is no reason to undo the clear. A
         // failure to compose is still written to the log.
-        if let Err(err) = regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await {
+        if let Err(err) =
+            regenerate_inner(&pool, &state.paths, profile_id, playlist_id, false).await
+        {
             tracing::warn!(playlist_id, error = %err, "auto-cover regen after clear failed (non-fatal)");
         }
         Ok(())
@@ -256,7 +258,7 @@ pub async fn maybe_regen_auto_cover(
     if !flags.cover_is_users() || flags.cover_is_auto == 0 {
         return;
     }
-    if let Err(err) = regenerate_inner(pool, paths, profile_id, playlist_id).await {
+    if let Err(err) = regenerate_inner(pool, paths, profile_id, playlist_id, false).await {
         // Auto-regen failures are never fatal to the mutation that
         // triggered them — the user still gets their add/remove/reorder
         // outcome, just without the cover refresh.
@@ -277,11 +279,18 @@ pub async fn regen_auto_covers(
     }
 }
 
+/// Compose the auto-cover from the first tracks and store it. `over_manual`
+/// is the explicit regenerate command's: it replaces whatever cover the
+/// playlist has. Otherwise the cover is stored only while the playlist is
+/// still on auto, so an upload that lands while the tracks are read and
+/// the tiles composed — a refresh pass runs this in the background after
+/// a scan — is not written over.
 async fn regenerate_inner(
     pool: &SqlitePool,
     paths: &AppPaths,
     profile_id: i64,
     playlist_id: i64,
+    over_manual: bool,
 ) -> AppResult<()> {
     let paths_for_compose =
         top_track_artwork_paths(pool, paths, profile_id, playlist_id, AUTO_COVER_TILE_COUNT).await;
@@ -296,9 +305,42 @@ async fn regenerate_inner(
         return Ok(());
     }
     let hash = cover::build_composite_cover(&paths_for_compose, &paths.metadata_artwork_dir)?;
-    update_cover(pool, playlist_id, Some(&hash), 1).await?;
+    if !write_auto_cover(pool, playlist_id, &hash, over_manual).await? {
+        tracing::info!(
+            playlist_id,
+            "auto-cover not stored: the playlist got a manual cover meanwhile"
+        );
+        return Ok(());
+    }
     tracing::info!(playlist_id, %hash, tile_count = paths_for_compose.len(), "auto-cover regenerated");
     Ok(())
+}
+
+/// Store `hash` as the playlist's auto-cover; with `over_manual` false,
+/// only if it is still on auto. Whether the row was written.
+async fn write_auto_cover(
+    pool: &SqlitePool,
+    playlist_id: i64,
+    hash: &str,
+    over_manual: bool,
+) -> AppResult<bool> {
+    let now = chrono::Utc::now().timestamp_millis();
+    let written = sqlx::query(
+        "UPDATE playlist
+            SET cover_hash    = ?,
+                cover_is_auto = 1,
+                updated_at    = ?
+          WHERE id = ?
+            AND (? OR cover_is_auto = 1)",
+    )
+    .bind(hash)
+    .bind(now)
+    .bind(playlist_id)
+    .bind(over_manual)
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(written > 0)
 }
 
 /// Pull artwork file paths for the first `take` tracks of the playlist
