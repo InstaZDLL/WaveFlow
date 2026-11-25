@@ -196,6 +196,9 @@ impl From<PodcastError> for Stop {
             PodcastError::ProfileChanged => Self::ProfileChanged,
             PodcastError::EpisodeGone => Self::Word(EPISODE_GONE.to_owned()),
             PodcastError::NoSource => Self::Word("no_source".to_owned()),
+            PodcastError::RateLimited => Self::Word("rate_limited".to_owned()),
+            PodcastError::DirectoryInvalid => Self::Word("directory_invalid".to_owned()),
+            PodcastError::NoFeed => Self::Word("no_feed".to_owned()),
             PodcastError::Database(err) => err.into(),
             PodcastError::Other(_) => Self::Word(WRITE_FAILED.to_owned()),
         }
