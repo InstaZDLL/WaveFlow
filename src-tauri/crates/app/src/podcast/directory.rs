@@ -307,6 +307,16 @@ impl Directory {
         lock(&self.known).clear();
     }
 
+    /// Every kept answer as if it had been kept `by` earlier, for a test. A
+    /// paused clock cannot do it with a database in the test: the runtime
+    /// moves it on to the pool's timers while a query runs.
+    #[cfg(test)]
+    pub(crate) fn age_answers(&self, by: Duration) {
+        for answer in lock(&self.answers).values_mut() {
+            answer.at = answer.at.checked_sub(by).expect("a clock far enough along");
+        }
+    }
+
     fn known_feed(&self, id: u64) -> Option<String> {
         lock(&self.known)
             .get(&id)
