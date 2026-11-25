@@ -696,6 +696,10 @@ pub(crate) async fn remove_folder_inner(
     // idle poll wakes up — matches every other sync-emitting command.
     state.drain.notify();
 
+    // The folder's tracks left every playlist with their rows; a custom
+    // smart playlist at its limit takes the next matches in their place.
+    crate::commands::smart_playlists::refresh_custom_after_change(pool, Some(app)).await;
+
     let _ = app.emit("library:rescanned", ());
     Ok(())
 }

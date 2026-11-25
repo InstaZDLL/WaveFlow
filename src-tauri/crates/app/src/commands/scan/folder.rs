@@ -111,6 +111,28 @@ pub(crate) async fn scan_folder_inner(
     app_handle: Option<&tauri::AppHandle>,
     deep: bool,
 ) -> AppResult<ScanSummary> {
+    let result = scan_folder_run(pool, artwork_dir, folder_id, app_handle, deep).await;
+    // A scan that failed partway may have committed batches before the
+    // failure, and returned before the custom smart playlist pass at its
+    // end (#1169). That pass, detached, once this scan's guard is gone. Not
+    // for a root that could not be read: that refusal comes before any
+    // write, and a watcher on an absent share would run it for nothing.
+    if let Err(err) = &result {
+        if !matches!(err, AppError::FolderUnreachable { .. }) {
+            crate::commands::smart_playlists::refresh_custom_in_background(pool, app_handle);
+        }
+    }
+    result
+}
+
+/// The body of [`scan_folder_inner`].
+async fn scan_folder_run(
+    pool: &SqlitePool,
+    artwork_dir: &Path,
+    folder_id: i64,
+    app_handle: Option<&tauri::AppHandle>,
+    deep: bool,
+) -> AppResult<ScanSummary> {
     // Mark a scan in flight for the whole body so the background
     // analyzer parks itself instead of contending on CPU + the single
     // SQLite writer. Dropped on every exit path (RAII).
@@ -722,6 +744,11 @@ pub(crate) async fn scan_folder_inner(
     // Tracks removed, or whose file was rewritten, while the scan stepped
     // aside: left to the next scan.
     let mut touched_meanwhile: HashSet<String> = HashSet::new();
+    // An unchanged file read again anyway (a backfill, a deep rescan): its
+    // genres, artists, custom tags or rating may have been rewritten
+    // although the file counts as skipped, and a smart playlist rule reads
+    // every one of them.
+    let mut reread_unchanged = false;
     let mut processed: usize = summary.skipped as usize;
     // Memo for artist / genre id lookups — see `UpsertCache`. Lives as
     // long as the scan holds the write lock (a batch), so every track on
@@ -1258,6 +1285,7 @@ pub(crate) async fn scan_folder_inner(
                 // forever.
                 write_extra_tags(&mut tx, existing_track_id, extracted.extra_tags.as_ref()).await?;
 
+                reread_unchanged = true;
                 summary.skipped += 1;
                 tx_count += 1;
             } else {
@@ -1854,6 +1882,23 @@ pub(crate) async fn scan_folder_inner(
     }
     let placeholders_ms = t_pass.elapsed().as_millis();
 
+    // Custom smart playlists hold their tracks, they do not compute them
+    // on read: a track the scan brought in, retagged or lost joins or
+    // leaves one only when its rules run again (#1169). Under the
+    // placeholders' condition, when an unchanged file was read again and
+    // its stored fields rewritten, or when the pass above gave orphaned
+    // plays their track back (a play-count rule reads them, and a scan
+    // that changed no file can still re-attach: a copy of a removed
+    // track found by name, a pass that failed last time), so a watcher
+    // rescan that changed nothing costs nothing; once per scan, never
+    // per file; after the last batch, reading without the lock and
+    // writing only the playlists that changed.
+    let t_pass = Instant::now();
+    if brought_tracks || reread_unchanged || reattached_plays > 0 {
+        crate::commands::smart_playlists::refresh_custom_after_change(pool, app_handle).await;
+    }
+    let smart_playlists_ms = t_pass.elapsed().as_millis();
+
     // Marked whatever the individual files turned out to hold: the
     // point of the pass is that every file was *read once*, and a
     // folder of tracks that carry no custom tags must not be re-read on
@@ -1931,6 +1976,7 @@ pub(crate) async fn scan_folder_inner(
         covers_ms,
         plays_ms,
         placeholders_ms,
+        smart_playlists_ms,
         markers_ms,
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,

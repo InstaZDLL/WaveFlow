@@ -33,3 +33,6 @@ mod reliability_tests;
 
 #[cfg(test)]
 mod lock_turn_tests;
+
+#[cfg(test)]
+mod smart_playlist_tests;

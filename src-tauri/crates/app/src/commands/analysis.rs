@@ -623,6 +623,12 @@ async fn run_reserved(app: &AppHandle, pool: &SqlitePool) -> AppResult<LibraryAn
     // run still saves every track it had already decoded.
     failed += flush_analysis_batch(pool, &mut batch).await;
 
+    // The measured tempos and fake-lossless verdicts are what the BPM and
+    // "fake lossless" rules read: once for the run, not per track (#1169).
+    if processed > failed {
+        crate::commands::smart_playlists::refresh_custom_in_background(pool, Some(app));
+    }
+
     let summary = LibraryAnalysisSummary {
         processed,
         failed,

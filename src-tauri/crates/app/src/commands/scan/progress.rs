@@ -32,7 +32,7 @@ pub(crate) fn scan_in_flight() -> bool {
 
 /// RAII guard that bumps [`SCANS_IN_FLIGHT`] for the lifetime of a scan
 /// and decrements it on every exit path (early `?` return, error,
-/// panic). One is held at the top of [`scan_folder_inner`].
+/// panic). One is held at the top of the scan's body, `scan_folder_run`.
 pub(super) struct ScanInFlightGuard;
 
 impl ScanInFlightGuard {

@@ -845,6 +845,13 @@ pub async fn tag_workshop_apply(
     }
 
     drop(task);
+    // The written tags can move tracks into or out of a custom smart
+    // playlist's rules (#1169).
+    if report.written > 0 {
+        if let Ok(pool) = db.lease().await {
+            crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
+        }
+    }
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());
     let _ = app.emit("player:queue-changed", ());
@@ -1129,6 +1136,13 @@ pub async fn tag_workshop_undo(
                 false
             });
     drop(task);
+    // The tags put back can move tracks back into or out of a custom
+    // smart playlist's rules, like the ones the batch wrote.
+    if report.restored > 0 {
+        if let Ok(pool) = db.lease().await {
+            crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
+        }
+    }
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());
     let _ = app.emit("player:queue-changed", ());

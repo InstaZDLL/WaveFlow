@@ -298,6 +298,77 @@ pub async fn count_custom_smart_playlist(
     Ok(custom::count_matches(&pool, &rules).await?)
 }
 
+/// Retries of the whole pass when the database is busy.
+const REFRESH_ATTEMPTS: usize = 4;
+
+/// Bring the custom smart playlists in line with the library after a
+/// write that may have changed what their rules match — a scan, a tag
+/// edit, tracks deleted — and say which changed (#1169).
+///
+/// Never fails its caller: the write that called it already happened,
+/// and a playlist that lags behind it until the next pass is not worth
+/// undoing that for. A busy database is waited out a few times, which is
+/// safe because the pass is idempotent; past that, or on any other error,
+/// it is logged and the next pass catches up. Whatever was written before
+/// the pass stopped is still announced: `changed` outlives the attempts.
+pub(crate) async fn refresh_custom_after_change(
+    pool: &sqlx::SqlitePool,
+    app: Option<&AppHandle>,
+) -> usize {
+    use waveflow_core::error::CoreError;
+    let mut changed = Vec::new();
+    let mut backoff = std::time::Duration::from_millis(50);
+    for attempt in 1..=REFRESH_ATTEMPTS {
+        match custom::refresh_all(pool, &mut changed).await {
+            Ok(()) => break,
+            Err(CoreError::Database(err))
+                if custom::is_busy(&err) && attempt < REFRESH_ATTEMPTS =>
+            {
+                tokio::time::sleep(backoff).await;
+                backoff *= 2;
+            }
+            // The profile was closed under the pass: the app quitting or
+            // a switch to another profile. The next pass on it catches up.
+            Err(CoreError::Database(sqlx::Error::PoolClosed)) => break,
+            Err(err) => {
+                tracing::warn!(%err, "custom smart playlist refresh failed (non-fatal)");
+                break;
+            }
+        }
+    }
+    if !changed.is_empty() {
+        tracing::info!(
+            playlists = changed.len(),
+            "custom smart playlists refreshed"
+        );
+    }
+    if let Some(app) = app {
+        for playlist_id in &changed {
+            let _ = app.emit("playlist:changed", *playlist_id);
+        }
+    }
+    changed.len()
+}
+
+/// [`refresh_custom_after_change`] for a background pass, detached: the
+/// caller (an analysis run, an enrichment pass, the launch) goes on at
+/// once, so a run cancelled meanwhile releases its task and its slot
+/// without waiting for a scan. The detached task waits while a scan holds
+/// the single writer, as every background writer does — the scan is the
+/// pass the user is watching — then refreshes. It holds a clone of the
+/// pool, not a lease: a profile switch closes the pool under it, which
+/// the refresh takes as its cue to stop, and the next pass catches up.
+pub(crate) fn refresh_custom_in_background(pool: &sqlx::SqlitePool, app: Option<&AppHandle>) {
+    let pool = pool.clone();
+    let app = app.cloned();
+    tauri::async_runtime::spawn(async move {
+        while crate::commands::scan::scan_in_flight() {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+        refresh_custom_after_change(&pool, app.as_ref()).await;
+    });
+}
+
 fn is_custom_payload(raw: Option<&str>) -> bool {
     let Some(raw) = raw else {
         return false;

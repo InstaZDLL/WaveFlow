@@ -584,6 +584,199 @@ mod sql_tests {
         assert!(s.contains(" AND "));
         assert!(s.contains("NOT ("));
     }
+
+    /// The list found without the lock is written as it is only when no
+    /// other connection committed since it was computed; otherwise the
+    /// rules run again under the lock and their answer is written. The
+    /// look carries a deliberately wrong list, so which one landed shows
+    /// which branch ran.
+    #[tokio::test]
+    async fn a_look_outdated_by_another_commit_is_computed_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(dir.path().join("data.db"))
+            .create_if_missing(true);
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(2)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE track (id INTEGER PRIMARY KEY, title TEXT NOT NULL,
+                                 added_at INTEGER NOT NULL, is_available INTEGER NOT NULL);
+             CREATE TABLE playlist (id INTEGER PRIMARY KEY, is_smart INTEGER NOT NULL,
+                                    smart_rules TEXT, updated_at INTEGER NOT NULL);
+             CREATE TABLE playlist_track (playlist_id INTEGER NOT NULL, track_id INTEGER NOT NULL,
+                                          position INTEGER NOT NULL, added_at INTEGER NOT NULL,
+                                          PRIMARY KEY (playlist_id, track_id));
+             INSERT INTO track VALUES (1, 'Keep', 1, 1), (2, 'Keep', 2, 1);
+             INSERT INTO playlist VALUES (1, 1, 'raw', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let mut r = rules(RuleNode::Leaf {
+            predicate: Predicate::TitleContains {
+                value: "Keep".into(),
+            },
+        });
+        r.sort = Some(CustomSort::AddedAsc);
+        let clock = || NOW;
+        let members = |pool: sqlx::SqlitePool| async move {
+            sqlx::query_scalar::<_, i64>(
+                "SELECT track_id FROM playlist_track WHERE playlist_id = 1 ORDER BY position",
+            )
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+        };
+
+        // Nobody committed since the look: its list is what is written.
+        let mut conn = pool.acquire().await.unwrap();
+        let look = Look {
+            version: data_version(&mut conn).await.unwrap(),
+            current: vec![],
+            wanted: vec![2],
+        };
+        assert!(write_if_changed(&mut conn, 1, "raw", &r, look, &clock)
+            .await
+            .unwrap());
+        assert_eq!(members(pool.clone()).await, vec![2]);
+
+        // Another connection commits after the look: the rules run again.
+        let look = Look {
+            version: data_version(&mut conn).await.unwrap(),
+            current: vec![(2, 0)],
+            wanted: vec![2, 1],
+        };
+        sqlx::query("UPDATE track SET title = 'Drop' WHERE id = 2")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(write_if_changed(&mut conn, 1, "raw", &r, look, &clock)
+            .await
+            .unwrap());
+        drop(conn);
+        assert_eq!(
+            members(pool.clone()).await,
+            vec![1],
+            "track 2 was retagged out after the look, which still had it"
+        );
+    }
+
+    /// A rule on a relative window is run again under the lock even when
+    /// nobody committed: the clock alone can move a track out between the
+    /// look and the lock. Here a track added 29 days before the look is
+    /// past the 30-day window by the time the lock is held, two days on.
+    #[tokio::test]
+    async fn a_window_the_clock_crossed_since_the_look_is_computed_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(dir.path().join("data.db"))
+            .create_if_missing(true);
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(2)
+            .connect_with(options)
+            .await
+            .unwrap();
+        let day = 86_400_000_i64;
+        sqlx::raw_sql(
+            "CREATE TABLE track (id INTEGER PRIMARY KEY, title TEXT NOT NULL,
+                                 added_at INTEGER NOT NULL, is_available INTEGER NOT NULL);
+             CREATE TABLE playlist (id INTEGER PRIMARY KEY, is_smart INTEGER NOT NULL,
+                                    smart_rules TEXT, updated_at INTEGER NOT NULL);
+             CREATE TABLE playlist_track (playlist_id INTEGER NOT NULL, track_id INTEGER NOT NULL,
+                                          position INTEGER NOT NULL, added_at INTEGER NOT NULL,
+                                          PRIMARY KEY (playlist_id, track_id));
+             INSERT INTO playlist VALUES (1, 1, 'raw', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO track VALUES (1, 'Old', ?, 1), (2, 'New', ?, 1)")
+            .bind(NOW - 29 * day)
+            .bind(NOW - day)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let r = rules(RuleNode::Leaf {
+            predicate: Predicate::AddedInLastDays { value: 30 },
+        });
+
+        let mut conn = pool.acquire().await.unwrap();
+        let look = Look {
+            version: data_version(&mut conn).await.unwrap(),
+            current: vec![],
+            wanted: run_query_at(&pool, &r, NOW).await.unwrap(),
+        };
+        assert_eq!(
+            look.wanted,
+            vec![2, 1],
+            "both inside the window at the look"
+        );
+        let later = || NOW + 2 * day;
+        assert!(write_if_changed(&mut conn, 1, "raw", &r, look, &later)
+            .await
+            .unwrap());
+        drop(conn);
+        let members: Vec<i64> = sqlx::query_scalar(
+            "SELECT track_id FROM playlist_track WHERE playlist_id = 1 ORDER BY position",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(members, vec![2], "the old track left the window meanwhile");
+    }
+
+    /// A refresh of a random playlist keeps what still matches, where it
+    /// was, and fills only the room the limit leaves.
+    #[test]
+    fn a_random_playlist_keeps_its_draw_through_a_refresh() {
+        // Held 1, 2, 3; 2 no longer matches; 4 and 5 are new matches.
+        let shuffled = [5, 3, 4, 1];
+        assert_eq!(
+            keep_then_top_up([1, 2, 3].into_iter(), &shuffled, 3),
+            vec![1, 3, 5],
+            "the kept tracks first, in their order, then the draw"
+        );
+        assert_eq!(
+            keep_then_top_up([1, 2, 3].into_iter(), &shuffled, 10),
+            vec![1, 3, 5, 4],
+            "room for every match"
+        );
+        assert_eq!(
+            keep_then_top_up([1, 3, 5, 4].into_iter(), &shuffled, 2),
+            vec![1, 3],
+            "a lower limit cuts from the end"
+        );
+        assert_eq!(
+            keep_then_top_up(std::iter::empty(), &shuffled, 2),
+            vec![5, 3],
+            "an empty playlist takes the draw as it comes"
+        );
+    }
+
+    /// Ties under the sort key come out in one order, every time: the
+    /// refresh compares lists, and a tie resolved differently by two
+    /// runs of the same query would read as a change.
+    #[tokio::test]
+    async fn ties_under_the_sort_key_have_one_order() {
+        let pool = fixture_pool(NOW).await;
+        sqlx::query("UPDATE track SET added_at = ?, title = 'Same' WHERE id IN (1, 2)")
+            .bind(NOW)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let mut r = rules(RuleNode::All { children: vec![] });
+        for (sort, expected) in [
+            (CustomSort::AddedDesc, vec![2, 1]),
+            (CustomSort::AddedAsc, vec![1, 2]),
+            (CustomSort::TitleAsc, vec![1, 2]),
+        ] {
+            r.sort = Some(sort);
+            assert_eq!(run_query_at(&pool, &r, NOW).await.unwrap(), expected);
+        }
+    }
 }
 
 #[test]

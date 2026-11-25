@@ -15,7 +15,7 @@
 //! then wait on every such transaction. A write that changes nothing in one
 //! table of `main` takes `main`'s lock alone.
 
-use sqlx::{Sqlite, SqlitePool, Transaction};
+use sqlx::{Sqlite, SqliteConnection, SqlitePool, Transaction};
 
 /// Begin a transaction on `pool` that holds `main`'s write lock, taken by a
 /// write to `table` (a rowid table of `main`) that changes no row.
@@ -24,11 +24,29 @@ pub async fn begin_write_on(
     table: &'static str,
 ) -> sqlx::Result<Transaction<'static, Sqlite>> {
     let mut tx = pool.begin().await?;
+    take_lock(&mut tx, table).await?;
+    Ok(tx)
+}
+
+/// [`begin_write_on`] on a connection the caller already holds: for a
+/// pass that reads on it first and must know, once the lock is held,
+/// whether anyone committed since (`PRAGMA data_version` is only
+/// comparable between two reads on the same connection).
+pub async fn begin_write_on_connection<'c>(
+    conn: &'c mut SqliteConnection,
+    table: &'static str,
+) -> sqlx::Result<Transaction<'c, Sqlite>> {
+    let mut tx = sqlx::Connection::begin(conn).await?;
+    take_lock(&mut tx, table).await?;
+    Ok(tx)
+}
+
+async fn take_lock(conn: &mut SqliteConnection, table: &'static str) -> sqlx::Result<()> {
     let take_lock = format!("UPDATE main.{table} SET rowid = rowid WHERE 0");
     sqlx::query(sqlx::AssertSqlSafe(take_lock))
-        .execute(&mut *tx)
+        .execute(&mut *conn)
         .await?;
-    Ok(tx)
+    Ok(())
 }
 
 #[cfg(test)]
