@@ -47,7 +47,7 @@ async fn library(pool: &SqlitePool) {
 /// A queue of `ids`, the cursor on `at`, that track playing, and the
 /// decoder having asked for the next one.
 async fn playing(pool: &SqlitePool, ids: &[i64], at: usize) -> SharedPlayback {
-    queue::fill_queue(pool, "album", None, ids, at, false)
+    queue::fill_queue(pool, "album", None, ids, at, false, queue::UserQueue::Drop)
         .await
         .unwrap();
     let shared = SharedPlayback::new();
@@ -194,9 +194,17 @@ async fn a_clear_waits_for_a_top_up_in_flight() {
     let dir = tempfile::tempdir().unwrap();
     let pool = pool(dir.path()).await;
     library(&pool).await;
-    queue::fill_queue(&pool, "album", None, &[1, 2, 3], 2, false)
-        .await
-        .unwrap();
+    queue::fill_queue(
+        &pool,
+        "album",
+        None,
+        &[1, 2, 3],
+        2,
+        false,
+        queue::UserQueue::Drop,
+    )
+    .await
+    .unwrap();
     let clear = {
         let pool = pool.clone();
         async move { queue::clear(&pool).await }

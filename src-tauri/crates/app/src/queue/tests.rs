@@ -1,5 +1,5 @@
 use super::remove::cursor_after_removal;
-use super::shuffle::{album_runs, QueuedAlbumTrack};
+use super::shuffle::{album_runs, split_user_queue, QueuedAlbumTrack};
 use super::*;
 
 #[test]
@@ -192,4 +192,24 @@ fn removing_at_or_after_the_cursor_behaves() {
     assert_eq!(cursor_after_removal(2, 1, 3, 2, 2), 1);
     // Delete the whole queue → clamp to 0.
     assert_eq!(cursor_after_removal(0, 0, 4, 4, 0), 0);
+}
+
+/// A shuffle pins the rows queued by hand past the cursor, in their
+/// order, and mixes everything else — a row queued by hand that has
+/// already played included, since it is no longer waiting (#1168).
+#[test]
+fn split_user_queue_pins_only_what_is_still_to_come() {
+    // (row id, track id, queued by hand); the cursor is on row 30.
+    let rows = vec![
+        (10, 1, true),
+        (20, 2, false),
+        (30, 3, false),
+        (40, 4, true),
+        (50, 5, false),
+        (60, 4, true),
+    ];
+    let (current, waiting, rest) = split_user_queue(&rows, 2);
+    assert_eq!(current, 30);
+    assert_eq!(waiting, vec![40, 60], "two entries of one track stay two");
+    assert_eq!(rest, vec![10, 20, 50]);
 }
