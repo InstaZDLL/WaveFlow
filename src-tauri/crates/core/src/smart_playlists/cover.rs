@@ -81,17 +81,39 @@ pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Co
             "smart cover: no decodable input images".into(),
         ));
     }
+    compose_and_store(&tiles, metadata_dir)
+}
 
+/// A cover made of one image the user picked, already decoded: filled
+/// into the canvas and stored like [`build_composite_cover`]'s single-tile
+/// layout. The upload decodes the file's bytes in memory and hands them
+/// here, so nothing is written anywhere but the cache: the upload does not
+/// depend on the system temp directory, which a broken `TMP` makes
+/// unwritable (#1173), and the codec comes from the bytes rather than from
+/// a file name.
+pub fn build_single_cover(image: &RgbImage, metadata_dir: &Path) -> CoreResult<String> {
+    compose_and_store(std::slice::from_ref(image), metadata_dir)
+}
+
+/// Lay `tiles` out (2×2 from four, strips below that), encode the canvas
+/// as JPEG and store it in the shared cache under its blake3 hash. The
+/// write failing — a cache folder the user cannot write to, say — is
+/// named as such, so the log does not read like a decoding problem.
+fn compose_and_store(tiles: &[RgbImage], metadata_dir: &Path) -> CoreResult<String> {
     let canvas = if tiles.len() >= 4 {
         composite_grid_2x2(&tiles[..4])?
     } else {
-        composite_strips(&tiles)?
+        composite_strips(tiles)?
     };
     let bytes = encode_jpeg(&canvas)?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
-    crate::atomic_write::store_content_addressed(&out, &bytes)
-        .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
+    crate::atomic_write::store_content_addressed(&out, &bytes).map_err(|e| {
+        CoreError::Other(format!(
+            "cover write to the artwork cache ({}): {e}",
+            metadata_dir.display()
+        ))
+    })?;
     Ok(hash)
 }
 

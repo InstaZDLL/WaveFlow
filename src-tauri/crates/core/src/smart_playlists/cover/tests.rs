@@ -140,3 +140,36 @@ fn composite_collapses_identical_inputs_to_single_tile() {
         "duplicate inputs should collapse to the single-tile composite"
     );
 }
+
+#[test]
+fn single_cover_matches_the_single_tile_composite() {
+    // The upload decodes in memory; the cover it stores must be the one
+    // the path-based single-tile composite stores for the same image.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let src = dir.path().join("upload.png");
+    let img = solid(900, 600, [30, 140, 210]);
+    img.save_with_format(&src, ImageFormat::Png)
+        .expect("write source png");
+
+    let from_image = build_single_cover(&img, dir.path()).expect("cover from image");
+    let from_path =
+        build_composite_cover(std::slice::from_ref(&src), dir.path()).expect("cover from path");
+    assert_eq!(from_image, from_path);
+    let stored = metadata_artwork::path_for_hash(dir.path(), &from_image);
+    assert!(stored.is_file(), "the cover is in the cache");
+}
+
+#[test]
+fn cover_write_failure_is_named_as_a_write() {
+    // A cache path that cannot be a folder (a file stands where it
+    // would go) fails at the store, and the error says so.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let blocker = dir.path().join("metadata_artwork");
+    std::fs::write(&blocker, b"not a folder").expect("write blocker");
+    let err =
+        build_single_cover(&solid(64, 64, [10, 20, 30]), &blocker).expect_err("unwritable cache");
+    assert!(
+        err.to_string().contains("cover write to the artwork cache"),
+        "{err}"
+    );
+}
