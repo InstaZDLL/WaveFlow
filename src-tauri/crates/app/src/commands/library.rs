@@ -271,7 +271,11 @@ pub async fn update_library(
 /// queue_item / scrobble_queue) so the caller only has to issue the one
 /// DELETE and the DB takes care of the rest.
 #[tauri::command]
-pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) -> AppResult<()> {
+pub async fn delete_library(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    library_id: i64,
+) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
     // Resolve canonical BEFORE the DELETE — the row (and its
@@ -314,6 +318,10 @@ pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) 
     tx.commit().await?;
     state.drain.notify();
     tracing::info!(library_id, "library deleted");
+    // The library's tracks left every playlist with their rows, as a
+    // removed folder's do: a custom smart playlist at its limit takes the
+    // next matches from the libraries that remain.
+    crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
     Ok(())
 }
 
