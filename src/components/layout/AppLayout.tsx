@@ -710,6 +710,44 @@ export function AppLayout() {
     );
   }, []);
 
+  // Mouse Back/Forward side buttons (XButton1 / XButton2) and hardware
+  // BrowserBack / BrowserForward keys. Lives in AppLayout so it only
+  // runs in the main window — mini-player and desktop lyrics windows do
+  // not mount AppLayout.
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.button === 3 || event.button === 4) {
+        event.preventDefault();
+      }
+    };
+    const onMouseUp = (event: MouseEvent) => {
+      if (event.button === 3) {
+        event.preventDefault();
+        goBack();
+      } else if (event.button === 4) {
+        event.preventDefault();
+        goForward();
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "BrowserBack") {
+        event.preventDefault();
+        goBack();
+      } else if (event.key === "BrowserForward") {
+        event.preventDefault();
+        goForward();
+      }
+    };
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [goBack, goForward]);
+
   const navigateToAlbum = useCallback(
     (albumId: number) => {
       pushEntry({ id: "album-detail", albumId });
