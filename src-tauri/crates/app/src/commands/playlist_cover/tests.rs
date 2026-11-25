@@ -258,6 +258,8 @@ async fn the_auto_cover_follows_a_refresh_that_changed_the_first_tracks() {
 #[tokio::test]
 async fn an_upload_that_lands_while_the_auto_cover_is_composed_is_kept() {
     let fx = Fixture::new().await;
+    // A track, so the playlist is not refused for being empty.
+    fx.track(1, 10, 20).await;
     let custom = fx.custom_playlist().await;
     // The upload committed after the hook read `cover_is_auto = 1`.
     update_cover(&fx.pool, custom, Some("mine"), 0)
@@ -348,4 +350,22 @@ async fn a_manual_cover_on_an_emptied_custom_playlist_is_kept() {
 
     assert!(!clear_emptied_auto_cover(&fx.pool, custom).await.unwrap());
     assert_eq!(fx.cover(custom).await, (Some("mine".into()), 0));
+}
+
+#[tokio::test]
+async fn a_mosaic_composed_before_the_playlist_emptied_does_not_land() {
+    let fx = Fixture::new().await;
+    // The rules matched nothing by the time the composition ended.
+    let custom = fx.custom_playlist().await;
+
+    assert!(!write_auto_cover(&fx.pool, custom, "mosaic", false)
+        .await
+        .unwrap());
+    assert_eq!(fx.cover(custom).await, (None, 1));
+
+    // The explicit regenerate command is not held back.
+    assert!(write_auto_cover(&fx.pool, custom, "mosaic", true)
+        .await
+        .unwrap());
+    assert_eq!(fx.cover(custom).await, (Some("mosaic".into()), 1));
 }

@@ -367,7 +367,9 @@ async fn clear_emptied_auto_cover(pool: &SqlitePool, playlist_id: i64) -> AppRes
 }
 
 /// Store `hash` as the playlist's auto-cover; with `over_manual` false,
-/// only if it is still on auto. Whether the row was written.
+/// only if it is still on auto and still holds a track, so a mosaic
+/// composed before a refresh emptied the playlist does not land after
+/// [`clear_emptied_auto_cover`] cleared it. Whether the row was written.
 async fn write_auto_cover(
     pool: &SqlitePool,
     playlist_id: i64,
@@ -381,7 +383,9 @@ async fn write_auto_cover(
                 cover_is_auto = 1,
                 updated_at    = ?
           WHERE id = ?
-            AND (? OR cover_is_auto = 1)",
+            AND (? OR (cover_is_auto = 1
+                       AND EXISTS (SELECT 1 FROM playlist_track
+                                    WHERE playlist_id = playlist.id)))",
     )
     .bind(hash)
     .bind(now)
