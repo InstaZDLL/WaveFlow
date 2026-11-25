@@ -805,14 +805,13 @@ export function PodcastsView({
       {enabled && (
         <div
           className="pc-tabs"
-          role="tablist"
+          role="group"
           aria-label={t("podcasts.directory.tabsLabel")}
         >
           <button
             type="button"
-            role="tab"
             className="pc-tab"
-            aria-selected={!discovering}
+            aria-pressed={!discovering}
             onClick={() => {
               if (discovering) onOpenDiscover(null);
             }}
@@ -821,9 +820,8 @@ export function PodcastsView({
           </button>
           <button
             type="button"
-            role="tab"
             className="pc-tab"
-            aria-selected={discovering}
+            aria-pressed={discovering}
             onClick={() => {
               if (!discovering) onOpenDiscover({});
             }}

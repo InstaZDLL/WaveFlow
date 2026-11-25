@@ -476,7 +476,7 @@
 [data-podcasts] .pc-tab:hover {
   color: var(--pc-ink);
 }
-[data-podcasts] .pc-tab[aria-selected="true"] {
+[data-podcasts] .pc-tab[aria-pressed="true"] {
   background-color: var(--pc-surface-raised);
   color: var(--pc-ink);
   box-shadow: 0 0 0 1px var(--pc-hairline);
