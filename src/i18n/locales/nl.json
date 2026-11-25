@@ -4698,6 +4698,10 @@
         "server": {
           "title": "Als er een server is gekoppeld",
           "body": "Is dit profiel gekoppeld aan een WaveFlow-server met podcasts aan, dan verschijnen ook de kanalen daarvan. Die lopen via je server: de aanbieder ziet je server, niet jou."
+        },
+        "directory": {
+          "title": "Als je in de catalogus bladert",
+          "body": "Zoekopdrachten en hitlijsten op het tabblad Ontdekken komen uit de podcastcatalogus van iTunes. Die ziet je IP-adres, wat je zoekt en het gekozen land, en alleen als je hem opent."
         }
       }
     },
@@ -4824,7 +4828,10 @@
       "server_signed_out": "Je bent niet meer aangemeld bij deze server.",
       "server_refused": "De server heeft geweigerd, of kent dit item niet meer.",
       "server_conflict": "De server volgt deze feed al, of kan er geen meer volgen.",
-      "destination_refused": "De server mag dit adres niet bereiken."
+      "destination_refused": "De server mag dit adres niet bereiken.",
+      "rate_limited": "De catalogus krijgt te veel verzoeken van dit apparaat. Probeer het over een minuut opnieuw.",
+      "directory_invalid": "De catalogus stuurde een onleesbaar antwoord terug.",
+      "no_feed": "De catalogus geeft geen feedadres voor dit programma."
     },
     "episodePage": {
       "kicker": "Aflevering"
@@ -4868,6 +4875,50 @@
       "downloading": "Downloaden op de server…",
       "downloadFailed": "Mislukt op de server",
       "forgetPosition": "{{title}} vanaf het begin afspelen"
+    },
+    "directory": {
+      "tabsLabel": "Podcastonderdelen",
+      "mine": "Mijn podcasts",
+      "discover": "Ontdekken",
+      "searchLabel": "Zoeken in de catalogus",
+      "searchPlaceholder": "Een programma, een onderwerp…",
+      "searchAction": "Zoeken",
+      "country": "Land",
+      "privacy": "Zoekopdrachten en hitlijsten komen uit de podcastcatalogus van iTunes, die je IP-adres ziet, wat je zoekt en het gekozen land.",
+      "genresLabel": "Categorieën",
+      "top": "Toplijst · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Resultaten voor ‘{{term}}’",
+      "backToTop": "Terug naar de toplijst",
+      "offline": "De catalogus heeft een verbinding nodig en de offlinemodus staat aan.",
+      "loading": "Catalogus lezen…",
+      "noResults": "Geen programma gevonden.",
+      "emptyChart": "De catalogus heeft geen toplijst voor dit land.",
+      "explicit": "Expliciet",
+      "open": "Openen",
+      "openNamed": "{{title}} openen",
+      "subscribeNamed": "Abonneren op {{title}}",
+      "genres": {
+        "1301": "Kunst",
+        "1303": "Comedy",
+        "1304": "Onderwijs",
+        "1305": "Kinderen en gezin",
+        "1309": "Tv en film",
+        "1310": "Muziek",
+        "1314": "Religie en spiritualiteit",
+        "1318": "Technologie",
+        "1321": "Zakelijk",
+        "1324": "Maatschappij en cultuur",
+        "1511": "Overheid",
+        "1512": "Gezondheid en fitness",
+        "1483": "Fictie",
+        "1487": "Geschiedenis",
+        "1488": "True crime",
+        "1489": "Nieuws",
+        "1502": "Vrije tijd",
+        "1533": "Wetenschap",
+        "1545": "Sport"
+      }
     }
   },
   "clip": {

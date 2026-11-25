@@ -95,6 +95,8 @@ import {
   type ServerPlayerState,
 } from "./podcasts/PodcastServer";
 import { PodcastSubscribeForm } from "./podcasts/PodcastSubscribeForm";
+import { PodcastDirectory } from "./podcasts/PodcastDirectory";
+import type { DirectoryPlace } from "../../lib/podcastDirectory";
 
 interface PodcastsViewProps {
   /** The channel on the history entry; `null` is the overview. */
@@ -103,9 +105,13 @@ interface PodcastsViewProps {
   episodeId: number | null;
   /** The bound server's channel on the history entry, by its id over there. */
   serverChannelId: string | null;
+  /** Where in the directory, on the history entry; `null` is the overview. */
+  discover: DirectoryPlace | null;
   onOpenChannel: (channelId: number | null) => void;
   onOpenEpisode: (channelId: number, episodeId: number) => void;
   onOpenServerChannel: (channelId: string) => void;
+  /** Opens the directory at `place`, or the overview for `null`. */
+  onOpenDiscover: (place: DirectoryPlace | null) => void;
   /** That channel is gone: replaces the entry, so Back has no ghost to reach. */
   onChannelGone: () => void;
   /** That episode is gone: the same, to its channel. */
@@ -165,9 +171,11 @@ export function PodcastsView({
   channelId,
   episodeId,
   serverChannelId,
+  discover,
   onOpenChannel,
   onOpenEpisode,
   onOpenServerChannel,
+  onOpenDiscover,
   onChannelGone,
   onEpisodeGone,
 }: PodcastsViewProps) {
@@ -462,6 +470,9 @@ export function PodcastsView({
     if (gone) onChannelGone();
   }, [gone, onChannelGone]);
 
+  // The directory makes requests, so it is there only while podcasts are on.
+  const discovering = enabled && discover != null;
+
   const withoutAddress = library.channels.filter(
     (row) => !row.has_feed_address,
   ).length;
@@ -567,7 +578,8 @@ export function PodcastsView({
       >
         <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           {t("podcasts.server.deleteEpisodeBody", {
-            title: deletingEpisode?.title.trim() || t("podcasts.untitledEpisode"),
+            title:
+              deletingEpisode?.title.trim() || t("podcasts.untitledEpisode"),
           })}
         </p>
       </PodcastDialogShell>
@@ -692,7 +704,7 @@ export function PodcastsView({
   return (
     <div
       data-podcasts
-      data-podcast-page="overview"
+      data-podcast-page={discovering ? "discover" : "overview"}
       className="mx-auto max-w-[1440px] animate-fade-in space-y-6 pb-20"
     >
       <div
@@ -791,75 +803,120 @@ export function PodcastsView({
       {banners}
 
       {enabled && (
-        <div className="pc-card">
-          <PodcastSubscribeForm
-            subscribe={podcastSubscribe}
-            onSubscribed={(id) => void openSubscribed(id)}
-            disabled={offline}
-          />
-          <p className="pc-meta mt-1">{t("podcasts.opml.publicOnly")}</p>
-        </div>
-      )}
-
-      {withoutAddress > 0 && (
         <div
-          className="pc-notice"
-          data-podcast-restored
-          role="status"
-          data-tone="warn"
+          className="pc-tabs"
+          role="tablist"
+          aria-label={t("podcasts.directory.tabsLabel")}
         >
-          <p className="min-w-0 flex-1">
-            {t("podcasts.restored.summary", { n: withoutAddress })}
-          </p>
-        </div>
-      )}
-
-      {library.failed ? (
-        <div className="pc-notice" role="alert" data-tone="warn">
-          <p className="min-w-0 flex-1">
-            {podcastFailureMessage(t, library.failedWord)}
-          </p>
           <button
             type="button"
-            className="pc-link"
-            onClick={() => void reload()}
+            role="tab"
+            className="pc-tab"
+            aria-selected={!discovering}
+            onClick={() => {
+              if (discovering) onOpenDiscover(null);
+            }}
           >
-            {t("podcasts.retry")}
+            {t("podcasts.directory.mine")}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className="pc-tab"
+            aria-selected={discovering}
+            onClick={() => {
+              if (!discovering) onOpenDiscover({});
+            }}
+          >
+            {t("podcasts.directory.discover")}
           </button>
         </div>
-      ) : library.loading || !ready ? (
-        <p className="pc-meta">{t("podcasts.loading")}</p>
-      ) : library.channels.length === 0 && !serverOverview?.channels.length ? (
-        <EmptyState
-          icon={<Podcast size={36} strokeWidth={1.5} />}
-          title={t("podcasts.empty.title")}
-          description={t(
-            enabled ? "podcasts.empty.body" : "podcasts.empty.bodyOff",
-          )}
-        />
-      ) : null}
+      )}
 
-      <PodcastOverviewList
-        channels={library.channels}
-        toListen={library.toListen}
-        toListenFailed={library.toListenFailed}
-        fluid={fluid}
-        network={network}
-        downloads={downloads}
-        player={player}
-        actions={actions}
-        onOpenChannel={openChannel}
-        server={serverOverview}
-        onOpenServerChannel={onOpenServerChannel}
-        serverHead={
-          <ServerSectionHead
-            canManage={serverOverview?.can_manage ?? false}
-            disabled={!network}
-            onRefresh={refreshServer}
-            onSubscribed={onOpenServerChannel}
+      {discovering && discover ? (
+        <PodcastDirectory
+          place={discover}
+          fluid={fluid}
+          offline={offline}
+          onPlace={onOpenDiscover}
+          onOpenChannel={openChannel}
+          onSubscribed={() => void reload()}
+        />
+      ) : (
+        <>
+          {enabled && (
+            <div className="pc-card">
+              <PodcastSubscribeForm
+                subscribe={podcastSubscribe}
+                onSubscribed={(id) => void openSubscribed(id)}
+                disabled={offline}
+              />
+              <p className="pc-meta mt-1">{t("podcasts.opml.publicOnly")}</p>
+            </div>
+          )}
+
+          {withoutAddress > 0 && (
+            <div
+              className="pc-notice"
+              data-podcast-restored
+              role="status"
+              data-tone="warn"
+            >
+              <p className="min-w-0 flex-1">
+                {t("podcasts.restored.summary", { n: withoutAddress })}
+              </p>
+            </div>
+          )}
+
+          {library.failed ? (
+            <div className="pc-notice" role="alert" data-tone="warn">
+              <p className="min-w-0 flex-1">
+                {podcastFailureMessage(t, library.failedWord)}
+              </p>
+              <button
+                type="button"
+                className="pc-link"
+                onClick={() => void reload()}
+              >
+                {t("podcasts.retry")}
+              </button>
+            </div>
+          ) : library.loading || !ready ? (
+            <p className="pc-meta">{t("podcasts.loading")}</p>
+          ) : library.channels.length === 0 &&
+            !serverOverview?.channels.length ? (
+            <EmptyState
+              icon={<Podcast size={36} strokeWidth={1.5} />}
+              title={t("podcasts.empty.title")}
+              description={t(
+                enabled ? "podcasts.empty.body" : "podcasts.empty.bodyOff",
+              )}
+            />
+          ) : null}
+
+          <PodcastOverviewList
+            channels={library.channels}
+            toListen={library.toListen}
+            toListenFailed={library.toListenFailed}
+            fluid={fluid}
+            network={network}
+            downloads={downloads}
+            player={player}
+            actions={actions}
+            onOpenChannel={openChannel}
+            server={serverOverview}
+            onOpenServerChannel={onOpenServerChannel}
+            serverHead={
+              <ServerSectionHead
+                canManage={serverOverview?.can_manage ?? false}
+                disabled={!network}
+                onRefresh={refreshServer}
+                onSubscribed={onOpenServerChannel}
+              />
+            }
           />
-        }
-      />
+        </>
+      )}
       {dialogs}
     </div>
   );

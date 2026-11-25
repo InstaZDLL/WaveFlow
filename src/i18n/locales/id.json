@@ -4692,6 +4692,10 @@
         "server": {
           "title": "Jika server tertaut",
           "body": "Jika profil ini tertaut ke server WaveFlow yang podcast-nya aktif, kanalnya ikut tampil. Semuanya lewat server kamu: penyedia melihat server kamu, bukan kamu."
+        },
+        "directory": {
+          "title": "Saat Anda menjelajahi direktori",
+          "body": "Pencarian dan peringkat di tab Jelajahi berasal dari direktori podcast iTunes. Direktori melihat alamat IP Anda, apa yang Anda cari, dan negara yang dipilih, dan hanya saat Anda membukanya."
         }
       }
     },
@@ -4818,7 +4822,10 @@
       "server_signed_out": "Kamu tidak lagi masuk ke server ini.",
       "server_refused": "Server menolak, atau tidak lagi mengenal item ini.",
       "server_conflict": "Server sudah mengikuti umpan ini, atau tidak bisa mengikuti lebih banyak lagi.",
-      "destination_refused": "Server tidak diizinkan menjangkau alamat ini."
+      "destination_refused": "Server tidak diizinkan menjangkau alamat ini.",
+      "rate_limited": "Direktori menerima terlalu banyak permintaan dari perangkat ini. Coba lagi dalam satu menit.",
+      "directory_invalid": "Direktori mengirim jawaban yang tidak bisa dibaca.",
+      "no_feed": "Direktori tidak memberikan alamat feed acara ini."
     },
     "episodePage": {
       "kicker": "Episode"
@@ -4862,6 +4869,50 @@
       "downloading": "Mengunduh di server…",
       "downloadFailed": "Gagal di server",
       "forgetPosition": "Putar {{title}} dari awal"
+    },
+    "directory": {
+      "tabsLabel": "Bagian podcast",
+      "mine": "Podcast saya",
+      "discover": "Jelajahi",
+      "searchLabel": "Cari di direktori",
+      "searchPlaceholder": "Acara, topik…",
+      "searchAction": "Cari",
+      "country": "Negara",
+      "privacy": "Pencarian dan peringkat berasal dari direktori podcast iTunes, yang melihat alamat IP Anda, apa yang Anda cari, dan negara yang dipilih.",
+      "genresLabel": "Kategori",
+      "top": "Teratas · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Hasil untuk “{{term}}”",
+      "backToTop": "Kembali ke peringkat",
+      "offline": "Direktori memerlukan koneksi, dan mode luring aktif.",
+      "loading": "Membaca direktori…",
+      "noResults": "Tidak ada acara yang ditemukan.",
+      "emptyChart": "Direktori tidak punya peringkat untuk negara ini.",
+      "explicit": "Eksplisit",
+      "open": "Buka",
+      "openNamed": "Buka {{title}}",
+      "subscribeNamed": "Berlangganan {{title}}",
+      "genres": {
+        "1301": "Seni",
+        "1303": "Komedi",
+        "1304": "Pendidikan",
+        "1305": "Anak & keluarga",
+        "1309": "TV & film",
+        "1310": "Musik",
+        "1314": "Agama & spiritualitas",
+        "1318": "Teknologi",
+        "1321": "Bisnis",
+        "1324": "Masyarakat & budaya",
+        "1511": "Pemerintahan",
+        "1512": "Kesehatan & kebugaran",
+        "1483": "Fiksi",
+        "1487": "Sejarah",
+        "1488": "Kriminal nyata",
+        "1489": "Berita",
+        "1502": "Waktu luang",
+        "1533": "Sains",
+        "1545": "Olahraga"
+      }
     }
   },
   "clip": {

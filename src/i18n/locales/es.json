@@ -4839,6 +4839,10 @@
         "server": {
           "title": "Si hay un servidor vinculado",
           "body": "Si este perfil está vinculado a un servidor WaveFlow con los pódcasts activados, sus canales también aparecen. Pasan por tu servidor WaveFlow: el servidor del pódcast lo ve a él, no a ti."
+        },
+        "directory": {
+          "title": "Cuando exploras el directorio",
+          "body": "Las búsquedas y las listas de la pestaña Descubrir vienen del directorio de pódcasts de iTunes. Ve tu dirección IP, lo que buscas y el país elegido, y solo cuando lo abres."
         }
       }
     },
@@ -4965,7 +4969,10 @@
       "server_signed_out": "Ya no tienes la sesión iniciada en este servidor.",
       "server_refused": "El servidor lo ha rechazado, o ya no conoce este elemento.",
       "server_conflict": "El servidor ya sigue este feed, o no puede seguir más.",
-      "destination_refused": "El servidor no tiene permiso para acceder a esta dirección."
+      "destination_refused": "El servidor no tiene permiso para acceder a esta dirección.",
+      "rate_limited": "El directorio recibe demasiadas solicitudes de este dispositivo. Vuelve a intentarlo en un minuto.",
+      "directory_invalid": "El directorio devolvió una respuesta ilegible.",
+      "no_feed": "El directorio no da la dirección del feed de este programa."
     },
     "episodePage": {
       "kicker": "Episodio"
@@ -5009,6 +5016,50 @@
       "downloading": "Descargando en el servidor…",
       "downloadFailed": "Error en el servidor",
       "forgetPosition": "Reproducir {{title}} desde el principio"
+    },
+    "directory": {
+      "tabsLabel": "Secciones de pódcasts",
+      "mine": "Mis pódcasts",
+      "discover": "Descubrir",
+      "searchLabel": "Buscar en el directorio",
+      "searchPlaceholder": "Un programa, un tema…",
+      "searchAction": "Buscar",
+      "country": "País",
+      "privacy": "Las búsquedas y las listas vienen del directorio de pódcasts de iTunes, que ve tu dirección IP, lo que buscas y el país elegido.",
+      "genresLabel": "Categorías",
+      "top": "Lo más escuchado · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Resultados para «{{term}}»",
+      "backToTop": "Volver a la lista",
+      "offline": "El directorio necesita conexión y el modo sin conexión está activado.",
+      "loading": "Leyendo el directorio…",
+      "noResults": "No se encontró ningún programa.",
+      "emptyChart": "El directorio no tiene lista para este país.",
+      "explicit": "Explícito",
+      "open": "Abrir",
+      "openNamed": "Abrir {{title}}",
+      "subscribeNamed": "Suscribirse a {{title}}",
+      "genres": {
+        "1301": "Arte",
+        "1303": "Humor",
+        "1304": "Educación",
+        "1305": "Niños y familia",
+        "1309": "Televisión y cine",
+        "1310": "Música",
+        "1314": "Religión y espiritualidad",
+        "1318": "Tecnología",
+        "1321": "Negocios",
+        "1324": "Sociedad y cultura",
+        "1511": "Gobierno",
+        "1512": "Salud y forma física",
+        "1483": "Ficción",
+        "1487": "Historia",
+        "1488": "Crímenes reales",
+        "1489": "Noticias",
+        "1502": "Ocio",
+        "1533": "Ciencia",
+        "1545": "Deportes"
+      }
     }
   },
   "clip": {

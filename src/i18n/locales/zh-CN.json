@@ -4692,6 +4692,10 @@
         "server": {
           "title": "如果关联了服务器",
           "body": "如果这个个人资料关联了开启播客的 WaveFlow 服务器，它的节目也会显示。这些内容经过你的服务器：托管方看到的是你的服务器，而不是你。"
+        },
+        "directory": {
+          "title": "浏览目录时",
+          "body": "“发现”标签中的搜索和排行榜来自 iTunes 播客目录。目录会看到你的 IP 地址、搜索内容和所选国家/地区，且仅在你打开它时。"
         }
       }
     },
@@ -4818,7 +4822,10 @@
       "server_signed_out": "你当前未登录此服务器。",
       "server_refused": "服务器拒绝了请求，或此内容已不存在。",
       "server_conflict": "服务器已订阅此订阅源，或已达到订阅上限。",
-      "destination_refused": "服务器无权访问此地址。"
+      "destination_refused": "服务器无权访问此地址。",
+      "rate_limited": "目录收到了这台设备发出的过多请求。请一分钟后再试。",
+      "directory_invalid": "目录返回了无法读取的回答。",
+      "no_feed": "目录没有给出这个节目的订阅源地址。"
     },
     "episodePage": {
       "kicker": "单集"
@@ -4862,6 +4869,50 @@
       "downloading": "正在服务器上下载…",
       "downloadFailed": "服务器下载失败",
       "forgetPosition": "从头播放 {{title}}"
+    },
+    "directory": {
+      "tabsLabel": "播客分区",
+      "mine": "我的播客",
+      "discover": "发现",
+      "searchLabel": "搜索目录",
+      "searchPlaceholder": "节目、话题…",
+      "searchAction": "搜索",
+      "country": "国家/地区",
+      "privacy": "搜索和排行榜来自 iTunes 播客目录，目录会看到你的 IP 地址、搜索内容和所选国家/地区。",
+      "genresLabel": "分类",
+      "top": "热门 · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "“{{term}}”的搜索结果",
+      "backToTop": "返回排行榜",
+      "offline": "目录需要网络连接，但离线模式已开启。",
+      "loading": "正在读取目录…",
+      "noResults": "未找到节目。",
+      "emptyChart": "目录中没有这个国家/地区的排行榜。",
+      "explicit": "含不当内容",
+      "open": "打开",
+      "openNamed": "打开 {{title}}",
+      "subscribeNamed": "订阅 {{title}}",
+      "genres": {
+        "1301": "艺术",
+        "1303": "喜剧",
+        "1304": "教育",
+        "1305": "儿童与家庭",
+        "1309": "电视与电影",
+        "1310": "音乐",
+        "1314": "宗教与灵修",
+        "1318": "科技",
+        "1321": "商业",
+        "1324": "社会与文化",
+        "1511": "政府",
+        "1512": "健康与健身",
+        "1483": "小说",
+        "1487": "历史",
+        "1488": "真实罪案",
+        "1489": "新闻",
+        "1502": "休闲",
+        "1533": "科学",
+        "1545": "体育"
+      }
     }
   },
   "clip": {

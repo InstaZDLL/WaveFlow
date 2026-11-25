@@ -58,6 +58,7 @@ import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
 import { PodcastDialogsHost } from "../podcasts/PodcastDialogsHost";
+import type { DirectoryPlace } from "../../lib/podcastDirectory";
 import { PodcastTranscriptPanel } from "../podcasts/PodcastTranscriptPanel";
 import { retryableLazy } from "../../lib/preloadable";
 import {
@@ -183,6 +184,8 @@ type HistoryEntry =
       episodeId?: number | null;
       /** A channel of the bound server: its id is the server's, and no row here. */
       serverChannelId?: string | null;
+      /** The directory, at a genre or a search; neither is the country's chart. */
+      discover?: DirectoryPlace | null;
     }
   | { id: "release-radar" }
   // The files it opened travel on the entry, so Back returns to the same
@@ -899,6 +902,11 @@ export function AppLayout() {
                 ? (currentEntry.serverChannelId ?? null)
                 : null
             }
+            discover={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.discover ?? null)
+                : null
+            }
             onOpenChannel={(channelId) =>
               pushEntry({ id: "podcasts", channelId })
             }
@@ -907,6 +915,11 @@ export function AppLayout() {
             }
             onOpenServerChannel={(serverChannelId) =>
               pushEntry({ id: "podcasts", serverChannelId })
+            }
+            onOpenDiscover={(discover) =>
+              pushEntry(
+                discover ? { id: "podcasts", discover } : { id: "podcasts" },
+              )
             }
             onChannelGone={leavePodcastChannel}
             onEpisodeGone={leavePodcastEpisode}

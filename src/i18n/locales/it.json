@@ -4842,6 +4842,10 @@
         "server": {
           "title": "Se è collegato un server",
           "body": "Se questo profilo è collegato a un server WaveFlow con i podcast attivi, compaiono anche i suoi canali. Passano dal tuo server WaveFlow: il server del podcast vede lui, non te."
+        },
+        "directory": {
+          "title": "Quando sfogli la directory",
+          "body": "Ricerche e classifiche della scheda Scopri vengono dalla directory di podcast di iTunes. Vede il tuo indirizzo IP, cosa cerchi e il paese scelto, e solo quando la apri."
         }
       }
     },
@@ -4968,7 +4972,10 @@
       "server_signed_out": "Non sei più connesso a questo server.",
       "server_refused": "Il server ha rifiutato, o non conosce più questo elemento.",
       "server_conflict": "Il server segue già questo feed, o non può seguirne altri.",
-      "destination_refused": "Il server non è autorizzato a raggiungere questo indirizzo."
+      "destination_refused": "Il server non è autorizzato a raggiungere questo indirizzo.",
+      "rate_limited": "La directory riceve troppe richieste da questo dispositivo. Riprova tra un minuto.",
+      "directory_invalid": "La directory ha restituito una risposta illeggibile.",
+      "no_feed": "La directory non fornisce l'indirizzo del feed di questo programma."
     },
     "episodePage": {
       "kicker": "Episodio"
@@ -5012,6 +5019,50 @@
       "downloading": "Download sul server…",
       "downloadFailed": "Errore sul server",
       "forgetPosition": "Riproduci {{title}} dall'inizio"
+    },
+    "directory": {
+      "tabsLabel": "Sezioni dei podcast",
+      "mine": "I miei podcast",
+      "discover": "Scopri",
+      "searchLabel": "Cerca nella directory",
+      "searchPlaceholder": "Un programma, un argomento…",
+      "searchAction": "Cerca",
+      "country": "Paese",
+      "privacy": "Ricerche e classifiche vengono dalla directory di podcast di iTunes, che vede il tuo indirizzo IP, cosa cerchi e il paese scelto.",
+      "genresLabel": "Categorie",
+      "top": "I più ascoltati · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Risultati per «{{term}}»",
+      "backToTop": "Torna alla classifica",
+      "offline": "La directory richiede una connessione e la modalità offline è attiva.",
+      "loading": "Lettura della directory…",
+      "noResults": "Nessun programma trovato.",
+      "emptyChart": "La directory non ha una classifica per questo paese.",
+      "explicit": "Esplicito",
+      "open": "Apri",
+      "openNamed": "Apri {{title}}",
+      "subscribeNamed": "Iscriviti a {{title}}",
+      "genres": {
+        "1301": "Arte",
+        "1303": "Comicità",
+        "1304": "Istruzione",
+        "1305": "Bambini e famiglia",
+        "1309": "TV e cinema",
+        "1310": "Musica",
+        "1314": "Religione e spiritualità",
+        "1318": "Tecnologia",
+        "1321": "Economia",
+        "1324": "Società e cultura",
+        "1511": "Governo",
+        "1512": "Salute e fitness",
+        "1483": "Narrativa",
+        "1487": "Storia",
+        "1488": "Cronaca nera",
+        "1489": "Notizie",
+        "1502": "Tempo libero",
+        "1533": "Scienza",
+        "1545": "Sport"
+      }
     }
   },
   "clip": {

@@ -11,6 +11,7 @@ Standalone podcasts in the desktop app, off by default. The design and its reaso
 | 5   | The page, the activation warning, sidebar, settings, What's new                     | This page |
 | 6   | Chapters and the transcript panel                                                   | This page |
 | 7   | The channels of a bound server                                                      | This page |
+| 8   | The directory: a search, charts by country and genre, subscribing from a result     | This page |
 
 ## The switch
 
@@ -21,6 +22,8 @@ Standalone podcasts in the desktop app, off by default. The design and its reaso
 ### The warning
 
 [`PodcastWarningDialog`](../../src/components/podcasts/PodcastWarningDialog.tsx) says what changes, in plain words, before anything does: feeds and episodes come straight from each podcast's host, which sees the IP address and what is played, and so do the measurement services episodes often pass through; a check every six hours while the app runs, and only then; downloads take space up to the quota; a linked server's channels show too, through that server; offline mode stops all of it, and turning podcasts off stops it for good.
+
+It also says that the Discover tab asks the iTunes directory, which sees the IP address, what is searched and the country chosen, and only when the tab is opened.
 
 It is the one caller of `acceptWarning`. Everything else only asks for it, through `openPodcastWarning()` in [`discovery.ts`](../../src/lib/discovery.ts): the Settings row, the page's button, the page of What's new. An OPML file cannot be opened with the switch off, since the page shows no import then, and onboarding does not mention it. Cancel comes first in the DOM and nothing in the body takes the focus, so `useModalA11y` starts on it, and Enter on an opening dialog accepts nothing. Cancel, Escape and the backdrop leave the switch as it was. The hook takes a refused write back rather than rejecting, so the dialog reads the switch once the write has settled: still off, it stays open and says so.
 
@@ -47,6 +50,37 @@ An **OPML import** is run by [`PodcastDialogsHost`](../../src/components/podcast
 
 **A channel's website** is opened by id through `podcast_open_site`: the address stays in the backend, is checked again to be http or https with no credentials, and an opener's failure is one word (`open_failed`), since its text may quote the address. Nothing is contacted by the app, so neither the switch nor offline mode refuses it.
 
+## The directory
+
+[`podcast::directory`](../../src-tauri/crates/app/src/podcast/directory.rs) over [`waveflow_core::podcast::directory`](../../src-tauri/crates/core/src/podcast/directory.rs), drawn by [`PodcastDirectory`](../../src/components/views/podcasts/PodcastDirectory.tsx). It finds shows without knowing their address, from the iTunes podcast directory, which needs no key: a search by name, a country's chart, and that chart narrowed to one of 19 genres.
+
+**Where it is.** The page has two tabs while podcasts are on, the channels followed and Discover, and the place in the directory (a genre, a search) is on the history entry, so Back returns to it. Discover shows a search field, the country, the genres as a row of buttons, then the chart or the results as one virtual list through `usePageVirtualizer`: tiles on the fluid layout, rows with their rank on the classic one. A show says its genre, its episode count when the directory gives one, and whether it is marked explicit; its button subscribes, or opens the channel it already is. A line under the field says who sees what.
+
+**The country** is per profile, `podcasts.directory_country` through [`usePodcastDirectoryCountry`](../../src/hooks/usePodcastDirectoryCountry.ts). Until one is picked it is where the user seems to be, by the same guess as Web Radio's "Local stations" ([`lib/region.ts`](../../src/lib/region.ts): the time zone, then the language's region), and the United States when that country has no storefront. It is chosen on the page and nowhere else, so it has no entry in the settings registry. [`PODCAST_STOREFRONTS`](../../src/lib/podcastDirectory.ts) lists the 178 countries whose chart held shows when the list was made; the others answer an empty chart or a 400. The backend takes any two letters.
+
+**What is asked**, all through [`Fetcher`](#fetching) held to public addresses, with the switch and offline mode asked before each request, a picture's included:
+
+| Asked                     | Address                                                       | Gives                            |
+| ------------------------- | ------------------------------------------------------------- | -------------------------------- |
+| A search                  | `itunes.apple.com/search?media=podcast&entity=podcast&…`      | Shows with their feed            |
+| A chart, maybe of a genre | `itunes.apple.com/{country}/rss/toppodcasts/limit=200/…/json` | Shows without their feed         |
+| Every show of that chart  | `itunes.apple.com/lookup?id=…`, all of them in one request    | Their feeds, and their top genre |
+| A show's picture          | the directory's image host, asked at 300 pixels               | An image                         |
+
+A genre id the directory no longer knows answers the whole chart without saying so, which is why each of the 19 was checked against its chart. A chart names a sub-genre (Books rather than Arts), so a show of a narrowed chart takes the genre asked, and one of the whole chart the top genre its lookup gives.
+
+**The budget.** The directory answers a client past about twenty requests a minute, per address, with a 403. The whole app asks it at most 15 times in any minute ([`Directory::paced`](../../src-tauri/crates/app/src/podcast/directory.rs)), and a request past that waits for a slot rather than failing. A 403 or a 429 that comes anyway is `rate_limited`. Pictures come from another host without that budget: six at a time.
+
+**What is kept**, in memory only: a chart for six hours, a search for ten minutes, 64 answers at most, and the pictures up to 32 MiB, a show without a usable one included, so a list scrolled back and forth asks nothing again. A picture refused for now (a 403, a 429, no answer) is asked again later. Nothing is written to disk, so nothing of what was browsed outlives the app. With the switch off nothing kept is served either.
+
+**The answers are hostile.** Each is bounded at 4 MiB before it is parsed, and `serde_json` refuses a nesting past 128 before it can reach the stack. What is kept of a show: an id that is a positive integer below 2^53, a title and an author as one line of plain text of at most 300 characters, a feed address that [`parse_address`](../../src-tauri/crates/core/src/podcast/address.rs) accepts, a picture over https only, 200 shows at most, each once. A show without an id or a title is skipped, and a field of the wrong type is read as absent rather than refusing the answer, so one odd show does not hide the others. A chart of one entry has it as an object, not a list, and is read as such.
+
+**No address reaches the webview.** A row carries the directory's id, `has_artwork` and `channel_id`, the channel it already is, found by the [hash of the feed's address](#an-address-stays-out-of-an-archive): a channel restored without its address does not count, since subscribing again is how it gets it back. A picture comes as a `data:` address, which the CSP already allowed, so the webview contacts no host and the CSP did not change. **Neither a term nor an address reaches a log**: a failure is logged as its word.
+
+**Subscribing** asks by id: the feed the directory gave for that show, or else a lookup of it. **It must be on the public internet**, as one out of an OPML list must: the directory is a third party, and an address it hands out must not make the app reach into the user's network. Then it is the same subscription as an address typed, which answers the channel already followed when it is one. The row then offers to open it; the page stays where it is.
+
+**Offline**, the tab says so and asks nothing. With the switch off there is no tab.
+
 ## The timer
 
 [`podcast::schedule`](../../src-tauri/crates/app/src/podcast/schedule.rs) waits on a `Notify` while the switch is off. It wakes when the key is written (through the `profile-setting:changed` event every preference write emits) and when another profile becomes active.
@@ -72,6 +106,8 @@ Every request checks `offline::is_offline()` first, each hop of a redirect inclu
 A private feed carries its token in the path as often as in the query, so `redact_url`, which masks userinfo and query, is not enough. **A feed or enclosure address is not logged at all, redacted or not**, and neither is a `reqwest::Error`, whose text quotes it. A failure is logged and stored as one word from `FetchFailure::code`:
 
 `address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `invalid_document`, `not_audio`, `quota_exceeded`
+
+The directory adds three: `rate_limited` (it refused a client past its budget), `directory_invalid` (an answer that is not one) and `no_feed` (it names no feed for that show).
 
 No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed), `no_source` (no file and no address: a restored profile, until the feed is subscribed to again) and `open_failed` (the desktop would not open a channel's website). A failed download carries the same words in its event, plus `write_failed` for a disk or a database that refused.
 
@@ -190,26 +226,30 @@ The line or the chapter marked is then that far from what is heard, from that se
 
 ## Commands
 
-| Command                      | Does                                                            |
-| ---------------------------- | --------------------------------------------------------------- |
-| `podcast_subscribe`          | Fetches and follows a feed; answers its channel                 |
-| `podcast_unsubscribe`        | Forgets a channel and its episodes, and removes their downloads |
-| `podcast_list_channels`      | Every channel of the active profile                             |
-| `podcast_list_episodes`      | A page of a channel's episodes, newest first                    |
-| `podcast_get_episode`        | One episode, for its page                                       |
-| `podcast_episode_chapters`   | Its chapters, fetching what was not kept                        |
-| `podcast_episode_transcript` | Its transcript, for a panel someone opened                      |
-| `podcast_refresh`            | Asks one channel, or all of them                                |
-| `podcast_open_site`          | Opens a channel's website in the browser, by id                 |
-| `podcast_import_opml`        | Subscribes to every feed of a file                              |
-| `podcast_export_opml`        | Writes every address to a file                                  |
-| `podcast_download_episode`   | Puts an episode in line to be kept on disk                      |
-| `podcast_cancel_download`    | Takes it out of the line, or stops it where it is               |
-| `podcast_delete_download`    | Removes its file; the row stays                                 |
-| `podcast_download_usage`     | `{ usedBytes, quotaBytes }`                                     |
-| `podcast_download_queue`     | What is under way, for a view opened meanwhile                  |
+| Command                       | Does                                                            |
+| ----------------------------- | --------------------------------------------------------------- |
+| `podcast_subscribe`           | Fetches and follows a feed; answers its channel                 |
+| `podcast_unsubscribe`         | Forgets a channel and its episodes, and removes their downloads |
+| `podcast_list_channels`       | Every channel of the active profile                             |
+| `podcast_list_episodes`       | A page of a channel's episodes, newest first                    |
+| `podcast_get_episode`         | One episode, for its page                                       |
+| `podcast_episode_chapters`    | Its chapters, fetching what was not kept                        |
+| `podcast_episode_transcript`  | Its transcript, for a panel someone opened                      |
+| `podcast_refresh`             | Asks one channel, or all of them                                |
+| `podcast_open_site`           | Opens a channel's website in the browser, by id                 |
+| `podcast_import_opml`         | Subscribes to every feed of a file                              |
+| `podcast_export_opml`         | Writes every address to a file                                  |
+| `podcast_download_episode`    | Puts an episode in line to be kept on disk                      |
+| `podcast_cancel_download`     | Takes it out of the line, or stops it where it is               |
+| `podcast_delete_download`     | Removes its file; the row stays                                 |
+| `podcast_download_usage`      | `{ usedBytes, quotaBytes }`                                     |
+| `podcast_download_queue`      | What is under way, for a view opened meanwhile                  |
+| `podcast_directory_top`       | A country's chart, narrowed to a genre or not                   |
+| `podcast_directory_search`    | The shows a search finds in a country's storefront              |
+| `podcast_directory_artwork`   | A show's picture as a `data:` address                           |
+| `podcast_directory_subscribe` | Subscribes to a show by its id in the directory                 |
 
-Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads). A bound server's channels have [commands of their own](#the-channels-of-a-bound-server).
+Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts), and the directory's in [`podcastDirectory.ts`](../../src/lib/tauri/podcastDirectory.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads). A bound server's channels have [commands of their own](#the-channels-of-a-bound-server).
 
 ## Playing an episode
 
@@ -290,16 +330,16 @@ A token refresh that fails is not a change of profile: the rows say which it was
 
 No chapters and no transcripts: at 2.1.0 its feed parser reads neither and its answers carry neither, so a server's channel shows none of them. Nothing offers them either: the "⋯" menu and the Details panel ask for `podcast_episode_id`, which such an episode does not have, the fluid panel keeps its Lyrics tab, and a transcript panel that was following the player closes when one starts. One opened on a local episode by name stays, as it does for a track. No played state, no unplayed count and no site link either. "To listen" stays local, since it is defined as needing no request.
 
-| Command                           | Does                                                           |
-| --------------------------------- | -------------------------------------------------------------- |
-| `podcast_server_overview`         | `{ enabled, can_manage, channels }`, or `null` for no section  |
-| `podcast_server_channel`          | One channel with its episodes and this account's positions     |
-| `podcast_server_play`             | Plays a stored episode, with the stored ones as the queue      |
-| `podcast_server_clear_position`   | Forgets where this account stopped                             |
-| `podcast_server_subscribe`        | Subscribes the server; it reads the feed first                 |
-| `podcast_server_refresh`          | Asks it to check every channel, in the background              |
-| `podcast_server_unsubscribe`      | Removes a channel, its episodes and their files                |
-| `podcast_server_request_download` | Asks it to keep an episode; the status says the rest           |
-| `podcast_server_delete_episode`   | Removes an episode and its file, for good                      |
+| Command                           | Does                                                          |
+| --------------------------------- | ------------------------------------------------------------- |
+| `podcast_server_overview`         | `{ enabled, can_manage, channels }`, or `null` for no section |
+| `podcast_server_channel`          | One channel with its episodes and this account's positions    |
+| `podcast_server_play`             | Plays a stored episode, with the stored ones as the queue     |
+| `podcast_server_clear_position`   | Forgets where this account stopped                            |
+| `podcast_server_subscribe`        | Subscribes the server; it reads the feed first                |
+| `podcast_server_refresh`          | Asks it to check every channel, in the background             |
+| `podcast_server_unsubscribe`      | Removes a channel, its episodes and their files               |
+| `podcast_server_request_download` | Asks it to keep an episode; the status says the rest          |
+| `podcast_server_delete_episode`   | Removes an episode and its file, for good                     |
 
 Typed wrappers are in [`src/lib/tauri/podcastServer.ts`](../../src/lib/tauri/podcastServer.ts). All of them need the `sync_v2` feature, in the default set; without it the invoke fails and there is no section.

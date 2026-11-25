@@ -4698,6 +4698,10 @@
         "server": {
           "title": "Wenn ein Server verbunden ist",
           "body": "Ist dieses Profil mit einem WaveFlow-Server verbunden, auf dem Podcasts aktiviert sind, erscheinen auch dessen Kanäle. Sie laufen über deinen Server: Der Anbieter sieht deinen Server, nicht dich."
+        },
+        "directory": {
+          "title": "Wenn du das Verzeichnis durchsuchst",
+          "body": "Suchen und Charts im Tab „Entdecken“ kommen aus dem Podcast-Verzeichnis von iTunes. Es sieht deine IP-Adresse, deine Suche und das gewählte Land, und nur, wenn du es öffnest."
         }
       }
     },
@@ -4824,7 +4828,10 @@
       "server_signed_out": "Du bist bei diesem Server nicht mehr angemeldet.",
       "server_refused": "Der Server hat abgelehnt oder kennt diesen Eintrag nicht mehr.",
       "server_conflict": "Der Server folgt diesem Feed bereits oder kann keinen weiteren folgen.",
-      "destination_refused": "Der Server darf diese Adresse nicht aufrufen."
+      "destination_refused": "Der Server darf diese Adresse nicht aufrufen.",
+      "rate_limited": "Das Verzeichnis bekommt zu viele Anfragen von diesem Gerät. Versuche es in einer Minute erneut.",
+      "directory_invalid": "Das Verzeichnis hat eine unlesbare Antwort geschickt.",
+      "no_feed": "Das Verzeichnis nennt keine Feed-Adresse für diese Sendung."
     },
     "episodePage": {
       "kicker": "Folge"
@@ -4868,6 +4875,50 @@
       "downloading": "Download auf dem Server…",
       "downloadFailed": "Fehler auf dem Server",
       "forgetPosition": "{{title}} von vorn abspielen"
+    },
+    "directory": {
+      "tabsLabel": "Podcast-Bereiche",
+      "mine": "Meine Podcasts",
+      "discover": "Entdecken",
+      "searchLabel": "Im Verzeichnis suchen",
+      "searchPlaceholder": "Eine Sendung, ein Thema …",
+      "searchAction": "Suchen",
+      "country": "Land",
+      "privacy": "Suchen und Charts kommen aus dem Podcast-Verzeichnis von iTunes, das deine IP-Adresse, deine Suche und das gewählte Land sieht.",
+      "genresLabel": "Kategorien",
+      "top": "Topsendungen · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Ergebnisse für „{{term}}“",
+      "backToTop": "Zurück zu den Charts",
+      "offline": "Das Verzeichnis braucht eine Verbindung, und der Offlinemodus ist an.",
+      "loading": "Verzeichnis wird gelesen …",
+      "noResults": "Keine Sendung gefunden.",
+      "emptyChart": "Das Verzeichnis hat keine Charts für dieses Land.",
+      "explicit": "Explizit",
+      "open": "Öffnen",
+      "openNamed": "{{title}} öffnen",
+      "subscribeNamed": "{{title}} abonnieren",
+      "genres": {
+        "1301": "Kunst",
+        "1303": "Comedy",
+        "1304": "Bildung",
+        "1305": "Kinder und Familie",
+        "1309": "Fernsehen und Film",
+        "1310": "Musik",
+        "1314": "Religion und Spiritualität",
+        "1318": "Technologie",
+        "1321": "Wirtschaft",
+        "1324": "Gesellschaft und Kultur",
+        "1511": "Politik und Verwaltung",
+        "1512": "Gesundheit und Fitness",
+        "1483": "Fiktion",
+        "1487": "Geschichte",
+        "1488": "True Crime",
+        "1489": "Nachrichten",
+        "1502": "Freizeit",
+        "1533": "Wissenschaft",
+        "1545": "Sport"
+      }
     }
   },
   "clip": {

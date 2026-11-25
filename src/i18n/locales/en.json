@@ -4698,6 +4698,10 @@
         "server": {
           "title": "If a server is linked",
           "body": "If this profile is linked to a WaveFlow server with podcasts turned on, its channels show too. They go through your server: the host sees your server, not you."
+        },
+        "directory": {
+          "title": "When you browse the directory",
+          "body": "Searches and charts in the Discover tab come from the iTunes podcast directory. It sees your IP address, what you search for and the country chosen, and only when you open it."
         }
       }
     },
@@ -4824,7 +4828,10 @@
       "server_signed_out": "You are no longer signed in to this server.",
       "server_refused": "The server refused, or no longer knows this item.",
       "server_conflict": "The server already follows this feed, or cannot follow any more.",
-      "destination_refused": "The server is not allowed to reach this address."
+      "destination_refused": "The server is not allowed to reach this address.",
+      "rate_limited": "The directory is getting too many requests from this device. Try again in a minute.",
+      "directory_invalid": "The directory sent back an answer that cannot be read.",
+      "no_feed": "The directory gives no feed address for this show."
     },
     "episodePage": {
       "kicker": "Episode"
@@ -4868,6 +4875,50 @@
       "downloading": "Downloading on the server…",
       "downloadFailed": "Failed on the server",
       "forgetPosition": "Restart {{title}} from the beginning"
+    },
+    "directory": {
+      "tabsLabel": "Podcast sections",
+      "mine": "My podcasts",
+      "discover": "Discover",
+      "searchLabel": "Search the directory",
+      "searchPlaceholder": "A show, a topic…",
+      "searchAction": "Search",
+      "country": "Country",
+      "privacy": "Searches and charts come from the iTunes podcast directory, which sees your IP address, what you search for and the country chosen.",
+      "genresLabel": "Categories",
+      "top": "Top shows · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Results for “{{term}}”",
+      "backToTop": "Back to the chart",
+      "offline": "The directory needs a connection, and offline mode is on.",
+      "loading": "Reading the directory…",
+      "noResults": "No show found.",
+      "emptyChart": "The directory has no chart for this country.",
+      "explicit": "Explicit",
+      "open": "Open",
+      "openNamed": "Open {{title}}",
+      "subscribeNamed": "Subscribe to {{title}}",
+      "genres": {
+        "1301": "Arts",
+        "1303": "Comedy",
+        "1304": "Education",
+        "1305": "Kids & Family",
+        "1309": "TV & Film",
+        "1310": "Music",
+        "1314": "Religion & Spirituality",
+        "1318": "Technology",
+        "1321": "Business",
+        "1324": "Society & Culture",
+        "1511": "Government",
+        "1512": "Health & Fitness",
+        "1483": "Fiction",
+        "1487": "History",
+        "1488": "True Crime",
+        "1489": "News",
+        "1502": "Leisure",
+        "1533": "Science",
+        "1545": "Sports"
+      }
     }
   },
   "clip": {
