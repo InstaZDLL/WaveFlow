@@ -289,6 +289,7 @@ pub async fn move_tracks_to_trash(
 
     // One transaction per file: the files are already in the trash, so a
     // row that cannot be removed must not take the others' with it.
+    let mut emptied = std::collections::BTreeSet::new();
     for (job, outcome) in done {
         let TrashJob {
             id,
@@ -298,7 +299,10 @@ pub async fn move_tracks_to_trash(
         } = job;
         match outcome {
             Ok(()) => match remove_row(&pool, id, library_id, &file_path).await {
-                Ok(()) => report.trashed += 1,
+                Ok(playlists) => {
+                    report.trashed += 1;
+                    emptied.extend(playlists);
+                }
                 Err(message) => {
                     tracing::warn!(path = %file_path, error = %message, "a trashed duplicate kept its row");
                     report.failed.push(TrashFailure {
@@ -326,6 +330,8 @@ pub async fn move_tracks_to_trash(
         // The deleted rows left the playlists that held them; a custom
         // smart playlist at its limit takes the next match in their place.
         crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
+        let emptied: Vec<i64> = emptied.into_iter().collect();
+        crate::commands::library::announce_playlists(&app, &emptied);
         let _ = app.emit("library:rescanned", ());
     }
     Ok(report)
@@ -403,15 +409,22 @@ fn trash_one(
 }
 
 /// Remove one trashed copy's row, with its sync op, in a transaction of
-/// its own. A row already gone (the watcher's rescan got there first)
-/// is not an error.
+/// its own, and return the playlists that held it. A row already gone
+/// (the watcher's rescan got there first) is not an error.
 async fn remove_row(
     pool: &sqlx::SqlitePool,
     id: i64,
     library_id: i64,
     file_path: &str,
-) -> Result<(), String> {
+) -> Result<Vec<i64>, String> {
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+    let playlists = crate::commands::library::playlists_holding(
+        &mut tx,
+        "SELECT DISTINCT playlist_id FROM playlist_track WHERE track_id = ?",
+        id,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
     let res = sqlx::query("DELETE FROM track WHERE id = ?")
         .bind(id)
         .execute(&mut *tx)
@@ -425,7 +438,8 @@ async fn remove_row(
             .await
             .map_err(|e| e.to_string())?;
     }
-    tx.commit().await.map_err(|e| e.to_string())
+    tx.commit().await.map_err(|e| e.to_string())?;
+    Ok(playlists)
 }
 
 #[cfg(test)]

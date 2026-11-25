@@ -278,6 +278,13 @@ pub async fn delete_library(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
+    let emptied = playlists_holding(
+        &mut tx,
+        "SELECT DISTINCT pt.playlist_id FROM playlist_track pt \
+         JOIN track t ON t.id = pt.track_id WHERE t.library_id = ?",
+        library_id,
+    )
+    .await?;
     // Resolve canonical BEFORE the DELETE — the row (and its
     // mapping) are gone after.
     let canonical = crate::sync::canonical::canonical_for_local(
@@ -322,7 +329,39 @@ pub async fn delete_library(
     // removed folder's do: a custom smart playlist at its limit takes the
     // next matches from the libraries that remain.
     crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
+    announce_playlists(&app, &emptied);
     Ok(())
+}
+
+/// The playlists holding at least one of the tracks `sql` selects by
+/// `id`, read in the transaction that deletes those tracks, before the
+/// delete. Their `playlist_track` rows leave by cascade, which nothing
+/// else announces: the refresh after it only says which custom smart
+/// playlists it rewrote, and a playlist left with fewer tracks or none
+/// is not one of them.
+pub(crate) async fn playlists_holding(
+    tx: &mut sqlx::SqliteConnection,
+    sql: &'static str,
+    id: i64,
+) -> AppResult<Vec<i64>> {
+    sqlx::query_scalar(sql)
+        .bind(id)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(|e| AppError::Other(format!("list playlists holding the deleted tracks: {e}")))
+}
+
+/// Emit `playlist:changed` for each playlist [`playlists_holding`]
+/// found, once the delete has committed, so the sidebar's counts and an
+/// open playlist follow it.
+pub(crate) fn announce_playlists(app: &tauri::AppHandle, playlist_ids: &[i64]) {
+    use tauri::Emitter;
+    for playlist_id in playlist_ids {
+        let _ = app.emit(
+            crate::commands::playlist_import::EVENT_PLAYLIST_CHANGED,
+            *playlist_id,
+        );
+    }
 }
 
 /// Re-scan every folder registered under a library. Folders are processed
@@ -681,6 +720,13 @@ pub(crate) async fn remove_folder_inner(
             .fetch_all(&mut *tx)
             .await
             .map_err(|e| AppError::Other(format!("list tracks in folder {folder_id}: {e}")))?;
+    let emptied = playlists_holding(
+        &mut tx,
+        "SELECT DISTINCT pt.playlist_id FROM playlist_track pt \
+         JOIN track t ON t.id = pt.track_id WHERE t.folder_id = ?",
+        folder_id,
+    )
+    .await?;
 
     sqlx::query("DELETE FROM track WHERE folder_id = ?")
         .bind(folder_id)
@@ -707,6 +753,7 @@ pub(crate) async fn remove_folder_inner(
     // The folder's tracks left every playlist with their rows; a custom
     // smart playlist at its limit takes the next matches in their place.
     crate::commands::smart_playlists::refresh_custom_after_change(pool, Some(app)).await;
+    announce_playlists(app, &emptied);
 
     let _ = app.emit("library:rescanned", ());
     Ok(())
