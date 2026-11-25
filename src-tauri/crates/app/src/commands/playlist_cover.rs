@@ -12,8 +12,11 @@
 //!   immediately regenerate so the visual feedback is instant rather than
 //!   "stays empty until the next mutation".
 //!
-//! Smart playlists (`is_smart = 1`) are excluded from every code path here:
-//! their covers are owned by the smart-playlist regen flow.
+//! A custom smart playlist (rules the user wrote) takes all three, like a
+//! user playlist: its auto-cover is regenerated after its rules run and
+//! change its tracks ([`regen_auto_covers`]). The generated families
+//! (Daily Mix, On Repeat, Release Radar, the themed mixes) are refused by
+//! every command here: their generator writes their cover (#1173).
 
 use base64::Engine;
 use std::io::Read;
@@ -110,7 +113,29 @@ const AUTO_COVER_TILE_COUNT: usize = 4;
 #[derive(FromRow)]
 struct PlaylistFlags {
     is_smart: i64,
+    smart_rules: Option<String>,
     cover_is_auto: i64,
+}
+
+impl PlaylistFlags {
+    /// Whose cover it is: the user's for a playlist they curate or a
+    /// smart playlist of their own rules, the generator's for a generated
+    /// family. A smart row whose rules do not read as custom ones counts
+    /// as generated, so nothing here writes over a cover a generator
+    /// owns.
+    fn cover_is_users(&self) -> bool {
+        self.is_smart == 0
+            || crate::commands::smart_playlists::is_custom_payload(self.smart_rules.as_deref())
+    }
+}
+
+async fn playlist_flags(pool: &SqlitePool, playlist_id: i64) -> AppResult<Option<PlaylistFlags>> {
+    Ok(
+        sqlx::query_as("SELECT is_smart, smart_rules, cover_is_auto FROM playlist WHERE id = ?")
+            .bind(playlist_id)
+            .fetch_optional(pool)
+            .await?,
+    )
 }
 
 /// Upload a user-supplied image as the playlist cover. Sets
@@ -131,7 +156,7 @@ pub async fn set_playlist_cover_from_file(
 
 async fn set_from_file_inner(state: &AppState, playlist_id: i64, file_path: &str) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    ensure_user_playlist(&pool, playlist_id).await?;
+    ensure_user_cover(&pool, playlist_id).await?;
 
     let bytes = read_cover_bytes(file_path)?;
     if detect_image_format(&bytes).is_none() {
@@ -178,7 +203,7 @@ pub async fn regenerate_playlist_auto_cover(
 ) -> AppResult<()> {
     let result = async {
         let (pool, profile_id) = state.require_profile_snapshot().await?;
-        ensure_user_playlist(&pool, playlist_id).await?;
+        ensure_user_cover(&pool, playlist_id).await?;
         regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await
     }
     .await;
@@ -195,7 +220,7 @@ pub async fn clear_playlist_cover(
 ) -> AppResult<()> {
     let result = async {
         let (pool, profile_id) = state.require_profile_snapshot().await?;
-        ensure_user_playlist(&pool, playlist_id).await?;
+        ensure_user_cover(&pool, playlist_id).await?;
         update_cover(&pool, playlist_id, None, 1).await?;
         // Best-effort regen — a playlist with no artwork to compose keeps
         // the gradient tile, and that is no reason to undo the clear. A
@@ -209,30 +234,26 @@ pub async fn clear_playlist_cover(
     logged("clear", Some(playlist_id), result)
 }
 
-/// Hook called by playlist-mutation commands (add/remove/reorder/source).
-/// No-op when the playlist is smart, the user has uploaded their own cover
-/// (`cover_is_auto = 0`), or there aren't enough tracks yet for a proper
-/// 2×2 composite.
+/// Hook called by playlist-mutation commands (add/remove/reorder/source)
+/// and after a custom smart playlist's rules wrote its tracks. No-op when
+/// the playlist is a generated family, the user has uploaded their own
+/// cover (`cover_is_auto = 0`), or none of its tracks has an artwork to
+/// compose. Reads image files: never call it inside a write transaction.
 pub async fn maybe_regen_auto_cover(
     pool: &SqlitePool,
     paths: &AppPaths,
     profile_id: i64,
     playlist_id: i64,
 ) {
-    let flags: Option<PlaylistFlags> =
-        match sqlx::query_as("SELECT is_smart, cover_is_auto FROM playlist WHERE id = ?")
-            .bind(playlist_id)
-            .fetch_optional(pool)
-            .await
-        {
-            Ok(flags) => flags,
-            Err(err) => {
-                tracing::warn!(playlist_id, error = %err, "auto-cover: playlist flags unreadable");
-                return;
-            }
-        };
+    let flags = match playlist_flags(pool, playlist_id).await {
+        Ok(flags) => flags,
+        Err(err) => {
+            tracing::warn!(playlist_id, error = %err, "auto-cover: playlist flags unreadable");
+            return;
+        }
+    };
     let Some(flags) = flags else { return };
-    if flags.is_smart == 1 || flags.cover_is_auto == 0 {
+    if !flags.cover_is_users() || flags.cover_is_auto == 0 {
         return;
     }
     if let Err(err) = regenerate_inner(pool, paths, profile_id, playlist_id).await {
@@ -240,6 +261,19 @@ pub async fn maybe_regen_auto_cover(
         // triggered them — the user still gets their add/remove/reorder
         // outcome, just without the cover refresh.
         tracing::warn!(playlist_id, error = %err, "auto-cover regen failed (non-fatal)");
+    }
+}
+
+/// [`maybe_regen_auto_cover`] for each playlist a refresh of the custom
+/// smart playlists wrote, in order. A playlist deleted since is skipped.
+pub async fn regen_auto_covers(
+    pool: &SqlitePool,
+    paths: &AppPaths,
+    profile_id: i64,
+    playlist_ids: &[i64],
+) {
+    for &playlist_id in playlist_ids {
+        maybe_regen_auto_cover(pool, paths, profile_id, playlist_id).await;
     }
 }
 
@@ -343,21 +377,21 @@ async fn top_track_artwork_paths(
     out
 }
 
-/// Reject smart playlists and missing ids with a precise error. Keeps every
-/// public command above honest about what they accept.
-async fn ensure_user_playlist(pool: &SqlitePool, playlist_id: i64) -> AppResult<()> {
-    let row: Option<(i64,)> = sqlx::query_as("SELECT is_smart FROM playlist WHERE id = ?")
-        .bind(playlist_id)
-        .fetch_optional(pool)
-        .await?;
-    match row {
+/// Reject generated smart playlists and missing ids with a precise error.
+/// Keeps every public command above honest about what they accept: a
+/// user playlist and a custom smart playlist pass, a generated family is
+/// refused in the user's language (the edit modal does not offer it the
+/// cover, so this is said only to a caller that went around it).
+async fn ensure_user_cover(pool: &SqlitePool, playlist_id: i64) -> AppResult<()> {
+    match playlist_flags(pool, playlist_id).await? {
         None => Err(AppError::Other(format!(
             "playlist {playlist_id} not found in active profile"
         ))),
-        Some((1,)) => Err(AppError::Other(
-            "smart playlists manage their own cover — not editable here".into(),
+        Some(flags) if !flags.cover_is_users() => Err(AppError::shown(
+            crate::error::ShownKind::GeneratedPlaylistCover,
+            "generated smart playlists keep their own cover",
         )),
-        Some((_,)) => Ok(()),
+        Some(_) => Ok(()),
     }
 }
 
@@ -383,3 +417,6 @@ async fn update_cover(
     .await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

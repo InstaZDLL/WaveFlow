@@ -14,6 +14,7 @@ import {
   clearPlaylistCover,
   previewPlaylistCoverFromFile,
   setPlaylistCoverFromFile,
+  smartPlaylistKind,
   type Playlist,
 } from "../../lib/tauri/playlist";
 import { pickFile } from "../../lib/tauri/dialog";
@@ -91,6 +92,14 @@ export function CreatePlaylistModal({
 }: CreatePlaylistModalProps) {
   const { t } = useTranslation();
   const isEdit = existing != null;
+  // A generated smart playlist (Daily Mix, On Repeat, Release Radar, a
+  // themed mix) keeps the cover its generator writes, and the backend
+  // refuses to change it; a smart playlist of the user's own rules takes
+  // one like any playlist (#1173).
+  const coverEditable =
+    existing == null ||
+    existing.is_smart !== 1 ||
+    smartPlaylistKind(existing)?.kind === "custom";
   const [name, setName] = useState(existing?.name ?? initialName ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
   const [selectedColorId, setSelectedColorId] = useState(
@@ -354,7 +363,8 @@ export function CreatePlaylistModal({
             "..." menu in the top-right corner offering Change / Remove.
             The "Remove photo" path immediately re-runs the auto-cover
             backend-side so the tile stays populated rather than going
-            blank between mutations. */}
+            blank between mutations. A generated smart playlist shows its
+            cover with neither. */}
         {isEdit &&
           existing &&
           (() => {
@@ -385,85 +395,92 @@ export function CreatePlaylistModal({
                     )}
                     {/* Hover overlay — clicking anywhere on the cover opens
                       the file picker, matching Spotify's UX. */}
-                    <button
-                      type="button"
-                      onClick={handlePickCover}
-                      disabled={coverBusy}
-                      aria-label={t(
-                        "playlistModal.coverChoose",
-                        "Choose photo",
-                      )}
-                      className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 disabled:cursor-not-allowed"
-                    >
-                      {coverBusy ? (
-                        <Loader2 size={28} className="animate-spin" />
-                      ) : (
-                        <>
-                          <Pencil size={24} />
-                          <span className="text-xs font-medium">
-                            {t("playlistModal.coverChoose", "Choose photo")}
-                          </span>
-                        </>
-                      )}
-                    </button>
+                    {coverEditable && (
+                      <button
+                        type="button"
+                        onClick={handlePickCover}
+                        disabled={coverBusy}
+                        aria-label={t(
+                          "playlistModal.coverChoose",
+                          "Choose photo",
+                        )}
+                        className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 disabled:cursor-not-allowed"
+                      >
+                        {coverBusy ? (
+                          <Loader2 size={28} className="animate-spin" />
+                        ) : (
+                          <>
+                            <Pencil size={24} />
+                            <span className="text-xs font-medium">
+                              {t("playlistModal.coverChoose", "Choose photo")}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                   {/* "..." menu sits at the OUTER level (sibling of the
                     clipping container) so its dropdown can spill out to
                     the right of the cover tile without being cropped.
                     Stops propagation so the click doesn't also fire the
                     cover-area picker underneath. */}
-                  <div
-                    ref={coverMenuRef}
-                    className="absolute top-1.5 end-1.5 z-30"
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCoverMenuOpen((v) => !v);
-                      }}
-                      aria-label={t("playlistModal.coverMenu", "Cover options")}
-                      className="w-7 h-7 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center hover:bg-black/80"
+                  {coverEditable && (
+                    <div
+                      ref={coverMenuRef}
+                      className="absolute top-1.5 end-1.5 z-30"
                     >
-                      <MoreHorizontal size={16} />
-                    </button>
-                    {coverMenuOpen && (
-                      <div
-                        // Anchor to the trigger's inline end (`start-full`)
-                        // with a small gap (`ms-1`) so the dropdown opens
-                        // INTO the modal toward the form fields, not back
-                        // out past the cover (which would clip on the
-                        // modal's edge), in either reading direction.
-                        className="absolute start-full top-0 ms-1 w-44 rounded-lg shadow-2xl border bg-white text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 py-1 text-sm"
-                        onClick={(e) => e.stopPropagation()}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCoverMenuOpen((v) => !v);
+                        }}
+                        aria-label={t(
+                          "playlistModal.coverMenu",
+                          "Cover options",
+                        )}
+                        className="w-7 h-7 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex items-center justify-center hover:bg-black/80"
                       >
-                        <button
-                          type="button"
-                          onClick={handlePickCover}
-                          disabled={coverBusy}
-                          className="w-full px-3 py-2 flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {coverMenuOpen && (
+                        <div
+                          // Anchor to the trigger's inline end (`start-full`)
+                          // with a small gap (`ms-1`) so the dropdown opens
+                          // INTO the modal toward the form fields, not back
+                          // out past the cover (which would clip on the
+                          // modal's edge), in either reading direction.
+                          className="absolute start-full top-0 ms-1 w-44 rounded-lg shadow-2xl border bg-white text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 py-1 text-sm"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <ImageIcon size={14} />
-                          <span>
-                            {t("playlistModal.coverChange", "Change photo")}
-                          </span>
-                        </button>
-                        {existing.cover_hash && (
                           <button
                             type="button"
-                            onClick={handleRemoveCover}
+                            onClick={handlePickCover}
                             disabled={coverBusy}
                             className="w-full px-3 py-2 flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                           >
-                            <Trash2 size={14} />
+                            <ImageIcon size={14} />
                             <span>
-                              {t("playlistModal.coverRemove", "Remove photo")}
+                              {t("playlistModal.coverChange", "Change photo")}
                             </span>
                           </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                          {existing.cover_hash && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveCover}
+                              disabled={coverBusy}
+                              className="w-full px-3 py-2 flex items-center gap-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 size={14} />
+                              <span>
+                                {t("playlistModal.coverRemove", "Remove photo")}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <div className={`text-sm font-medium truncate ${previewInk}`}>
