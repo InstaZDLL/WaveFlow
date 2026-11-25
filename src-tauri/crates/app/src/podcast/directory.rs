@@ -360,10 +360,11 @@ impl Directory {
                     Err(err) => log_failure("lookup", &err),
                 }
             }
-            // Every show of a narrowed chart is of its genre, whatever sub-genre it names.
+            // Every show of a narrowed chart is of its genre, whatever sub-genre it
+            // names and whichever genre its lookup puts first.
             if let Some(genre) = genre {
                 for show in &mut shows {
-                    show.genre_id.get_or_insert(genre);
+                    show.genre_id = Some(genre);
                 }
             }
             Ok(shows)

@@ -67,7 +67,7 @@ An **OPML import** is run by [`PodcastDialogsHost`](../../src/components/podcast
 | Every show of that chart  | `itunes.apple.com/lookup?id=…`, all of them in one request    | Their feeds, and their top genre |
 | A show's picture          | the directory's image host, asked at 300 pixels               | An image                         |
 
-A genre id the directory no longer knows answers the whole chart without saying so, which is why each of the 19 was checked against its chart. A chart names a sub-genre (Books rather than Arts), so a show of a narrowed chart takes the genre asked, and one of the whole chart the top genre its lookup gives.
+A genre id the directory no longer knows answers the whole chart without saying so, which is why each of the 19 was checked against its chart. A chart names a sub-genre (Books rather than Arts), so a show of a narrowed chart is of the genre asked, whatever its lookup puts first, and one of the whole chart takes the top genre its lookup gives.
 
 **The budget.** The directory answers a client past about twenty requests a minute, per address, with a 403. The whole app asks it at most 15 times in any minute ([`Directory::paced`](../../src-tauri/crates/app/src/podcast/directory.rs)), and a request past that waits for a slot rather than failing. A 403 or a 429 that comes anyway is `rate_limited`. Pictures come from another host without that budget: six at a time.
 

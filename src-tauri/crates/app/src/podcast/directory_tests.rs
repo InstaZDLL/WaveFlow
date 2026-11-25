@@ -537,9 +537,11 @@ async fn requests_spread_over_the_window_do_not_wait() {
     assert!(spent <= WINDOW * 3 + Duration::from_secs(1), "{spent:?}");
 }
 
-#[tokio::test(start_paused = true)]
+#[tokio::test]
 async fn a_kept_search_expires() {
+    // The pool is opened first: its own timeouts would run out on a paused clock.
     let leases = leases().await;
+    tokio::time::pause();
     let table = Table::new(directory_answers);
     let directory = Directory::default();
     directory.search(&leases, &table, "fr", "a").await.unwrap();
