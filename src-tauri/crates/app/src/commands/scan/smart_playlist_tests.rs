@@ -344,3 +344,42 @@ async fn a_field_rewritten_from_an_unchanged_file_moves_the_playlist() {
         "the deep rescan wrote the tag back, and the playlist took the track back"
     );
 }
+
+/// Plays a removed track left behind find their track again in the pass
+/// after the scan, and a play-count rule reads them: the playlist follows
+/// even when the scan itself changed no file.
+#[tokio::test]
+async fn plays_re_attached_by_a_scan_that_changed_no_file_move_the_playlist() {
+    let lib = Library::new().await;
+    let path = lib.flac("a.flac", "Played");
+    lib.scan().await;
+    let id = lib.id(&path).await;
+    let playlist = lib
+        .smart_playlist(CustomRules {
+            tree: RuleNode::Leaf {
+                predicate: Predicate::PlayCountMin { value: 1 },
+            },
+            sort: None,
+            limit: None,
+        })
+        .await;
+    assert!(lib.members(playlist).await.is_empty());
+
+    // An orphan, as removing a folder leaves one: no track, the snapshot
+    // of the file it was played from.
+    sqlx::query(
+        "INSERT INTO play_event (track_id, played_at, listened_ms, snapshot_path)
+         VALUES (NULL, 1, 1000, ?)",
+    )
+    .bind(path.to_string_lossy().to_string())
+    .execute(&lib.pool)
+    .await
+    .unwrap();
+
+    lib.scan().await;
+    assert_eq!(
+        lib.members(playlist).await,
+        vec![id],
+        "the play found its track again, and the playlist took the track"
+    );
+}
