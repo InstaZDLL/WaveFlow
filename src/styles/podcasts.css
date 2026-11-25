@@ -205,6 +205,10 @@
   padding-block: 0;
   padding-inline: 0.5rem 2rem;
 }
+/* A field with an icon drawn at its start. */
+[data-podcasts] .pc-field--icon {
+  padding-inline-start: 2.25rem;
+}
 /* The list of a native select draws on the system's ground. */
 [data-podcasts] .pc-field--select option {
   background-color: var(--pc-surface-raised);

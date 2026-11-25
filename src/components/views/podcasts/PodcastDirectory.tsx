@@ -240,7 +240,7 @@ export function PodcastDirectory({
                 disabled={offline}
                 onChange={(event) => setTyped(event.target.value)}
                 placeholder={t("podcasts.directory.searchPlaceholder")}
-                className="pc-field w-full ps-9"
+                className="pc-field pc-field--icon w-full"
               />
             </div>
           </div>
@@ -267,7 +267,7 @@ export function PodcastDirectory({
               id={countryId}
               value={country}
               onChange={(event) => setCountry(event.target.value)}
-              className="pc-field pc-field--select max-w-[16rem] ps-9"
+              className="pc-field pc-field--select pc-field--icon max-w-[16rem]"
             >
               {countries.map((entry) => (
                 <option key={entry.code} value={entry.code}>
