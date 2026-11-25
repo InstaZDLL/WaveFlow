@@ -5047,6 +5047,7 @@
     "image_file_empty": "Questo file immagine è vuoto.",
     "unsupported_video": "Questo video non è in formato MP4.",
     "file_too_large": "Questo file è troppo grande (massimo {{max}}).",
-    "network_track_not_cached": "Questo brano si trova su una condivisione di rete e non è ancora nella cache di questo computer."
+    "network_track_not_cached": "Questo brano si trova su una condivisione di rete e non è ancora nella cache di questo computer.",
+    "generated_playlist_cover": "Questa playlist è generata da WaveFlow e mantiene la propria copertina."
   }
 }

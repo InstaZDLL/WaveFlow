@@ -4903,6 +4903,7 @@
     "image_file_empty": "Dit afbeeldingsbestand is leeg.",
     "unsupported_video": "Deze video is geen MP4-bestand.",
     "file_too_large": "Dit bestand is te groot (maximaal {{max}}).",
-    "network_track_not_cached": "Dit nummer staat op een netwerkshare en is nog niet in de cache van deze computer opgeslagen."
+    "network_track_not_cached": "Dit nummer staat op een netwerkshare en is nog niet in de cache van deze computer opgeslagen.",
+    "generated_playlist_cover": "Deze afspeellijst wordt door WaveFlow gemaakt en houdt haar eigen hoes."
   }
 }

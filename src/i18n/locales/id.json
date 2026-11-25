@@ -4897,6 +4897,7 @@
     "image_file_empty": "Berkas gambar ini kosong.",
     "unsupported_video": "Video ini bukan berkas MP4.",
     "file_too_large": "Berkas ini terlalu besar (maksimum {{max}}).",
-    "network_track_not_cached": "Lagu ini ada di folder berbagi jaringan dan belum tersimpan di cache komputer ini."
+    "network_track_not_cached": "Lagu ini ada di folder berbagi jaringan dan belum tersimpan di cache komputer ini.",
+    "generated_playlist_cover": "Daftar putar ini dibuat oleh WaveFlow dan memakai sampulnya sendiri."
   }
 }

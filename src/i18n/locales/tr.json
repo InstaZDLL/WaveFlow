@@ -4903,6 +4903,7 @@
     "image_file_empty": "Bu görsel dosyası boş.",
     "unsupported_video": "Bu video MP4 biçiminde değil.",
     "file_too_large": "Bu dosya çok büyük (en fazla {{max}}).",
-    "network_track_not_cached": "Bu parça bir ağ paylaşımında ve henüz bu bilgisayarın önbelleğinde değil."
+    "network_track_not_cached": "Bu parça bir ağ paylaşımında ve henüz bu bilgisayarın önbelleğinde değil.",
+    "generated_playlist_cover": "Bu çalma listesi WaveFlow tarafından oluşturulur ve kendi kapağını korur."
   }
 }

@@ -4903,6 +4903,7 @@
     "image_file_empty": "Diese Bilddatei ist leer.",
     "unsupported_video": "Dieses Video ist keine MP4-Datei.",
     "file_too_large": "Diese Datei ist zu groß (höchstens {{max}}).",
-    "network_track_not_cached": "Dieser Titel liegt auf einer Netzwerkfreigabe und ist auf diesem Computer noch nicht zwischengespeichert."
+    "network_track_not_cached": "Dieser Titel liegt auf einer Netzwerkfreigabe und ist auf diesem Computer noch nicht zwischengespeichert.",
+    "generated_playlist_cover": "Diese Playlist wird von WaveFlow erstellt und behält ihr eigenes Cover."
   }
 }

@@ -254,6 +254,9 @@ error_kinds! {
     /// A track on a network share whose bytes are not cached on this
     /// machine yet.
     NetworkTrackNotCached,
+    /// A cover change asked of a generated smart playlist (Daily Mix, On
+    /// Repeat, Release Radar, a themed mix), whose generator owns it.
+    GeneratedPlaylistCover,
 }
 
 impl AppError {

@@ -5045,6 +5045,7 @@
     "image_file_empty": "Este ficheiro de imagem está vazio.",
     "unsupported_video": "Este vídeo não está no formato MP4.",
     "file_too_large": "Este ficheiro é demasiado grande (máximo {{max}}).",
-    "network_track_not_cached": "Esta faixa está numa partilha de rede e ainda não está em cache neste computador."
+    "network_track_not_cached": "Esta faixa está numa partilha de rede e ainda não está em cache neste computador.",
+    "generated_playlist_cover": "Esta lista de reprodução é gerada pelo WaveFlow e mantém a sua própria capa."
   }
 }

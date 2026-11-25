@@ -4897,6 +4897,7 @@
     "image_file_empty": "此圖片檔案是空的。",
     "unsupported_video": "此影片不是 MP4 格式。",
     "file_too_large": "檔案過大（上限 {{max}}）。",
-    "network_track_not_cached": "此曲目位於網路共用資料夾，尚未快取到這台電腦。"
+    "network_track_not_cached": "此曲目位於網路共用資料夾，尚未快取到這台電腦。",
+    "generated_playlist_cover": "此播放清單由 WaveFlow 產生，使用其專屬封面。"
   }
 }

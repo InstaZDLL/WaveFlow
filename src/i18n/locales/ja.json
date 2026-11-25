@@ -4897,6 +4897,7 @@
     "image_file_empty": "この画像ファイルは空です。",
     "unsupported_video": "この動画は MP4 形式ではありません。",
     "file_too_large": "ファイルが大きすぎます（上限 {{max}}）。",
-    "network_track_not_cached": "この曲はネットワーク共有上にあり、まだこのコンピューターにキャッシュされていません。"
+    "network_track_not_cached": "この曲はネットワーク共有上にあり、まだこのコンピューターにキャッシュされていません。",
+    "generated_playlist_cover": "このプレイリストは WaveFlow が生成するため、独自のカバーが使われます。"
   }
 }

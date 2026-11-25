@@ -335,6 +335,18 @@ The background ones (enrichment's pass, analysis, the launch, a failed scan) go 
 
 **Not refreshed on a play, a like or a rating.** The rules on plays (`play_count_*`, `played_in_last_days`), on `liked` and on `rating_min` read state that changes with listening; those playlists catch up at the next pass above, not as the user listens.
 
+### The cover
+
+A custom smart playlist's cover is the user's, as a user playlist's is ([playlists.md](playlists.md#cover-management)): an image they upload, or by default (`cover_is_auto = 1`, the column's default, so a new custom playlist is born with it) the 2×2 mosaic of its first tracks' album art. Before #1173 every `is_smart = 1` row was refused by the cover commands and skipped by the auto-cover, while only the generated families write a `cover_hash` of their own: a custom playlist never had one, and "Change photo" failed.
+
+The mosaic is composed again when its tracks may have changed: after `custom::materialize` (creating it, saving new rules, `regenerate_custom_smart_playlist`) and, in `refresh_custom_after_change`, for each playlist the pass wrote — after the pass, never inside a write transaction (the composition reads image files), and before `playlist:changed`, so a view reloading on the event shows the new cover with the new tracks. Its artworks are in the profile's cache, so the pass composes only when the active profile is still the one its pool reads (`netlib::db_of`); a pass that outlived a profile switch leaves those covers as they were until their tracks change again. A manual cover (`cover_is_auto = 0`) is never composed over.
+
+When its rules come to match nothing, its auto-cover is cleared (`clear_emptied_auto_cover`, in one statement that also checks the playlist holds no track and is still on auto), so it shows the gradient tile rather than tracks it lost; a user playlist emptied by hand keeps its cover, as it always has. Tracks whose artwork is missing are not an empty playlist, and a failed read of the artworks is an error, so neither loses the cover.
+
+Tracks deleted from the library (a folder removed, a library deleted, duplicates trashed) leave the playlists by cascade, before the refresh runs; a custom playlist whose rules find nothing to take their place is not one the pass rewrites, so the deleting command recomposes the covers of every playlist that held them ([playlists.md](playlists.md#crud)). Two compositions never overlap: `regenerate_inner` holds one process-wide lock from its read of the tracks to its write, so the one that read the newer tracks writes last.
+
+The generators never reach a custom playlist's row: each finds its own by a `LIKE` on its family's JSON (`"slot":N`, `"kind":"release_radar"`, a themed mix's rule), and a custom rule's string values are JSON-escaped, so `\"slot\":1` in a value does not match `"slot":1`.
+
 ### v1 → v2 auto-migration
 
 Pre-tree user data lives in flat predicates (`title_contains: "foo", year_min: 2020, genre_ids: [1,2,3], …`). A custom `Deserialize` impl detects the legacy shape (missing `tree` field) and folds it into an `All` root with each multi-value selector wrapped in `Any`. The migration is read-only — old JSON in `playlist.smart_rules` stays untouched until the next save — so a downgrade is safe.
@@ -343,7 +355,7 @@ Pre-tree user data lives in flat predicates (`title_contains: "foo", year_min: 2
 
 [`commands/smart_playlists.rs`](../../src-tauri/crates/app/src/commands/smart_playlists.rs):
 
-- `create_custom_smart_playlist(input)` — insert the row + materialise tracks.
+- `create_custom_smart_playlist(input)` — insert the row + materialise tracks + compose its auto-cover.
 - `update_custom_smart_playlist(playlist_id, input)` — update + re-materialise. Errors out when the target isn't a custom smart playlist (e.g. a Daily Mix slot or a manual playlist) so the editor never overwrites a wrong row.
 - `regenerate_custom_smart_playlist(playlist_id)` — re-runs the stored rules without changing the definition, one playlist, rewriting it whether or not it changed (no frontend caller today; the library changes go through `refresh_all` above).
 - `get_custom_smart_playlist_rules(playlist_id)` — rehydrates the editor.

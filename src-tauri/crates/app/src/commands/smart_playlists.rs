@@ -4,6 +4,7 @@
 //! [`crate::smart_playlists::generator`] so it stays unit-testable without a
 //! Tauri runtime.
 
+use crate::commands::playlist_cover;
 use crate::error::{AppError, AppResult};
 use crate::smart_playlists::{
     custom::{self, CustomRules},
@@ -25,7 +26,7 @@ fn paths_ctx(state: &AppState, profile_id: i64) -> PathsContext {
     }
 }
 use serde::Deserialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 /// Regenerate every Daily Mix slot from the active profile's listening
 /// history. Returns the playlist ids in slot order so the frontend can
@@ -127,7 +128,7 @@ pub async fn create_custom_smart_playlist(
     if name.is_empty() {
         return Err(AppError::Other("playlist name cannot be empty".into()));
     }
-    let pool = state.require_profile_pool().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let now = chrono::Utc::now().timestamp_millis();
     let color_id = input.color_id.unwrap_or_else(|| "violet".to_string());
     let icon_id = input.icon_id.unwrap_or_else(|| "sparkles".to_string());
@@ -158,6 +159,10 @@ pub async fn create_custom_smart_playlist(
     let playlist_id = insert.last_insert_rowid();
 
     let track_count = custom::materialize(&pool, playlist_id, &input.rules).await?;
+    // Born with `cover_is_auto = 1`: its first tracks make its cover, like
+    // a user playlist's (#1173). Once the write has committed: composing
+    // reads image files, never under the write lock.
+    playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id).await;
     let _ = app.emit("playlist:changed", playlist_id);
 
     Ok(CustomSmartPlaylistOutput {
@@ -177,7 +182,7 @@ pub async fn update_custom_smart_playlist(
     playlist_id: i64,
     input: CustomSmartPlaylistInput,
 ) -> AppResult<CustomSmartPlaylistOutput> {
-    let pool = state.require_profile_pool().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let row: Option<(i64, Option<String>)> =
         sqlx::query_as("SELECT is_smart, smart_rules FROM playlist WHERE id = ?")
             .bind(playlist_id)
@@ -224,6 +229,7 @@ pub async fn update_custom_smart_playlist(
     .await?;
 
     let track_count = custom::materialize(&pool, playlist_id, &input.rules).await?;
+    playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id).await;
     let _ = app.emit("playlist:changed", playlist_id);
 
     Ok(CustomSmartPlaylistOutput {
@@ -242,7 +248,7 @@ pub async fn regenerate_custom_smart_playlist(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<CustomSmartPlaylistOutput> {
-    let pool = state.require_profile_pool().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let row: Option<(i64, Option<String>)> =
         sqlx::query_as("SELECT is_smart, smart_rules FROM playlist WHERE id = ?")
             .bind(playlist_id)
@@ -255,6 +261,7 @@ pub async fn regenerate_custom_smart_playlist(
     }
     let rules = parse_custom_rules(raw.as_deref())?;
     let track_count = custom::materialize(&pool, playlist_id, &rules).await?;
+    playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id).await;
     let _ = app.emit("playlist:changed", playlist_id);
     Ok(CustomSmartPlaylistOutput {
         playlist_id,
@@ -343,11 +350,39 @@ pub(crate) async fn refresh_custom_after_change(
         );
     }
     if let Some(app) = app {
+        // The playlists written have new first tracks, so maybe a new
+        // auto-cover (#1173). After the pass, whose writes hold the lock
+        // only while they write, and before the event, so a view that
+        // reloads on it gets the cover with the tracks.
+        if !changed.is_empty() {
+            regen_covers_of_pool(app, pool, &changed).await;
+        }
         for playlist_id in &changed {
             let _ = app.emit("playlist:changed", *playlist_id);
         }
     }
     changed.len()
+}
+
+/// The auto-covers of `playlist_ids`, read from the profile `pool` belongs
+/// to. Its artworks are under that profile's cache, so the active profile
+/// must be the pool's: a pass still running after a switch holds the
+/// profile left, and leaves those covers as they were until the next
+/// change to their tracks.
+pub(crate) async fn regen_covers_of_pool(
+    app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+    playlist_ids: &[i64],
+) {
+    let state = app.state::<AppState>();
+    let Ok((active, profile_id)) = state.require_profile_snapshot().await else {
+        return;
+    };
+    if crate::netlib::db_of(&active) != crate::netlib::db_of(pool) {
+        tracing::info!("custom smart playlist covers skipped: the profile changed under the pass");
+        return;
+    }
+    playlist_cover::regen_auto_covers(pool, &state.paths, profile_id, playlist_ids).await;
 }
 
 /// [`refresh_custom_after_change`] for a background pass, detached: the
@@ -369,7 +404,7 @@ pub(crate) fn refresh_custom_in_background(pool: &sqlx::SqlitePool, app: Option<
     });
 }
 
-fn is_custom_payload(raw: Option<&str>) -> bool {
+pub(crate) fn is_custom_payload(raw: Option<&str>) -> bool {
     let Some(raw) = raw else {
         return false;
     };

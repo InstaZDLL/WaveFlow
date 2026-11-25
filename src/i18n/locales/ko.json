@@ -4897,6 +4897,7 @@
     "image_file_empty": "이 이미지 파일은 비어 있습니다.",
     "unsupported_video": "이 동영상은 MP4 파일이 아닙니다.",
     "file_too_large": "파일이 너무 큽니다(최대 {{max}}).",
-    "network_track_not_cached": "이 곡은 네트워크 공유에 있으며 아직 이 컴퓨터에 캐시되지 않았습니다."
+    "network_track_not_cached": "이 곡은 네트워크 공유에 있으며 아직 이 컴퓨터에 캐시되지 않았습니다.",
+    "generated_playlist_cover": "이 재생 목록은 WaveFlow가 생성하며 자체 커버를 유지합니다."
   }
 }

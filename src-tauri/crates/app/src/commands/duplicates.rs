@@ -331,7 +331,7 @@ pub async fn move_tracks_to_trash(
         // smart playlist at its limit takes the next match in their place.
         crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
         let emptied: Vec<i64> = emptied.into_iter().collect();
-        crate::commands::library::announce_playlists(&app, &emptied);
+        crate::commands::library::announce_playlists(&app, &pool, &emptied).await;
         let _ = app.emit("library:rescanned", ());
     }
     Ok(report)
