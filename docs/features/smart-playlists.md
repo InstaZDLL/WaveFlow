@@ -341,6 +341,8 @@ A custom smart playlist's cover is the user's, as a user playlist's is ([playlis
 
 The mosaic is composed again when its tracks may have changed: after `custom::materialize` (creating it, saving new rules, `regenerate_custom_smart_playlist`) and, in `refresh_custom_after_change`, for each playlist the pass wrote — after the pass, never inside a write transaction (the composition reads image files), and before `playlist:changed`, so a view reloading on the event shows the new cover with the new tracks. Its artworks are in the profile's cache, so the pass composes only when the active profile is still the one its pool reads (`netlib::db_of`); a pass that outlived a profile switch leaves those covers as they were until their tracks change again. A manual cover (`cover_is_auto = 0`) is never composed over.
 
+When its rules come to match nothing, its auto-cover is cleared (`clear_emptied_auto_cover`, in one statement that also checks the playlist holds no track and is still on auto), so it shows the gradient tile rather than tracks it lost; a user playlist emptied by hand keeps its cover, as it always has. Tracks whose artwork is missing are not an empty playlist, and a failed read of the artworks is an error, so neither loses the cover.
+
 The generators never reach a custom playlist's row: each finds its own by a `LIKE` on its family's JSON (`"slot":N`, `"kind":"release_radar"`, a themed mix's rule), and a custom rule's string values are JSON-escaped, so `\"slot\":1` in a value does not match `"slot":1`.
 
 ### v1 → v2 auto-migration

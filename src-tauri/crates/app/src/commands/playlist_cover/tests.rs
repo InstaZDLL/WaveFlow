@@ -275,3 +275,77 @@ async fn an_upload_that_lands_while_the_auto_cover_is_composed_is_kept() {
         .unwrap());
     assert_eq!(fx.cover(custom).await, (Some("mosaic".into()), 1));
 }
+
+#[tokio::test]
+async fn a_custom_playlist_its_rules_emptied_loses_its_mosaic_and_a_user_one_keeps_it() {
+    let fx = Fixture::new().await;
+    fx.track(1, 10, 20).await;
+    let custom = fx.custom_playlist().await;
+    let user = fx.playlist(0, None).await;
+    sqlx::query(
+        "INSERT INTO playlist_track (playlist_id, track_id, position, added_at)
+         VALUES (?, 1, 0, 0)",
+    )
+    .bind(user)
+    .execute(&fx.pool)
+    .await
+    .unwrap();
+    fx.regen(custom).await;
+    fx.regen(user).await;
+    let user_cover = fx.cover(user).await.0.expect("user mosaic");
+    assert!(fx.cover(custom).await.0.is_some(), "custom mosaic");
+
+    // The track goes: the rules match nothing, and the user empties
+    // their own playlist.
+    sqlx::query("UPDATE track SET is_available = 0 WHERE id = 1")
+        .execute(&fx.pool)
+        .await
+        .unwrap();
+    let mut changed = Vec::new();
+    custom::refresh_all(&fx.pool, &mut changed).await.unwrap();
+    assert_eq!(changed, vec![custom]);
+    regen_auto_covers(&fx.pool, &fx.paths, PROFILE, &changed).await;
+    sqlx::query("DELETE FROM playlist_track WHERE playlist_id = ?")
+        .bind(user)
+        .execute(&fx.pool)
+        .await
+        .unwrap();
+    fx.regen(user).await;
+
+    assert_eq!(
+        fx.cover(custom).await,
+        (None, 1),
+        "no mosaic of tracks it lost"
+    );
+    assert_eq!(
+        fx.cover(user).await,
+        (Some(user_cover), 1),
+        "as it always was"
+    );
+}
+
+#[tokio::test]
+async fn a_custom_playlist_whose_tracks_lost_their_artwork_keeps_its_mosaic() {
+    let fx = Fixture::new().await;
+    fx.track(1, 10, 20).await;
+    let custom = fx.custom_playlist().await;
+    fx.regen(custom).await;
+    let before = fx.cover(custom).await.0.expect("first mosaic");
+
+    std::fs::remove_file(fx.paths.profile_artwork_dir(PROFILE).join("art1.jpg")).unwrap();
+    fx.regen(custom).await;
+
+    assert_eq!(fx.cover(custom).await, (Some(before), 1));
+}
+
+#[tokio::test]
+async fn a_manual_cover_on_an_emptied_custom_playlist_is_kept() {
+    let fx = Fixture::new().await;
+    let custom = fx.custom_playlist().await;
+    update_cover(&fx.pool, custom, Some("mine"), 0)
+        .await
+        .unwrap();
+
+    assert!(!clear_emptied_auto_cover(&fx.pool, custom).await.unwrap());
+    assert_eq!(fx.cover(custom).await, (Some("mine".into()), 0));
+}

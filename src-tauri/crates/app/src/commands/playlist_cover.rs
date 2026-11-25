@@ -204,7 +204,7 @@ pub async fn regenerate_playlist_auto_cover(
     let result = async {
         let (pool, profile_id) = state.require_profile_snapshot().await?;
         ensure_user_cover(&pool, playlist_id).await?;
-        regenerate_inner(&pool, &state.paths, profile_id, playlist_id, true).await
+        regenerate_inner(&pool, &state.paths, profile_id, playlist_id, true, false).await
     }
     .await;
     logged("regenerate", Some(playlist_id), result)
@@ -226,7 +226,7 @@ pub async fn clear_playlist_cover(
         // the gradient tile, and that is no reason to undo the clear. A
         // failure to compose is still written to the log.
         if let Err(err) =
-            regenerate_inner(&pool, &state.paths, profile_id, playlist_id, false).await
+            regenerate_inner(&pool, &state.paths, profile_id, playlist_id, false, false).await
         {
             tracing::warn!(playlist_id, error = %err, "auto-cover regen after clear failed (non-fatal)");
         }
@@ -258,7 +258,20 @@ pub async fn maybe_regen_auto_cover(
     if !flags.cover_is_users() || flags.cover_is_auto == 0 {
         return;
     }
-    if let Err(err) = regenerate_inner(pool, paths, profile_id, playlist_id, false).await {
+    // A custom smart playlist's tracks are its rules' answer, which can
+    // become none: its mosaic then goes rather than show tracks it no
+    // longer holds. A playlist the user emptied keeps its cover.
+    let clear_when_empty = flags.is_smart != 0;
+    if let Err(err) = regenerate_inner(
+        pool,
+        paths,
+        profile_id,
+        playlist_id,
+        false,
+        clear_when_empty,
+    )
+    .await
+    {
         // Auto-regen failures are never fatal to the mutation that
         // triggered them — the user still gets their add/remove/reorder
         // outcome, just without the cover refresh.
@@ -285,16 +298,31 @@ pub async fn regen_auto_covers(
 /// still on auto, so an upload that lands while the tracks are read and
 /// the tiles composed — a refresh pass runs this in the background after
 /// a scan — is not written over.
+///
+/// With nothing to compose, the cover stays, unless `clear_when_empty`
+/// and the playlist holds no track at all, where an auto-cover is
+/// cleared ([`clear_emptied_auto_cover`]). Tracks without artwork are
+/// not an empty playlist, and a read that failed is an error, so neither
+/// loses the cover.
 async fn regenerate_inner(
     pool: &SqlitePool,
     paths: &AppPaths,
     profile_id: i64,
     playlist_id: i64,
     over_manual: bool,
+    clear_when_empty: bool,
 ) -> AppResult<()> {
     let paths_for_compose =
-        top_track_artwork_paths(pool, paths, profile_id, playlist_id, AUTO_COVER_TILE_COUNT).await;
+        top_track_artwork_paths(pool, paths, profile_id, playlist_id, AUTO_COVER_TILE_COUNT)
+            .await?;
     if paths_for_compose.is_empty() {
+        if clear_when_empty && clear_emptied_auto_cover(pool, playlist_id).await? {
+            tracing::info!(
+                playlist_id,
+                "auto-cover cleared: the playlist holds no track"
+            );
+            return Ok(());
+        }
         // Nothing to compose — keep whatever cover is already there
         // (typically NULL for a brand new playlist). The frontend's
         // gradient fallback handles display.
@@ -314,6 +342,28 @@ async fn regenerate_inner(
     }
     tracing::info!(playlist_id, %hash, tile_count = paths_for_compose.len(), "auto-cover regenerated");
     Ok(())
+}
+
+/// Drop the playlist's auto-cover if it holds no track, in one statement
+/// so a track written meanwhile keeps it. A manual cover is never
+/// touched. Whether the row was written.
+async fn clear_emptied_auto_cover(pool: &SqlitePool, playlist_id: i64) -> AppResult<bool> {
+    let now = chrono::Utc::now().timestamp_millis();
+    let written = sqlx::query(
+        "UPDATE playlist
+            SET cover_hash = NULL,
+                updated_at = ?
+          WHERE id = ?
+            AND cover_is_auto = 1
+            AND cover_hash IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM playlist_track WHERE playlist_id = playlist.id)",
+    )
+    .bind(now)
+    .bind(playlist_id)
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(written > 0)
 }
 
 /// Store `hash` as the playlist's auto-cover; with `over_manual` false,
@@ -346,14 +396,15 @@ async fn write_auto_cover(
 /// Pull artwork file paths for the first `take` tracks of the playlist
 /// (in `position` order) that have an album cover in the per-profile
 /// cache. Tracks without artwork are silently skipped — we walk in order
-/// until `take` is hit or the source is exhausted.
+/// until `take` is hit or the source is exhausted. A failed read is an
+/// error, not an empty list, so its caller keeps the cover.
 async fn top_track_artwork_paths(
     pool: &SqlitePool,
     paths: &AppPaths,
     profile_id: i64,
     playlist_id: i64,
     take: usize,
-) -> Vec<PathBuf> {
+) -> AppResult<Vec<PathBuf>> {
     #[derive(FromRow)]
     struct Row {
         hash: String,
@@ -379,11 +430,7 @@ async fn top_track_artwork_paths(
     )
     .bind(playlist_id)
     .fetch_all(pool)
-    .await
-    .unwrap_or_else(|err| {
-        tracing::warn!(playlist_id, error = %err, "auto-cover: artwork query failed");
-        Vec::new()
-    });
+    .await?;
 
     // Dedupe by artwork hash so a playlist whose first 4 tracks share a
     // cover collapses to a single full-canvas image instead of a 2×2
@@ -416,7 +463,7 @@ async fn top_track_artwork_paths(
             "auto-cover: skipped artworks whose file is not in the cache"
         );
     }
-    out
+    Ok(out)
 }
 
 /// Reject generated smart playlists and missing ids with a precise error.
