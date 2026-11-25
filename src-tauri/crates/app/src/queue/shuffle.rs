@@ -1,23 +1,33 @@
 //! Shuffle, album shuffle and the restore of the pre-shuffle order.
 
 use chrono::Utc;
+use std::collections::{HashMap, HashSet, VecDeque};
+
 use sqlx::SqlitePool;
 
 use crate::error::{AppError, AppResult};
 
-use super::{current_track, read_setting_i64, read_setting_string, write_setting_string};
+use super::{read_setting_i64, read_setting_string, write_setting_string};
 
 /// Randomize the queue, keeping the currently-playing track at
 /// position 0. Stashes the pre-shuffle ordering in
-/// `profile_setting['queue.preshuffle']` (JSON array of track ids, in
-/// their original order) so [`unshuffle`] can restore it.
+/// `profile_setting['queue.preshuffle']` (the entries' `queue_item.id`s,
+/// in their original order — see [`Preshuffle`]) so [`unshuffle`] can
+/// restore it.
 ///
-/// Fisher–Yates on the slice after the current track; this is cheap
-/// and deterministic given the crate-level RNG.
+/// The tracks queued by hand and still to come are not shuffled: they
+/// follow the current track in the order they were queued, and the
+/// rest is shuffled behind them (#1168). "Add to queue" means "play
+/// these next", whether or not the rest is in order — and it is what
+/// lets a fill that kept them be shuffled at once without scattering
+/// them.
+///
+/// Fisher–Yates on the slice after them; this is cheap and
+/// deterministic given the crate-level RNG.
 pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
     // Read current ordering.
-    let rows: Vec<(i64, i64)> =
-        sqlx::query_as("SELECT position, track_id FROM queue_item ORDER BY position")
+    let rows: Vec<QueuedRow> =
+        sqlx::query_as("SELECT id, track_id, queued_by_hand FROM queue_item ORDER BY position")
             .fetch_all(pool)
             .await?;
     if rows.len() < 2 {
@@ -29,17 +39,47 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
         .unwrap_or(0)
         .clamp(0, rows.len() as i64 - 1) as usize;
 
-    snapshot_preshuffle_order(pool, &rows.iter().map(|(_, id)| *id).collect::<Vec<_>>()).await?;
+    snapshot_preshuffle_order(pool, &rows.iter().map(|row| row.0).collect::<Vec<_>>()).await?;
 
-    // Build the new ordering: [current, ...shuffled rest].
-    let mut ids: Vec<i64> = rows.iter().map(|(_, id)| *id).collect();
-    let current_id = ids.remove(current_index);
-    fisher_yates(&mut ids);
-    let mut new_ids = Vec::with_capacity(ids.len() + 1);
-    new_ids.push(current_id);
-    new_ids.extend(ids);
+    // Build the new ordering: [current, ...waiting, ...shuffled rest].
+    let (current, waiting, mut rest) = split_user_queue(&rows, current_index);
+    fisher_yates(&mut rest);
+    let mut ordered = Vec::with_capacity(rows.len());
+    ordered.push(current);
+    ordered.extend(waiting);
+    ordered.extend(rest);
 
-    write_queue_order(pool, &new_ids, 0).await
+    write_row_order(pool, &ordered, current).await
+}
+
+/// One queue row as a shuffle sees it: `(queue_item.id, track_id,
+/// queued_by_hand)`.
+pub(super) type QueuedRow = (i64, i64, bool);
+
+/// Split a queue for a shuffle into the current row, the rows queued
+/// by hand past it (in order: the user queue, which a shuffle leaves in
+/// front) and every other row (in order: what the shuffle mixes). Row
+/// ids, not track ids, so a track queued twice is two rows.
+///
+/// Pure, like [`album_runs`], so what is pinned is testable without a
+/// database or chance. `current_index` must be inside `rows`.
+pub(super) fn split_user_queue(
+    rows: &[QueuedRow],
+    current_index: usize,
+) -> (i64, Vec<i64>, Vec<i64>) {
+    let mut waiting = Vec::new();
+    let mut rest = Vec::with_capacity(rows.len());
+    for (index, &(row_id, _, by_hand)) in rows.iter().enumerate() {
+        if index == current_index {
+            continue;
+        }
+        if by_hand && index > current_index {
+            waiting.push(row_id);
+        } else {
+            rest.push(row_id);
+        }
+    }
+    (rows[current_index].0, waiting, rest)
 }
 
 /// Take the pre-shuffle snapshot, unless one is already held.
@@ -54,16 +94,36 @@ pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
 /// can now go from grouping tracks to grouping albums without passing
 /// through off. The queue-replacing paths clear the key, so "a
 /// snapshot exists" means "we are already shuffled" and nothing else.
-async fn snapshot_preshuffle_order(pool: &SqlitePool, ids: &[i64]) -> AppResult<()> {
+async fn snapshot_preshuffle_order(pool: &SqlitePool, row_ids: &[i64]) -> AppResult<()> {
     if read_setting_string(pool, "queue.preshuffle")
         .await?
         .is_some()
     {
         return Ok(());
     }
-    let json =
-        serde_json::to_string(ids).map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
+    let snapshot = Preshuffle::Rows {
+        rows: row_ids.to_vec(),
+    };
+    let json = serde_json::to_string(&snapshot)
+        .map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
     write_setting_string(pool, "queue.preshuffle", &json).await
+}
+
+/// What `queue.preshuffle` holds.
+///
+/// Entries, not tracks: a track queued twice is two entries, and only
+/// the entry's id says which copy went where. Matched by track id, the
+/// two copies of `[X, current, X queued by hand]` came back swapped,
+/// putting the hand-queued copy behind the cursor, where the next list
+/// started drops it as already played (#1168).
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+enum Preshuffle {
+    /// `{"rows": [queue_item.id, …]}`, written since #1168.
+    Rows { rows: Vec<i64> },
+    /// `[track_id, …]`, written before and still read: a snapshot
+    /// survives a restart, so an upgrade can find one.
+    Tracks(Vec<i64>),
 }
 
 /// Shuffle whole records instead of individual tracks (#618).
@@ -82,12 +142,17 @@ async fn snapshot_preshuffle_order(pool: &SqlitePool, ids: &[i64]) -> AppResult<
 /// - **A track with no album is its own record.** Loose files then
 ///   shuffle exactly as they would have under track shuffle, instead
 ///   of being welded into one arbitrary block by a shared NULL.
+///
+/// And the one it shares with it: the tracks queued by hand and still
+/// to come belong to no record here. They follow the current track, in
+/// their order, ahead of the rest of its album (#1168).
 pub async fn shuffle_by_album(pool: &SqlitePool) -> AppResult<()> {
     // `position` decides ties inside a record, so a pair of tracks that
     // both lack a track number keeps the order it already had rather
     // than depending on how the rows came back.
-    let rows: Vec<QueuedAlbumTrack> = sqlx::query_as(
-        "SELECT q.track_id, q.position, t.album_id, t.disc_number, t.track_number
+    let rows: Vec<AlbumShuffleRow> = sqlx::query_as(
+        "SELECT q.id, q.track_id, q.queued_by_hand,
+                q.position, t.album_id, t.disc_number, t.track_number
            FROM queue_item q
            LEFT JOIN track t ON t.id = q.track_id
           ORDER BY q.position",
@@ -106,19 +171,41 @@ pub async fn shuffle_by_album(pool: &SqlitePool) -> AppResult<()> {
 
     // The order the listener built, so turning shuffle off restores it
     // exactly as it does after a track shuffle.
-    snapshot_preshuffle_order(pool, &rows.iter().map(|(id, ..)| *id).collect::<Vec<_>>()).await?;
+    snapshot_preshuffle_order(pool, &rows.iter().map(|row| row.0).collect::<Vec<_>>()).await?;
 
-    let mut groups = album_runs(&rows, current_id);
+    let shuffled: Vec<QueuedRow> = rows
+        .iter()
+        .map(|&(id, track_id, by_hand, ..)| (id, track_id, by_hand))
+        .collect();
+    let (_, waiting, _) = split_user_queue(&shuffled, current_index);
+    let pinned: HashSet<i64> = waiting.iter().copied().collect();
+    // Grouped by row id rather than track id: `album_runs` only ever
+    // compares the first field, and a row id names one entry even when
+    // the same track is queued twice.
+    let records: Vec<QueuedAlbumTrack> = rows
+        .iter()
+        .filter(|row| !pinned.contains(&row.0))
+        .map(|&(id, _, _, position, album, disc, track_no)| (id, position, album, disc, track_no))
+        .collect();
+
+    let mut groups = album_runs(&records, current_id);
     // Only the order of the records is random; `album_runs` has
     // already settled everything inside them.
     let tail = &mut groups[1..];
     fisher_yates(tail);
 
-    let ordered: Vec<i64> = groups.into_iter().flatten().collect();
-    write_queue_order(pool, &ordered, 0).await
+    let mut ordered: Vec<i64> = groups.into_iter().flatten().collect();
+    // The current track opens the first run; the user queue follows it.
+    ordered.splice(1..1, waiting);
+    write_row_order(pool, &ordered, current_id).await
 }
 
-/// One queue row, as [`album_runs`] needs it: the track, where it sits
+/// A queue row as album shuffle reads it: `(queue_item.id, track_id,
+/// queued_by_hand, position, album_id, disc_number, track_number)`.
+type AlbumShuffleRow = (i64, i64, bool, i64, Option<i64>, Option<i64>, Option<i64>);
+
+/// One queue row, as [`album_runs`] needs it: the entry (any id that
+/// names one entry — the shuffle passes `queue_item.id`), where it sits
 /// now, and what the library knows about its place on a record.
 pub(super) type QueuedAlbumTrack = (i64, i64, Option<i64>, Option<i64>, Option<i64>);
 
@@ -196,101 +283,108 @@ pub(super) fn album_runs(rows: &[QueuedAlbumTrack], current_id: i64) -> Vec<Vec<
 }
 
 /// Restore the pre-shuffle order from `queue.preshuffle` and re-home
-/// the cursor onto the currently-playing track's position in that
+/// the cursor onto the currently-playing entry's position in that
 /// restored ordering.
+///
+/// The snapshot names the entries themselves. An entry no longer in the
+/// queue — removed with its folder, which cascades without touching the
+/// snapshot — is skipped rather than queued again. A snapshot from
+/// before #1168 names tracks instead, each matched to an entry one per
+/// occurrence in queue order.
 pub async fn unshuffle(pool: &SqlitePool) -> AppResult<()> {
     let json = match read_setting_string(pool, "queue.preshuffle").await? {
         Some(s) => s,
         None => return Ok(()),
     };
-    let original: Vec<i64> = serde_json::from_str(&json)
+    let original: Preshuffle = serde_json::from_str(&json)
         .map_err(|e| AppError::Other(format!("preshuffle parse: {e}")))?;
-    if original.is_empty() {
-        return Ok(());
+
+    let rows: Vec<(i64, i64)> =
+        sqlx::query_as("SELECT id, track_id FROM queue_item ORDER BY position")
+            .fetch_all(pool)
+            .await?;
+    if !rows.is_empty() {
+        let current_index = read_setting_i64(pool, "queue.current_index")
+            .await?
+            .unwrap_or(0)
+            .clamp(0, rows.len() as i64 - 1) as usize;
+        let ordered: Vec<i64> = match original {
+            Preshuffle::Rows { rows } => rows,
+            Preshuffle::Tracks(tracks) => {
+                let mut entries: HashMap<i64, VecDeque<i64>> = HashMap::new();
+                for (row_id, track_id) in &rows {
+                    entries.entry(*track_id).or_default().push_back(*row_id);
+                }
+                tracks
+                    .iter()
+                    .filter_map(|track_id| entries.get_mut(track_id).and_then(VecDeque::pop_front))
+                    .collect()
+            }
+        };
+        write_row_order(pool, &ordered, rows[current_index].0).await?;
     }
-
-    // Find the currently-playing track in the restored order.
-    let current = current_track(pool).await?;
-    let new_index = match current {
-        Some(t) => original.iter().position(|&id| id == t.id).unwrap_or(0),
-        None => 0,
-    };
-
-    write_queue_order(pool, &original, new_index).await?;
     sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
         .execute(pool)
         .await?;
     Ok(())
 }
 
-/// Rewrite `queue_item` with the given ordering and update the
-/// current index pointer. Runs in a transaction.
-async fn write_queue_order(
-    pool: &SqlitePool,
-    ordered_ids: &[i64],
-    new_current: usize,
-) -> AppResult<()> {
-    // Where each track came from, kept across the reorder. Writing
-    // every row back as 'manual' would throw away two things that are
-    // read later: the source a play_event is attributed to, and the
-    // boundary `fill_queue` uses to tell queued-up "play next" items
-    // from the source queue they were dropped into.
-    //
-    // Keyed by track id with one entry per occurrence, in position
-    // order, so a queue holding the same track twice hands each copy
-    // back its own source rather than the first one's.
-    let mut sources: std::collections::HashMap<
-        i64,
-        std::collections::VecDeque<(String, Option<i64>)>,
-    > = std::collections::HashMap::new();
-    //
-    // Read *inside* the transaction that rewrites them, so the rows
-    // put back describe the queue being replaced rather than one that
-    // changed in between.
+/// Put the queue's entries in the order of `ordered` (`queue_item.id`s)
+/// and the cursor on `current_row`, wherever it lands. Runs in a
+/// transaction.
+///
+/// The rows are moved, not rewritten: each keeps everything it was
+/// written with — the source a `play_event` is attributed to, whether
+/// it was queued by hand (which a fill keeps and "Add to queue" stacks
+/// behind), when it was added, and its id, which MPD clients hold as
+/// the entry's `Id`. Writing every row back as `'manual'`, as this once
+/// did, lost the first two.
+///
+/// `ordered` was read before this transaction, so it is checked against
+/// the queue as it is now: an entry gone since is skipped, and one
+/// added since goes after the others, in its own order. Either way the
+/// positions stay dense, which every reader of the queue relies on.
+async fn write_row_order(pool: &SqlitePool, ordered: &[i64], current_row: i64) -> AppResult<()> {
     // The write lock is taken first: this reads before it writes, and a
     // deferred transaction's first write fails outright when another writer
     // (a scan) committed since its read (`db::lock_waiters::begin_write`).
     let mut tx = crate::db::lock_waiters::begin_write(pool).await?;
-    let existing: Vec<(i64, String, Option<i64>)> =
-        sqlx::query_as("SELECT track_id, source_type, source_id FROM queue_item ORDER BY position")
-            .fetch_all(&mut *tx)
-            .await?;
-    for (track_id, source_type, source_id) in existing {
-        sources
-            .entry(track_id)
-            .or_default()
-            .push_back((source_type, source_id));
+    let existing: Vec<i64> = sqlx::query_scalar("SELECT id FROM queue_item ORDER BY position")
+        .fetch_all(&mut *tx)
+        .await?;
+    let present: HashSet<i64> = existing.iter().copied().collect();
+    let mut placed: HashSet<i64> = HashSet::with_capacity(existing.len());
+    let mut order: Vec<i64> = Vec::with_capacity(existing.len());
+    for id in ordered.iter().chain(existing.iter()) {
+        if present.contains(id) && placed.insert(*id) {
+            order.push(*id);
+        }
     }
 
-    sqlx::query("DELETE FROM queue_item")
+    // Parked above every real position first, so no update collides
+    // with a row not yet moved on UNIQUE(position), which SQLite checks
+    // per row.
+    const PARK: i64 = 10_000_000;
+    sqlx::query("UPDATE queue_item SET position = position + ?")
+        .bind(PARK)
         .execute(&mut *tx)
         .await?;
-    let now = Utc::now().timestamp_millis();
-    for (pos, track_id) in ordered_ids.iter().enumerate() {
-        // 'manual' only for a track the old queue did not hold, which
-        // is not something any caller here does today.
-        let (source_type, source_id) = sources
-            .get_mut(track_id)
-            .and_then(|queued| queued.pop_front())
-            .unwrap_or_else(|| ("manual".to_string(), None));
-        sqlx::query(
-            "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
-             VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(track_id)
-        .bind(pos as i64)
-        .bind(source_type)
-        .bind(source_id)
-        .bind(now)
-        .execute(&mut *tx)
-        .await?;
+    for (position, id) in order.iter().enumerate() {
+        sqlx::query("UPDATE queue_item SET position = ? WHERE id = ?")
+            .bind(position as i64)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
     }
+
+    let cursor = order.iter().position(|id| *id == current_row).unwrap_or(0);
+    let now = Utc::now().timestamp_millis();
     sqlx::query(
         "UPDATE profile_setting
             SET value = ?, updated_at = ?
           WHERE key = 'queue.current_index'",
     )
-    .bind((new_current as i64).to_string())
+    .bind((cursor as i64).to_string())
     .bind(now)
     .execute(&mut *tx)
     .await?;

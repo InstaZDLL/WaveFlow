@@ -527,9 +527,17 @@ async fn the_queue_steps_over_what_cannot_play_and_ends_when_nothing_can() {
         .fetch_all(&bench.pool)
         .await
         .unwrap();
-    queue::fill_queue(&bench.pool, "album", None, &ids, 0, false)
-        .await
-        .unwrap();
+    queue::fill_queue(
+        &bench.pool,
+        "album",
+        None,
+        &ids,
+        0,
+        false,
+        queue::UserQueue::Drop,
+    )
+    .await
+    .unwrap();
 
     let next = |pool: SqlitePool| async move {
         queue::peek_next(&pool, RepeatMode::Off)

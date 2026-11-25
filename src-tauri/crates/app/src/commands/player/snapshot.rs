@@ -185,9 +185,10 @@ pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<Pl
         .collect();
 
     // Single extra query for the queue-wide source type. Reading
-    // position 0 is fine because fill_queue always rewrites the
-    // whole queue with one source — append paths use 'manual' which
-    // the frontend treats the same as no-source.
+    // position 0 is fine because fill_queue writes the new list from
+    // there with one source — the rows it keeps from the user queue go
+    // after the track it starts on, never first, and the append paths
+    // use 'manual', which the frontend treats the same as no-source.
     let source_type: Option<String> =
         sqlx::query_scalar("SELECT source_type FROM queue_item WHERE position = 0 LIMIT 1")
             .fetch_optional(&*pool)

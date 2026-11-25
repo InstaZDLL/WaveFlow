@@ -101,9 +101,17 @@ async fn queued(pool: &SqlitePool) -> Vec<i64> {
 
 /// A queue of `ids` with the cursor on its last entry.
 async fn at_end(pool: &SqlitePool, ids: &[i64]) {
-    queue::fill_queue(pool, "album", None, ids, ids.len() - 1, false)
-        .await
-        .unwrap();
+    queue::fill_queue(
+        pool,
+        "album",
+        None,
+        ids,
+        ids.len() - 1,
+        false,
+        queue::UserQueue::Drop,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -219,9 +227,17 @@ async fn only_the_end_of_a_queue_with_repeat_off_is_topped_up() {
     assert!(top_up(&pool, RepeatMode::All).await.unwrap().is_none());
     assert!(top_up(&pool, RepeatMode::One).await.unwrap().is_none());
     // A cursor before the end has a next entry too.
-    queue::fill_queue(&pool, "album", None, &[1, 2, 3], 0, false)
-        .await
-        .unwrap();
+    queue::fill_queue(
+        &pool,
+        "album",
+        None,
+        &[1, 2, 3],
+        0,
+        false,
+        queue::UserQueue::Drop,
+    )
+    .await
+    .unwrap();
     assert!(top_up(&pool, RepeatMode::Off).await.unwrap().is_none());
     assert_eq!(queued(&pool).await, vec![1, 2, 3]);
     // An empty queue has nothing to continue from.

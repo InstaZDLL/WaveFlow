@@ -235,7 +235,9 @@ export function CreatePlaylistModal({
       onCoverChanged?.();
     } catch (err) {
       console.error("[CreatePlaylistModal] clear cover failed", err);
-      setSubmitError(t("playlistModal.coverSaveError"));
+      setSubmitError(
+        backendErrorText(err, t, t("playlistModal.coverSaveError")),
+      );
     } finally {
       setCoverBusy(false);
     }

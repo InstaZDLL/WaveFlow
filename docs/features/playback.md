@@ -903,21 +903,40 @@ and a profile that predates this needs no migration. MPD's `random 1`
 therefore turns shuffle on **without** forcing tracks — a remote that
 cannot express the grouping should not quietly undo it.
 
-**A reorder keeps each row's source.** `write_queue_order` used to
-write every row back as `source_type = 'manual'`, which threw away the
-source a `play_event` is attributed to and the boundary `fill_queue`
-uses to tell queued-up "play next" items from the source queue around
-them — so shuffling an album silently cost both. Sources now survive,
-one per occurrence, so a queue holding the same track twice hands each
-copy back its own. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
+**A reorder keeps each row.** The shuffle used to write every row back
+as `source_type = 'manual'`, which threw away the source a `play_event`
+is attributed to and the boundary "Add to queue" uses to tell queued-up
+items from the source queue around them — so shuffling an album
+silently cost both. A shuffle and its undo now move the rows themselves
+([`write_row_order`](../../src-tauri/crates/app/src/queue/shuffle.rs)):
+each keeps its source, whether it was queued by hand, when it was added
+and its `id`, which MPD clients hold as the entry's `Id`. The
+pre-shuffle snapshot records those entry ids (`Preshuffle::Rows`), so
+the undo gives every entry back its own position, each copy of a track
+queued twice included. Matching by track id swapped the two copies of
+a track that was both in the list and queued by hand, which put the
+queued one behind the cursor, where the next list dropped it as
+played. A snapshot written before that (`Preshuffle::Tracks`, a plain
+array of track ids) is still read, matched one entry per occurrence in
+queue order. Either way an entry removed since (a folder's removal
+cascades to the queue without touching the snapshot) is skipped, where
+it used to be queued again.
 
-**User queue vs context tail.** Every `queue_item` carries a `source_type` (`'album'`, `'playlist'`, `'smart'`, `'manual'`, …). The Spotify-style split flows out of that flag:
+**Edits keep the cursor where it was read.** A cursor left past the
+end of the queue is read as the last row, the track playing. "Add to
+queue" and "Play next" write that clamped position back before they
+insert, so the out-of-range value cannot land on a row they just added
+and make it the current track. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
 
-- `fill_queue` (Play album / Play playlist / Play smart) populates the queue with `source_type = 'album' | 'playlist' | …` from the current view.
-- `insert_after_current` (Play next, context-menu action) drops the picks at `current_index + 1` with `source_type = 'manual'` — pushes the rest of the queue down by N.
-- `append_to_user_queue` (Add to queue, context-menu action) finds the boundary `MIN(position) WHERE position > current AND source_type != 'manual'` — i.e. the first context-tail item — and inserts the new picks right before it with `source_type = 'manual'`. Falls back to `append` when the entire post-cursor tail is already manual (or there's nothing past the cursor), and to `fill_queue` when the queue is empty.
+**User queue vs context tail.** Every `queue_item` carries a `source_type` (`'album'`, `'playlist'`, `'manual'`, …) and `queued_by_hand`, set on the rows "Play next" and "Add to queue" write. The source alone cannot draw the Spotify-style split: a selection, the history, the Release Radar and files opened from the system fill the queue as `'manual'` too, and those are a context like an album.
 
-Net effect matches Spotify's behaviour: the manual block stacks between Now Playing and the album / playlist tail. "Play next" pushes to the top of that block, "Add to queue" stacks at the bottom, and the album resumes once the user queue drains. No tracks get banished to the very end past the rest of the album any more.
+- `fill_queue` (Play album / Play playlist / Play smart, any track started from a list) populates the queue with `source_type = 'album' | 'playlist' | …` from the current view.
+- `insert_after_current` (Play next, context-menu action) drops the picks at `current_index + 1`, queued by hand — pushes the rest of the queue down by N.
+- `append_to_user_queue` (Add to queue, context-menu action) finds the boundary `MIN(position) WHERE position > current AND queued_by_hand = 0` — i.e. the first context-tail item — and inserts the new picks right before it, queued by hand. Goes after the last row when the entire post-cursor tail is already queued by hand (or there's nothing past the cursor), and builds the queue when it is empty.
+
+Net effect matches Spotify's behaviour: the user queue stacks between Now Playing and the album / playlist tail. "Play next" pushes to the top of that block, "Add to queue" stacks at the bottom, and the album resumes once the user queue drains. No tracks get banished to the very end past the rest of the album any more.
+
+**The user queue outlives the list it was added to** (#1168). Starting another list — a double-click in the library, an album, a playlist, a radio or mix, a selection, the history, a file opened from the system — used to replace the whole queue, and the tracks queued by hand went with it. `fill_queue` now keeps the ones still to come (past the cursor) and writes them right after the track that starts, in their order, ahead of the rest of the new list; the cursor stays on the started track. One of them that is the track starting is dropped, since it plays now — one copy only, as a track queued twice was asked for twice. What was queued by hand and already played goes with the old queue. The one fill that drops them is a queue handed over by another player ([`take_over`](../../src-tauri/crates/app/src/external_playback.rs)), whose order is what was handed over. Emptying the queue (MPD's `clear`) still empties it. With shuffle on, the new list is shuffled right after the fill, and a shuffle — tracks or albums, from the toggle as from a fill — leaves the user queue still to come right after the current track and mixes only the rest. `queue.album_ordered` describes the new list and stays true with the user queue in it: those rows say `'manual'`, which the gain never reads as a record playing through. A queue written before the column existed has every row unmarked, so its tracks queued by hand behave as context until played or replaced: a `'manual'` row cannot say which of the two it was.
 
 **Both actions confirm themselves.** The queue is usually out of sight, so a click on "Play next" or "Add to queue" with no word back read as a click that did nothing — and was repeated, queueing the tracks twice. Once the backend accepted the tracks, `playerPlayNext` / `playerAddToQueue` dispatch `waveflow:queue-added` (`{ mode, count }`), and [`QueueToast`](../../src/components/common/QueueToast.tsx) shows "3 tracks play next" / "3 tracks added to the queue" for 2.5 s above the selection bar (`role="status"`, polite). In the wrappers rather than at each call site: the context menus, the selection bar and the folder browser all queue tracks, and the next place that does is covered without knowing it.
 

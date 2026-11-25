@@ -2725,10 +2725,6 @@
       "increaseAria": "Perbesar",
       "resetAria": "Atur ulang zoom ke 100 %"
     },
-    "showAudioQualityFooter": {
-      "title": "Tampilkan strip kualitas audio",
-      "subtitle": "Detail teknis (kHz, kbps, kodek, kedalaman bit) di bawah bilah pemutar. Nonaktif secara bawaan agar bilah lebih ramping."
-    },
     "categoryNavLabel": "Kategori pengaturan",
     "appearance": {
       "theme": {

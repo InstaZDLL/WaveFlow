@@ -131,9 +131,17 @@ async fn a_queue_write_gets_through_a_scan_and_the_scan_finishes() {
     let mut slowest = Duration::ZERO;
     while !scan.is_finished() && during_scan < 20 {
         let began = Instant::now();
-        crate::queue::fill_queue(&pool, "library", None, &ids, 0, false)
-            .await
-            .expect("a queue written during a scan");
+        crate::queue::fill_queue(
+            &pool,
+            "library",
+            None,
+            &ids,
+            0,
+            false,
+            crate::queue::UserQueue::Keep,
+        )
+        .await
+        .expect("a queue written during a scan");
         let took = began.elapsed();
         slowest = slowest.max(took);
         assert!(
