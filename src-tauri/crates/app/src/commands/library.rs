@@ -278,7 +278,7 @@ pub async fn delete_library(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
-    let emptied = playlists_holding(
+    let emptied = touch_playlists_holding(
         &mut tx,
         "SELECT DISTINCT pt.playlist_id FROM playlist_track pt \
          JOIN track t ON t.id = pt.track_id WHERE t.library_id = ?",
@@ -335,23 +335,35 @@ pub async fn delete_library(
 
 /// The playlists holding at least one of the tracks `sql` selects by
 /// `id`, read in the transaction that deletes those tracks, before the
-/// delete. Their `playlist_track` rows leave by cascade, which nothing
-/// else announces: the refresh after it only says which custom smart
-/// playlists it rewrote, and a playlist left with fewer tracks or none
-/// is not one of them.
-pub(crate) async fn playlists_holding(
+/// delete, and their `updated_at` bumped in it. Their `playlist_track`
+/// rows leave by cascade, which nothing else announces: the refresh
+/// after it only says which custom smart playlists it rewrote, and a
+/// playlist left with fewer tracks or none is not one of them. An open
+/// playlist view refetches on its `updated_at`, which the cascade leaves
+/// as it was.
+pub(crate) async fn touch_playlists_holding(
     tx: &mut sqlx::SqliteConnection,
     sql: &'static str,
     id: i64,
 ) -> AppResult<Vec<i64>> {
-    sqlx::query_scalar(sql)
+    let playlist_ids: Vec<i64> = sqlx::query_scalar(sql)
         .bind(id)
         .fetch_all(&mut *tx)
         .await
-        .map_err(|e| AppError::Other(format!("list playlists holding the deleted tracks: {e}")))
+        .map_err(|e| AppError::Other(format!("list playlists holding the deleted tracks: {e}")))?;
+    let now = chrono::Utc::now().timestamp_millis();
+    for playlist_id in &playlist_ids {
+        sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
+            .bind(now)
+            .bind(playlist_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| AppError::Other(format!("touch playlist {playlist_id}: {e}")))?;
+    }
+    Ok(playlist_ids)
 }
 
-/// Emit `playlist:changed` for each playlist [`playlists_holding`]
+/// Emit `playlist:changed` for each playlist [`touch_playlists_holding`]
 /// found, once the delete has committed, so the sidebar's counts and an
 /// open playlist follow it.
 pub(crate) fn announce_playlists(app: &tauri::AppHandle, playlist_ids: &[i64]) {
@@ -720,7 +732,7 @@ pub(crate) async fn remove_folder_inner(
             .fetch_all(&mut *tx)
             .await
             .map_err(|e| AppError::Other(format!("list tracks in folder {folder_id}: {e}")))?;
-    let emptied = playlists_holding(
+    let emptied = touch_playlists_holding(
         &mut tx,
         "SELECT DISTINCT pt.playlist_id FROM playlist_track pt \
          JOIN track t ON t.id = pt.track_id WHERE t.folder_id = ?",

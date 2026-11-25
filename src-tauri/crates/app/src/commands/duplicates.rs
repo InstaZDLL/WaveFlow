@@ -417,8 +417,13 @@ async fn remove_row(
     library_id: i64,
     file_path: &str,
 ) -> Result<Vec<i64>, String> {
-    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
-    let playlists = crate::commands::library::playlists_holding(
+    // It reads before it writes: a deferred transaction would fail at its
+    // first write while another writer (a scan) holds the lock
+    // (`db::lock_waiters::begin_write`).
+    let mut tx = crate::db::lock_waiters::begin_write(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let playlists = crate::commands::library::touch_playlists_holding(
         &mut tx,
         "SELECT DISTINCT playlist_id FROM playlist_track WHERE track_id = ?",
         id,
