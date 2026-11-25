@@ -291,5 +291,9 @@ export function useTrackContextMenu({
     closeBatchEdit,
   ]);
 
-  return { open, openFromKeyboard, close, render };
+  /** The menu itself is open (not a dialog it opened): a surface with an
+   *  Escape of its own (the search dropdown) leaves that key to the menu. */
+  const isOpen = state != null;
+
+  return { open, openFromKeyboard, close, render, isOpen };
 }

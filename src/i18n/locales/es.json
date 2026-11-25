@@ -2797,10 +2797,6 @@
       "increaseAria": "Acercar",
       "resetAria": "Restablecer zoom al 100 %"
     },
-    "showAudioQualityFooter": {
-      "title": "Mostrar barra de calidad de audio",
-      "subtitle": "Detalles técnicos (kHz, kbps, códec, profundidad de bits) bajo la barra del reproductor. Desactivado por defecto para una barra más estrecha."
-    },
     "categoryNavLabel": "Categorías de configuración",
     "appearance": {
       "theme": {

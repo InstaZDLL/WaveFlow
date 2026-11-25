@@ -2627,10 +2627,6 @@
       "increaseAria": "拡大",
       "resetAria": "ズームを100%にリセット"
     },
-    "showAudioQualityFooter": {
-      "title": "オーディオ品質バーを表示",
-      "subtitle": "プレーヤーバー下に技術詳細（kHz、kbps、コーデック、ビット深度）を表示。スリムなバーを保つため既定でオフ。"
-    },
     "categoryNavLabel": "設定カテゴリ",
     "appearance": {
       "theme": {
