@@ -343,6 +343,8 @@ The mosaic is composed again when its tracks may have changed: after `custom::ma
 
 When its rules come to match nothing, its auto-cover is cleared (`clear_emptied_auto_cover`, in one statement that also checks the playlist holds no track and is still on auto), so it shows the gradient tile rather than tracks it lost; a user playlist emptied by hand keeps its cover, as it always has. Tracks whose artwork is missing are not an empty playlist, and a failed read of the artworks is an error, so neither loses the cover.
 
+Tracks deleted from the library (a folder removed, a library deleted, duplicates trashed) leave the playlists by cascade, before the refresh runs; a custom playlist whose rules find nothing to take their place is not one the pass rewrites, so the deleting command recomposes the covers of every playlist that held them ([playlists.md](playlists.md#crud)). Two compositions never overlap: `regenerate_inner` holds one process-wide lock from its read of the tracks to its write, so the one that read the newer tracks writes last.
+
 The generators never reach a custom playlist's row: each finds its own by a `LIKE` on its family's JSON (`"slot":N`, `"kind":"release_radar"`, a themed mix's rule), and a custom rule's string values are JSON-escaped, so `\"slot\":1` in a value does not match `"slot":1`.
 
 ### v1 → v2 auto-migration

@@ -329,7 +329,7 @@ pub async fn delete_library(
     // removed folder's do: a custom smart playlist at its limit takes the
     // next matches from the libraries that remain.
     crate::commands::smart_playlists::refresh_custom_after_change(&pool, Some(&app)).await;
-    announce_playlists(&app, &emptied);
+    announce_playlists(&app, &pool, &emptied).await;
     Ok(())
 }
 
@@ -363,11 +363,22 @@ pub(crate) async fn touch_playlists_holding(
     Ok(playlist_ids)
 }
 
-/// Emit `playlist:changed` for each playlist [`touch_playlists_holding`]
-/// found, once the delete has committed, so the sidebar's counts and an
-/// open playlist follow it.
-pub(crate) fn announce_playlists(app: &tauri::AppHandle, playlist_ids: &[i64]) {
+/// Compose again the auto-covers of the playlists [`touch_playlists_holding`]
+/// found, then emit `playlist:changed` for each, once the delete has
+/// committed, so the sidebar's counts and covers and an open playlist
+/// follow it. The refresh of the custom smart playlists recomposes only
+/// the ones it rewrote, and one whose rules found nothing to take the
+/// deleted tracks' place is not among them, though its first tracks may
+/// be gone, or all of them (#1173).
+pub(crate) async fn announce_playlists(
+    app: &tauri::AppHandle,
+    pool: &sqlx::SqlitePool,
+    playlist_ids: &[i64],
+) {
     use tauri::Emitter;
+    if !playlist_ids.is_empty() {
+        crate::commands::smart_playlists::regen_covers_of_pool(app, pool, playlist_ids).await;
+    }
     for playlist_id in playlist_ids {
         let _ = app.emit(
             crate::commands::playlist_import::EVENT_PLAYLIST_CHANGED,
@@ -765,7 +776,7 @@ pub(crate) async fn remove_folder_inner(
     // The folder's tracks left every playlist with their rows; a custom
     // smart playlist at its limit takes the next matches in their place.
     crate::commands::smart_playlists::refresh_custom_after_change(pool, Some(app)).await;
-    announce_playlists(app, &emptied);
+    announce_playlists(app, pool, &emptied).await;
 
     let _ = app.emit("library:rescanned", ());
     Ok(())

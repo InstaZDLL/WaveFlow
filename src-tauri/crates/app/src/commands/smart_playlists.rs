@@ -369,7 +369,11 @@ pub(crate) async fn refresh_custom_after_change(
 /// must be the pool's: a pass still running after a switch holds the
 /// profile left, and leaves those covers as they were until the next
 /// change to their tracks.
-async fn regen_covers_of_pool(app: &AppHandle, pool: &sqlx::SqlitePool, playlist_ids: &[i64]) {
+pub(crate) async fn regen_covers_of_pool(
+    app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+    playlist_ids: &[i64],
+) {
     let state = app.state::<AppState>();
     let Ok((active, profile_id)) = state.require_profile_snapshot().await else {
         return;

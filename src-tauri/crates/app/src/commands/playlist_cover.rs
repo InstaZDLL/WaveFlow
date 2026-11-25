@@ -110,6 +110,14 @@ fn preview_inner(file_path: &str) -> AppResult<String> {
 /// strips layout, which still looks fine but isn't the Spotify look.
 const AUTO_COVER_TILE_COUNT: usize = 4;
 
+/// Held by [`regenerate_inner`] from its read of the tracks to its write,
+/// so two compositions of a cover run one after the other: a refresh in
+/// the background, a rules save and a deletion can each ask for one, and
+/// the one that read the older tracks must not write after the newer.
+/// The one that reads last writes last. Process-wide rather than per
+/// playlist: a composition takes milliseconds, and they are rare.
+static AUTO_COVER_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 #[derive(FromRow)]
 struct PlaylistFlags {
     is_smart: i64,
@@ -312,6 +320,7 @@ async fn regenerate_inner(
     over_manual: bool,
     clear_when_empty: bool,
 ) -> AppResult<()> {
+    let _serial = AUTO_COVER_LOCK.lock().await;
     let paths_for_compose =
         top_track_artwork_paths(pool, paths, profile_id, playlist_id, AUTO_COVER_TILE_COUNT)
             .await?;
