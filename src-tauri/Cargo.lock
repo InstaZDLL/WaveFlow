@@ -8065,7 +8065,7 @@ dependencies = [
 
 [[package]]
 name = "waveflow"
-version = "2.3.0"
+version = "2.4.0"
 dependencies = [
  "alsa",
  "anyhow",
@@ -8155,7 +8155,7 @@ dependencies = [
 
 [[package]]
 name = "waveflow-core"
-version = "2.3.0"
+version = "2.4.0"
 dependencies = [
  "anyhow",
  "ape-decoder",
