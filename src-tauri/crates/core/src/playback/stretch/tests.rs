@@ -374,3 +374,53 @@ fn the_limiter_eases_around_a_peak() {
     assert_eq!(out[at / 2], 0.5);
     assert!((out[at + RATE as usize] - 0.5).abs() < 1e-3);
 }
+
+/// A tempo that moves from one call to the next (AutoMix gliding a track back
+/// to its own tempo): every click lands where the sum of the blocks at their
+/// own tempo puts it, and the stream ends at that sum, to the frame.
+#[test]
+fn a_moving_tempo_lands_every_click() {
+    const BLOCK: usize = 256;
+    let frames = RATE as usize * 6;
+    let mut input = vec![0.0_f32; frames * 2];
+    let click_at: Vec<usize> = (1..12).map(|k| k * RATE as usize / 2).collect();
+    for &at in &click_at {
+        for i in 0..64 {
+            let s = 0.8 * (1.0 - i as f32 / 64.0) * if i % 2 == 0 { 1.0 } else { -1.0 };
+            input[(at + i) * 2] = s;
+            input[(at + i) * 2 + 1] = s;
+        }
+    }
+    for (from, to) in [(1.08, 1.0), (0.93, 1.0), (1.0, 1.08)] {
+        let tempo_at = |f: usize| from + (to - from) * (f as f64 / frames as f64);
+        let mut s = Stretcher::new(RATE, 2, tempo_at(0)).unwrap();
+        let mut out = Vec::new();
+        // Output time of each block's start, as the blocks' own tempos add up.
+        let mut when = Vec::with_capacity(frames / BLOCK + 1);
+        let mut t = 0.0;
+        for (k, block) in input.chunks(BLOCK * 2).enumerate() {
+            let tempo = tempo_at(k * BLOCK + BLOCK / 2);
+            when.push(t);
+            t += (block.len() / 2) as f64 / tempo;
+            s.set_tempo(tempo);
+            s.process(block, &mut out).unwrap();
+        }
+        s.finish(&mut out).unwrap();
+        assert_eq!(out.len() / 2, t.round() as usize, "{from} → {to}: length");
+        for &at in &click_at {
+            let tempo = tempo_at(at / BLOCK * BLOCK + BLOCK / 2);
+            let expected = when[at / BLOCK] + (at % BLOCK) as f64 / tempo;
+            let window = RATE as usize / 10;
+            let from_f = (expected as usize).saturating_sub(window);
+            let to_f = (expected as usize + window).min(out.len() / 2);
+            let peak_at = (from_f..to_f)
+                .max_by(|a, b| out[a * 2].abs().total_cmp(&out[b * 2].abs()))
+                .unwrap();
+            let error_ms = (peak_at as f64 - expected).abs() * 1000.0 / f64::from(RATE);
+            assert!(
+                error_ms < 5.0,
+                "{from} → {to}, click at {at}: {error_ms} ms"
+            );
+        }
+    }
+}

@@ -143,12 +143,18 @@ pub struct Stretcher {
     /// The first frames of the stream, until there is enough to pre-roll.
     head: Vec<f32>,
     started: bool,
+    /// What the head is worth out, each frame at the tempo it was given at.
+    head_due: f64,
     /// Output frames still to drop: the library's delay.
     to_drop: usize,
-    /// Frames of the stream given to [`Self::process`].
+    /// Frames of the stream given to [`Self::process`] since the tempo was
+    /// last set, and the output frames those before are worth, unrounded.
     frames_in: u64,
-    /// Frames fed to the library since the pre-roll, and asked of it.
+    in_due: f64,
+    /// Frames fed to the library since the pre-roll or the last tempo change,
+    /// the output frames those before are worth, and the frames asked of it.
     fed: u64,
+    fed_due: f64,
     asked: u64,
     /// Frames handed to the limiter: the end is cut against this.
     emitted: u64,
@@ -179,9 +185,12 @@ impl Stretcher {
             tempo,
             head: Vec::new(),
             started: false,
+            head_due: 0.0,
             to_drop: 0,
             frames_in: 0,
+            in_due: 0.0,
             fed: 0,
+            fed_due: 0.0,
             asked: 0,
             emitted: 0,
             scratch: Vec::new(),
@@ -191,9 +200,24 @@ impl Stretcher {
         Ok(this)
     }
 
-    /// What this one was built to stretch by.
+    /// What this one stretches by now.
     pub fn tempo(&self) -> f64 {
         self.tempo
+    }
+
+    /// Stretch what comes next by `tempo`. Each frame is worth `1 / tempo`
+    /// frames out at the tempo it was given at, so a tempo that moves from
+    /// one call to the next bends the time without a step, and the end is
+    /// still cut at what the whole stream was worth.
+    pub fn set_tempo(&mut self, tempo: f64) {
+        if !tempo.is_finite() || tempo <= 0.0 || tempo == self.tempo {
+            return;
+        }
+        self.in_due += self.frames_in as f64 / self.tempo;
+        self.frames_in = 0;
+        self.fed_due += self.fed as f64 / self.tempo;
+        self.fed = 0;
+        self.tempo = tempo;
     }
 
     fn input_latency(&self) -> usize {
@@ -211,9 +235,12 @@ impl Stretcher {
         self.head.clear();
         self.head.reserve(self.input_latency() * self.channels);
         self.started = false;
+        self.head_due = 0.0;
         self.to_drop = self.output_latency();
         self.frames_in = 0;
+        self.in_due = 0.0;
         self.fed = 0;
+        self.fed_due = 0.0;
         self.asked = 0;
         self.emitted = 0;
     }
@@ -237,16 +264,17 @@ impl Stretcher {
         self.limiter.set_output_gain(gain);
     }
 
-    /// Output frames a source frame comes out per frame in.
-    fn scale(&self, frames: u64) -> u64 {
-        (frames as f64 / self.tempo).round() as u64
+    /// Output frames `frames` given at the current tempo are worth, on top of
+    /// `before`, the worth of those given at earlier ones.
+    fn scale(&self, before: f64, frames: u64) -> u64 {
+        (before + frames as f64 / self.tempo).round() as u64
     }
 
     /// Hand `input` to the library, ask for what its length is worth at the
     /// tempo, and pass on what is not the library's own delay.
     fn run(&mut self, input: &[f32], out: &mut Vec<f32>) -> Result<(), StretchError> {
         self.fed += (input.len() / self.channels) as u64;
-        let target = self.scale(self.fed);
+        let target = self.scale(self.fed_due, self.fed);
         let frames = (target - self.asked) as usize;
         self.asked = target;
         self.scratch.resize(frames * self.channels, 0.0);
@@ -312,6 +340,7 @@ impl Stretcher {
         let wanted = self.input_latency() * self.channels - self.head.len();
         let taken = wanted.min(input.len());
         self.head.extend_from_slice(&input[..taken]);
+        self.head_due += (taken / self.channels) as f64 / self.tempo;
         if self.head.len() < self.input_latency() * self.channels {
             return Ok(());
         }
@@ -323,12 +352,19 @@ impl Stretcher {
     /// output at the stream's length, so nothing of the library's own comes out
     /// as silence between two tracks played without a gap.
     pub fn finish(&mut self, out: &mut Vec<f32>) -> Result<(), StretchError> {
-        let total = self.scale(self.frames_in);
+        let total = self.scale(self.in_due, self.frames_in);
         if !self.started {
             // Shorter than the pre-roll: zeros stand for the rest of it.
             let full = self.input_latency() * self.channels;
+            self.head_due += ((full - self.head.len()) / self.channels) as f64 / self.tempo;
             self.head.resize(full, 0.0);
             self.start()?;
+        }
+        // The zeros stand for the head, so they go in at what it was worth:
+        // at the tempo the stream ends on, a track that went from 0.93× to 1×
+        // came out 130 frames short.
+        if self.head_due > 0.0 {
+            self.set_tempo(self.input_latency() as f64 / self.head_due);
         }
         let zeros = vec![0.0_f32; self.input_latency() * self.channels];
         let start = out.len();

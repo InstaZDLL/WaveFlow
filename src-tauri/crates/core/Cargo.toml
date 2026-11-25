@@ -273,6 +273,11 @@ encoding_rs = "0.8.42"
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 
+# Renders AutoMix transitions to WAV: it plays them through the stretcher.
+[[example]]
+name = "automix_render"
+required-features = ["playback"]
+
 [build-dependencies]
 # Compiles the C++ shim over the vendored Signalsmith Stretch headers.
 cc = { version = "1", optional = true }
