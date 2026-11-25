@@ -351,9 +351,14 @@ async fn a_field_rewritten_from_an_unchanged_file_moves_the_playlist() {
 #[tokio::test]
 async fn plays_re_attached_by_a_scan_that_changed_no_file_move_the_playlist() {
     let lib = Library::new().await;
-    let path = lib.flac("a.flac", "Played");
+    let witness = lib.flac("a.flac", "Witness");
+    let orphaned = lib.flac("b.flac", "Orphaned");
     lib.scan().await;
-    let id = lib.id(&path).await;
+    // The once-per-folder passes of a first scan re-read unchanged files,
+    // which refreshes on its own: one more scan settles them.
+    lib.scan().await;
+    let witness_id = lib.id(&witness).await;
+    let orphaned_id = lib.id(&orphaned).await;
     let playlist = lib
         .smart_playlist(CustomRules {
             tree: RuleNode::Leaf {
@@ -365,21 +370,34 @@ async fn plays_re_attached_by_a_scan_that_changed_no_file_move_the_playlist() {
         .await;
     assert!(lib.members(playlist).await.is_empty());
 
+    // A play the scan has nothing to do with: a scan that changed nothing
+    // leaves the playlist alone, which is what makes the case below a
+    // proof rather than a refresh the scan would have run anyway.
+    sqlx::query("INSERT INTO play_event (track_id, played_at, listened_ms) VALUES (?, 1, 1000)")
+        .bind(witness_id)
+        .execute(&lib.pool)
+        .await
+        .unwrap();
+    lib.scan().await;
+    assert!(
+        lib.members(playlist).await.is_empty(),
+        "a scan that changed nothing does not refresh"
+    );
+
     // An orphan, as removing a folder leaves one: no track, the snapshot
     // of the file it was played from.
     sqlx::query(
         "INSERT INTO play_event (track_id, played_at, listened_ms, snapshot_path)
-         VALUES (NULL, 1, 1000, ?)",
+         VALUES (NULL, 2, 1000, ?)",
     )
-    .bind(path.to_string_lossy().to_string())
+    .bind(orphaned.to_string_lossy().to_string())
     .execute(&lib.pool)
     .await
     .unwrap();
-
     lib.scan().await;
     assert_eq!(
         lib.members(playlist).await,
-        vec![id],
-        "the play found its track again, and the playlist took the track"
+        vec![witness_id, orphaned_id],
+        "the play found its track again, and the playlist ran its rules"
     );
 }
