@@ -40,9 +40,20 @@ import {
 const TILE_MIN_WIDTH = 176;
 const TILE_GAP = 24;
 
-/** The pictures already asked for, by show id, for as long as the page lives
- *  in this window: scrolling back asks the backend nothing. */
+/** The pictures already asked for, by show id, so scrolling back asks the
+ *  backend nothing. At most {@link MAX_PICTURES}, the oldest out first; the
+ *  backend keeps its own, bounded too. */
 const pictures = new Map<number, string | null>();
+const MAX_PICTURES = 400;
+
+function keepPicture(id: number, picture: string | null) {
+  pictures.set(id, picture);
+  while (pictures.size > MAX_PICTURES) {
+    const oldest = pictures.keys().next();
+    if (oldest.done) break;
+    pictures.delete(oldest.value);
+  }
+}
 
 type Row =
   | { kind: "tiles"; key: string; shows: DirectoryShow[]; first: number }
@@ -98,7 +109,7 @@ export function PodcastDirectory({
     /** `undefined` when it was read; a word, or `null` for none, when not. */
     failure?: string | null;
   } | null>(null);
-  // What changed since the list was read: a subscription made here.
+  // Subscriptions made here, by show: newer than any list read since.
   const [followed, setFollowed] = useState<Map<number, number>>(new Map());
   const [busy, setBusy] = useState<Set<number>>(new Set());
   const [rowFailure, setRowFailure] = useState<{
@@ -117,8 +128,9 @@ export function PodcastDirectory({
     asked.then(
       (found) => {
         if (!current) return;
+        // `followed` stays: a subscription confirmed while this was read is
+        // newer than what this says.
         setAnswer({ question, shows: found });
-        setFollowed(new Map());
       },
       (err: unknown) => {
         if (!current) return;
@@ -479,7 +491,7 @@ function DirectoryCover({
     let current = true;
     podcastDirectoryArtwork(show.id).then(
       (picture) => {
-        pictures.set(show.id, picture);
+        keepPicture(show.id, picture);
         if (current) setSrc(picture);
       },
       () => {

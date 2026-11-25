@@ -259,8 +259,8 @@ fn search_show(value: &Value) -> Option<DirectoryShow> {
     let id = value.get("collectionId").and_then(id_of)?;
     let title = value
         .get("collectionName")
-        .or_else(|| value.get("trackName"))
-        .and_then(line)?;
+        .and_then(line)
+        .or_else(|| value.get("trackName").and_then(line))?;
     let genre_id = value
         .get("genreIds")
         .and_then(Value::as_array)

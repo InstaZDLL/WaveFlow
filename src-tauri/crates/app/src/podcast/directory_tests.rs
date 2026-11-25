@@ -439,6 +439,61 @@ async fn a_picture_refused_for_now_is_asked_again_later() {
     assert_eq!(table.count(), asked + 2);
 }
 
+#[tokio::test]
+async fn a_picture_the_host_could_not_serve_now_is_asked_again_and_a_gone_one_is_not() {
+    for (status, kept) in [(500, false), (503, false), (404, true), (410, true)] {
+        let leases = leases().await;
+        let table = Table::new(move |url| {
+            if url.host_str() == Some("is1-ssl.mzstatic.com") {
+                Err(FetchError::Failed(FetchFailure::Status(status)))
+            } else {
+                directory_answers(url)
+            }
+        });
+        let directory = Directory::default();
+        directory.chart(&leases, &table, "fr", None).await.unwrap();
+        let asked = table.count();
+        assert!(directory
+            .picture(&leases, &table, 11)
+            .await
+            .unwrap()
+            .is_none());
+        assert!(directory
+            .picture(&leases, &table, 11)
+            .await
+            .unwrap()
+            .is_none());
+        let expected = if kept { asked + 1 } else { asked + 2 };
+        assert_eq!(table.count(), expected, "{status}");
+    }
+}
+
+#[tokio::test]
+async fn a_kept_answer_records_its_shows_again() {
+    let leases = leases().await;
+    let image = png();
+    let table = Table::new(move |url| {
+        if url.host_str() == Some("is1-ssl.mzstatic.com") {
+            Ok(image.clone())
+        } else {
+            directory_answers(url)
+        }
+    });
+    let directory = Directory::default();
+    directory.chart(&leases, &table, "fr", None).await.unwrap();
+    directory.forget_shows();
+    // Served from what was kept, and the show's picture and feed are known again.
+    directory.chart(&leases, &table, "fr", None).await.unwrap();
+    assert!(directory
+        .picture(&leases, &table, 11)
+        .await
+        .unwrap()
+        .is_some());
+    let asked = table.count();
+    directory.feed_of(&leases, &table, "fr", 11).await.unwrap();
+    assert_eq!(table.count(), asked, "the feed came from the kept chart");
+}
+
 #[test]
 fn a_data_address_is_made_only_of_an_accepted_image() {
     assert!(data_url(&png())

@@ -135,6 +135,17 @@ fn a_result_without_an_id_or_a_title_is_not_a_show() {
 }
 
 #[test]
+fn a_collection_name_that_is_not_a_title_gives_way_to_the_track_name() {
+    let shows = search(&results(
+        r#"{"collectionId": 1, "collectionName": null, "trackName": "Journal"},
+           {"collectionId": 2, "collectionName": " ", "trackName": "Second"},
+           {"collectionId": 3, "collectionName": "First", "trackName": "Not this"}"#,
+    ));
+    let titles: Vec<&str> = shows.iter().map(|show| show.title.as_str()).collect();
+    assert_eq!(titles, ["Journal", "Second", "First"]);
+}
+
+#[test]
 fn something_other_than_a_podcast_is_skipped() {
     let shows = search(&results(
         r#"{"kind": "song", "collectionId": 1, "collectionName": "A song"},

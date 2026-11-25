@@ -246,10 +246,16 @@ impl Directory {
         asker.ask(url, MAX_DIRECTORY_BYTES).await.map_err(refused)
     }
 
+    /// A kept answer still fresh. Its shows are recorded again, since the record
+    /// may have started over since it was kept.
     fn cached(&self, question: &Question) -> Option<Arc<Vec<DirectoryShow>>> {
-        let answers = lock(&self.answers);
-        let answer = answers.get(question)?;
-        (answer.at.elapsed() < question.ttl()).then(|| Arc::clone(&answer.shows))
+        let shows = {
+            let answers = lock(&self.answers);
+            let answer = answers.get(question)?;
+            (answer.at.elapsed() < question.ttl()).then(|| Arc::clone(&answer.shows))?
+        };
+        self.remember(&shows);
+        Some(shows)
     }
 
     fn keep(&self, question: Question, shows: Vec<DirectoryShow>) -> Arc<Vec<DirectoryShow>> {
@@ -293,6 +299,12 @@ impl Directory {
                 entry.artwork_url.clone_from(&show.artwork_url);
             }
         }
+    }
+
+    /// What the record starting over does, for a test.
+    #[cfg(test)]
+    pub(crate) fn forget_shows(&self) {
+        lock(&self.known).clear();
     }
 
     fn known_feed(&self, id: u64) -> Option<String> {
@@ -472,10 +484,14 @@ impl Directory {
             Err(FetchError::Offline) => return Err(PodcastError::Offline),
             Err(FetchError::Failed(failure)) => {
                 tracing::debug!(code = %failure.code(), "podcast directory picture not fetched");
-                // A host that refused a client past its budget may answer later.
-                if matches!(
+                // Only what says something about the picture is kept: a host that
+                // is down, busy or refusing a client past its budget may answer later.
+                if !matches!(
                     failure,
-                    FetchFailure::Status(403 | 429) | FetchFailure::Unreached
+                    FetchFailure::Status(404 | 410)
+                        | FetchFailure::TooLarge
+                        | FetchFailure::AddressRefused
+                        | FetchFailure::TooManyRedirects
                 ) {
                     return Ok(None);
                 }
