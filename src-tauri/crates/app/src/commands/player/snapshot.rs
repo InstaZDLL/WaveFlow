@@ -48,6 +48,12 @@ pub async fn player_get_state(
             // the UI is told must describe one state, and two reads
             // could straddle a change.
             publish_shuffle_grouping(&engine, shuffle);
+            // The OS overlay's shuffle and repeat, from the same values:
+            // at launch it has none yet, and after a profile switch it
+            // still shows the previous profile's.
+            if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+                controls.update_options(shuffle.is_on(), repeat_mode);
+            }
             // And the queue's own shape, for the same reason: a session
             // of whole records that survives a restart has to keep its
             // album gain across it, and the decoder cannot read the

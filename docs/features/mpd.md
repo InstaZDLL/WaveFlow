@@ -10,7 +10,7 @@ Ships **disabled by default** — enable it from **Settings → Connections → 
 
 |                                                                                     | What it does                           |
 | ----------------------------------------------------------------------------------- | -------------------------------------- |
-| [`media_controls`](../../src-tauri/crates/app/src/media_controls.rs) (MPRIS / SMTC) | OS media keys, **same machine**        |
+| [`media_controls`](../../src-tauri/crates/app/src/media_controls/mod.rs) (MPRIS / SMTC) | OS media keys, **same machine**        |
 | [DLNA MediaServer](dlna.md)                                                         | **serves** our files to a LAN receiver |
 | **MPD** (this page)                                                                 | **controls** our player, from the LAN  |
 
@@ -100,6 +100,9 @@ either tracks or whole albums; MPD's flag can only say on or off. So
 the app rather than forcing tracks — a remote that cannot express the
 grouping should not quietly undo it — and `random` reads back as 1 for
 either grouping. `player.shuffle` remains the row both sides agree on.
+`random 1` while shuffle is already on changes nothing, rather than
+re-shuffling the queue (`player_actions::set_shuffle`, shared with the OS
+media controls).
 | Idle | `idle [subsystems]` · `noidle` |
 
 Command lists (`command_list_begin` / `command_list_ok_begin` … `command_list_end`) are supported.

@@ -157,6 +157,24 @@ impl ShuffleMode {
         self != Self::Off
     }
 
+    /// Where a surface that can only say on or off moves shuffle from
+    /// here: `remembered` (the grouping the listener last chose) when it
+    /// turns it on, `Off` when it turns it off — and `None` when shuffle
+    /// already is what it asks, so nothing re-shuffles the queue.
+    pub fn switched(self, on: bool, remembered: Self) -> Option<Self> {
+        if self.is_on() == on {
+            return None;
+        }
+        Some(if on {
+            match remembered {
+                Self::Off => Self::Tracks,
+                grouping => grouping,
+            }
+        } else {
+            Self::Off
+        })
+    }
+
     /// The form the decoder thread reads, out of a plain integer
     /// atomic. Nothing but
     /// [`SharedPlayback`](crate::audio::state::SharedPlayback) should

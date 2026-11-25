@@ -609,7 +609,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }),
         );
         unlisten.push(
-          // Repeat / shuffle changed outside the frontend (an MPD client) —
+          // Repeat / shuffle changed outside the frontend (an MPD client,
+          // the OS media controls' buttons) —
           // the in-app buttons update optimistically, so this only fires for
           // external surfaces.
           await listen<{

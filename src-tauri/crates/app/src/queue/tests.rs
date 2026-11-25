@@ -159,6 +159,26 @@ fn shuffle_mode_round_trips_through_string() {
     assert!(ShuffleMode::Albums.is_on());
 }
 
+/// An on/off surface (MPD's `random`, the OS media controls) leaves a
+/// shuffle already in the state it asks for alone — albums stay albums
+/// and the queue is not re-shuffled — and turns it on with the grouping
+/// the listener last chose.
+#[test]
+fn an_on_off_switch_changes_shuffle_only_when_it_says_something_new() {
+    use ShuffleMode::{Albums, Off, Tracks};
+    for remembered in [Tracks, Albums] {
+        assert_eq!(Off.switched(false, remembered), None);
+        assert_eq!(Tracks.switched(true, remembered), None);
+        assert_eq!(Albums.switched(true, remembered), None);
+        assert_eq!(Off.switched(true, remembered), Some(remembered));
+        assert_eq!(Tracks.switched(false, remembered), Some(Off));
+        assert_eq!(Albums.switched(false, remembered), Some(Off));
+    }
+    // A grouping preference can never be `Off`; were one read, on still
+    // means on.
+    assert_eq!(Off.switched(true, Off), Some(Tracks));
+}
+
 #[test]
 fn repeat_mode_round_trips_through_string() {
     for mode in [RepeatMode::Off, RepeatMode::All, RepeatMode::One] {

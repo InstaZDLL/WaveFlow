@@ -71,7 +71,7 @@ finish-args:
   # no blanket `home`, `host` or Downloads access is asked for.
   - --filesystem=xdg-music
 
-  # MPRIS (souvlaki): media_controls.rs registers the bus name
+  # MPRIS: media_controls/mpris.rs registers the bus name
   # org.mpris.MediaPlayer2.waveflow, which is not the app ID's MPRIS
   # name, so Flatpak does not grant it by itself.
   - --own-name=org.mpris.MediaPlayer2.waveflow

@@ -6,7 +6,7 @@ The integration ships disabled by default — enable it from **Settings → Conn
 
 ## Architecture
 
-A single dedicated worker thread (`dlna-worker`) owns a tokio runtime and the running tasks. Same pattern as [`media_controls`](../../src-tauri/crates/app/src/media_controls.rs) and [`discord_presence`](../../src-tauri/crates/app/src/discord_presence.rs): a sync `DlnaServer` handle on `AppState` ferries `Cmd::{Start, Stop, Status}` over a crossbeam channel so the rest of the app keeps a sync API.
+A single dedicated worker thread (`dlna-worker`) owns a tokio runtime and the running tasks. Same pattern as [`media_controls`](../../src-tauri/crates/app/src/media_controls/mod.rs) and [`discord_presence`](../../src-tauri/crates/app/src/discord_presence.rs): a sync `DlnaServer` handle on `AppState` ferries `Cmd::{Start, Stop, Status}` over a crossbeam channel so the rest of the app keeps a sync API.
 
 ```bash
 AppState.dlna ─► Cmd channel ─► dlna-worker

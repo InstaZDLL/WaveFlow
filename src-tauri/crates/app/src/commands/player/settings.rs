@@ -2,7 +2,7 @@
 //! engine when a profile opens, and telling the windows they changed.
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -16,8 +16,9 @@ use super::*;
 
 /// Repeat + shuffle, emitted so every frontend `PlayerContext` reflects an
 /// options change — an external surface (an MPD client toggling `repeat` /
-/// `random`) has no other way to reach the UI, and neither has the *other*
-/// window: `player:state` carries only the play-state, and re-reading
+/// `random`, the OS media controls' shuffle and repeat buttons) has no other
+/// way to reach the UI, and neither has the *other* window: `player:state`
+/// carries only the play-state, and re-reading
 /// `player_get_state` would re-apply every audio setting to the engine as a
 /// side effect.
 ///
@@ -36,13 +37,20 @@ struct OptionsChangedPayload {
     shuffle_mode: String,
 }
 
+/// Tell the windows and the OS media controls the shuffle and repeat modes
+/// in force. Every change of either passes through here, whichever surface
+/// made it, which is what keeps the OS overlay's buttons in step with the
+/// player's.
 pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePool) {
-    let repeat_mode = queue::read_repeat_mode(pool).await.as_str().to_string();
+    let repeat = queue::read_repeat_mode(pool).await;
     let mode = queue::read_shuffle_mode(pool).await;
+    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+        controls.update_options(mode.is_on(), repeat);
+    }
     let _ = app.emit(
         "player:options-changed",
         OptionsChangedPayload {
-            repeat_mode,
+            repeat_mode: repeat.as_str().to_string(),
             shuffle: mode.is_on(),
             shuffle_mode: mode.as_str().to_string(),
         },
