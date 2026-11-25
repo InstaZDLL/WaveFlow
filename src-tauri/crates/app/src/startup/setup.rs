@@ -284,11 +284,12 @@ pub(crate) fn setup(
         };
         // A rule's relative window ("added in the last 30 days") moves
         // with the calendar and with nothing else: once a launch, the
-        // custom smart playlists catch up with it. Before anything here
-        // can return, and detached: it waits for a scan-on-start to finish
-        // (whose own passes cover what the walk changes), not for the
-        // folder list to be readable.
-        commands::smart_playlists::refresh_custom_in_background(&pool, Some(&scan_handle));
+        // custom smart playlists catch up with it, detached. On each way
+        // out below, and after a scan-on-start rather than beside it:
+        // spawned here, it would look for a scan in flight before this
+        // one had set its flag, and run alongside it.
+        let refresh_window =
+            || commands::smart_playlists::refresh_custom_in_background(&pool, Some(&scan_handle));
         let enabled: bool = sqlx::query_scalar::<_, String>(
             "SELECT value FROM profile_setting WHERE key = 'library.scan_on_start'",
         )
@@ -299,6 +300,7 @@ pub(crate) fn setup(
         .map(|v| v == "true" || v == "1")
         .unwrap_or(false);
         if !enabled {
+            refresh_window();
             // No scan to wait for: rows measured by an older
             // analysis version are re-measured now, or a library
             // that gains no file would never reach the current
@@ -316,6 +318,7 @@ pub(crate) fn setup(
                 Ok(rows) => rows,
                 Err(err) => {
                     tracing::warn!(%err, "scan-on-start: list folders failed");
+                    refresh_window();
                     // The scan cannot run; the re-measure still can.
                     commands::analysis::maybe_auto_analyze(&scan_handle);
                     return;
@@ -334,6 +337,7 @@ pub(crate) fn setup(
                 tracing::warn!(folder_id, %err, "scan-on-start: folder scan failed");
             }
         }
+        refresh_window();
         // After the walk, not before it: a sweep started during the
         // scan would make this one a no-op (one sweep at a time), and
         // a scan that added nothing triggers none of its own.
