@@ -2983,6 +2983,10 @@
       "title": "Animar notas sustentadas",
       "subtitle": "Na visualização imersiva, uma palavra sustentada por muito tempo se ilumina letra por letra enquanto é cantada."
     },
+    "lyricsStaggeredScroll": {
+      "title": "Rolar a letra linha por linha",
+      "subtitle": "Cada linha desliza até seu lugar, as que estão abaixo da linha cantada um pouco depois, em vez de a lista inteira rolar de uma vez. Pode travar em alguns computadores."
+    },
     "lyricsHighlightColor": {
       "title": "Cor da linha cantada",
       "subtitle": "Para a letra em tela cheia e o mini-player. Branco até você escolher uma; a janela flutuante de letra mantém as próprias cores.",

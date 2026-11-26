@@ -193,6 +193,7 @@ import {
 import { FULLSCREEN_LYRICS_CENTERING_EVENT } from "../../../hooks/useFullscreenLyricsCentering";
 import { ESTIMATED_KARAOKE_EVENT } from "../../../hooks/useEstimatedKaraoke";
 import { HELD_NOTE_GLOW_EVENT } from "../../../hooks/useHeldNoteGlow";
+import { LYRICS_STAGGERED_SCROLL_EVENT } from "../../../hooks/useLyricsStaggeredScroll";
 import {
   LYRICS_HIGHLIGHT_COLOR_EVENT,
   parseId as parseLyricsHighlightId,
@@ -787,7 +788,11 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     inProfile(playerSetStereoWidth),
   ),
   "audio.keep_pitch": afterReset(
-    command("audio.keep_pitch", playerGetKeepPitch, inProfile(playerSetKeepPitch)),
+    command(
+      "audio.keep_pitch",
+      playerGetKeepPitch,
+      inProfile(playerSetKeepPitch),
+    ),
     async () => {
       window.dispatchEvent(
         new CustomEvent(PITCH_RESET_EVENT, { detail: "audio.keep_pitch" }),
@@ -1024,6 +1029,10 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     ESTIMATED_KARAOKE_EVENT,
   ),
   "lyrics.held_notes": profileBool("lyrics.held_notes", HELD_NOTE_GLOW_EVENT),
+  "lyrics.staggered_scroll": profileBool(
+    "lyrics.staggered_scroll",
+    LYRICS_STAGGERED_SCROLL_EVENT,
+  ),
   "ui.lyrics_highlight_color": profileRow("ui.lyrics_highlight_color", {
     parse: parseLyricsHighlightId,
     serialize: (value) => value ?? "",

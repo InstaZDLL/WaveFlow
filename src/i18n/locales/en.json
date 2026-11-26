@@ -2909,6 +2909,10 @@
       "title": "Animate held notes",
       "subtitle": "In the immersive view, a word held for a long time lights up letter by letter while it is sung."
     },
+    "lyricsStaggeredScroll": {
+      "title": "Move lyrics line by line",
+      "subtitle": "Each line glides to its place, the ones below the sung line a beat later, instead of the whole list scrolling at once. May stutter on some machines."
+    },
     "lyricsHighlightColor": {
       "title": "Sung line colour",
       "subtitle": "For full-screen lyrics and the mini-player. White until you pick one; the floating lyrics window keeps its own colours.",

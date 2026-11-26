@@ -2909,6 +2909,10 @@
       "title": "Uzatılan notaları canlandır",
       "subtitle": "Sürükleyici görünümde uzun süre uzatılan bir kelime, söylenirken harf harf parlar."
     },
+    "lyricsStaggeredScroll": {
+      "title": "Şarkı sözlerini satır satır kaydır",
+      "subtitle": "Tüm liste bir anda kaymak yerine her satır yerine kayar, söylenen satırın altındakiler biraz daha geç. Bazı bilgisayarlarda takılabilir."
+    },
     "lyricsHighlightColor": {
       "title": "Söylenen satırın rengi",
       "subtitle": "Tam ekran sözler ve mini oynatıcı için. Bir renk seçene kadar beyazdır; yüzen sözler penceresi kendi renklerini korur.",

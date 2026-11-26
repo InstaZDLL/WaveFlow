@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { useLyricsStaggeredScroll } from "./useLyricsStaggeredScroll";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /** How long each line takes to glide to its new place. */
@@ -78,7 +79,9 @@ export interface LyricsFollow {
  * scrollbar or the middle button, a scrolling key — never a `scroll` event:
  * the centring's own glide fires those too.
  *
- * The centring moves the scroller to the sung line in one step, then has
+ * By default the centring is the browser's smooth `scrollIntoView`, the
+ * whole list in one block. With `lyrics.staggered_scroll` on, it moves the
+ * scroller to the sung line in one step instead, then has
  * each line in view glide from where it was drawn to its new place, the
  * lines below the sung one a beat later each: the list moves on line by
  * line instead of in one block. Only whole lines move, never a word (the
@@ -120,6 +123,7 @@ export function useLyricsFollow({
   }
   const browsing = enabled && sameKeys;
   const reducedMotion = usePrefersReducedMotion();
+  const staggered = useLyricsStaggeredScroll();
   // The listeners below read the keys at the moment of the gesture.
   const keysRef = useRef(resetKeys);
   useEffect(() => {
@@ -183,6 +187,12 @@ export function useLyricsFollow({
     const lines = lineRefs.current.filter(
       (row): row is HTMLElement => row != null,
     );
+    if (!staggered) {
+      // Turned off mid-glide: the lines go back in place first.
+      lines.forEach(settle);
+      line.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     // Read everything before writing anything: one layout, not one a line.
     const box = container.getBoundingClientRect();
     const at = line.getBoundingClientRect();
@@ -226,7 +236,15 @@ export function useLyricsFollow({
       row.style.transition = `transform ${GLIDE_MS}ms ${GLIDE_EASE} ${delay}ms`;
       row.style.transform = "";
     }
-  }, [activeIndex, enabled, browsing, containerRef, lineRefs, reducedMotion]);
+  }, [
+    activeIndex,
+    enabled,
+    browsing,
+    containerRef,
+    lineRefs,
+    reducedMotion,
+    staggered,
+  ]);
 
   // ── The sung line coming into view ────────────────────────────────
   // Whether the sung line has been out of view (less than half of it shown)

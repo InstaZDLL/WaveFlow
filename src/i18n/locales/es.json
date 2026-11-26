@@ -2978,6 +2978,10 @@
       "title": "Animar las notas sostenidas",
       "subtitle": "En la vista inmersiva, una palabra sostenida durante mucho tiempo se ilumina letra a letra mientras se canta."
     },
+    "lyricsStaggeredScroll": {
+      "title": "Desplazar la letra línea a línea",
+      "subtitle": "Cada línea se desliza a su sitio, las que están bajo la línea cantada un poco después, en lugar de desplazarse toda la lista de golpe. Puede ir a tirones en algunos equipos."
+    },
     "lyricsHighlightColor": {
       "title": "Color de la línea cantada",
       "subtitle": "Para las letras en pantalla completa y el minirreproductor. Blanco hasta que elijas uno; la ventana flotante de letras conserva sus propios colores.",

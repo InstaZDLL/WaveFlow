@@ -2909,6 +2909,10 @@
       "title": "Gehaltene Töne animieren",
       "subtitle": "In der immersiven Ansicht leuchtet ein lange gehaltenes Wort Buchstabe für Buchstabe auf, solange es gesungen wird."
     },
+    "lyricsStaggeredScroll": {
+      "title": "Liedtext Zeile für Zeile bewegen",
+      "subtitle": "Jede Zeile gleitet an ihren Platz, die Zeilen unter der gesungenen etwas später, statt dass die ganze Liste auf einmal scrollt. Kann auf manchen Rechnern ruckeln."
+    },
     "lyricsHighlightColor": {
       "title": "Farbe der gesungenen Zeile",
       "subtitle": "Für den Songtext im Vollbild und den Mini-Player. Weiß, bis du eine Farbe wählst; das schwebende Songtext-Fenster behält seine eigenen Farben.",

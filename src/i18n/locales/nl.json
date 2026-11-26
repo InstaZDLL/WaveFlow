@@ -2909,6 +2909,10 @@
       "title": "Aangehouden noten animeren",
       "subtitle": "In de meeslepende weergave licht een lang aangehouden woord letter voor letter op terwijl het gezongen wordt."
     },
+    "lyricsStaggeredScroll": {
+      "title": "Songtekst regel voor regel bewegen",
+      "subtitle": "Elke regel glijdt naar zijn plek, de regels onder de gezongen regel net iets later, in plaats van dat de hele lijst in één keer scrolt. Kan op sommige computers haperen."
+    },
     "lyricsHighlightColor": {
       "title": "Kleur van de gezongen regel",
       "subtitle": "Voor songtekst in volledig scherm en de mini-speler. Wit tot je er een kiest; het zwevende songtekstvenster houdt zijn eigen kleuren.",
