@@ -4840,6 +4840,10 @@
         "server": {
           "title": "Se houver um servidor associado",
           "body": "Se este perfil estiver associado a um servidor WaveFlow com os podcasts ativos, os respetivos canais também aparecem. Passam pelo teu servidor WaveFlow: o servidor do podcast vê-o a ele, não a ti."
+        },
+        "directory": {
+          "title": "Quando explora o diretório",
+          "body": "As pesquisas e as tabelas do separador Descobrir vêm do diretório de podcasts do iTunes. Este vê o seu endereço IP, o que pesquisa e o país escolhido, e só quando o abre."
         }
       }
     },
@@ -4966,7 +4970,10 @@
       "server_signed_out": "Já não tens sessão iniciada neste servidor.",
       "server_refused": "O servidor recusou, ou já não conhece este item.",
       "server_conflict": "O servidor já segue este feed, ou não pode seguir mais.",
-      "destination_refused": "O servidor não tem autorização para aceder a este endereço."
+      "destination_refused": "O servidor não tem autorização para aceder a este endereço.",
+      "rate_limited": "O diretório está a receber demasiados pedidos deste dispositivo. Tente novamente dentro de um minuto.",
+      "directory_invalid": "O diretório devolveu uma resposta ilegível.",
+      "no_feed": "O diretório não indica o endereço do feed deste programa."
     },
     "episodePage": {
       "kicker": "Episódio"
@@ -5010,6 +5017,50 @@
       "downloading": "A descarregar no servidor…",
       "downloadFailed": "Falha no servidor",
       "forgetPosition": "Reproduzir {{title}} desde o início"
+    },
+    "directory": {
+      "tabsLabel": "Secções de podcasts",
+      "mine": "Os meus podcasts",
+      "discover": "Descobrir",
+      "searchLabel": "Pesquisar no diretório",
+      "searchPlaceholder": "Um programa, um tema…",
+      "searchAction": "Pesquisar",
+      "country": "País",
+      "privacy": "As pesquisas e as tabelas vêm do diretório de podcasts do iTunes, que vê o seu endereço IP, o que pesquisa e o país escolhido.",
+      "genresLabel": "Categorias",
+      "top": "Mais ouvidos · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Resultados para «{{term}}»",
+      "backToTop": "Voltar à tabela",
+      "offline": "O diretório precisa de ligação e o modo offline está ativo.",
+      "loading": "A ler o diretório…",
+      "noResults": "Nenhum programa encontrado.",
+      "emptyChart": "O diretório não tem tabela para este país.",
+      "explicit": "Explícito",
+      "open": "Abrir",
+      "openNamed": "Abrir {{title}}",
+      "subscribeNamed": "Subscrever {{title}}",
+      "genres": {
+        "1301": "Artes",
+        "1303": "Humor",
+        "1304": "Educação",
+        "1305": "Crianças e família",
+        "1309": "Televisão e cinema",
+        "1310": "Música",
+        "1314": "Religião e espiritualidade",
+        "1318": "Tecnologia",
+        "1321": "Negócios",
+        "1324": "Sociedade e cultura",
+        "1511": "Governo",
+        "1512": "Saúde e forma física",
+        "1483": "Ficção",
+        "1487": "História",
+        "1488": "Crimes reais",
+        "1489": "Notícias",
+        "1502": "Lazer",
+        "1533": "Ciência",
+        "1545": "Desporto"
+      }
     }
   },
   "clip": {

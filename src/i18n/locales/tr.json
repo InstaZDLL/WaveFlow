@@ -4698,6 +4698,10 @@
         "server": {
           "title": "Bağlı bir sunucu varsa",
           "body": "Bu profil, podcast'leri açık bir WaveFlow sunucusuna bağlıysa onun kanalları da görünür. Bunlar sunucun üzerinden gelir: barındırıcı seni değil, sunucunu görür."
+        },
+        "directory": {
+          "title": "Dizine göz attığınızda",
+          "body": "Keşfet sekmesindeki aramalar ve listeler iTunes podcast dizininden gelir. Dizin IP adresinizi, ne aradığınızı ve seçilen ülkeyi görür; yalnızca siz açtığınızda."
         }
       }
     },
@@ -4824,7 +4828,10 @@
       "server_signed_out": "Bu sunucuda artık oturumun açık değil.",
       "server_refused": "Sunucu reddetti ya da bu öğeyi artık tanımıyor.",
       "server_conflict": "Sunucu bu akışı zaten izliyor ya da daha fazlasını izleyemiyor.",
-      "destination_refused": "Sunucunun bu adrese erişme izni yok."
+      "destination_refused": "Sunucunun bu adrese erişme izni yok.",
+      "rate_limited": "Dizin bu cihazdan çok fazla istek alıyor. Bir dakika sonra yeniden deneyin.",
+      "directory_invalid": "Dizin okunamayan bir yanıt döndürdü.",
+      "no_feed": "Dizin bu programın akış adresini vermiyor."
     },
     "episodePage": {
       "kicker": "Bölüm"
@@ -4868,6 +4875,50 @@
       "downloading": "Sunucuda indiriliyor…",
       "downloadFailed": "Sunucuda başarısız",
       "forgetPosition": "{{title}} bölümünü baştan başlat"
+    },
+    "directory": {
+      "tabsLabel": "Podcast bölümleri",
+      "mine": "Podcast'lerim",
+      "discover": "Keşfet",
+      "searchLabel": "Dizinde ara",
+      "searchPlaceholder": "Bir program, bir konu…",
+      "searchAction": "Ara",
+      "country": "Ülke",
+      "privacy": "Aramalar ve listeler iTunes podcast dizininden gelir; dizin IP adresinizi, ne aradığınızı ve seçilen ülkeyi görür.",
+      "genresLabel": "Kategoriler",
+      "top": "En popülerler · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "“{{term}}” için sonuçlar",
+      "backToTop": "Listeye dön",
+      "offline": "Dizin bağlantı gerektiriyor ve çevrimdışı mod açık.",
+      "loading": "Dizin okunuyor…",
+      "noResults": "Program bulunamadı.",
+      "emptyChart": "Dizinde bu ülke için liste yok.",
+      "explicit": "Müstehcen",
+      "open": "Aç",
+      "openNamed": "{{title}} aç",
+      "subscribeNamed": "{{title}} programına abone ol",
+      "genres": {
+        "1301": "Sanat",
+        "1303": "Komedi",
+        "1304": "Eğitim",
+        "1305": "Çocuk ve aile",
+        "1309": "TV ve film",
+        "1310": "Müzik",
+        "1314": "Din ve maneviyat",
+        "1318": "Teknoloji",
+        "1321": "İş dünyası",
+        "1324": "Toplum ve kültür",
+        "1511": "Devlet",
+        "1512": "Sağlık ve fitness",
+        "1483": "Kurgu",
+        "1487": "Tarih",
+        "1488": "Gerçek suç",
+        "1489": "Haberler",
+        "1502": "Boş zaman",
+        "1533": "Bilim",
+        "1545": "Spor"
+      }
     }
   },
   "clip": {

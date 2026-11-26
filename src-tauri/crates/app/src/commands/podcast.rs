@@ -54,21 +54,28 @@ pub async fn podcast_subscribe(
         profile_id,
     };
     let fetcher = Fetcher::new().map_err(PodcastError::from)?;
-    let subscribed = refresh::subscribe(
-        &leases,
-        &fetcher,
-        &feed_url,
-        &state.paths.metadata_artwork_dir,
-    )
-    .await?;
+    subscribe_and_answer(&app, &state, &leases, &fetcher, &feed_url).await
+}
+
+/// Subscribes to `feed_url` and answers its channel, telling the pages when it
+/// is a new one. Shared by an address typed and a show picked in the directory.
+pub(crate) async fn subscribe_and_answer(
+    app: &AppHandle,
+    state: &AppState,
+    leases: &ProfileLeases<'_>,
+    fetcher: &Fetcher,
+    feed_url: &str,
+) -> AppResult<PodcastChannel> {
+    let subscribed =
+        refresh::subscribe(leases, fetcher, feed_url, &state.paths.metadata_artwork_dir).await?;
     if matches!(subscribed, Subscribed::Added(_)) {
-        emit_updated(&app, Some(subscribed.channel_id()));
+        emit_updated(app, Some(subscribed.channel_id()));
     }
     let pool = leases.lease().await?;
     let channel = store::channel(&pool, subscribed.channel_id())
         .await?
         .ok_or_else(|| AppError::Other("podcast: channel_gone".into()))?;
-    Ok(with_artwork_path(channel, &state))
+    Ok(with_artwork_path(channel, state))
 }
 
 /// Stops following a channel, forgets its episodes and removes the files they had

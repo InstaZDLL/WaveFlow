@@ -15,6 +15,7 @@
 //! - [`transcript`]: which of an episode's transcripts to open, and what it
 //!   becomes: a [`lyrics::Document`](crate::lyrics::Document) when it is timed.
 //! - [`address`]: what a feed may name, and the words a failure is stored as.
+//! - [`directory`]: the iTunes podcast directory's searches, lookups and charts.
 //!
 //! Nothing here logs. A feed's address may hold a private token in its path
 //! as often as in its query, so the rule in the app is that it reaches no log
@@ -22,6 +23,7 @@
 
 pub mod address;
 pub mod chapters;
+pub mod directory;
 pub mod feed;
 pub mod id3;
 pub mod opml;
@@ -115,6 +117,8 @@ fn is_mpeg_frame(head: &[u8]) -> bool {
         && sample_rate != 0b11
 }
 
+#[cfg(test)]
+mod directory_tests;
 #[cfg(test)]
 mod extras_tests;
 #[cfg(test)]

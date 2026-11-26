@@ -4839,6 +4839,10 @@
         "server": {
           "title": "Si un serveur est lié",
           "body": "Si ce profil est lié à un serveur WaveFlow dont les podcasts sont activés, ses chaînes s'affichent aussi. Elles passent par votre serveur : c'est lui que l'hébergeur voit, pas vous."
+        },
+        "directory": {
+          "title": "Quand vous parcourez l'annuaire",
+          "body": "Les recherches et les classements de l'onglet Découvrir viennent de l'annuaire de podcasts d'iTunes. Il voit votre adresse IP, ce que vous cherchez et le pays choisi, et seulement quand vous l'ouvrez."
         }
       }
     },
@@ -4965,7 +4969,10 @@
       "server_signed_out": "Vous n'êtes plus connecté à ce serveur.",
       "server_refused": "Le serveur a refusé, ou ne connaît plus cet élément.",
       "server_conflict": "Le serveur suit déjà ce flux, ou ne peut plus en suivre davantage.",
-      "destination_refused": "Le serveur n'a pas le droit de joindre cette adresse."
+      "destination_refused": "Le serveur n'a pas le droit de joindre cette adresse.",
+      "rate_limited": "L'annuaire reçoit trop de demandes de cet appareil. Réessayez dans une minute.",
+      "directory_invalid": "L'annuaire a renvoyé une réponse illisible.",
+      "no_feed": "L'annuaire ne donne pas l'adresse du flux de cette émission."
     },
     "episodePage": {
       "kicker": "Épisode"
@@ -5009,6 +5016,50 @@
       "downloading": "Téléchargement sur le serveur…",
       "downloadFailed": "Échec sur le serveur",
       "forgetPosition": "Reprendre {{title}} du début"
+    },
+    "directory": {
+      "tabsLabel": "Sections des podcasts",
+      "mine": "Mes podcasts",
+      "discover": "Découvrir",
+      "searchLabel": "Chercher dans l'annuaire",
+      "searchPlaceholder": "Une émission, un sujet…",
+      "searchAction": "Chercher",
+      "country": "Pays",
+      "privacy": "Recherches et classements viennent de l'annuaire de podcasts d'iTunes, qui voit votre adresse IP, ce que vous cherchez et le pays choisi.",
+      "genresLabel": "Catégories",
+      "top": "En tête · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Résultats pour « {{term}} »",
+      "backToTop": "Retour au classement",
+      "offline": "L'annuaire a besoin d'une connexion, et le mode hors ligne est activé.",
+      "loading": "Lecture de l'annuaire…",
+      "noResults": "Aucune émission trouvée.",
+      "emptyChart": "L'annuaire n'a pas de classement pour ce pays.",
+      "explicit": "Explicite",
+      "open": "Ouvrir",
+      "openNamed": "Ouvrir {{title}}",
+      "subscribeNamed": "S'abonner à {{title}}",
+      "genres": {
+        "1301": "Arts",
+        "1303": "Humour",
+        "1304": "Éducation",
+        "1305": "Enfants et famille",
+        "1309": "Télévision et cinéma",
+        "1310": "Musique",
+        "1314": "Religion et spiritualité",
+        "1318": "Technologie",
+        "1321": "Économie",
+        "1324": "Société et culture",
+        "1511": "Administration",
+        "1512": "Santé et forme",
+        "1483": "Fiction",
+        "1487": "Histoire",
+        "1488": "Faits divers",
+        "1489": "Actualités",
+        "1502": "Loisirs",
+        "1533": "Sciences",
+        "1545": "Sport"
+      }
     }
   },
   "clip": {

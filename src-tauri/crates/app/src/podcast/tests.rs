@@ -572,7 +572,7 @@ async fn offline_mode_turned_on_mid_redirect_stops_the_next_hop() {
 // ── the database ────────────────────────────────────────────────────
 
 /// The real schema, with foreign keys on, as the app opens it.
-async fn pool() -> SqlitePool {
+pub(super) async fn pool() -> SqlitePool {
     let options = waveflow_core::repository::sqlite::collation::register(
         SqliteConnectOptions::from_str(":memory:")
             .unwrap()
@@ -590,7 +590,7 @@ async fn pool() -> SqlitePool {
     pool
 }
 
-async fn switch(pool: &SqlitePool, on: bool) {
+pub(super) async fn switch(pool: &SqlitePool, on: bool) {
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES ('podcasts.enabled', ?, 'bool', 0)
@@ -608,7 +608,7 @@ pub(super) async fn enabled_pool() -> SqlitePool {
     pool
 }
 
-struct Plain(SqlitePool);
+pub(super) struct Plain(SqlitePool);
 
 impl Deref for Plain {
     type Target = SqlitePool;
@@ -618,7 +618,7 @@ impl Deref for Plain {
     }
 }
 
-struct TestLeases(SqlitePool);
+pub(super) struct TestLeases(pub(super) SqlitePool);
 
 impl Leases for TestLeases {
     type Lease = Plain;

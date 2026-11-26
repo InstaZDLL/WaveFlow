@@ -57,6 +57,12 @@ pub(crate) enum PodcastError {
     /// An episode with no file and no address: a restored profile, until the
     /// feed is subscribed to again.
     NoSource,
+    /// The podcast directory refused a client past its budget.
+    RateLimited,
+    /// The podcast directory answered something that is not the answer asked for.
+    DirectoryInvalid,
+    /// The podcast directory names no feed for that show.
+    NoFeed,
     Database(sqlx::Error),
     Other(AppError),
 }
@@ -87,6 +93,9 @@ impl From<PodcastError> for AppError {
             PodcastError::ProfileChanged => AppError::Other("podcast: profile_changed".into()),
             PodcastError::EpisodeGone => AppError::Other("podcast: episode_gone".into()),
             PodcastError::NoSource => AppError::Other("podcast: no_source".into()),
+            PodcastError::RateLimited => AppError::Other("podcast: rate_limited".into()),
+            PodcastError::DirectoryInvalid => AppError::Other("podcast: directory_invalid".into()),
+            PodcastError::NoFeed => AppError::Other("podcast: no_feed".into()),
             PodcastError::Database(err) => AppError::Database(err),
             PodcastError::Other(err) => err,
         }
@@ -185,7 +194,7 @@ pub(crate) trait PassObserver: Sync {
     fn channel_changed(&self, channel_id: i64);
 }
 
-async fn enabled_or_refuse<L: Leases>(leases: &L) -> Result<(), PodcastError> {
+pub(crate) async fn enabled_or_refuse<L: Leases>(leases: &L) -> Result<(), PodcastError> {
     let pool = leases.lease().await?;
     if store::is_enabled(&pool).await? {
         Ok(())

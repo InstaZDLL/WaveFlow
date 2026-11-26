@@ -4852,6 +4852,10 @@
         "server": {
           "title": "Se houver um servidor vinculado",
           "body": "Se este perfil estiver vinculado a um servidor WaveFlow com os podcasts ativados, os canais dele também aparecem. A conexão passa pelo seu servidor WaveFlow: é esse servidor que o provedor do podcast vê, não você."
+        },
+        "directory": {
+          "title": "Quando você explora o diretório",
+          "body": "As buscas e os rankings da aba Descobrir vêm do diretório de podcasts do iTunes. Ele vê seu endereço IP, o que você busca e o país escolhido, e só quando você o abre."
         }
       }
     },
@@ -4978,7 +4982,10 @@
       "server_signed_out": "Você não está mais conectado a este servidor.",
       "server_refused": "O servidor recusou, ou não conhece mais este item.",
       "server_conflict": "O servidor já segue este feed, ou não pode seguir mais nenhum.",
-      "destination_refused": "O servidor não tem permissão para acessar este endereço."
+      "destination_refused": "O servidor não tem permissão para acessar este endereço.",
+      "rate_limited": "O diretório está recebendo pedidos demais deste dispositivo. Tente de novo em um minuto.",
+      "directory_invalid": "O diretório devolveu uma resposta ilegível.",
+      "no_feed": "O diretório não informa o endereço do feed deste programa."
     },
     "episodePage": {
       "kicker": "Episódio"
@@ -5022,6 +5029,50 @@
       "downloading": "Baixando no servidor…",
       "downloadFailed": "Falha no servidor",
       "forgetPosition": "Tocar {{title}} desde o início"
+    },
+    "directory": {
+      "tabsLabel": "Seções de podcasts",
+      "mine": "Meus podcasts",
+      "discover": "Descobrir",
+      "searchLabel": "Buscar no diretório",
+      "searchPlaceholder": "Um programa, um tema…",
+      "searchAction": "Buscar",
+      "country": "País",
+      "privacy": "As buscas e os rankings vêm do diretório de podcasts do iTunes, que vê seu endereço IP, o que você busca e o país escolhido.",
+      "genresLabel": "Categorias",
+      "top": "Mais ouvidos · {{country}}",
+      "genreTop": "{{genre}} · {{country}}",
+      "resultsFor": "Resultados para “{{term}}”",
+      "backToTop": "Voltar ao ranking",
+      "offline": "O diretório precisa de conexão e o modo offline está ativado.",
+      "loading": "Lendo o diretório…",
+      "noResults": "Nenhum programa encontrado.",
+      "emptyChart": "O diretório não tem ranking para este país.",
+      "explicit": "Explícito",
+      "open": "Abrir",
+      "openNamed": "Abrir {{title}}",
+      "subscribeNamed": "Assinar {{title}}",
+      "genres": {
+        "1301": "Artes",
+        "1303": "Comédia",
+        "1304": "Educação",
+        "1305": "Crianças e família",
+        "1309": "TV e cinema",
+        "1310": "Música",
+        "1314": "Religião e espiritualidade",
+        "1318": "Tecnologia",
+        "1321": "Negócios",
+        "1324": "Sociedade e cultura",
+        "1511": "Governo",
+        "1512": "Saúde e boa forma",
+        "1483": "Ficção",
+        "1487": "História",
+        "1488": "Crimes reais",
+        "1489": "Notícias",
+        "1502": "Lazer",
+        "1533": "Ciência",
+        "1545": "Esportes"
+      }
     }
   },
   "clip": {

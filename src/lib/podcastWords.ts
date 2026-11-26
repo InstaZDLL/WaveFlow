@@ -26,6 +26,9 @@ const KNOWN_WORDS = new Set([
   "invalid_document",
   "not_audio",
   "quota_exceeded",
+  "rate_limited",
+  "directory_invalid",
+  "no_feed",
 ]);
 
 /**
