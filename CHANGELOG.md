@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.5.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.4.0...v2.5.0) (2026-11-26)
+
+
+### Features
+
+* **lyrics:** add an opt-in expressive lyrics motion ([f99194c](https://github.com/InstaZDLL/WaveFlow/commit/f99194ce442a694cb69a4a95eeeeeaa142346c6d))
+* **lyrics:** lift each sung word under the expressive lyrics motion setting ([d3ea3ee](https://github.com/InstaZDLL/WaveFlow/commit/d3ea3eef9fdc5c19dde6423d187172f4d2e4324d))
+* **lyrics:** make the line-by-line lyrics movement an opt-in setting ([663de51](https://github.com/InstaZDLL/WaveFlow/commit/663de51535107f93093c7725e2514b0e1eeb66aa))
+* **podcast:** ask the podcast directory under the fetch rules ([b3f237c](https://github.com/InstaZDLL/WaveFlow/commit/b3f237cc0494071bf0b7af8b7c0a832e617da28d))
+* **podcast:** discover podcasts by search, country and genre ([4dcd9ae](https://github.com/InstaZDLL/WaveFlow/commit/4dcd9ae2a892f884873a832c30d87dcec46f9fa5))
+* **podcast:** discover podcasts by search, country and genre ([45ac5a7](https://github.com/InstaZDLL/WaveFlow/commit/45ac5a761f6c1f1f5b2c2788f9efdf52b5654edd))
+* **podcast:** read the podcast directory's answers as hostile input ([be588ca](https://github.com/InstaZDLL/WaveFlow/commit/be588ca7161d90544714967b5a5e63ca8fac9dca))
+
+
+### Bug Fixes
+
+* **lyrics:** carry the first word's rise and glide the interlude rows with the lines ([dc9e0a4](https://github.com/InstaZDLL/WaveFlow/commit/dc9e0a4d9fb54fd498048f26d15b252cf3104b7a))
+* **lyrics:** glide to the sung line over 500 ms instead of the browser's short smooth scroll ([2a53564](https://github.com/InstaZDLL/WaveFlow/commit/2a53564551d82718ba1dce29577b0aa08010136d))
+* **lyrics:** measure the glide in the scroller's own pixels under the immersive zoom ([1a71bc6](https://github.com/InstaZDLL/WaveFlow/commit/1a71bc670c2e7995b323d22b36f266452bc621ff))
+* **lyrics:** move the lyrics on line by line, the lines below the sung one a beat later ([936a6aa](https://github.com/InstaZDLL/WaveFlow/commit/936a6aa27f913b6fb812838a7af1110dc476f9b7))
+* **lyrics:** settle the gliding lines as soon as the motion is turned off, browsing or not ([36655a6](https://github.com/InstaZDLL/WaveFlow/commit/36655a60dff8d113b090dc66b5c7d3e579d19094))
+* **lyrics:** settle the lines under reduced motion and glide in the ones the step brings into view ([23efdb6](https://github.com/InstaZDLL/WaveFlow/commit/23efdb64459bd9075e6441a6376d20dfc4fa5405))
+* **lyrics:** start each word's rise when it is reached, not when its line appears ([8c2038a](https://github.com/InstaZDLL/WaveFlow/commit/8c2038a9886eb5d3673d6842d71fd0756f1b08cf))
+* **media-controls:** expose shuffle and repeat to the os media controls ([a5af993](https://github.com/InstaZDLL/WaveFlow/commit/a5af9939dc89e806f288432a6b66416d119f8f96))
+* **media-controls:** hand the os overlay the modes under the publish lock ([15bea09](https://github.com/InstaZDLL/WaveFlow/commit/15bea097589dc387086722fa5f4939bbf5d09b66))
+* **media-controls:** publish shuffle and repeat to the os media controls ([069f5fd](https://github.com/InstaZDLL/WaveFlow/commit/069f5fde3fc5f4502e5822334f5487800390014c))
+* **media-controls:** publish shuffle and repeat to the windows smtc session ([6f6d19f](https://github.com/InstaZDLL/WaveFlow/commit/6f6d19fffd7c137af17eecdec629070a10ed5e7c))
+* **media-controls:** take the shuffle handler back when the repeat one fails ([a746bfd](https://github.com/InstaZDLL/WaveFlow/commit/a746bfde1b5397dbacc2cda35397bbd5dfeeeabc))
+* **media-controls:** tell the windows the modes under the lock they were read under ([a560962](https://github.com/InstaZDLL/WaveFlow/commit/a5609628ab40eecb946dd9277788c176c67e93bc))
+* **player:** keep a newer options event over an older snapshot's modes ([c65b35f](https://github.com/InstaZDLL/WaveFlow/commit/c65b35fed60e49df803a6a95fcd24bce449093d6))
+* **podcast:** give a chart's shows their episode count and explicit flag from the lookup ([7156fec](https://github.com/InstaZDLL/WaveFlow/commit/7156fec248e1f93e708914c5712779697f6ba738))
+* **podcast:** give a narrowed chart's shows the genre asked ([de38f51](https://github.com/InstaZDLL/WaveFlow/commit/de38f515f29627936e4b98ba94f566c112ee1d91))
+* **podcast:** keep only lasting picture failures and re-record kept answers ([b87f4c0](https://github.com/InstaZDLL/WaveFlow/commit/b87f4c0316257891f5e655ba91521df7b7354fc1))
+* **podcast:** keep only received directory pictures in the page ([e2e08b9](https://github.com/InstaZDLL/WaveFlow/commit/e2e08b916a6f8f06e09c65aa64ba13915a3bc1c5))
+* **podcast:** keep the newest feed known, cap kept picture misses and await the newest list read ([566feb8](https://github.com/InstaZDLL/WaveFlow/commit/566feb889a7f747d350e825308012daf06e6cb50))
+* **podcast:** leave room for the directory fields' icons ([58ed195](https://github.com/InstaZDLL/WaveFlow/commit/58ed19563e929a60d7ed7927b5e9943fddb952e5))
+* **podcast:** make the page's two views toggle buttons rather than half a tab list ([550730f](https://github.com/InstaZDLL/WaveFlow/commit/550730f8e3670ac927804003be19110cc942f950))
+* **podcast:** never empty the show record from memory and settle a reload the page left ([4ebf5a2](https://github.com/InstaZDLL/WaveFlow/commit/4ebf5a21255c9d97cd2a57235d2ebf8e42e740fd))
+* **podcasts:** draw a directory cover when its effect runs twice ([2c72499](https://github.com/InstaZDLL/WaveFlow/commit/2c72499db31daba92dc6f621a6af0baacc58e6f6))
+* **podcast:** stop a chart on a profile change and open a show once the list holds it ([cc08e9a](https://github.com/InstaZDLL/WaveFlow/commit/cc08e9aed088276c9d7d745b4b2486bbaeb86a91))
+
 ## [2.4.0](https://github.com/InstaZDLL/WaveFlow/compare/v2.3.0...v2.4.0) (2026-11-25)
 
 
