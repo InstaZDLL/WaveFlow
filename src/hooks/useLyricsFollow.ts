@@ -184,9 +184,13 @@ export function useLyricsFollow({
     const container = containerRef.current;
     const line = lineRefs.current[activeIndex];
     if (!container || !line) return;
-    const lines = lineRefs.current.filter(
-      (row): row is HTMLElement => row != null,
+    // Every row of the list moves with the step, the interlude dots between
+    // two lines included, which have no line ref: the sung line's siblings.
+    const lines = Array.from(
+      line.parentElement?.children ?? [line],
+      (row) => row as HTMLElement,
     );
+    const sungAt = lines.indexOf(line);
     if (!staggered) {
       // Turned off mid-glide: the lines go back in place first.
       lines.forEach(settle);
@@ -222,9 +226,7 @@ export function useLyricsFollow({
     const ahead = (to - before) * scale;
     const from = box.top - GLIDE_MARGIN_PX + Math.min(0, ahead);
     const until = box.bottom + GLIDE_MARGIN_PX + Math.max(0, ahead);
-    // By the lines' own indices, which the gaps in the refs would shift.
-    const inView = lineRefs.current.flatMap((row, i) => {
-      if (!row) return [];
+    const inView = lines.flatMap((row, i) => {
       const r = row.getBoundingClientRect();
       return r.bottom < from || r.top > until
         ? []
@@ -248,7 +250,7 @@ export function useLyricsFollow({
     }
     void container.offsetHeight;
     for (const { row, i } of inView) {
-      const below = i - activeIndex;
+      const below = i - sungAt;
       const delay = Math.min(Math.max(below, 0), STAGGER_LINES) * STAGGER_MS;
       row.style.transition = `transform ${GLIDE_MS}ms ${GLIDE_EASE} ${delay}ms`;
       row.style.transform = "";

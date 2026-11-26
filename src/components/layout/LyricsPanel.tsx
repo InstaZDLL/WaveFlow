@@ -37,6 +37,7 @@ import {
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { useLyricsShare } from "../../hooks/useLyricsShare";
 import {
+  LYRICS_WORD_LIFT_CLASS,
   LYRICS_WORD_LIFT_TRANSITION,
   LYRICS_WORD_TRANSITION,
   lyricsLineClass,
@@ -474,13 +475,13 @@ export function LyricsPanel({
                               // character).
                               <Fragment key={wi}>
                                 <span
-                                  className={
+                                  className={`${
                                     wi === lineWordIndex
                                       ? "text-pink-500 dark:text-pink-400"
                                       : wi < lineWordIndex
                                         ? ""
                                         : "opacity-60"
-                                  }
+                                  } ${liftWords ? LYRICS_WORD_LIFT_CLASS : ""}`}
                                   style={{
                                     display: "inline-block",
                                     transform: lyricsWordTransform(

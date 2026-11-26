@@ -18,6 +18,14 @@ export const LYRICS_WORD_TRANSITION = "color 150ms ease";
  * transform carried by a transition. On WebKit that is the shake above,
  * which the setting's description warns of; Chromium shows none.
  */
+/**
+ * On a word that lifts. A line's words are created as it becomes the sung
+ * one, its first word already up, so no transition can carry that first
+ * rise: this class plays it once from the baseline (`app.css`). On a word
+ * created down it moves nothing.
+ */
+export const LYRICS_WORD_LIFT_CLASS = "wf-word-lift";
+
 export const LYRICS_WORD_LIFT_TRANSITION =
   "transform 420ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms ease";
 

@@ -25,6 +25,7 @@ import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
 import { useLyricsExpressiveMotion } from "../../hooks/useLyricsExpressiveMotion";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import {
+  LYRICS_WORD_LIFT_CLASS,
   LYRICS_WORD_LIFT_TRANSITION,
   lyricsWordTransform,
 } from "../../lib/lyricsLine";
@@ -373,7 +374,11 @@ export function ImmersiveLyricsColumn({
                                 return (
                                   <Fragment key={wi}>
                                     <span
-                                      className="karaoke-word"
+                                      className={
+                                        liftWords
+                                          ? `karaoke-word ${LYRICS_WORD_LIFT_CLASS}`
+                                          : "karaoke-word"
+                                      }
                                       style={{
                                         // Opacity lives on the layers, not
                                         // here: a parent's opacity applies to
