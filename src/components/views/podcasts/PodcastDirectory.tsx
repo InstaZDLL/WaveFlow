@@ -4,7 +4,6 @@ import {
   useId,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -485,10 +484,12 @@ function DirectoryCover({
   const [src, setSrc] = useState<string | null>(
     () => pictures.get(show.id) ?? null,
   );
-  const asked = useRef(false);
   useEffect(() => {
-    if (!show.has_artwork || pictures.has(show.id) || asked.current) return;
-    asked.current = true;
+    // A picture already kept was read into the state when the cover was drawn.
+    if (!show.has_artwork || pictures.has(show.id)) return;
+    // Asked on every run, a second run of the effect included: the backend keeps
+    // what it fetched, so asking twice costs nothing, while a run that skipped
+    // the request would leave the picture it started undrawn.
     let current = true;
     podcastDirectoryArtwork(show.id).then(
       (picture) => {
