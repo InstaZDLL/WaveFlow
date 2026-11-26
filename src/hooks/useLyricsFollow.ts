@@ -6,6 +6,18 @@ import {
   useState,
 } from "react";
 
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+
+/** How long the view takes to glide to the next sung line. The browser's
+ *  own smooth scroll took about 150 ms whatever the distance: unnoticed in
+ *  the side panel, a jump under the immersive column's tall lines. */
+const GLIDE_MS = 500;
+
+/** Fast at first, settling on the line. */
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
 /** Keys that scroll the element holding the focus, or its scroller. */
 const SCROLL_KEYS = new Set([
   "ArrowUp",
@@ -48,7 +60,13 @@ export interface LyricsFollow {
  *
  * Only a gesture says the user is scrolling — wheel, touch, a press on the
  * scrollbar or the middle button, a scrolling key — never a `scroll` event:
- * the centring's own `scrollIntoView` fires those too.
+ * the centring's own glide fires those too.
+ *
+ * The centring glides the scroller itself, frame by frame, over
+ * `GLIDE_MS`, rather than asking the browser for a smooth
+ * `scrollIntoView`, whose length the page cannot set; it jumps under
+ * `prefers-reduced-motion`. A new line starts its glide from wherever the
+ * last one had got to.
  *
  * "Comes into view" means the sung line was out of view and is now in it.
  * Scrolled ahead, the music catches up with what the user is reading and the
@@ -82,6 +100,11 @@ export function useLyricsFollow({
     if (!enabled) setBrowsingFor(null);
   }
   const browsing = enabled && sameKeys;
+  const reducedMotion = usePrefersReducedMotion();
+  // The glide's pending frame, which a gesture cancels at once rather than
+  // on the render the browsing brings: one more frame would pull the view
+  // back from under the wheel.
+  const glideFrame = useRef(0);
   // The listeners below read the keys at the moment of the gesture.
   const keysRef = useRef(resetKeys);
   useEffect(() => {
@@ -95,6 +118,7 @@ export function useLyricsFollow({
     // Lyrics that fit have nowhere to be browsed to.
     const browse = () => {
       if (container.scrollHeight > container.clientHeight) {
+        cancelAnimationFrame(glideFrame.current);
         setBrowsingFor(keysRef.current);
       }
     };
@@ -137,11 +161,39 @@ export function useLyricsFollow({
   // ── Following ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!enabled || browsing || activeIndex < 0) return;
-    lineRefs.current[activeIndex]?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-  }, [activeIndex, enabled, browsing, lineRefs]);
+    const container = containerRef.current;
+    const line = lineRefs.current[activeIndex];
+    if (!container || !line) return;
+    // The line's middle on the scroller's, within what can be scrolled.
+    const box = container.getBoundingClientRect();
+    const at = line.getBoundingClientRect();
+    const middle = box.top + container.clientTop + container.clientHeight / 2;
+    const from = container.scrollTop;
+    const to = Math.min(
+      container.scrollHeight - container.clientHeight,
+      Math.max(0, from + at.top + at.height / 2 - middle),
+    );
+    if (Math.abs(to - from) < 1) return;
+    // `instant`: the immersive column's `scroll-smooth` would otherwise
+    // turn every step into a smooth scroll of its own.
+    const place = (top: number) =>
+      container.scrollTo({ top, behavior: "instant" });
+    if (reducedMotion) {
+      place(to);
+      return;
+    }
+    let start: number | null = null;
+    const step = (now: number) => {
+      start ??= now;
+      const t = Math.min(1, (now - start) / GLIDE_MS);
+      place(from + (to - from) * easeOutCubic(t));
+      if (t < 1) glideFrame.current = requestAnimationFrame(step);
+    };
+    glideFrame.current = requestAnimationFrame(step);
+    // The next line, a gesture, the lyrics going away: this glide stops
+    // where it is, and the next one starts from there.
+    return () => cancelAnimationFrame(glideFrame.current);
+  }, [activeIndex, enabled, browsing, containerRef, lineRefs, reducedMotion]);
 
   // ── The sung line coming into view ────────────────────────────────
   // Whether the sung line has been out of view (less than half of it shown)
