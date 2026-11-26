@@ -25,7 +25,8 @@ export interface PodcastLibrary {
   failedWord: string | null;
   /** "To listen" could not be read, while the channels could. */
   toListenFailed: boolean;
-  /** Resolves once the channels have been read, for what opens one just added. */
+  /** Resolves once the channels on screen come from a read started no earlier
+   *  than this call, for what opens one just added. */
   reload: () => Promise<void>;
 }
 
@@ -43,6 +44,9 @@ export function usePodcastLibrary(): PodcastLibrary {
   const [failedWord, setFailedWord] = useState<string | null>(null);
   const [toListenFailed, setToListenFailed] = useState(false);
   const readSeq = useRef(0);
+  // The newest read of the channels, settled once the list it applies is on
+  // screen: a read overtaken by a newer one waits for that one instead.
+  const latestRead = useRef<Promise<void>>(Promise.resolve());
 
   const reload = useCallback(() => {
     const seq = ++readSeq.current;
@@ -80,7 +84,11 @@ export function usePodcastLibrary(): PodcastLibrary {
       .catch((err) => {
         console.warn("[podcasts] reading the download usage failed", err);
       });
-    return channelsRead;
+    const settled: Promise<void> = channelsRead.then(() =>
+      current() ? undefined : latestRead.current,
+    );
+    latestRead.current = settled;
+    return settled;
   }, []);
 
   useEffect(() => {

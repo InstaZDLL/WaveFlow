@@ -72,6 +72,10 @@ const MAX_ARTWORK_BYTES: usize = 1024 * 1024;
 /// How many bytes of pictures are kept in memory. Past this, the oldest go.
 const ARTWORK_BUDGET: usize = 32 * 1024 * 1024;
 
+/// How many shows' pictures are kept, a show without one included: a miss
+/// weighs no bytes, so the budget alone would never let one go.
+const MAX_PICTURES_KEPT: usize = 4_000;
+
 /// How many pictures are asked for at once.
 pub(crate) const ARTWORK_AT_ONCE: usize = 6;
 
@@ -119,6 +123,15 @@ struct Known {
     artwork_url: Option<String>,
 }
 
+/// Where shows being recorded come from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Recorded {
+    /// An answer just received: what it says replaces what was known.
+    Fresh,
+    /// An answer kept in memory: it fills only what is not known.
+    IfUnknown,
+}
+
 /// Pictures as `data:` addresses, oldest first out.
 #[derive(Default)]
 struct Pictures {
@@ -135,7 +148,7 @@ impl Pictures {
         self.bytes += picture.as_ref().map_or(0, |picture| picture.len());
         self.by_id.insert(id, picture);
         self.order.push_back(id);
-        while self.bytes > ARTWORK_BUDGET {
+        while self.bytes > ARTWORK_BUDGET || self.order.len() > MAX_PICTURES_KEPT {
             let Some(oldest) = self.order.pop_front() else {
                 break;
             };
@@ -247,19 +260,20 @@ impl Directory {
     }
 
     /// A kept answer still fresh. Its shows are recorded again, since the record
-    /// may have started over since it was kept.
+    /// may have started over since it was kept, but only where nothing is known:
+    /// a newer answer may have named another feed or picture since.
     fn cached(&self, question: &Question) -> Option<Arc<Vec<DirectoryShow>>> {
         let shows = {
             let answers = lock(&self.answers);
             let answer = answers.get(question)?;
             (answer.at.elapsed() < question.ttl()).then(|| Arc::clone(&answer.shows))?
         };
-        self.remember(&shows);
+        self.remember(&shows, Recorded::IfUnknown);
         Some(shows)
     }
 
     fn keep(&self, question: Question, shows: Vec<DirectoryShow>) -> Arc<Vec<DirectoryShow>> {
-        self.remember(&shows);
+        self.remember(&shows, Recorded::Fresh);
         let shows = Arc::new(shows);
         let mut answers = lock(&self.answers);
         answers.retain(|kept, answer| answer.at.elapsed() < kept.ttl());
@@ -284,20 +298,22 @@ impl Directory {
     }
 
     /// Records each show's feed and picture, a feed already known kept when an
-    /// answer has none.
-    fn remember(&self, shows: &[DirectoryShow]) {
+    /// answer has none. An answer read again from memory only fills what is not
+    /// known, so it never replaces what a newer one said.
+    fn remember(&self, shows: &[DirectoryShow], recorded: Recorded) {
         let mut known = lock(&self.known);
         if known.len() + shows.len() > MAX_SHOWS_KNOWN {
             known.clear();
         }
+        let fill = |slot: &mut Option<String>, value: &Option<String>| {
+            if value.is_some() && (recorded == Recorded::Fresh || slot.is_none()) {
+                slot.clone_from(value);
+            }
+        };
         for show in shows {
             let entry = known.entry(show.id).or_default();
-            if show.feed_url.is_some() {
-                entry.feed_url.clone_from(&show.feed_url);
-            }
-            if show.artwork_url.is_some() {
-                entry.artwork_url.clone_from(&show.artwork_url);
-            }
+            fill(&mut entry.feed_url, &show.feed_url);
+            fill(&mut entry.artwork_url, &show.artwork_url);
         }
     }
 
@@ -445,7 +461,7 @@ impl Directory {
                     .await
                     .and_then(|bytes| parse_search(&bytes).map_err(unreadable))
                     .inspect_err(|err| log_failure("lookup", err))?;
-                self.remember(&found);
+                self.remember(&found, Recorded::Fresh);
                 found
                     .into_iter()
                     .find(|show| show.id == id)

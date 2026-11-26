@@ -284,6 +284,40 @@ async fn a_feed_already_given_is_used_without_asking_again() {
 }
 
 #[tokio::test]
+async fn an_answer_read_again_from_memory_does_not_replace_a_newer_feed() {
+    let leases = leases().await;
+    // The same show, its feed moved between two searches.
+    let table = Table::new(|url: &Url| {
+        let feed = if url.query().unwrap_or("").contains("term=moved") {
+            "https://feeds.example.com/33-moved"
+        } else {
+            "https://feeds.example.com/33"
+        };
+        Ok(format!(
+            r#"{{"results": [{{"collectionId": 33, "collectionName": "Found", "feedUrl": "{feed}"}}]}}"#
+        )
+        .into_bytes())
+    });
+    let directory = Directory::default();
+    directory
+        .search(&leases, &table, "fr", "found")
+        .await
+        .unwrap();
+    directory
+        .search(&leases, &table, "fr", "moved")
+        .await
+        .unwrap();
+    // The first search again, from memory: nothing is asked, and the newer feed stays.
+    directory
+        .search(&leases, &table, "fr", "found")
+        .await
+        .unwrap();
+    assert_eq!(table.count(), 2);
+    let feed = directory.feed_of(&leases, &table, "fr", 33).await.unwrap();
+    assert_eq!(feed.as_str(), "https://feeds.example.com/33-moved");
+}
+
+#[tokio::test]
 async fn a_show_not_met_yet_is_looked_up() {
     let leases = leases().await;
     let table = Table::new(directory_answers);
