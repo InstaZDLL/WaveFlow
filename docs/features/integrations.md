@@ -134,7 +134,7 @@ PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generate
 
 ## Native OS notifications
 
-[`notifications.rs`](../../src-tauri/crates/app/src/notifications.rs) — fires a single track-change toast via `tauri-plugin-notification`. Different axis from [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs): SMTC / MPRIS / MediaRemote drive the **OS media overlay** (lock screen, volume flyout, Now Playing widget), while a notification is a **transient toast**. Both can coexist and most desktop players ship both.
+[`notifications.rs`](../../src-tauri/crates/app/src/notifications.rs) — fires a single track-change toast via `tauri-plugin-notification`. Different axis from [`media_controls`](../../src-tauri/crates/app/src/media_controls/mod.rs): SMTC / MPRIS / MediaRemote drive the **OS media overlay** (lock screen, volume flyout, Now Playing widget), while a notification is a **transient toast**. Both can coexist and most desktop players ship both.
 
 Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/player/announce.rs) in a tokio task so the SQLite opt-in lookup doesn't sit on the path that flips the player-bar metadata. The notification carries only the track title + artist (no cover image) — Windows Action Center, KDE / GNOME notification daemons, and macOS Notification Center all support an icon slot but they expect a URL or file path the OS can read, and we'd need a fourth path next to SMTC's `127.0.0.1` shim + Discord's public Deezer URL to feed it cleanly. Title + artist is the format every system handles uniformly.
 

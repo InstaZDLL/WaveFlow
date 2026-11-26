@@ -781,34 +781,24 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         }
 
         Command::Random(on) => {
-            let state = ctx.app.state::<AppState>();
-            let pool = state
-                .require_profile_pool()
-                .await
-                .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "random", "no active profile"))?;
             // MPD's `random` is a boolean, so it can only say on or
             // off. Turning it on keeps whichever grouping the listener
             // picked in the app rather than forcing tracks — an MPD
             // remote should not quietly undo a preference it has no
-            // way to express.
-            let mode = if on {
-                queue::read_shuffle_grouping_preference(&pool).await
-            } else {
-                queue::ShuffleMode::Off
-            };
-            let engine = ctx.engine();
-            edit_queue(
-                engine.lock_publish(),
-                crate::commands::player::set_shuffle_mode(&pool, &engine, mode),
-            )
-            .await
-            .map_err(|e| ack_arg("random", &e.to_string()))?;
-            crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
-            drop(pool);
-            crate::commands::player::emit_queue_changed(&ctx.app);
-            crate::audio::next_track::revise_soon(&ctx.app);
+            // way to express. `random 1` while shuffle is on changes
+            // nothing, as in MPD, rather than re-shuffling the queue.
+            let changed = player_actions::set_shuffle(&ctx.app, on)
+                .await
+                .map_err(|e| match e {
+                    crate::error::AppError::NoActiveProfile => {
+                        Ack::new(ACK_ERROR_NO_EXIST, "random", "no active profile")
+                    }
+                    e => ack_arg("random", &e.to_string()),
+                })?;
             ctx.idle.notify(Subsystem::Options);
-            ctx.queue_changed();
+            if changed {
+                ctx.queue_changed();
+            }
             Ok(Response::new())
         }
 

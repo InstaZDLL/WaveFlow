@@ -1,7 +1,8 @@
 //! Player actions shared by every *non-frontend* control surface.
 //!
-//! The tray menu ([`crate::lib`]), the OS media keys
-//! ([`crate::media_controls`]), the taskbar thumbnail buttons on Windows
+//! The tray menu ([`crate::lib`]), the OS media keys and overlay — its
+//! shuffle and repeat included ([`crate::media_controls`]), the taskbar
+//! thumbnail buttons on Windows
 //! (`crate::taskbar_buttons`), the system-wide shortcuts
 //! ([`crate::global_shortcuts`]) and the MPD server ([`crate::mpd`]) all
 //! need the same "advance the queue, tell the UI, hand the track to the
@@ -600,6 +601,70 @@ pub async fn toggle_like_current(app: &AppHandle, label: &str) {
     if let Err(err) = commands::track::toggle_like(app, track_id).await {
         tracing::warn!(%err, surface = label, "player action: like failed");
     }
+}
+
+/// Turn shuffle on or off, for a surface that can only say which — the OS
+/// media controls, MPD's `random`. Returns whether anything changed.
+///
+/// Turning it on picks the grouping the listener last chose, as the
+/// player's own button does. Asking for the state already in force does
+/// nothing: going through [`commands::player::set_shuffle_mode`] again
+/// would re-shuffle the queue under the listener, and an MPRIS client may
+/// write `Shuffle` with the value it just read.
+///
+/// The mode is saved before anyone is told; then every window and the OS
+/// overlay hear the mode in force through
+/// [`commands::player::emit_options_changed`] — changed or not, so a
+/// client that asked is answered either way.
+pub async fn set_shuffle(app: &AppHandle, on: bool) -> AppResult<bool> {
+    let pool = app.state::<AppState>().require_profile_pool().await?;
+    let engine = app.state::<Arc<AudioEngine>>();
+    // Read and changed under the publish lock, as the player's own toggle:
+    // two requests at once both count from the state the other left.
+    let changed = crate::audio::next_track::edit_queue(engine.lock_publish(), async {
+        let current = queue::read_shuffle_mode(&pool).await;
+        let remembered = queue::read_shuffle_grouping_preference(&pool).await;
+        let Some(mode) = current.switched(on, remembered) else {
+            return Ok(false);
+        };
+        commands::player::set_shuffle_mode(&pool, &engine, mode)
+            .await
+            .map(|()| true)
+    })
+    .await?;
+    if changed {
+        // Reordered in place: the queue panel refetches, and the decoder
+        // re-reads what comes next.
+        commands::player::emit_queue_changed(app);
+        crate::audio::next_track::revise_soon(app);
+    }
+    commands::player::emit_options_changed(app, &pool).await;
+    Ok(changed)
+}
+
+/// Put a repeat mode in force, for a surface that names it rather than
+/// cycling — the OS media controls. Returns whether anything changed.
+///
+/// Same contract as [`set_shuffle`]: saved first, nothing done when it is
+/// already the mode, everyone told the mode in force afterwards.
+pub async fn set_repeat(app: &AppHandle, mode: queue::RepeatMode) -> AppResult<bool> {
+    let pool = app.state::<AppState>().require_profile_pool().await?;
+    let engine = app.state::<Arc<AudioEngine>>();
+    // Under the publish lock, which a prefetch holds while it reads the
+    // mode, so it never sends the next track by the mode this replaces.
+    let changed = crate::audio::next_track::edit_queue(engine.lock_publish(), async {
+        if queue::read_repeat_mode(&pool).await == mode {
+            return Ok(false);
+        }
+        queue::write_repeat_mode(&pool, mode).await.map(|()| true)
+    })
+    .await?;
+    if changed {
+        // Repeat decides what follows the last track.
+        crate::audio::next_track::revise_soon(app);
+    }
+    commands::player::emit_options_changed(app, &pool).await;
+    Ok(changed)
 }
 
 /// When a channel's episodes are the queue, advance it instead of the local

@@ -231,11 +231,6 @@ hex = "0.4"
 base64 = "0.23"
 sha2 = "0.11"
 
-# OS-level media controls: SMTC on Windows, MPRIS on Linux,
-# MediaRemoteCommandCenter on macOS. Souvlaki abstracts the three
-# behind a single API; the integration lives in `media_controls.rs`.
-souvlaki = "0.9"
-
 # Build proper file:// URIs for cover art paths handed to MPRIS / SMTC.
 # `url` is already in our transitive tree via reqwest.
 url = "2"
@@ -290,8 +285,8 @@ uuid = { version = "1", features = ["v4", "v5"] }
 zip = { version = "9", default-features = false, features = ["deflate", "time"] }
 
 # Discord Rich Presence — speaks the local Discord client's IPC named
-# pipe (no network). Mirrors the souvlaki integration in
-# `media_controls.rs`: a dedicated thread owns the IPC client and
+# pipe (no network). Mirrors the OS media controls in
+# `media_controls/`: a dedicated thread owns the IPC client and
 # reconnects when Discord is restarted. Opt-in via the
 # `integrations.discord_rpc` profile setting.
 discord-rich-presence = "1"
@@ -334,6 +329,20 @@ tracing-log = "0.2"
 # upgrade window run on the clock they set rather than the machine's.
 tokio = { version = "1", features = ["test-util"] }
 
+# The MPRIS object's tests speak D-Bus to it over a socket pair, with no
+# bus in between. `p2p` only turns on uuid's `v4`, already on in the tree.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+zbus = { version = "5", features = ["p2p"] }
+
+# OS-level media controls on Windows (SMTC) and macOS
+# (MediaRemoteCommandCenter), behind souvlaki; the integration lives in
+# `media_controls/`. On Windows the session's shuffle and repeat, which
+# souvlaki leaves alone, are set by `media_controls/smtc.rs`. Not on Linux: there WaveFlow publishes its own MPRIS
+# object over the zbus below (`media_controls/mpris.rs`), because
+# souvlaki's has no `Shuffle` or `LoopStatus` and cannot be given them.
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+souvlaki = "0.9"
+
 # Linux-only: direct ALSA enumeration so the output-device picker can
 # show human-readable descriptions ("HDA Intel PCH, ALC897 Analog
 # Stereo") instead of cpal's short identifiers ("hdmi:CARD=PCH,DEV=0").
@@ -345,7 +354,8 @@ libc = "0.2"
 # `org.freedesktop.ReserveDevice1`, the protocol that asks PipeWire /
 # PulseAudio to let go of a card so the DoP path can open it as `hw:`
 # (see `audio::device_reservation`). No new tree: the same zbus is
-# already pulled in on Linux by notify-rust and two Tauri plugins.
+# already pulled in on Linux by notify-rust and two Tauri plugins. Also
+# the MPRIS object of the OS media controls (`media_controls/mpris.rs`).
 zbus = "5"
 # Which backend GTK really opened the window on (#894): the X11 handle
 # kinds or the Wayland one. Already in the tree through Tauri.
@@ -397,6 +407,12 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Graphics_Gdi",
     "Win32_System_Registry",
+    # Shuffle and repeat on the SMTC session souvlaki drives
+    # (`media_controls/smtc.rs`). souvlaki already turns all three on at
+    # this same version, so no crate is added.
+    "Foundation",
+    "Media",
+    "Win32_System_WinRT",
 ] }
 # The COM plumbing `windows` is itself built on, at the very version it
 # uses. Needed because `#[implement]` — which builds the

@@ -289,6 +289,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // resolving second would overwrite the newer one and stick a stale
   // device rate into the UI until the next track change.
   const deviceRefreshTokenRef = useRef(0);
+  // Bumped by every `player:options-changed`: a snapshot read before one
+  // landed carries the modes that event replaced, and leaves them alone.
+  const optionsEventsRef = useRef(0);
 
   // Suppress incoming position events while the user drags the
   // progress bar, so the thumb doesn't fight the mouse.
@@ -481,6 +484,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       // is newer than what they answer.
       const keepRead = ++keepPitchRevision.current;
       const semitonesRead = ++semitonesRevision.current;
+      const optionsRead = optionsEventsRef.current;
       try {
         const snap = await playerGetState();
         if (cancelled) return;
@@ -490,9 +494,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Volume arrives as 0..1 from the snapshot; UI uses 0..100.
         setVolumeState(Math.round(snap.volume * 100));
         previousVolumeRef.current = Math.round(snap.volume * 100);
-        setIsShuffled(snap.shuffle);
-        setShuffleMode(snap.shuffle_mode);
-        setRepeatMode(snap.repeat_mode);
+        // Unless a change was announced while the snapshot was on its way:
+        // the event carries the newer modes.
+        if (optionsRead === optionsEventsRef.current) {
+          setIsShuffled(snap.shuffle);
+          setShuffleMode(snap.shuffle_mode);
+          setRepeatMode(snap.repeat_mode);
+        }
         // Device-side audio fields are unset (0) before the first
         // stream opens; null'ing them out keeps the type honest so
         // downstream UI can skip the "0 kHz" display.
@@ -609,7 +617,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }),
         );
         unlisten.push(
-          // Repeat / shuffle changed outside the frontend (an MPD client) —
+          // Repeat / shuffle changed outside the frontend (an MPD client,
+          // the OS media controls' buttons) —
           // the in-app buttons update optimistically, so this only fires for
           // external surfaces.
           await listen<{
@@ -617,6 +626,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             shuffle: boolean;
             shuffleMode: ShuffleMode;
           }>("player:options-changed", (e) => {
+            optionsEventsRef.current += 1;
             setRepeatMode(e.payload.repeatMode);
             setIsShuffled(e.payload.shuffle);
             setShuffleMode(e.payload.shuffleMode);

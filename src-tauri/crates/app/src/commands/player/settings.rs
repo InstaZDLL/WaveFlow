@@ -2,7 +2,7 @@
 //! engine when a profile opens, and telling the windows they changed.
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -16,8 +16,9 @@ use super::*;
 
 /// Repeat + shuffle, emitted so every frontend `PlayerContext` reflects an
 /// options change — an external surface (an MPD client toggling `repeat` /
-/// `random`) has no other way to reach the UI, and neither has the *other*
-/// window: `player:state` carries only the play-state, and re-reading
+/// `random`, the OS media controls' shuffle and repeat buttons) has no other
+/// way to reach the UI, and neither has the *other* window: `player:state`
+/// carries only the play-state, and re-reading
 /// `player_get_state` would re-apply every audio setting to the engine as a
 /// side effect.
 ///
@@ -36,17 +37,55 @@ struct OptionsChangedPayload {
     shuffle_mode: String,
 }
 
+/// Tell the windows and the OS media controls the shuffle and repeat modes
+/// in force. Every change of either passes through here, whichever surface
+/// made it, which is what keeps the OS overlay's buttons in step with the
+/// player's.
 pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePool) {
-    let repeat_mode = queue::read_repeat_mode(pool).await.as_str().to_string();
-    let mode = queue::read_shuffle_mode(pool).await;
+    let engine = app.state::<std::sync::Arc<AudioEngine>>();
+    // Emitted before the lock the modes were read under is let go: two
+    // changes in a row reach the windows in the order they reach the
+    // overlay, rather than the older read's event landing last.
+    let _publish = engine.lock_publish().await;
+    let (mode, repeat) = hand_over_options(app, pool).await;
     let _ = app.emit(
         "player:options-changed",
         OptionsChangedPayload {
-            repeat_mode,
+            repeat_mode: repeat.as_str().to_string(),
             shuffle: mode.is_on(),
             shuffle_mode: mode.as_str().to_string(),
         },
     );
+}
+
+/// Read the shuffle and repeat modes in force and hand them to the OS media
+/// controls, under the publish lock every change of either is made under.
+///
+/// The overlay keeps the last state it was handed, so the order of the
+/// hand-overs is what it ends up showing. Under the lock, a read that came
+/// before a change is also handed over before it, so an older read never
+/// lands last.
+pub(crate) async fn publish_options(
+    app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+) -> (queue::ShuffleMode, queue::RepeatMode) {
+    let engine = app.state::<std::sync::Arc<AudioEngine>>();
+    let _publish = engine.lock_publish().await;
+    hand_over_options(app, pool).await
+}
+
+/// The read and the hand-over of [`publish_options`], for a caller that
+/// already holds the publish lock.
+async fn hand_over_options(
+    app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+) -> (queue::ShuffleMode, queue::RepeatMode) {
+    let repeat = queue::read_repeat_mode(pool).await;
+    let mode = queue::read_shuffle_mode(pool).await;
+    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+        controls.update_options(mode.is_on(), repeat);
+    }
+    (mode, repeat)
 }
 
 /// Read a `profile_setting` row, logging a query failure rather than

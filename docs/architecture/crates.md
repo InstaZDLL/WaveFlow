@@ -46,7 +46,7 @@ src-tauri/
             ├── db/                    (per-profile pool wiring + migration_heal + pre_migration_backup)
             ├── dlna/                  (MediaServer worker thread)
             ├── discord_presence.rs    (Rich Presence named-pipe client)
-            ├── media_controls.rs      (souvlaki bridge → SMTC / MPRIS)
+            ├── media_controls/        (souvlaki → SMTC / MediaRemote; SMTC shuffle + repeat; our own MPRIS over zbus)
             ├── notifications.rs       (Tauri notification plugin bridge)
             ├── paths.rs               (AppPaths via tauri::AppHandle + dirs)
             ├── scrobbler.rs           (Last.fm scrobble worker)
@@ -91,7 +91,7 @@ Anything tied to the Tauri runtime, the real-time audio engine, or the desktop O
 
 - **Every `#[tauri::command]`** — even when the body is a thin call into a core function. The IPC bridge contract is desktop-specific.
 - **Real-time audio engine** — `audio/{decoder,output,engine}/` and `audio/{crossfade,eq,spectrum,state,analytics}.rs`, plus the per-OS exclusive backends `audio/wasapi_exclusive/`, `audio/alsa_exclusive/` and `audio/coreaudio_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them. What the decoder thread drives — opening and decoding a track, resampling, channel conversion, ReplayGain — is `waveflow_core::playback`.
-- **OS media controls** — souvlaki (`media_controls.rs`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
+- **OS media controls** — souvlaki on Windows / macOS, an MPRIS object of our own over zbus on Linux (`media_controls/`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
 - **DLNA / UPnP MediaServer** — `dlna/` is integrated as a worker thread driven by the Tauri runtime.
 - **Filesystem watcher** — `watcher.rs` wires `notify` events into `library:rescanned` Tauri events.
 - **DB pool wiring** — `db/{app_db,profile_db,migration_heal,pre_migration_backup}.rs`. Migrations themselves live at `src-tauri/migrations/` and are compiled in by `sqlx::migrate!(...)` from app; moving migrations into core is a later cleanup once nothing app-side needs to point at them with a relative path.
