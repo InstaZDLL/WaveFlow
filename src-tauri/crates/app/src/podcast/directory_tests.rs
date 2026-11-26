@@ -48,7 +48,8 @@ const CHART: &str = r#"{"feed": {"entry": [
 ]}}"#;
 
 const LOOKUP: &str = r#"{"results": [
-  {"collectionId": 22, "collectionName": "Second", "feedUrl": "https://feeds.example.com/22"},
+  {"collectionId": 22, "collectionName": "Second", "feedUrl": "https://feeds.example.com/22",
+   "trackCount": 12, "collectionExplicitness": "explicit"},
   {"collectionId": 11, "collectionName": "First", "feedUrl": "https://feeds.example.com/11",
    "genreIds": ["1482", "26", "1301"]}
 ]}"#;
@@ -111,6 +112,11 @@ async fn a_chart_is_read_with_its_feeds_in_two_requests_then_kept() {
         shows.iter().all(|show| show.genre_id == Some(1487)),
         "a narrowed chart's shows are of its genre"
     );
+    // What the chart does not say comes from the lookup, as a search gives it.
+    assert_eq!(shows[1].episode_count, Some(12));
+    assert!(shows[1].explicit);
+    assert_eq!(shows[0].episode_count, None);
+    assert!(!shows[0].explicit);
     let asked = table.asked();
     assert_eq!(asked.len(), 2);
     assert_eq!(

@@ -379,6 +379,9 @@ impl Directory {
                         for show in &mut shows {
                             if let Some(looked_up) = found.get(&show.id) {
                                 show.feed_url.clone_from(&looked_up.feed_url);
+                                // A chart says neither; the lookup does, as a search does.
+                                show.episode_count = looked_up.episode_count;
+                                show.explicit = looked_up.explicit;
                                 // A chart names a sub-genre; a lookup names its parent too.
                                 if show.genre_id.is_none() {
                                     show.genre_id = looked_up.genre_id;
