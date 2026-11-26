@@ -302,7 +302,11 @@ impl Directory {
     /// known, so it never replaces what a newer one said.
     fn remember(&self, shows: &[DirectoryShow], recorded: Recorded) {
         let mut known = lock(&self.known);
-        if known.len() + shows.len() > MAX_SHOWS_KNOWN {
+        // A full record starts over for an answer just received. An answer read
+        // again from memory never empties it, or it would put back older feeds in
+        // place of the newer ones it emptied; the record stays bounded all the
+        // same, by the answers kept ([`MAX_ANSWERS`] of at most 200 shows each).
+        if recorded == Recorded::Fresh && known.len() + shows.len() > MAX_SHOWS_KNOWN {
             known.clear();
         }
         let fill = |slot: &mut Option<String>, value: &Option<String>| {

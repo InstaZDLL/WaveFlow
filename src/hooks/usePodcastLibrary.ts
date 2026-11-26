@@ -84,8 +84,12 @@ export function usePodcastLibrary(): PodcastLibrary {
       .catch((err) => {
         console.warn("[podcasts] reading the download usage failed", err);
       });
+    // Overtaken by a newer read: wait for that one. Overtaken by nothing (the
+    // page went away), this read is the newest one and there is nothing to wait.
     const settled: Promise<void> = channelsRead.then(() =>
-      current() ? undefined : latestRead.current,
+      current() || latestRead.current === settled
+        ? undefined
+        : latestRead.current,
     );
     latestRead.current = settled;
     return settled;
