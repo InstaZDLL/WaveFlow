@@ -176,6 +176,20 @@ export function useLyricsFollow({
     };
   }, [containerRef, enabled]);
 
+  // ── The motion turned off ─────────────────────────────────────────
+  // The setting turned off, or less motion asked for, while lines glide:
+  // they go back in place at once, browsing or not (the centring below
+  // waits for the next line, and does nothing while browsing).
+  useLayoutEffect(() => {
+    if (staggered && !reducedMotion) return;
+    const first = lineRefs.current.find((row) => row != null);
+    if (!first) return;
+    Array.from(
+      first.parentElement?.children ?? [first],
+      (row) => row as HTMLElement,
+    ).forEach(settle);
+  }, [staggered, reducedMotion, lineRefs]);
+
   // ── Following ─────────────────────────────────────────────────────
   // Before the paint: the scroller's step and the lines' start offsets land
   // in the same frame, so the list is never seen in its new place first.
