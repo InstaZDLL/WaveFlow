@@ -200,17 +200,26 @@ export function useLyricsFollow({
     // Read everything before writing anything: one layout, not one a line.
     const box = container.getBoundingClientRect();
     const at = line.getBoundingClientRect();
-    const middle = box.top + container.clientTop + container.clientHeight / 2;
+    // The rectangles are drawn pixels, the scroller counts its own: on a
+    // wide window the immersive view is enlarged with `zoom`, and the two
+    // differ by that factor.
+    const scale =
+      container.offsetHeight > 0 ? box.height / container.offsetHeight : 1;
+    const middle =
+      box.top + (container.clientTop + container.clientHeight / 2) * scale;
     const before = container.scrollTop;
     // The line's own place, not where its glide is drawing it.
     const to = Math.min(
       container.scrollHeight - container.clientHeight,
-      Math.max(0, before + at.top - drawnOffset(line) + at.height / 2 - middle),
+      Math.max(
+        0,
+        before + (at.top + at.height / 2 - middle) / scale - drawnOffset(line),
+      ),
     );
     if (Math.abs(to - before) < 1) return;
     // The lines in view before the step or after it: one that only comes
     // into view must glide in too, not appear in its place.
-    const ahead = to - before;
+    const ahead = (to - before) * scale;
     const from = box.top - GLIDE_MARGIN_PX + Math.min(0, ahead);
     const until = box.bottom + GLIDE_MARGIN_PX + Math.max(0, ahead);
     // By the lines' own indices, which the gaps in the refs would shift.
