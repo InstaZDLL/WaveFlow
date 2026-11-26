@@ -29,13 +29,16 @@ pub async fn player_get_state(
     let snapshot = state.require_profile_snapshot().await;
     let (shuffle, repeat_mode, current_track, resumed_position) = match snapshot {
         Ok((pool, profile_id)) => {
-            let shuffle = queue::read_shuffle_mode(&pool).await;
-            let repeat_mode = queue::read_repeat_mode(&pool).await;
-
             // Restores the persisted volume into the atomic shared with
             // the cpal callback (without which the knob jumps back to
             // 100 % on every launch), and every other audio setting.
             restore_profile_audio_settings(&pool, &engine).await;
+            // The OS overlay's shuffle and repeat: at launch it has none
+            // yet, and after a profile switch it still shows the previous
+            // profile's. Read under the publish lock and after the awaits
+            // above, and the very values the snapshot carries: the window
+            // and the overlay are told one state.
+            let (shuffle, repeat_mode) = publish_options(&app, &pool).await;
             // Album grouping is persisted per profile like everything
             // above, and the decoder reads it to tell a record playing
             // through from a shuffled playlist (#587). Mirrored here
@@ -48,11 +51,6 @@ pub async fn player_get_state(
             // the UI is told must describe one state, and two reads
             // could straddle a change.
             publish_shuffle_grouping(&engine, shuffle);
-            // The OS overlay's shuffle and repeat: at launch it has none
-            // yet, and after a profile switch it still shows the previous
-            // profile's. Read again under the publish lock rather than
-            // taken from above, which the awaits since may have outdated.
-            publish_options(&app, &pool).await;
             // And the queue's own shape, for the same reason: a session
             // of whole records that survives a restart has to keep its
             // album gain across it, and the decoder cannot read the

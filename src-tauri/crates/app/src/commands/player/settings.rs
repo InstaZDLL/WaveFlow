@@ -42,7 +42,12 @@ struct OptionsChangedPayload {
 /// made it, which is what keeps the OS overlay's buttons in step with the
 /// player's.
 pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePool) {
-    let (mode, repeat) = publish_options(app, pool).await;
+    let engine = app.state::<std::sync::Arc<AudioEngine>>();
+    // Emitted before the lock the modes were read under is let go: two
+    // changes in a row reach the windows in the order they reach the
+    // overlay, rather than the older read's event landing last.
+    let _publish = engine.lock_publish().await;
+    let (mode, repeat) = hand_over_options(app, pool).await;
     let _ = app.emit(
         "player:options-changed",
         OptionsChangedPayload {
@@ -58,15 +63,23 @@ pub(crate) async fn emit_options_changed(app: &AppHandle, pool: &sqlx::SqlitePoo
 ///
 /// The overlay keeps the last state it was handed, so the order of the
 /// hand-overs is what it ends up showing. Under the lock, a read that came
-/// before a change is also handed over before it: a `player_get_state`
-/// that read the modes and then spent its time restoring audio settings
-/// cannot publish them after a shuffle the overlay asked for meanwhile.
+/// before a change is also handed over before it, so an older read never
+/// lands last.
 pub(crate) async fn publish_options(
     app: &AppHandle,
     pool: &sqlx::SqlitePool,
 ) -> (queue::ShuffleMode, queue::RepeatMode) {
     let engine = app.state::<std::sync::Arc<AudioEngine>>();
     let _publish = engine.lock_publish().await;
+    hand_over_options(app, pool).await
+}
+
+/// The read and the hand-over of [`publish_options`], for a caller that
+/// already holds the publish lock.
+async fn hand_over_options(
+    app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+) -> (queue::ShuffleMode, queue::RepeatMode) {
     let repeat = queue::read_repeat_mode(pool).await;
     let mode = queue::read_shuffle_mode(pool).await;
     if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
