@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 
-import { useLyricsStaggeredScroll } from "./useLyricsStaggeredScroll";
+import { useLyricsExpressiveMotion } from "./useLyricsExpressiveMotion";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 /** How long each line takes to glide to its new place. */
@@ -80,7 +80,7 @@ export interface LyricsFollow {
  * the centring's own glide fires those too.
  *
  * By default the centring is the browser's smooth `scrollIntoView`, the
- * whole list in one block. With `lyrics.staggered_scroll` on, it moves the
+ * whole list in one block. With `lyrics.expressive_motion` on, it moves the
  * scroller to the sung line in one step instead, then has
  * each line in view glide from where it was drawn to its new place, the
  * lines below the sung one a beat later each: the list moves on line by
@@ -123,7 +123,7 @@ export function useLyricsFollow({
   }
   const browsing = enabled && sameKeys;
   const reducedMotion = usePrefersReducedMotion();
-  const staggered = useLyricsStaggeredScroll();
+  const staggered = useLyricsExpressiveMotion();
   // The listeners below read the keys at the moment of the gesture.
   const keysRef = useRef(resetKeys);
   useEffect(() => {

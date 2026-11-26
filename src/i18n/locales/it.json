@@ -2981,9 +2981,9 @@
       "title": "Anima le note tenute",
       "subtitle": "Nella vista immersiva, una parola tenuta a lungo si illumina lettera per lettera mentre viene cantata."
     },
-    "lyricsStaggeredScroll": {
-      "title": "Scorri il testo riga per riga",
-      "subtitle": "Ogni riga scivola al suo posto, quelle sotto la riga cantata un attimo dopo, invece di far scorrere tutto l'elenco in blocco. Su alcuni computer può andare a scatti."
+    "lyricsExpressiveMotion": {
+      "title": "Movimento espressivo del testo",
+      "subtitle": "Ogni riga scivola al suo posto, quelle sotto la riga cantata un attimo dopo, e ogni parola si solleva mentre viene cantata. Su alcuni computer può andare a scatti o far tremare le righe, soprattutto su macOS e Linux."
     },
     "lyricsHighlightColor": {
       "title": "Colore della riga cantata",

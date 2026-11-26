@@ -193,7 +193,7 @@ import {
 import { FULLSCREEN_LYRICS_CENTERING_EVENT } from "../../../hooks/useFullscreenLyricsCentering";
 import { ESTIMATED_KARAOKE_EVENT } from "../../../hooks/useEstimatedKaraoke";
 import { HELD_NOTE_GLOW_EVENT } from "../../../hooks/useHeldNoteGlow";
-import { LYRICS_STAGGERED_SCROLL_EVENT } from "../../../hooks/useLyricsStaggeredScroll";
+import { LYRICS_EXPRESSIVE_MOTION_EVENT } from "../../../hooks/useLyricsExpressiveMotion";
 import {
   LYRICS_HIGHLIGHT_COLOR_EVENT,
   parseId as parseLyricsHighlightId,
@@ -1029,9 +1029,9 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     ESTIMATED_KARAOKE_EVENT,
   ),
   "lyrics.held_notes": profileBool("lyrics.held_notes", HELD_NOTE_GLOW_EVENT),
-  "lyrics.staggered_scroll": profileBool(
-    "lyrics.staggered_scroll",
-    LYRICS_STAGGERED_SCROLL_EVENT,
+  "lyrics.expressive_motion": profileBool(
+    "lyrics.expressive_motion",
+    LYRICS_EXPRESSIVE_MOTION_EVENT,
   ),
   "ui.lyrics_highlight_color": profileRow("ui.lyrics_highlight_color", {
     parse: parseLyricsHighlightId,

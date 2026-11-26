@@ -1,21 +1,20 @@
 import { useTranslation } from "react-i18next";
 import { MoveVertical } from "lucide-react";
-import { useLyricsStaggeredScrollSetting } from "../../../hooks/useLyricsStaggeredScroll";
+import { useLyricsExpressiveMotionSetting } from "../../../hooks/useLyricsExpressiveMotion";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
- * Settings → Lyrics row: the lyrics move on line by line rather than in
- * one block (`useLyricsFollow`). Default OFF, since every line in view
- * glides on a layer of its own.
+ * Settings → Lyrics row: the lyrics move on line by line and each word
+ * rises as it is sung (`useLyricsExpressiveMotion`). Default OFF.
  */
-export function LyricsStaggeredScrollCard() {
+export function LyricsExpressiveMotionCard() {
   const { t } = useTranslation();
-  const { value: staggered, setValue: setStaggered } =
-    useLyricsStaggeredScrollSetting();
+  const { value: expressive, setValue: setExpressive } =
+    useLyricsExpressiveMotionSetting();
 
   return (
     <section
-      aria-label={t("settings.lyricsStaggeredScroll.title")}
+      aria-label={t("settings.lyricsExpressiveMotion.title")}
       className="px-4 py-3"
     >
       <div className="flex items-center justify-between gap-3">
@@ -27,19 +26,19 @@ export function LyricsStaggeredScrollCard() {
           />
           <span className="min-w-0">
             <span className="block text-sm font-medium text-zinc-900 dark:text-white">
-              {t("settings.lyricsStaggeredScroll.title")}
+              {t("settings.lyricsExpressiveMotion.title")}
             </span>
             <span className="block text-xs mt-0.5 settings-description">
-              {t("settings.lyricsStaggeredScroll.subtitle")}
+              {t("settings.lyricsExpressiveMotion.subtitle")}
             </span>
           </span>
         </span>
         <ToggleSwitch
-          enabled={staggered}
+          enabled={expressive}
           onToggle={() => {
-            void setStaggered(!staggered);
+            void setExpressive(!expressive);
           }}
-          label={t("settings.lyricsStaggeredScroll.title")}
+          label={t("settings.lyricsExpressiveMotion.title")}
         />
       </div>
     </section>

@@ -2909,9 +2909,9 @@
       "title": "Uzatılan notaları canlandır",
       "subtitle": "Sürükleyici görünümde uzun süre uzatılan bir kelime, söylenirken harf harf parlar."
     },
-    "lyricsStaggeredScroll": {
-      "title": "Şarkı sözlerini satır satır kaydır",
-      "subtitle": "Tüm liste bir anda kaymak yerine her satır yerine kayar, söylenen satırın altındakiler biraz daha geç. Bazı bilgisayarlarda takılabilir."
+    "lyricsExpressiveMotion": {
+      "title": "Etkileyici şarkı sözü hareketi",
+      "subtitle": "Her satır yerine kayar, söylenen satırın altındakiler biraz daha geç; her kelime söylenirken yükselir. Bazı bilgisayarlarda, özellikle macOS ve Linux'ta, takılabilir veya satırları titretebilir."
     },
     "lyricsHighlightColor": {
       "title": "Söylenen satırın rengi",

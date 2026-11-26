@@ -36,11 +36,18 @@ import {
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { useLyricsShare } from "../../hooks/useLyricsShare";
-import { LYRICS_WORD_TRANSITION, lyricsLineClass } from "../../lib/lyricsLine";
+import {
+  LYRICS_WORD_LIFT_TRANSITION,
+  LYRICS_WORD_TRANSITION,
+  lyricsLineClass,
+  lyricsWordTransform,
+} from "../../lib/lyricsLine";
 import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 import { LyricsResumeButton } from "../player/LyricsResumeButton";
 import { useLyricsFollow } from "../../hooks/useLyricsFollow";
+import { useLyricsExpressiveMotion } from "../../hooks/useLyricsExpressiveMotion";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { ContextTip } from "../discovery/ContextTip";
 import { useTip } from "../discovery/useTip";
 import {
@@ -191,6 +198,11 @@ export function LyricsPanel({
   // it, and its pause while the user browses (#1096), target *this*
   // panel's line nodes. The immersive view follows with its own.
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+  // Each sung word rises and stays up until its line ends, with the
+  // expressive motion on and the system not asking for less motion.
+  const expressiveMotion = useLyricsExpressiveMotion();
+  const reducedMotion = usePrefersReducedMotion();
+  const liftWords = expressiveMotion && !reducedMotion;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const follow = useLyricsFollow({
     containerRef,
@@ -471,11 +483,17 @@ export function LyricsPanel({
                                   }
                                   style={{
                                     display: "inline-block",
-                                    transform:
-                                      wi === lineWordIndex
-                                        ? "scale(1.04)"
-                                        : "scale(1)",
-                                    transition: LYRICS_WORD_TRANSITION,
+                                    transform: lyricsWordTransform(
+                                      wi === lineWordIndex,
+                                      !liftWords
+                                        ? "off"
+                                        : isActive && wi <= lineWordIndex
+                                          ? "up"
+                                          : "down",
+                                    ),
+                                    transition: liftWords
+                                      ? LYRICS_WORD_LIFT_TRANSITION
+                                      : LYRICS_WORD_TRANSITION,
                                   }}
                                 >
                                   {word.text}

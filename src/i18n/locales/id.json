@@ -2906,9 +2906,9 @@
       "title": "Animasikan nada panjang",
       "subtitle": "Di tampilan imersif, kata yang ditahan lama menyala huruf demi huruf selama dinyanyikan."
     },
-    "lyricsStaggeredScroll": {
-      "title": "Gulir lirik baris demi baris",
-      "subtitle": "Setiap baris meluncur ke tempatnya, baris di bawah baris yang dinyanyikan sedikit lebih lambat, alih-alih seluruh daftar bergulir sekaligus. Bisa tersendat di beberapa komputer."
+    "lyricsExpressiveMotion": {
+      "title": "Gerakan lirik ekspresif",
+      "subtitle": "Setiap baris meluncur ke tempatnya, baris di bawah baris yang dinyanyikan sedikit lebih lambat, dan setiap kata terangkat saat dinyanyikan. Bisa tersendat atau membuat baris bergetar di beberapa komputer, terutama di macOS dan Linux."
     },
     "lyricsHighlightColor": {
       "title": "Warna baris yang dinyanyikan",
