@@ -375,7 +375,9 @@ export function ImmersiveLyricsColumn({
                                   <Fragment key={wi}>
                                     <span
                                       className={
-                                        liftWords
+                                        liftWords &&
+                                        isActive &&
+                                        wState !== "future"
                                           ? `karaoke-word ${LYRICS_WORD_LIFT_CLASS}`
                                           : "karaoke-word"
                                       }

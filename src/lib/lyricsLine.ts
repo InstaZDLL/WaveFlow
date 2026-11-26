@@ -19,10 +19,12 @@ export const LYRICS_WORD_TRANSITION = "color 150ms ease";
  * which the setting's description warns of; Chromium shows none.
  */
 /**
- * On a word that lifts. A line's words are created as it becomes the sung
- * one, its first word already up, so no transition can carry that first
- * rise: this class plays it once from the baseline (`app.css`). On a word
- * created down it moves nothing.
+ * On a word while it is up, put on as it rises. A line's words are created
+ * as it becomes the sung one, its first word already up, so no transition
+ * could carry that first rise: the class plays it from the baseline
+ * (`app.css`), and does the same for each later word at the moment it is
+ * reached, never ahead of it. Taken off as the line ends, so the words
+ * come down through the transition.
  */
 export const LYRICS_WORD_LIFT_CLASS = "wf-word-lift";
 

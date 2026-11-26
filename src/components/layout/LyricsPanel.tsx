@@ -481,7 +481,11 @@ export function LyricsPanel({
                                       : wi < lineWordIndex
                                         ? ""
                                         : "opacity-60"
-                                  } ${liftWords ? LYRICS_WORD_LIFT_CLASS : ""}`}
+                                  } ${
+                                    liftWords && isActive && wi <= lineWordIndex
+                                      ? LYRICS_WORD_LIFT_CLASS
+                                      : ""
+                                  }`}
                                   style={{
                                     display: "inline-block",
                                     transform: lyricsWordTransform(
