@@ -84,8 +84,8 @@ export function PodcastDirectory({
   /** A new place, on a new history entry. */
   onPlace: (place: DirectoryPlace) => void;
   onOpenChannel: (channelId: number) => void;
-  /** A show became a channel: the library has a row to read. */
-  onSubscribed: () => void;
+  /** A show became a channel: reads the library again, settled once it holds the row. */
+  onSubscribed: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
   const { country, setCountry, ready } = usePodcastDirectoryCountry();
@@ -168,8 +168,10 @@ export function PodcastDirectory({
       setRowFailure(null);
       try {
         const channel = await podcastDirectorySubscribe(country, show.id);
+        // Open is offered once the list holds the channel: a channel it does not
+        // hold yet reads as one that is gone.
+        await onSubscribed();
         setFollowed((map) => new Map(map).set(show.id, channel.id));
-        onSubscribed();
       } catch (err) {
         const word = podcastErrorWord(err);
         if (word == null)

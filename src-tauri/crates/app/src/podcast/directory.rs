@@ -366,7 +366,13 @@ impl Directory {
                             }
                         }
                     }
-                    Err(err @ (PodcastError::Disabled | PodcastError::Offline)) => return Err(err),
+                    // What stops the whole request stops the chart too; only a
+                    // failure of the lookup itself leaves the shows without feeds.
+                    Err(
+                        err @ (PodcastError::Disabled
+                        | PodcastError::Offline
+                        | PodcastError::ProfileChanged),
+                    ) => return Err(err),
                     Err(err) => log_failure("lookup", &err),
                 }
             }
@@ -481,11 +487,13 @@ impl Directory {
             .acquire()
             .await
             .map_err(|_| PodcastError::Failed(FetchFailure::Unreached))?;
+        // The wait may have been long: the switch may have gone off meanwhile, and
+        // a picture is served only while it is on, a kept one included.
+        enabled_or_refuse(leases).await?;
         // Another call for the same show may have filled it while this one waited.
         if let Some(picture) = lock(&self.pictures).by_id.get(&id) {
             return Ok(picture.clone());
         }
-        enabled_or_refuse(leases).await?;
         let picture = match asker.ask(&url, MAX_ARTWORK_BYTES).await {
             Ok(bytes) => tokio::task::spawn_blocking(move || data_url(&bytes))
                 .await

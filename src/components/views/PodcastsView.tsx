@@ -838,7 +838,7 @@ export function PodcastsView({
           offline={offline}
           onPlace={onOpenDiscover}
           onOpenChannel={openChannel}
-          onSubscribed={() => void reload()}
+          onSubscribed={reload}
         />
       ) : (
         <>
