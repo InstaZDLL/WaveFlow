@@ -193,6 +193,10 @@ export function useLyricsFollow({
       line.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    // Less motion asked for mid-glide: the lines go back in place before
+    // anything is measured, so a scroller already at its target still
+    // stops them.
+    if (reducedMotion) lines.forEach(settle);
     // Read everything before writing anything: one layout, not one a line.
     const box = container.getBoundingClientRect();
     const at = line.getBoundingClientRect();
@@ -204,12 +208,16 @@ export function useLyricsFollow({
       Math.max(0, before + at.top - drawnOffset(line) + at.height / 2 - middle),
     );
     if (Math.abs(to - before) < 1) return;
+    // The lines in view before the step or after it: one that only comes
+    // into view must glide in too, not appear in its place.
+    const ahead = to - before;
+    const from = box.top - GLIDE_MARGIN_PX + Math.min(0, ahead);
+    const until = box.bottom + GLIDE_MARGIN_PX + Math.max(0, ahead);
     // By the lines' own indices, which the gaps in the refs would shift.
     const inView = lineRefs.current.flatMap((row, i) => {
       if (!row) return [];
       const r = row.getBoundingClientRect();
-      return r.bottom < box.top - GLIDE_MARGIN_PX ||
-        r.top > box.bottom + GLIDE_MARGIN_PX
+      return r.bottom < from || r.top > until
         ? []
         : [{ row, i, offset: drawnOffset(row) }];
     });
