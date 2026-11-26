@@ -2,20 +2,36 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
-/** How long the view takes to glide to the next sung line. The browser's
- *  own smooth scroll took about 150 ms whatever the distance: unnoticed in
- *  the side panel, a jump under the immersive column's tall lines. */
-const GLIDE_MS = 500;
+/** How long each line takes to glide to its new place. */
+const GLIDE_MS = 560;
+/** Leaves fast, settles slowly on its place. */
+const GLIDE_EASE = "cubic-bezier(0.41, 0, 0.12, 0.99)";
+/** The lines below the sung one leave a beat later each, up to this many:
+ *  the gaps open and close as the list moves on. */
+const STAGGER_LINES = 3;
+const STAGGER_MS = 40;
+/** Lines this far outside the scroller are left where they are. */
+const GLIDE_MARGIN_PX = 200;
 
-/** Fast at first, settling on the line. */
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
+/** How far a line is drawn from its place right now: its glide so far. */
+function drawnOffset(line: HTMLElement): number {
+  const transform = getComputedStyle(line).transform;
+  return transform && transform !== "none"
+    ? new DOMMatrixReadOnly(transform).m42
+    : 0;
+}
+
+/** Back in place at once, a glide under way included. */
+function settle(line: HTMLElement): void {
+  line.style.transition = "none";
+  line.style.transform = "";
 }
 
 /** Keys that scroll the element holding the focus, or its scroller. */
@@ -62,11 +78,14 @@ export interface LyricsFollow {
  * scrollbar or the middle button, a scrolling key — never a `scroll` event:
  * the centring's own glide fires those too.
  *
- * The centring glides the scroller itself, frame by frame, over
- * `GLIDE_MS`, rather than asking the browser for a smooth
- * `scrollIntoView`, whose length the page cannot set; it jumps under
- * `prefers-reduced-motion`. A new line starts its glide from wherever the
- * last one had got to.
+ * The centring moves the scroller to the sung line in one step, then has
+ * each line in view glide from where it was drawn to its new place, the
+ * lines below the sung one a beat later each: the list moves on line by
+ * line instead of in one block. Only whole lines move, never a word (the
+ * karaoke's words change colour only). A new line starts every glide from
+ * wherever the last one had got to. Under `prefers-reduced-motion`, or
+ * for a jump of more than a screen and a half (a seek), the lines are put
+ * in place at once.
  *
  * "Comes into view" means the sung line was out of view and is now in it.
  * Scrolled ahead, the music catches up with what the user is reading and the
@@ -101,10 +120,6 @@ export function useLyricsFollow({
   }
   const browsing = enabled && sameKeys;
   const reducedMotion = usePrefersReducedMotion();
-  // The glide's pending frame, which a gesture cancels at once rather than
-  // on the render the browsing brings: one more frame would pull the view
-  // back from under the wheel.
-  const glideFrame = useRef(0);
   // The listeners below read the keys at the moment of the gesture.
   const keysRef = useRef(resetKeys);
   useEffect(() => {
@@ -118,7 +133,6 @@ export function useLyricsFollow({
     // Lyrics that fit have nowhere to be browsed to.
     const browse = () => {
       if (container.scrollHeight > container.clientHeight) {
-        cancelAnimationFrame(glideFrame.current);
         setBrowsingFor(keysRef.current);
       }
     };
@@ -159,40 +173,59 @@ export function useLyricsFollow({
   }, [containerRef, enabled]);
 
   // ── Following ─────────────────────────────────────────────────────
-  useEffect(() => {
+  // Before the paint: the scroller's step and the lines' start offsets land
+  // in the same frame, so the list is never seen in its new place first.
+  useLayoutEffect(() => {
     if (!enabled || browsing || activeIndex < 0) return;
     const container = containerRef.current;
     const line = lineRefs.current[activeIndex];
     if (!container || !line) return;
-    // The line's middle on the scroller's, within what can be scrolled.
+    const lines = lineRefs.current.filter(
+      (row): row is HTMLElement => row != null,
+    );
+    // Read everything before writing anything: one layout, not one a line.
     const box = container.getBoundingClientRect();
     const at = line.getBoundingClientRect();
     const middle = box.top + container.clientTop + container.clientHeight / 2;
-    const from = container.scrollTop;
+    const before = container.scrollTop;
+    // The line's own place, not where its glide is drawing it.
     const to = Math.min(
       container.scrollHeight - container.clientHeight,
-      Math.max(0, from + at.top + at.height / 2 - middle),
+      Math.max(0, before + at.top - drawnOffset(line) + at.height / 2 - middle),
     );
-    if (Math.abs(to - from) < 1) return;
+    if (Math.abs(to - before) < 1) return;
+    // By the lines' own indices, which the gaps in the refs would shift.
+    const inView = lineRefs.current.flatMap((row, i) => {
+      if (!row) return [];
+      const r = row.getBoundingClientRect();
+      return r.bottom < box.top - GLIDE_MARGIN_PX ||
+        r.top > box.bottom + GLIDE_MARGIN_PX
+        ? []
+        : [{ row, i, offset: drawnOffset(row) }];
+    });
     // `instant`: the immersive column's `scroll-smooth` would otherwise
-    // turn every step into a smooth scroll of its own.
-    const place = (top: number) =>
-      container.scrollTo({ top, behavior: "instant" });
-    if (reducedMotion) {
-      place(to);
+    // animate the step itself.
+    container.scrollTo({ top: to, behavior: "instant" });
+    // What the scroller really moved, which its ends may have clamped.
+    const moved = container.scrollTop - before;
+    if (reducedMotion || Math.abs(moved) > container.clientHeight * 1.5) {
+      lines.forEach(settle);
       return;
     }
-    let start: number | null = null;
-    const step = (now: number) => {
-      start ??= now;
-      const t = Math.min(1, (now - start) / GLIDE_MS);
-      place(from + (to - from) * easeOutCubic(t));
-      if (t < 1) glideFrame.current = requestAnimationFrame(step);
-    };
-    glideFrame.current = requestAnimationFrame(step);
-    // The next line, a gesture, the lyrics going away: this glide stops
-    // where it is, and the next one starts from there.
-    return () => cancelAnimationFrame(glideFrame.current);
+    // Clamped at an end: nothing moved, the glides under way go on.
+    if (Math.abs(moved) < 1) return;
+    // Each line drawn where it was, then let go towards its place.
+    for (const { row, offset } of inView) {
+      row.style.transition = "none";
+      row.style.transform = `translate3d(0, ${moved + offset}px, 0)`;
+    }
+    void container.offsetHeight;
+    for (const { row, i } of inView) {
+      const below = i - activeIndex;
+      const delay = Math.min(Math.max(below, 0), STAGGER_LINES) * STAGGER_MS;
+      row.style.transition = `transform ${GLIDE_MS}ms ${GLIDE_EASE} ${delay}ms`;
+      row.style.transform = "";
+    }
   }, [activeIndex, enabled, browsing, containerRef, lineRefs, reducedMotion]);
 
   // ── The sung line coming into view ────────────────────────────────
