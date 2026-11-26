@@ -22,6 +22,13 @@ import {
   useLyricsHighlightColor,
 } from "../../hooks/useLyricsHighlightColor";
 import { useLyricsLocalization } from "../../hooks/useLyricsLocalization";
+import { useLyricsExpressiveMotion } from "../../hooks/useLyricsExpressiveMotion";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import {
+  LYRICS_WORD_LIFT_CLASS,
+  LYRICS_WORD_LIFT_TRANSITION,
+  lyricsWordTransform,
+} from "../../lib/lyricsLine";
 import {
   availableLocalizations,
   effectiveLocalizationMode,
@@ -135,6 +142,11 @@ export function ImmersiveLyricsColumn({
   // Keep the active line vertically centered, unless the user is browsing
   // the lyrics (#1096). Own refs so this scroller and the side panel
   // scroll independently.
+  // Each sung word rises and stays up until its line ends, with the
+  // expressive motion on and the system not asking for less motion.
+  const expressiveMotion = useLyricsExpressiveMotion();
+  const reducedMotion = usePrefersReducedMotion();
+  const liftWords = expressiveMotion && !reducedMotion;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const follow = useLyricsFollow({
     containerRef,
@@ -362,7 +374,13 @@ export function ImmersiveLyricsColumn({
                                 return (
                                   <Fragment key={wi}>
                                     <span
-                                      className="karaoke-word"
+                                      className={
+                                        liftWords &&
+                                        isActive &&
+                                        wState !== "future"
+                                          ? `karaoke-word ${LYRICS_WORD_LIFT_CLASS}`
+                                          : "karaoke-word"
+                                      }
                                       style={{
                                         // Opacity lives on the layers, not
                                         // here: a parent's opacity applies to
@@ -375,9 +393,20 @@ export function ImmersiveLyricsColumn({
                                         // layers: an animated transform or
                                         // opacity shakes the whole line on
                                         // WebKit (`LYRICS_WORD_TRANSITION`).
-                                        transform: isActiveWord
-                                          ? "scale(1.04)"
-                                          : "scale(1)",
+                                        // The one exception is the rise of
+                                        // a sung word, which the expressive
+                                        // motion setting opts into.
+                                        transform: lyricsWordTransform(
+                                          isActiveWord,
+                                          !liftWords
+                                            ? "off"
+                                            : isActive && wState !== "future"
+                                              ? "up"
+                                              : "down",
+                                        ),
+                                        transition: liftWords
+                                          ? LYRICS_WORD_LIFT_TRANSITION
+                                          : undefined,
                                       }}
                                     >
                                       <span

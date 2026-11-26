@@ -606,6 +606,19 @@ html.mini-player-window #root {
   display: inline-block;
 }
 
+/* A word rises from the baseline as it is reached (`LYRICS_WORD_LIFT_CLASS`,
+   put on only then): the first word of a line is created already up, and
+   only this carries its rise. Same length and curve as
+   `LYRICS_WORD_LIFT_TRANSITION`, which carries the way down. */
+.wf-word-lift {
+  animation: wf-word-rise 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes wf-word-rise {
+  from {
+    transform: translateY(0) scale(1);
+  }
+}
+
 .karaoke-word__fill {
   position: absolute;
   inset: 0;

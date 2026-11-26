@@ -2909,6 +2909,10 @@
       "title": "Gehaltene Töne animieren",
       "subtitle": "In der immersiven Ansicht leuchtet ein lange gehaltenes Wort Buchstabe für Buchstabe auf, solange es gesungen wird."
     },
+    "lyricsExpressiveMotion": {
+      "title": "Ausdrucksstarke Liedtext-Bewegung",
+      "subtitle": "Jede Zeile gleitet an ihren Platz, die Zeilen unter der gesungenen etwas später, und jedes Wort hebt sich, während es gesungen wird. Kann auf manchen Rechnern ruckeln oder die Zeilen zittern lassen, besonders unter macOS und Linux."
+    },
     "lyricsHighlightColor": {
       "title": "Farbe der gesungenen Zeile",
       "subtitle": "Für den Songtext im Vollbild und den Mini-Player. Weiß, bis du eine Farbe wählst; das schwebende Songtext-Fenster behält seine eigenen Farben.",

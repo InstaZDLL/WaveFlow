@@ -686,6 +686,13 @@ export const SETTINGS = {
     true,
     "settings.lyricsHeldNotes.title",
   ),
+  "lyrics.expressive_motion": setting(
+    "media",
+    "profile",
+    "bool",
+    false,
+    "settings.lyricsExpressiveMotion.title",
+  ),
   /** `null` follows the accent; stored as an empty string. */
   "ui.lyrics_highlight_color": setting<LyricsHighlightId | null>(
     "media",

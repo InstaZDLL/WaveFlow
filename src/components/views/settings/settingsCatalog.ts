@@ -408,6 +408,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.lyricsHighlightColor.colors.rainbow",
           "settings.lyricsHeldNotes.title",
           "settings.lyricsHeldNotes.subtitle",
+          "settings.lyricsExpressiveMotion.title",
+          "settings.lyricsExpressiveMotion.subtitle",
         ],
       },
       {

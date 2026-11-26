@@ -2979,6 +2979,10 @@
       "title": "Animar notas sustentadas",
       "subtitle": "Na vista imersiva, uma palavra sustentada durante muito tempo ilumina-se letra a letra enquanto é cantada."
     },
+    "lyricsExpressiveMotion": {
+      "title": "Movimento expressivo da letra",
+      "subtitle": "Cada linha desliza para o seu lugar, as que estão abaixo da linha cantada um pouco depois, e cada palavra eleva-se ao ser cantada. Pode engasgar ou fazer tremer as linhas em alguns computadores, sobretudo no macOS e no Linux."
+    },
     "lyricsHighlightColor": {
       "title": "Cor da linha cantada",
       "subtitle": "Para as letras em ecrã inteiro e o mini-leitor. Branco até escolheres uma; a janela flutuante das letras mantém as suas próprias cores.",

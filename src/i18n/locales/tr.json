@@ -2909,6 +2909,10 @@
       "title": "Uzatılan notaları canlandır",
       "subtitle": "Sürükleyici görünümde uzun süre uzatılan bir kelime, söylenirken harf harf parlar."
     },
+    "lyricsExpressiveMotion": {
+      "title": "Etkileyici şarkı sözü hareketi",
+      "subtitle": "Her satır yerine kayar, söylenen satırın altındakiler biraz daha geç; her kelime söylenirken yükselir. Bazı bilgisayarlarda, özellikle macOS ve Linux'ta, takılabilir veya satırları titretebilir."
+    },
     "lyricsHighlightColor": {
       "title": "Söylenen satırın rengi",
       "subtitle": "Tam ekran sözler ve mini oynatıcı için. Bir renk seçene kadar beyazdır; yüzen sözler penceresi kendi renklerini korur.",

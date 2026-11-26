@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { DesktopLyricsCard } from "../DesktopLyricsCard";
 import { EstimatedKaraokeCard } from "../EstimatedKaraokeCard";
 import { FullscreenLyricsCenteringCard } from "../FullscreenLyricsCenteringCard";
+import { LyricsExpressiveMotionCard } from "../LyricsExpressiveMotionCard";
 import { HeldNoteGlowCard } from "../HeldNoteGlowCard";
 import { LyricsDestinationCard } from "../LyricsDestinationCard";
 import { LyricsExcludedGenresCard } from "../LyricsExcludedGenresCard";
@@ -178,6 +179,7 @@ export function LyricsSection({
         reveal={targetGroup === "lyricsDisplay"}
       >
         <FullscreenLyricsCenteringCard />
+        <LyricsExpressiveMotionCard />
         <EstimatedKaraokeCard />
         <HeldNoteGlowCard />
         <LyricsHighlightColorCard />

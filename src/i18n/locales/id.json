@@ -2906,6 +2906,10 @@
       "title": "Animasikan nada panjang",
       "subtitle": "Di tampilan imersif, kata yang ditahan lama menyala huruf demi huruf selama dinyanyikan."
     },
+    "lyricsExpressiveMotion": {
+      "title": "Gerakan lirik ekspresif",
+      "subtitle": "Setiap baris meluncur ke tempatnya, baris di bawah baris yang dinyanyikan sedikit lebih lambat, dan setiap kata terangkat saat dinyanyikan. Bisa tersendat atau membuat baris bergetar di beberapa komputer, terutama di macOS dan Linux."
+    },
     "lyricsHighlightColor": {
       "title": "Warna baris yang dinyanyikan",
       "subtitle": "Untuk lirik layar penuh dan pemutar mini. Putih sampai kamu memilih warna; jendela lirik mengambang tetap memakai warnanya sendiri.",

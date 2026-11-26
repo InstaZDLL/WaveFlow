@@ -399,6 +399,8 @@ As the sung word moves on, a word may transition its colour and nothing else: it
 
 WebKit, on macOS and in WebKitGTK, runs an opacity or transform transition on a compositing layer of its own, created when the transition starts and dropped when it ends, and the text of the line is redrawn snapped to the device pixel each time. Every word of the active line then shifts by 0.2 to 0.45 device pixels at each word change, a shake the eye catches at once. The layout does not move — measured in the app on a Mac, every other word keeps its box to the thousandth of a pixel — so nothing in the DOM shows it; Chromium keeps the sub-pixel offset of a composited layer, so Windows never shows it either. Removing the transitions removed the shake on the Mac; removing only the zoom did not. A colour transition is a plain repaint and creates no layer.
 
+The one exception is opt-in: with **Expressive lyrics motion** on (`profile_setting['lyrics.expressive_motion']`, default off), a word rises as it is sung and stays up until its line ends, its transform carried by [`LYRICS_WORD_LIFT_TRANSITION`](../../src/lib/lyricsLine.ts) through `lyricsWordTransform`, in the side panel and the immersive column. That brings the shake back on WebKit, which the setting's description says in every locale; `prefers-reduced-motion` turns the rise off. Every other surface, and these two with the setting off, keeps the rule.
+
 ### Right panels are flex siblings, not overlays
 
 `NowPlayingPanel` / `QueuePanel` / `LyricsPanel` / `PodcastTranscriptPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.
