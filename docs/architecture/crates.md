@@ -46,7 +46,7 @@ src-tauri/
             ├── db/                    (per-profile pool wiring + migration_heal + pre_migration_backup)
             ├── dlna/                  (MediaServer worker thread)
             ├── discord_presence.rs    (Rich Presence named-pipe client)
-            ├── media_controls/        (souvlaki → SMTC / MediaRemote; our own MPRIS over zbus)
+            ├── media_controls/        (souvlaki → SMTC / MediaRemote; SMTC shuffle + repeat; our own MPRIS over zbus)
             ├── notifications.rs       (Tauri notification plugin bridge)
             ├── paths.rs               (AppPaths via tauri::AppHandle + dirs)
             ├── scrobbler.rs           (Last.fm scrobble worker)

@@ -20,8 +20,8 @@
 //!   frozen at the last pushed value (#807).
 //!
 //! Event flow (OS keys / overlay buttons):
-//! - The platform callback runs on its own thread (souvlaki's, or zbus's
-//!   executor). Each request is translated into a [`ControlEvent`] and
+//! - The platform callback runs on its own thread (souvlaki's, zbus's
+//!   executor, or the SMTC event thread). Each request is translated into a [`ControlEvent`] and
 //!   handed to [`crate::player_actions`], which does the queue/database
 //!   side on Tauri's tokio runtime.
 //!
@@ -31,10 +31,12 @@
 //!   boolean on the bus: on reads as either grouping (tracks or whole
 //!   albums), and turning it on picks the grouping the listener last
 //!   chose, as the player's own button does.
+//! - Windows: `ShuffleEnabled` and `AutoRepeatMode` on the SMTC session,
+//!   which souvlaki leaves alone, set and watched by `smtc` on the very
+//!   session object souvlaki drives. Repeat maps one to one (off ↔ `None`,
+//!   all ↔ `List`, one ↔ `Track`).
 //! - macOS: shuffle only — souvlaki publishes `changeShuffleModeCommand`
 //!   but no repeat command.
-//! - Windows: neither — souvlaki sets no `ShuffleEnabled` or
-//!   `AutoRepeatMode` on the SMTC session.
 //!
 //! Cover art on Windows:
 //! - SMTC's `RandomAccessStreamReference::CreateFromUri` only accepts
@@ -57,6 +59,8 @@ use crate::queue::RepeatMode;
 
 #[cfg(target_os = "linux")]
 mod mpris;
+#[cfg(target_os = "windows")]
+mod smtc;
 
 /// What the OS overlay asked of the player, whichever platform said it.
 #[derive(Debug, Clone, PartialEq)]
@@ -71,8 +75,8 @@ enum ControlEvent {
     /// A relative move, in milliseconds, negative for backwards.
     SeekBy(i64),
     SetShuffle(bool),
-    /// Only MPRIS asks for a repeat mode: souvlaki has no repeat command.
-    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+    /// Asked by MPRIS and SMTC; souvlaki has no repeat command on macOS.
+    #[cfg_attr(target_os = "macos", allow(dead_code))]
     SetRepeat(RepeatMode),
 }
 
@@ -182,7 +186,14 @@ impl MediaControlsHandle {
 
 /// The platform's media controls, as the controls thread drives them.
 #[cfg(not(target_os = "linux"))]
-struct Backend(souvlaki::MediaControls);
+struct Backend {
+    controls: souvlaki::MediaControls,
+    /// Shuffle and repeat on the same SMTC session. `None` when the
+    /// session would not take the handlers: the rest of the overlay still
+    /// works without them.
+    #[cfg(target_os = "windows")]
+    options: Option<smtc::Options>,
+}
 
 #[cfg(target_os = "linux")]
 struct Backend(mpris::Mpris);
@@ -208,15 +219,35 @@ impl Backend {
                 return None;
             }
         };
+        let souvlaki_app = app.clone();
         if let Err(err) = controls.attach(move |event: souvlaki::MediaControlEvent| {
             if let Some(event) = from_souvlaki(event) {
-                handle_event(event, app.clone());
+                handle_event(event, souvlaki_app.clone());
             }
         }) {
             tracing::warn!(?err, "media_controls: attach failed");
             return None;
         }
-        Some(Self(controls))
+        #[cfg(target_os = "windows")]
+        let options = hwnd.and_then(|hwnd| {
+            let handler = move |request| {
+                let event = match request {
+                    smtc::Request::Shuffle(on) => ControlEvent::SetShuffle(on),
+                    smtc::Request::Repeat(mode) => ControlEvent::SetRepeat(mode),
+                };
+                handle_event(event, app.clone());
+            };
+            smtc::Options::attach(hwnd, handler)
+                .inspect_err(|err| tracing::warn!(%err, "media_controls: shuffle / repeat"))
+                .ok()
+        });
+        #[cfg(not(target_os = "windows"))]
+        let _ = app;
+        Some(Self {
+            controls,
+            #[cfg(target_os = "windows")]
+            options,
+        })
     }
 
     fn set_metadata(&mut self, cached: &CachedMetadata) {
@@ -229,7 +260,7 @@ impl Backend {
             cover_url: cached.cover_url.as_deref(),
             duration,
         };
-        if let Err(err) = self.0.set_metadata(meta) {
+        if let Err(err) = self.controls.set_metadata(meta) {
             tracing::warn!(?err, "media_controls: set_metadata");
         }
     }
@@ -244,19 +275,26 @@ impl Backend {
             // transition; the next Playing event lands within ~50 ms.
             _ => MediaPlayback::Stopped,
         };
-        self.0.set_playback(pb)
+        self.controls.set_playback(pb)
     }
 
     fn set_options(&mut self, shuffle: bool, repeat: RepeatMode) {
-        // souvlaki has no repeat command on any platform, and a shuffle
-        // one on macOS only.
-        let _ = repeat;
-        #[cfg(target_os = "macos")]
-        if let Err(err) = self.0.set_shuffle(Some(shuffle)) {
-            tracing::warn!(?err, "media_controls: set_shuffle");
+        #[cfg(target_os = "windows")]
+        if let Some(options) = &self.options {
+            if let Err(err) = options.set(shuffle, repeat) {
+                tracing::warn!(%err, "media_controls: set_options");
+            }
         }
-        #[cfg(not(target_os = "macos"))]
-        let _ = shuffle;
+        // souvlaki's shuffle command, and no repeat one.
+        #[cfg(target_os = "macos")]
+        {
+            let _ = repeat;
+            if let Err(err) = self.controls.set_shuffle(Some(shuffle)) {
+                tracing::warn!(?err, "media_controls: set_shuffle");
+            }
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        let _ = (shuffle, repeat);
     }
 }
 
@@ -282,7 +320,8 @@ fn from_souvlaki(event: souvlaki::MediaControlEvent) -> Option<ControlEvent> {
             direction,
             i64::try_from(d.as_millis()).unwrap_or(i64::MAX),
         )),
-        // Emitted on macOS only, once `set_options` has published a state.
+        // Emitted on macOS only, once `set_options` has published a state;
+        // Windows' shuffle and repeat come through `smtc`.
         E::SetShuffle(on) => ControlEvent::SetShuffle(on),
         _ => return None,
     })

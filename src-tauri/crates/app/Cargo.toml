@@ -336,7 +336,8 @@ zbus = { version = "5", features = ["p2p"] }
 
 # OS-level media controls on Windows (SMTC) and macOS
 # (MediaRemoteCommandCenter), behind souvlaki; the integration lives in
-# `media_controls/`. Not on Linux: there WaveFlow publishes its own MPRIS
+# `media_controls/`. On Windows the session's shuffle and repeat, which
+# souvlaki leaves alone, are set by `media_controls/smtc.rs`. Not on Linux: there WaveFlow publishes its own MPRIS
 # object over the zbus below (`media_controls/mpris.rs`), because
 # souvlaki's has no `Shuffle` or `LoopStatus` and cannot be given them.
 [target.'cfg(not(target_os = "linux"))'.dependencies]
@@ -406,6 +407,12 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Graphics_Gdi",
     "Win32_System_Registry",
+    # Shuffle and repeat on the SMTC session souvlaki drives
+    # (`media_controls/smtc.rs`). souvlaki already turns all three on at
+    # this same version, so no crate is added.
+    "Foundation",
+    "Media",
+    "Win32_System_WinRT",
 ] }
 # The COM plumbing `windows` is itself built on, at the very version it
 # uses. Needed because `#[implement]` — which builds the
