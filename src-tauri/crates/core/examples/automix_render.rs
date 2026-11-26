@@ -1,7 +1,7 @@
 //! Render AutoMix transitions between two files to WAV, to listen to them.
 //!
 //! ```text
-//! cargo run --release -p waveflow-core --features playback --example automix_render -- <outgoing> <incoming> <out dir> [--cap-ms 12000] [--no-gain]
+//! cargo run --release -p waveflow-core --features playback --example automix_render -- <outgoing> <incoming> <out dir> [--cap-ms 12000] [--no-gain] [--trim-db dB] [--entry-beat N]
 //! ```
 //!
 //! Both files are analysed with the app's own code (`analysis::analyze_file`,
@@ -31,7 +31,19 @@
 //!   looped four times while it fades;
 //! - `stutter` — the same, the loop halved as it goes (2, 1, ½, ¼ beat);
 //! - `filter` — `tempo-in`, with a high-pass rising on the outgoing track
-//!   and a low-pass opening on the incoming one.
+//!   and a low-pass opening on the incoming one;
+//! - `band-swap` — modelled on a measured reference transition ([`band_swap`]):
+//!   the outgoing track glides to the incoming tempo well before, the
+//!   incoming one comes in native on a phrase past its intro, at a break of
+//!   the outgoing one, and the two hand over band by band, highs first,
+//!   the outgoing bass cut on its last beat and its ring-out dropped;
+//! - `band-swap-forced-entry` — the same entering on the incoming beat
+//!   `--entry-beat` names, only when it is given.
+//!
+//! `--trim-db` adds a gain to both tracks, to match the level of a recording
+//! to compare against. `AUTOMIX_SECTIONS=1` prints each beat's level and the
+//! structural novelty peaks on stderr, `AUTOMIX_BANDS_CHECK=1` the band
+//! split's response at full gain.
 
 use std::fmt::Write as _;
 use std::fs::File;
@@ -283,6 +295,9 @@ struct Layout {
     /// Where the incoming tempo is back to its own, in output seconds.
     settled: f64,
     note: String,
+    /// Where in its own time the incoming track starts, in seconds: 0, or a
+    /// phrase past its intro for the band swap.
+    in_from: f64,
 }
 
 /// Where the outgoing track leaves, as `automix` places it: one beat past
@@ -384,6 +399,7 @@ fn synced(
             in_speed,
             settled,
             note: String::new(),
+            in_from: 0.0,
         });
     }
     Err("nothing fits the crossfade length".into())
@@ -477,6 +493,7 @@ fn current(out: &Track, inc: &Track, cap: f64) -> Layout {
             in_speed: None,
             settled: p.fade_end_us as f64 / 1e6,
             note: format!("AutoMix plan, drift {:.1} ms", p.max_drift_ms),
+            in_from: 0.0,
         },
         Err(why) => {
             let end = out.duration();
@@ -492,6 +509,7 @@ fn current(out: &Track, inc: &Track, cap: f64) -> Layout {
                 in_speed: None,
                 settled: end,
                 note: format!("falls back to the plain crossfade ({why:?})"),
+                in_from: 0.0,
             }
         }
     }
@@ -538,6 +556,192 @@ impl Biquad {
     }
 }
 
+/// A 4th-order Linkwitz-Riley low-pass: two Butterworth sections.
+struct Lr4 {
+    lp: [Biquad; 2],
+}
+
+const BUTTERWORTH_Q: f64 = std::f64::consts::FRAC_1_SQRT_2;
+
+impl Lr4 {
+    fn new(freq: f64, channels: usize, rate: u32) -> Self {
+        let section = || {
+            let mut b = Biquad::new(channels);
+            b.set(false, freq, BUTTERWORTH_Q, rate);
+            b
+        };
+        Self {
+            lp: [section(), section()],
+        }
+    }
+
+    fn low(&mut self, ch: usize, x: f32) -> f32 {
+        let low = self.lp[0].run(ch, x);
+        self.lp[1].run(ch, low)
+    }
+}
+
+/// The band swap's crossover frequencies, in Hz.
+const SWAP_SPLITS: [f64; 3] = [150.0, 600.0, 2500.0];
+
+/// Four bands — under 150 Hz, 150-600 Hz, 600 Hz-2.5 kHz, over 2.5 kHz —
+/// taken by subtraction: the bass is the signal under the first low-pass,
+/// each band above is what one low-pass lets through and the one below it
+/// does not, the highs what is left. They add back to the signal exactly,
+/// so a band at full gain changes nothing, phase included. A split whose
+/// bands add up to an all-pass instead (a crossover tree) put the peaks of
+/// a limited master 6.8 dB higher (1.075 to 2.348) at the same energy.
+struct Bands {
+    low: [Lr4; 3],
+}
+
+impl Bands {
+    fn new(channels: usize, rate: u32) -> Self {
+        Self {
+            low: SWAP_SPLITS.map(|f| Lr4::new(f, channels, rate)),
+        }
+    }
+
+    /// `[bass, low-mid, mid, high]` of one sample of channel `ch`.
+    fn split(&mut self, ch: usize, x: f32) -> [f32; 4] {
+        let l150 = self.low[0].low(ch, x);
+        let l600 = self.low[1].low(ch, x);
+        let l2500 = self.low[2].low(ch, x);
+        [l150, l600 - l150, l2500 - l600, x - l2500]
+    }
+}
+
+/// When each band changes hands over the swap, as fractions of it, read
+/// off the reference transition (a 9 s swap): `(starts, done)` for the
+/// incoming band coming up and for the outgoing one going, bass first.
+/// The outgoing bass is not faded: it is cut on the last beat.
+const SWAP_IN: [(f64, f64); 4] = [(0.61, 0.89), (0.50, 0.78), (0.17, 0.44), (0.0, 0.44)];
+const SWAP_OUT: [(f64, f64); 4] = [(f64::NAN, f64::NAN), (0.94, 1.0), (0.72, 1.0), (0.0, 0.44)];
+
+/// Median of a non-empty slice.
+fn median(v: &[f64]) -> f64 {
+    let mut s = v.to_vec();
+    s.sort_by(f64::total_cmp);
+    s[s.len() / 2]
+}
+
+/// The band swap's plan, read from both tracks' beats and levels:
+///
+/// - **where the outgoing track's music stops**: the beat after the last
+///   one within 6 dB of the level of its last 64 beats (the beat list runs
+///   on through a ring-out the swap should drop);
+/// - **where the swap starts on it**: the deepest one-beat dip (a break,
+///   the end of a section) 8 to 32 beats before that, at least 3 dB under
+///   the beats around it, else 16 beats before;
+/// - **where the incoming track comes in**: on its first 32-beat phrase
+///   past its intro (the first beat within 3 dB of its typical level),
+///   counted from its first beat, unless `entry` names the beat;
+/// - **the tempo**: the outgoing track glides to the incoming one's over 8
+///   beats, 64 beats before the swap, and stays there; the incoming one
+///   plays as it is.
+fn band_swap(out: &Track, inc: &Track, cap: f64, entry: Option<usize>) -> Result<Layout, String> {
+    let rate = out.rate;
+    let ol = beat_db(out, &out.beats);
+    let n = ol.len();
+    if n < 64 {
+        return Err("outgoing: too few beats".into());
+    }
+    let typical = median(&ol[n - 64..]);
+    let k_end = (0..n)
+        .rev()
+        .find(|&k| ol[k] >= typical - 6.0)
+        .map_or(n, |k| k + 1);
+    if k_end < 40 {
+        return Err("outgoing: no music end found".into());
+    }
+    let dip = |k: usize| -> f64 {
+        let around: Vec<f64> = (k.saturating_sub(4)..(k + 5).min(n))
+            .filter(|&j| j != k)
+            .map(|j| ol[j])
+            .collect();
+        ol[k] - median(&around)
+    };
+    let (mut k_start, depth) = (k_end - 32..=k_end - 8)
+        .map(|k| (k, dip(k)))
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .unwrap_or((k_end - 16, 0.0));
+    let mut how = format!("a {depth:+.1} dB dip");
+    if depth > -3.0 {
+        k_start = k_end - 16;
+        how = "no dip, 16 beats before".into();
+    }
+
+    let il = beat_db(inc, &inc.beats);
+    let head = &il[..il.len().min(200)];
+    let in_typical = median(head);
+    let intro_end = head
+        .iter()
+        .position(|&l| l >= in_typical - 3.0)
+        .unwrap_or(0);
+    let k_in = entry.unwrap_or(intro_end.div_ceil(32) * 32);
+    if k_in + 32 > inc.beats.len() {
+        return Err("incoming: entry too late".into());
+    }
+
+    let og = Grid::fit(&out.beats[k_end - 32..k_end]).ok_or("outgoing: no grid")?;
+    let ig = Grid::fit(&inc.beats[k_in..k_in + 32]).ok_or("incoming: no grid")?;
+    for (g, side) in [(&og, "outgoing"), (&ig, "incoming")] {
+        if g.scatter > automix::MAX_SCATTER * g.period {
+            return Err(format!("{side}: unsteady grid"));
+        }
+    }
+    let (fold, ratio) = fold(&og, &ig);
+    if ratio.ln().abs() > (1.0 + MAX_STRETCH).ln() {
+        return Err(format!("tempo gap {:+.1} %", (ratio - 1.0) * 100.0));
+    }
+    // Within the crossfade length, in whole bars.
+    let mut swap = (k_end - k_start) as f64;
+    if swap * og.period * ratio > cap {
+        swap = ((cap / (og.period * ratio) / 4.0).floor() * 4.0).max(4.0);
+        k_start = k_end - swap as usize;
+        how = format!("{how}, cut to fit {cap} s");
+    }
+
+    let glide_to = out.beats[k_start.saturating_sub(64)];
+    let glide_from = out.beats[k_start.saturating_sub(72)];
+    let out_speed = ramp(
+        1.0,
+        1.0 / ratio,
+        glide_from,
+        glide_to.max(glide_from + 1e-3),
+    );
+    let out_t = |s: f64| output_time(out_speed.as_ref(), rate, 0.0, s);
+    let first = 32.0 - swap;
+    let step = fold.max(1.0);
+    let m = ((swap / 2.0) / step).round() * step;
+    let anchor = out_t(og.at(first + m));
+    let in_from = ig.at(0.0);
+    let fade_start = anchor - (ig.at(m / fold) - in_from);
+    let fade_end = out_t(og.at(32.0));
+    let period = (fade_end - out_t(og.at(first))) / swap;
+    let behind = track_time(out_speed.as_ref(), rate, 0.0, fade_start) - in_from;
+    Ok(Layout {
+        fade_start,
+        fade_end,
+        period,
+        beats: swap as u32,
+        fold,
+        ratio,
+        out_speed: Some(out_speed),
+        in_speed: None,
+        settled: fade_end,
+        note: format!(
+            "outgoing music ends on beat {k_end} ({:.2} s), swap from beat {k_start} ({:.2} s, {how}); \
+             incoming enters on its beat {k_in} ({:.2} s, intro to beat {intro_end}); at the swap the incoming track runs {:.3} s behind the outgoing one",
+            og.at(32.0),
+            og.at(first),
+            in_from,
+            behind
+        ),
+        in_from,
+    })
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum Style {
     Current,
@@ -548,6 +752,10 @@ enum Style {
     Loop,
     Stutter,
     Filter,
+    /// The band swap with the incoming track's entry found by the rule.
+    BandSwap,
+    /// The band swap entering on the incoming beat given.
+    BandSwapAt(usize),
 }
 
 impl Style {
@@ -561,6 +769,8 @@ impl Style {
             Style::Loop => "loop",
             Style::Stutter => "stutter",
             Style::Filter => "filter",
+            Style::BandSwap => "band-swap",
+            Style::BandSwapAt(_) => "band-swap-forced-entry",
         }
     }
 }
@@ -721,6 +931,149 @@ fn attack_lag_ms(
     Some((best as f64 - reach as f64 + shift) * hop_ms)
 }
 
+/// Level of each beat of `t`, in dB: the RMS over all channels from beat
+/// `k` to beat `k + 1` (the last one over the period before it).
+fn beat_db(t: &Track, beats: &[f64]) -> Vec<f64> {
+    let rate = f64::from(t.rate);
+    let ch = t.channels;
+    (0..beats.len())
+        .map(|k| {
+            let a = beats[k];
+            let b = beats
+                .get(k + 1)
+                .copied()
+                .unwrap_or(a + (a - beats[k.saturating_sub(1)]).max(0.3));
+            let (fa, fb) = ((a * rate) as usize, ((b * rate) as usize).min(t.frames()));
+            if fb <= fa {
+                return -120.0;
+            }
+            let sum: f64 = t.pcm[fa * ch..fb * ch]
+                .iter()
+                .map(|s| f64::from(*s).powi(2))
+                .sum();
+            10.0 * (sum / ((fb - fa) * ch) as f64 + 1e-12).log10()
+        })
+        .collect()
+}
+
+/// One vector per beat of `t` that changes when the music does: the log
+/// energy of 24 bands from 60 Hz to 12 kHz and the 12 pitch classes
+/// between 100 Hz and 4 kHz, averaged over the beat's 2048-point spectra,
+/// each dimension scaled to zero mean and unit variance over the beats
+/// given.
+fn beat_features(t: &Track, beats: &[f64]) -> Vec<Vec<f64>> {
+    use realfft::RealFftPlanner;
+    const N: usize = 2048;
+    const HOP: usize = 1024;
+    let rate = f64::from(t.rate);
+    let ch = t.channels;
+    let fft = RealFftPlanner::<f64>::new().plan_fft_forward(N);
+    let window: Vec<f64> = (0..N)
+        .map(|i| 0.5 - 0.5 * (2.0 * std::f64::consts::PI * i as f64 / N as f64).cos())
+        .collect();
+    let hz = |bin: usize| bin as f64 * rate / N as f64;
+    let band_of = |f: f64| -> Option<usize> {
+        (60.0..12_000.0)
+            .contains(&f)
+            .then(|| ((f / 60.0).ln() / (200.0f64).ln() * 24.0) as usize)
+    };
+    let mut input = fft.make_input_vec();
+    let mut spec = fft.make_output_vec();
+    let mut feats = Vec::with_capacity(beats.len());
+    for k in 0..beats.len() {
+        let a = (beats[k] * rate) as usize;
+        let b = beats
+            .get(k + 1)
+            .map_or(a + HOP * 2, |&e| (e * rate) as usize)
+            .min(t.frames().saturating_sub(N));
+        let mut v = vec![0.0; 36];
+        let mut frames = 0.0;
+        let mut f = a;
+        while f + N <= b + N / 2 && f + N <= t.frames() {
+            for i in 0..N {
+                let s: f32 = t.pcm[(f + i) * ch..(f + i + 1) * ch].iter().sum();
+                input[i] = f64::from(s) * window[i];
+            }
+            fft.process(&mut input, &mut spec).expect("fft");
+            for (bin, c) in spec.iter().enumerate().skip(1) {
+                let p = c.norm_sqr();
+                let f_hz = hz(bin);
+                if let Some(band) = band_of(f_hz) {
+                    v[band.min(23)] += p;
+                }
+                if (100.0..4000.0).contains(&f_hz) {
+                    let pc = (12.0 * (f_hz / 440.0).log2()).round().rem_euclid(12.0) as usize;
+                    v[24 + pc] += p;
+                }
+            }
+            frames += 1.0;
+            f += HOP;
+        }
+        let frames: f64 = if frames > 0.0 { frames } else { 1.0 };
+        let chroma_total: f64 = v[24..].iter().sum::<f64>() + 1e-12;
+        for (d, x) in v.iter_mut().enumerate() {
+            *x = if d < 24 {
+                (*x / frames + 1e-9).ln()
+            } else {
+                *x / chroma_total
+            };
+        }
+        feats.push(v);
+    }
+    for d in 0..36 {
+        let n = feats.len().max(1) as f64;
+        let mean = feats.iter().map(|v| v[d]).sum::<f64>() / n;
+        let sd = (feats.iter().map(|v| (v[d] - mean).powi(2)).sum::<f64>() / n).sqrt() + 1e-9;
+        for v in &mut feats {
+            v[d] = (v[d] - mean) / sd;
+        }
+    }
+    feats
+}
+
+/// Where the music changes, beat by beat: the novelty of a checkerboard
+/// kernel `2 × half` beats wide slid along the diagonal of the beats'
+/// cosine self-similarity (high where what came before is alike, what
+/// comes after is alike, and the two differ). Zero within `half` beats of
+/// either end.
+fn novelty(feats: &[Vec<f64>], half: usize) -> Vec<f64> {
+    let n = feats.len();
+    let norm: Vec<f64> = feats
+        .iter()
+        .map(|v| v.iter().map(|x| x * x).sum::<f64>().sqrt() + 1e-9)
+        .collect();
+    let sim = |i: usize, j: usize| -> f64 {
+        feats[i]
+            .iter()
+            .zip(&feats[j])
+            .map(|(a, b)| a * b)
+            .sum::<f64>()
+            / (norm[i] * norm[j])
+    };
+    let mut out = vec![0.0; n];
+    for (c, o) in out
+        .iter_mut()
+        .enumerate()
+        .take(n.saturating_sub(half))
+        .skip(half)
+    {
+        let mut s = 0.0;
+        for i in c - half..c + half {
+            for j in c - half..c + half {
+                let same_side = (i < c) == (j < c);
+                let w = {
+                    let di = (i as f64 - c as f64 + 0.5) / half as f64;
+                    let dj = (j as f64 - c as f64 + 0.5) / half as f64;
+                    (-(di * di + dj * dj) * 2.0).exp()
+                };
+                s += if same_side { w } else { -w } * sim(i, j);
+            }
+        }
+        *o = s / (4.0 * (half * half) as f64);
+    }
+    out
+}
+
 fn render(
     out: &Track,
     inc: &Track,
@@ -741,6 +1094,8 @@ fn render(
         Style::Current => current(out, inc, cap),
         Style::TempoInPhase => synced(&out_beats, out_dur, inc, rate, cap, false, shift)?,
         Style::TempoOut => synced(&out_beats, out_dur, inc, rate, cap, true, 0.0)?,
+        Style::BandSwap => band_swap(out, inc, cap, None)?,
+        Style::BandSwapAt(k) => band_swap(out, inc, cap, Some(k))?,
         _ => synced(&out_beats, out_dur, inc, rate, cap, false, 0.0)?,
     };
 
@@ -750,8 +1105,16 @@ fn render(
         Some(_) => layout.fade_start - RAMP_OUT_BEATS * layout.period - 1.0,
         None => layout.fade_start,
     };
-    let start = (glide_from.min(layout.fade_start) - PRE_S).max(0.0);
-    let stop = layout.settled.max(layout.fade_end) + POST_S;
+    let swap = matches!(style, Style::BandSwap | Style::BandSwapAt(_));
+    let (start, stop) = if swap {
+        // Framed like the reference recording: 21 s before, 5 s after.
+        ((layout.fade_start - 21.0).max(0.0), layout.fade_end + 5.0)
+    } else {
+        (
+            (glide_from.min(layout.fade_start) - PRE_S).max(0.0),
+            layout.settled.max(layout.fade_end) + POST_S,
+        )
+    };
     let frames = ((stop - start) * f64::from(rate)) as usize;
     let fr = |t: f64| ((t - start) * f64::from(rate)).round().max(0.0) as usize;
 
@@ -774,7 +1137,7 @@ fn render(
         &inc.pcm,
         ch,
         rate,
-        0,
+        (layout.in_from * f64::from(rate)).round() as usize,
         layout.in_speed.as_deref(),
         frames - in_at,
     );
@@ -797,6 +1160,13 @@ fn render(
     wet_hp.set(true, 300.0, 0.7, rate);
     let mut wet_lp = Biquad::new(ch);
     wet_lp.set(false, 5000.0, 0.7, rate);
+    let mut out_bands = Bands::new(ch, rate);
+    let mut in_bands = Bands::new(ch, rate);
+    let mut g_bands_out = [1.0_f32; 4];
+    let mut g_bands_in = [0.0_f32; 4];
+    // The outgoing bass is cut on the last beat, over 10 ms.
+    let last_beat = f1.saturating_sub(beat as usize);
+    let cut = (0.01 * f64::from(rate)) as usize;
     let mut mix = vec![0.0_f32; frames * ch];
     for f in 0..frames {
         let t = progress(f);
@@ -837,6 +1207,21 @@ fn render(
                     lp.set(false, lp_f, 0.9, rate);
                 }
             }
+            Style::BandSwap | Style::BandSwapAt(_) => {
+                let rise = |(a, b): (f64, f64)| smoothstep((t - a) / (b - a)) as f32;
+                for b in 0..4 {
+                    g_bands_in[b] = if f < f0 { 0.0 } else { rise(SWAP_IN[b]) };
+                    g_bands_out[b] = if f >= f1 {
+                        0.0
+                    } else if b == 0 {
+                        1.0 - ((f.saturating_sub(last_beat)) as f32 / cut as f32).min(1.0)
+                    } else {
+                        1.0 - rise(SWAP_OUT[b])
+                    };
+                }
+                g_out = 1.0;
+                g_in = 1.0;
+            }
             Style::Loop | Style::Stutter => {
                 // The loop is the point: the outgoing track stays up through
                 // the first half and fades over the second, the incoming one
@@ -851,6 +1236,12 @@ fn render(
         for c in 0..ch {
             let mut so = o[f * ch + c];
             let mut si = i[f * ch + c];
+            if swap {
+                let bo = out_bands.split(c, so);
+                let bi = in_bands.split(c, si);
+                so = (0..4).map(|b| bo[b] * g_bands_out[b]).sum();
+                si = (0..4).map(|b| bi[b] * g_bands_in[b]).sum();
+            }
             if style == Style::Filter && f >= f0 {
                 so = hp.run(c, so);
                 if f < f1 || t < 1.0 {
@@ -936,20 +1327,107 @@ fn main() {
     let mut positional = Vec::new();
     let mut cap_ms = 12_000u64;
     let mut gain = true;
+    let mut entry: Option<usize> = None;
+    let mut trim_db = 0.0_f32;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "--cap-ms" => cap_ms = it.next().and_then(|v| v.parse().ok()).expect("--cap-ms N"),
             "--no-gain" => gain = false,
+            "--trim-db" => {
+                trim_db = it
+                    .next()
+                    .and_then(|v| v.parse().ok())
+                    .expect("--trim-db dB")
+            }
+            "--entry-beat" => {
+                entry = Some(
+                    it.next()
+                        .and_then(|v| v.parse().ok())
+                        .expect("--entry-beat N"),
+                );
+            }
             _ => positional.push(PathBuf::from(a)),
         }
     }
     let [out_path, in_path, dir] = positional.as_slice() else {
-        eprintln!("usage: automix_render <outgoing> <incoming> <out dir> [--cap-ms N] [--no-gain]");
+        eprintln!("usage: automix_render <outgoing> <incoming> <out dir> [--cap-ms N] [--no-gain] [--trim-db dB] [--entry-beat N]");
         std::process::exit(2);
     };
-    let out = load(out_path, gain).expect("outgoing");
-    let inc = load(in_path, gain).expect("incoming");
+    let mut out = load(out_path, gain).expect("outgoing");
+    let mut inc = load(in_path, gain).expect("incoming");
+    for t in [&mut out, &mut inc] {
+        t.gain *= 10f32.powf(trim_db / 20.0);
+    }
+    if std::env::var_os("AUTOMIX_BANDS_CHECK").is_some() {
+        // The four bands at full gain against the signal, tone by tone.
+        for freq in [
+            30.0, 100.0, 150.0, 300.0, 600.0, 1200.0, 2500.0, 5000.0, 12_000.0,
+        ] {
+            let mut b = Bands::new(1, 48_000);
+            let (mut e_in, mut e_out) = (0.0, 0.0);
+            for i in 0..96_000 {
+                let x = (2.0 * std::f64::consts::PI * freq * i as f64 / 48_000.0).sin() as f32;
+                let y: f32 = b.split(0, x).iter().sum();
+                if i >= 48_000 {
+                    e_in += f64::from(x * x);
+                    e_out += f64::from(y * y);
+                }
+            }
+            eprintln!(
+                "bands {freq:>6} Hz: {:+.3} dB",
+                10.0 * (e_out / e_in).log10()
+            );
+        }
+        // And the peaks of the incoming track through them, 50 to 65 s in.
+        let ch = inc.channels;
+        let mut b = Bands::new(ch, inc.rate);
+        let (mut p_in, mut p_out) = (0.0_f32, 0.0_f32);
+        let from = 50 * inc.rate as usize;
+        for f in 0..(15 * inc.rate as usize).min(inc.frames() - from) {
+            for c in 0..ch {
+                let x = inc.pcm[(from + f) * ch + c];
+                let y: f32 = b.split(c, x).iter().sum();
+                p_in = p_in.max(x.abs());
+                if f > 4800 {
+                    p_out = p_out.max(y.abs());
+                }
+            }
+        }
+        eprintln!("bands on the incoming track: peak {p_in:.3} in, {p_out:.3} out");
+    }
+    if std::env::var_os("AUTOMIX_SECTIONS").is_some() {
+        let od = beat_db(&out, &out.beats);
+        let n = od.len();
+        for k in n.saturating_sub(48)..n {
+            eprintln!("out {k}: {:.2} s {:+.1} dB", out.beats[k], od[k]);
+        }
+        for (name, t) in [("out", &out), ("in", &inc)] {
+            let nov = novelty(&beat_features(t, &t.beats), 8);
+            let mut peaks: Vec<(usize, f64)> = (1..nov.len() - 1)
+                .filter(|&k| nov[k] >= nov[k - 1] && nov[k] > nov[k + 1])
+                .map(|k| (k, nov[k]))
+                .collect();
+            peaks.sort_by(|a, b| b.1.total_cmp(&a.1));
+            let mut top: Vec<(usize, f64)> = peaks.into_iter().take(14).collect();
+            top.sort_by_key(|p| p.0);
+            let line: Vec<String> = top
+                .iter()
+                .map(|(k, v)| format!("{k}@{:.1}s={v:.2}", t.beats[*k]))
+                .collect();
+            eprintln!("novelty {name}: {}", line.join("  "));
+        }
+        let id = beat_db(&inc, &inc.beats);
+        for row in id.chunks(16).take(12).enumerate() {
+            let line: Vec<String> = row.1.iter().map(|d| format!("{d:.0}")).collect();
+            eprintln!(
+                "in {:3} ({:6.2} s): {}",
+                row.0 * 16,
+                inc.beats[row.0 * 16],
+                line.join(" ")
+            );
+        }
+    }
     assert_eq!(
         (out.rate, out.channels),
         (inc.rate, inc.channels),
@@ -1020,7 +1498,12 @@ fn main() {
         Style::Loop,
         Style::Stutter,
         Style::Filter,
+        Style::BandSwap,
     ];
+    let styles: Vec<Style> = styles
+        .into_iter()
+        .chain(entry.map(Style::BandSwapAt))
+        .collect();
     for (n, style) in styles.into_iter().enumerate() {
         let name = format!("{}-{}", n + 1, style.name());
         match render(&out, &inc, style, cap, shift) {
