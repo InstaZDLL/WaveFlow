@@ -60,15 +60,21 @@ impl Options {
                 Ok(())
             },
         ))?;
-        let repeat_token = session.AutoRepeatModeChangeRequested(&TypedEventHandler::new(
-            move |_, args: Ref<'_, AutoRepeatModeChangeRequestedEventArgs>| {
-                // A value this build does not know is not read as off.
-                if let Some(mode) = repeat_mode(args.ok()?.RequestedAutoRepeatMode()?) {
-                    handler(Request::Repeat(mode));
-                }
-                Ok(())
-            },
-        ))?;
+        let repeat_token = session
+            .AutoRepeatModeChangeRequested(&TypedEventHandler::new(
+                move |_, args: Ref<'_, AutoRepeatModeChangeRequestedEventArgs>| {
+                    // A value this build does not know is not read as off.
+                    if let Some(mode) = repeat_mode(args.ok()?.RequestedAutoRepeatMode()?) {
+                        handler(Request::Repeat(mode));
+                    }
+                    Ok(())
+                },
+            ))
+            // No `Options` to drop yet: take the first handler back here,
+            // or it stays on the session souvlaki keeps.
+            .inspect_err(|_| {
+                let _ = session.RemoveShuffleEnabledChangeRequested(shuffle_token);
+            })?;
         Ok(Self {
             session,
             shuffle_token,
