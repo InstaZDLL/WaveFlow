@@ -1,12 +1,12 @@
-# RFC-010 — Group listening: a shared queue between desktops, without a server
+# RFC-010 — WaveSync: a shared queue between desktops, without a server
 
-- **Status**: Draft
-- **Date**: 2026-11-25
+- **Status**: Accepted
+- **Date**: 2026-11-25 (drafted), 2026-11-27 (decisions taken)
 - **Authors**: @InstaZDLL
 - **Depends on**: [RFC-008](RFC-008-phone-link.md) (the LAN listener, its TLS, its private-address filter and its advertiser, none of them built yet), [RFC-006](RFC-006-deduplicating-the-two-catalogues.md) (content proof is the only proof).
 - **Builds on**: `DetachedSession` ([`remote_playback`](../../src-tauri/crates/app/src/remote_playback.rs)), the share reader ([`netlib::reader`](../../src-tauri/crates/app/src/netlib/reader.rs), [`netlib::cache`](../../src-tauri/crates/app/src/netlib/cache.rs)), [`player_actions`](../../src-tauri/crates/app/src/player_actions.rs), the load ordering of [#622](../architecture/invariants.md#every-load-command-carries-its-intent).
-- **Implementation**: none. The product decisions listed in [Open questions](#open-questions) are the maintainer's; the build order is [the lots](#lots).
-- **Working name**: _group listening_, _group session_, module `group`. The name the user sees is [open question 1](#open-questions); nothing below depends on it.
+- **Implementation**: in progress, in the order of [the lots](#lots). The product decisions were taken by the maintainer on 2026-11-27 and are listed in [Decisions taken](#decisions-taken).
+- **Name**: **WaveSync**, a brand name kept as it is in all 17 locales, like WaveFlow. In the code the module is `wavesync` (`waveflow_core::wavesync`, the app's `wavesync/`), never `sync`, which names the server's sync v2 (`remote::`, `sync_v2`) and the removed v1 stub.
 
 ---
 
@@ -35,7 +35,7 @@ Two things do **not** exist, and the plan has to account for them:
 - **A detached session has no gapless and no crossfade.** The decoder's
   `PrefetchNext` is answered only for the library queue
   ([playback](../features/playback.md#crossfade)): "the prefetch is not answered
-  for a remote track or a file played without importing it". A group queue built
+  for a remote track or a file played without importing it". A WaveSync queue built
   on `DetachedSession` would therefore have a gap at every track change, as the
   remote queue has today. [Lot 4](#lots) fixes it for every detached session at
   once.
@@ -44,7 +44,7 @@ Two things do **not** exist, and the plan has to account for them:
   file. Whether a locator opened through `NetworkOpener` reaches it is to be
   measured; until then a DSD track [cannot be shared](#decision-6--what-can-be-shared).
 
-## What group listening is not
+## What WaveSync is not
 
 **It is not a library merge.** A guest's tracks never become rows in anybody
 else's library, and nothing a guest hears is written into the listener's music
@@ -71,14 +71,37 @@ Three options were weighed.
 | **B. LAN + private overlay**     | A. plus: the address filter also accepts the shared-address range a mesh VPN hands out (`100.64.0.0/10`) and IPv6 ULA, and a join can be made from an invitation link holding an address instead of from discovery (multicast does not cross most overlays).                                                                                                                                           | ≈ 1.1 (a filter entry, a link format, a text field) | Users without such a VPN. We do not ship or operate one.                                                              |
 | **C. Internet, by session code** | A rendezvous that maps a code to addresses (a server, which the brief rules out, or the user's WaveFlow Server if they have one); NAT traversal (STUN-style address discovery and UDP hole punching, so a datagram transport such as QUIC instead of TCP); a relay for the cases punching fails — symmetric NAT, carrier-grade NAT on mobile connections — and a relay is a server that carries audio. | ≈ 3–4, plus an operated service                     | Without a relay, a share of pairs that cannot connect at all, and nothing we can do from the app. With one, a server. |
 
-**Recommendation: B.** A is the feature; B adds almost nothing and covers the
-person who already links their machines privately. C contradicts the premise —
+**Decided: B.** A is the feature; B adds almost nothing and covers the person
+who already links their machines privately. C contradicts the premise —
 the moment a relay exists, it is a server that sees the audio — and costs more
 than the rest of the feature together. If the maintainer wants listening across
 the Internet later, the honest shape is a **server RFC**: WaveFlow Server as the
 rendezvous and relay for its own users, reusing its accounts. Nothing in A or B
 would have to change for it, because the protocol below does not care how the
-connection was made ([open question 2](#open-questions)).
+connection was made ([decision 2](#decisions-taken)).
+
+**How the filter recognises an overlay's addresses.** The private-address filter
+of [Decision 5](#decision-5--admission-and-security) judges the peer's source
+address before the TLS handshake:
+
+| Range                                           | What it is                                                                     | Accepted                                                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` | RFC 1918 private networks                                                      | always                                                                                                                               |
+| `169.254.0.0/16`, `fe80::/10`                   | link-local                                                                     | always                                                                                                                               |
+| `127.0.0.0/8`, `::1`                            | loopback (two sandboxes on one machine)                                        | always                                                                                                                               |
+| `fc00::/7`                                      | IPv6 unique local addresses (RFC 4193)                                         | always; Tailscale's IPv6 prefix `fd7a:115c:a1e0::/48` lies inside it, so a tailnet's IPv6 addresses pass without a rule of their own |
+| `100.64.0.0/10`                                 | the shared address space of RFC 6598, from which Tailscale assigns its devices | only with _Allow private VPN addresses_ on, and only while the host has an address of its own in that range                          |
+| `::ffff:a.b.c.d`                                | an IPv4 peer reaching a dual-stack socket                                      | judged as the IPv4 address it carries                                                                                                |
+| anything else                                   | public                                                                         | never                                                                                                                                |
+
+`100.64.0.0/10` is not accepted by default because it is not only a VPN's:
+carriers use the same block for carrier-grade NAT, so on a machine connected
+through such a carrier it is the address space of the carrier's other
+customers. The switch, in the WaveSync section of Settings and off by default,
+says so, and the condition on the host's own address keeps it from applying on
+a machine that is not on an overlay at all. Rust's `Ipv4Addr::is_private` does
+not cover this block, and `is_shared` is not stable, so the filter tests the
+ranges itself, with a unit test per row of this table.
 
 ## Decision 2 — the host is the single writer, and its log is the order
 
@@ -125,10 +148,13 @@ owned the track, rather than at an arbitrary point when the cached part runs
 out. Handing the session to someone else is
 possible — every guest holds the whole state, so the new host can resume from
 its replica — but it changes who serves which bytes and who the others connect
-to, and it is a lot of its own ([lot 5](#lots), [open question 5](#open-questions)).
-A guest that leaves takes its entries' bytes with it: they stay in the queue,
-marked _owner away_, are skipped when reached, and come back if the owner
-reconnects within the session.
+to, and it is a lot of its own ([lot 5](#lots), [decision 5](#decisions-taken)).
+A guest whose connection drops takes its entries' bytes with it: they stay in
+the queue, marked _owner away_, are skipped when reached, and come back if the
+owner reconnects within the session. A guest who leaves on purpose, or whom the
+host removes, does not come back as the same participant, so its entries still
+to play are removed with it; one already playing finishes from what the
+listeners hold, as when the host leaves.
 
 ## Decision 3 — the audio crosses as the original file, through the host
 
@@ -152,7 +178,7 @@ weighed:
 | Host's load                        | relays guest-owned bytes (≈ N × the bitrate; tens of Mbit/s at most) | serves its own tracks only                                    |
 | Code                               | a ranged read over the guest's existing connection, plus the relay   | a listener per participant, addresses distributed by the host |
 
-**Recommendation: the star.** Only the host listens, which keeps the opt-in to
+**Decided: the star.** Only the host listens, which keeps the opt-in to
 one deliberate gesture on one machine, one Windows firewall prompt, one place
 where a peer is admitted. Because the participants follow the same position
 ([Decision 4](#decision-4--synchronisation-follow-the-host-within-half-a-second)),
@@ -179,9 +205,9 @@ guests asking.
 second is preferred:
 
 1. a new load command carrying the entry, opened through `open_from_source`;
-2. an in-memory locator (`wfgroup://<session>/<entry>`) handed to the
+2. an in-memory locator (`wfsync://<session>/<entry>`) handed to the
    `NetworkOpener` already installed for shares, through
-   `LoadRemoteFileAndPlay` with a new `DetachedOrigin::Group`. This one reuses
+   `LoadRemoteFileAndPlay` with a new `DetachedOrigin::WaveSync`. This one reuses
    the path-based `SetNextTrack` when lot 4 opens the prefetch to detached
    sessions. Its risk is that the locator is a path the rest of the app may
    look at: `network_locator::is_locator` must answer `true` for it so nothing
@@ -219,16 +245,16 @@ Three levels were weighed.
 | Level                | What it promises                                                                                           | What it needs                                                                                                                                                                                                                                                                                                                                                       |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0 — shared queue     | one queue; everyone plays it at their own pace                                                             | the log; each participant's own transport                                                                                                                                                                                                                                                                                                                           |
-| 1 — follow the host  | the same entry at the same position, within about half a second; a late joiner starts where the others are | anchors from the host (`{entry, position_ms, at, rate, playing}`, sent on every change and every few seconds), the host's clock estimated on each guest from the WebSocket's round trips (the median of a few, half the round trip as the delay), a seek when a guest drifts past a threshold (≈ 400 ms) and is not buffering                                       |
+| 1 — follow the host  | the same entry at the same position, within about half a second; a late joiner starts where the others are | anchors from the host (`{entry, position_ms, at, playing}`, sent on every change and every few seconds), the host's clock estimated on each guest from the WebSocket's round trips (the median of a few, half the round trip as the delay), a seek when a guest drifts past a threshold (≈ 400 ms) and is not buffering                                             |
 | 2 — tight, same room | close enough that two machines in one room do not echo (tens of milliseconds)                              | level 1, plus: each output's latency, which the app does not know for every backend (Bluetooth is the worst case and unknowable from here) and so a per-device offset the user sets by ear; drift corrected by a tiny speed change rather than a seek, through the stretcher that already exists; a scheduled start ("begin at host time T") instead of "begin now" |
 
-**Recommendation: level 1 in lot 3, level 0 as a mode a participant can fall
-back to, level 2 later and without a promise.** Level 1 is what "listening
+**Decided: level 1 in lot 3, level 0 as a mode a participant can fall back to,
+level 2 later and without a promise.** Level 1 is what "listening
 together" means across the rooms of a house and is cheap once anchors exist —
 RFC-008 already specified the same anchor shape for the phone. Level 2 is
 measurable work with an uncertain end: if two machines in one room is a use case
 the maintainer wants, it gets its own lot and its own measurements, and the
-interface says nothing about echo until then ([open question 3](#open-questions)).
+interface says nothing about echo until then ([decision 3](#decisions-taken)).
 
 Rules that follow from level 1:
 
@@ -236,7 +262,7 @@ Rules that follow from level 1:
   group; a guest pressing pause or seek either sends a request the host applies
   for everyone (if the session allows it) or leaves the group for local
   control: _You stopped following the group — Rejoin_
-  ([open question 6](#open-questions)).
+  ([decision 6](#decisions-taken)).
 - **Speed is pinned to 1× while following**, as DoP pins it: a position that
   moves at another rate would be corrected every few seconds.
 - **The transition is the host's.** A crossfade or AutoMix the host uses moves
@@ -252,9 +278,9 @@ Rules that follow from level 1:
 on an ephemeral port, starts the mDNS advertisement and shows the code; _End
 the session_ closes both. Joining opens no port at all — the guest only
 connects out. Browsing for sessions runs only while the _Join_ dialog is open.
-Whether the feature also sits behind a switch in Settings, as DLNA and MPD do,
-is [open question 7](#open-questions); the design does not need one, because
-hosting is already an explicit gesture with a visible state.
+Unlike DLNA and MPD, the feature sits behind no switch in Settings
+([decision 7](#decisions-taken)): hosting is already an explicit gesture with a
+visible state, and nothing listens before it.
 
 **The listener is RFC-008's**, built once for both:
 
@@ -279,7 +305,7 @@ hosting is already an explicit gesture with a visible state.
    the host's display name, nothing about the library) or pastes the link, and
    types the code.
 3. The host sees _Alex wants to join_ and accepts or refuses
-   ([open question 4](#open-questions) decides whether approval can be turned
+   ([decision 4](#decisions-taken) decides whether approval can be turned
    off). The code is a shared secret said aloud in a room; the approval is
    what makes it safe to say aloud.
 4. The host mints a participant token — 32 random bytes — sends it once over
@@ -358,7 +384,7 @@ what its tags contain_), and the owner decides what to add knowing it.
 **Rights.** The host can remove any entry, reorder, skip, and remove a
 participant; a guest can add, and remove what they added. Whether guests may
 skip or control the transport is a setting of the session, off by default
-([open question 6](#open-questions)).
+([decision 6](#decisions-taken)).
 
 **Nothing secret reaches the log** ([invariant](../architecture/invariants.md#no-secret-reaches-the-log)).
 The code, the tokens and the invitation link are never logged, and neither is a
@@ -368,7 +394,7 @@ short id and an entry by its `ge_` id. Errors cross to the interface as
 ([invariant](../architecture/invariants.md#an-error-shown-to-the-user-carries-a-kind)).
 
 **The webview's CSP does not change.** Everything crosses in the backend: the
-webview `invoke`s commands and receives `group:*` events, and a cover is handed
+webview `invoke`s commands and receives `wavesync:*` events, and a cover is handed
 to it as a `data:` URL or a file in the cache read through the asset protocol,
 both already allowed. No `connect-src`, no `media-src` source is added
 ([invariant](../architecture/invariants.md#the-webview-runs-under-a-content-security-policy)).
@@ -378,7 +404,7 @@ is that every outbound path checks `offline::is_offline()`, and a guest's
 connection and reads are outbound. DLNA and MPD do not consult it because they
 only answer; a session also connects out. So with offline mode on, _Start_ and
 _Join_ are disabled with the reason, and turning it on during a session ends it
-([open question 8](#open-questions) for the alternative).
+([decision 8](#decisions-taken)).
 
 **Platforms.**
 
@@ -415,10 +441,10 @@ _Join_ are disabled with the reason, and turning it on during a session ends it
 
 **History, statistics, scrobbling.** A guest-owned track plays under a negative
 id in a detached session and leaves no trace, like a remote or an external
-file. Whether the owner's own tracks, heard in the session, count in the owner's
-history and are scrobbled is [open question 9](#open-questions); this draft
-recommends that they do, since the owner listened to their own track, and that
-nothing anybody else owns ever does.
+file. The owner's own tracks, heard in the session, count in the owner's
+history and statistics and are scrobbled by the owner, who listened to their
+own track; nothing anybody else owns ever does, on anybody's machine
+([decision 9](#decisions-taken)).
 
 **Caps.** At most 8 participants and 500 entries in the queue, and one file at
 most 2 GiB, so the host's upload and every cache stay bounded. A refusal names
@@ -429,13 +455,13 @@ the cap.
 Built in the skin's layout (`skin.layout`, never a skin id), checked in Fluid
 and in a classic skin.
 
-- **Entry point.** _Group session…_ in the player bar's "⋯" overflow menu, as
+- **Entry point.** _WaveSync…_ in the player bar's "⋯" overflow menu, as
   the [invariant](../architecture/invariants.md#adding-a-new-player-bar-action)
   asks for a new player-bar action, opening a dialog with two choices: _Start_
   (session name, default rights, approval on) and _Join_ (the sessions mDNS
   finds, a field for the code, _Paste an invitation_). Both dialogs use
   `useModalA11y`.
-- **The group panel.** A right panel, a flex sibling mutually exclusive with
+- **The WaveSync panel.** A right panel, a flex sibling mutually exclusive with
   the queue, lyrics and now-playing panels through `PlayerContext`, as they are
   with each other. It shows:
   - the participants, each with initials and a colour, the host marked, and a
@@ -444,7 +470,7 @@ and in a classic skin.
     _loading_, _owner away — will be skipped_, _cannot be shared_ (and why);
   - the code and _Copy invitation_ for the host, and the admission requests;
   - _Leave_ (_End the session_ for the host).
-- **Adding.** _Add to the group queue_ in the context menu of a track, an album,
+- **Adding.** _Add to WaveSync_ in the context menu of a track, an album,
   a playlist and a selection, next to _Add to queue_, present only during a
   session. _Add to queue_ keeps meaning the user's own queue.
 - **The user's own queue is parked, not lost.** Joining or starting installs the
@@ -462,7 +488,7 @@ and in a classic skin.
 
 ## Decision 8 — ordering of the loads
 
-A group-driven load is a load like any other
+A WaveSync-driven load is a load like any other
 ([invariant](../architecture/invariants.md#every-load-command-carries-its-intent)):
 the intent is claimed when the `transport` op (or the user's gesture) arrives,
 before the entry is resolved, its cache looked up or its first range read; the
@@ -471,7 +497,7 @@ is installed through `DetachedSession::set`, undone through `clear_if` /
 `restore_if` if the load is superseded or fails. A user's pick on a guest during
 a session therefore wins over a `transport` op that arrives while it is being
 prepared, by the same rule that orders any two local gestures. An output
-rebuild puts back the group entry from `last_load`, as for every detached origin.
+rebuild puts back the WaveSync entry from `last_load`, as for every detached origin.
 
 ## Lots
 
@@ -485,10 +511,10 @@ ports, which the address filter allows on loopback.
 | Lot | Content                                                                                                                                                                                                                                                                                                                                               | Testable on two machines                                                                                                                                                                                                                                                                                                             |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 0   | **The shared LAN listener** (RFC-008 stage 2's foundation, built once): TLS with a generated certificate, the private-address filter, the mDNS advertiser and browser, token minting and hashing, the code exchange (SPAKE2 bound to the TLS exporter, host confirming first). Lifting the whole-file hash cache out of `remote::` (RFC-008 stage 1). | Rust tests (filter, tokens, certificate). PC ↔ Fedora: the Fedora's browser finds the PC's advertisement and completes a TLS handshake against the pinned fingerprint, with Avahi running; a scripted impostor announcing the same session never receives a guest's confirmation. Mac: the local-network prompt and the mDNS browse. |
-| 1   | **The protocol, pure**: `waveflow_core::group` — the ops, the log and its replay, the snapshot, the rights, the request/answer pairs, the ranged-read frames. No network, no UI.                                                                                                                                                                      | Rust tests only: replay from any `seq`, snapshot after trimming, refusals by right, entry revocation.                                                                                                                                                                                                                                |
+| 1   | **The protocol, pure**: `waveflow_core::wavesync` — the ops, the log and its replay, the snapshot, the rights, the request/answer pairs, the ranged-read frames. No network, no UI.                                                                                                                                                                   | Rust tests only: replay from any `seq`, snapshot after trimming, refusals by right, entry revocation.                                                                                                                                                                                                                                |
 | 2   | **Sessions and the shared queue, no audio from others**: start / join / approve / leave, the panel, adding and removing, each participant playing only the entries they own (level 0). Offline mode, caps, refusals by source.                                                                                                                        | Two sandboxes on the PC, then PC ↔ Fedora: Fedora adds an album, the PC sees it with "added by"; the host removes an entry and the guest's panel follows; wrong codes from one address are slowed down and announced on the host.                                                                                                    |
 | 3   | **Streaming and following the host**: the `NetworkFs` over the connection, the relay on the host, the session cache and its deletion, the read-ahead of the next entry, anchors and level 1, _waiting for the stream_, _owner away_, the host's departure ending the session.                                                                         | PC ↔ Fedora: a track only the Fedora owns plays on the PC, seek included; both stay within 0.5 s (measured from the anchors); pull the Fedora's cable and the entry turns _owner away_; end the session and the PC's cache directory is empty.                                                                                       |
-| 4   | **Gapless and crossfade for detached sessions** (remote queue, external files and the group alike), the host's crossfade length on guests, and playing a listener's own identical file by `(size, full_hash)`.                                                                                                                                        | PC ↔ Fedora: a gapless album owned by the Fedora plays without a gap on the PC; a track both own plays from the PC's file (no read reaches the Fedora).                                                                                                                                                                              |
+| 4   | **Gapless and crossfade for detached sessions** (remote queue, external files and WaveSync alike), the host's crossfade length on guests, and playing a listener's own identical file by `(size, full_hash)`.                                                                                                                                         | PC ↔ Fedora: a gapless album owned by the Fedora plays without a gap on the PC; a track both own plays from the PC's file (no read reaches the Fedora).                                                                                                                                                                              |
 | 5   | **Resilience**: reconnection by `seq` after a dropped Wi-Fi, an explicit _Hand over hosting_ before leaving, the overlay option of Decision 1 with invitation links.                                                                                                                                                                                  | PC ↔ Fedora: the Fedora's Wi-Fi off and on, it resumes without rejoining; the PC hands hosting to the Fedora and playback continues. Over a private overlay if the maintainer has one.                                                                                                                                               |
 | 6   | _(only if wanted)_ **Level 2**: scheduled starts, per-device latency offset, drift corrected by speed.                                                                                                                                                                                                                                                | PC and Fedora in one room, by ear and by a microphone recording of both.                                                                                                                                                                                                                                                             |
 
@@ -509,45 +535,29 @@ first one the maintainer tests by hand.
 - **Video, Canvas, lyrics and covers in high resolution** crossing.
 - **Voting** on what plays next.
 
-## Open questions
+## Decisions taken
 
-These are product decisions for the maintainer. Each has this draft's
-recommendation.
+Taken by the maintainer on 2026-11-27. Each follows this draft's
+recommendation except the name.
 
-1. **The feature's name.** Candidates: _Listen together_, _Group session_,
-   _Party queue_, _Room_, _Circle_. The French source text needs its own (_Écoute
-   à plusieurs_, _Session de groupe_, _Salon_, _Tablée_, _Bœuf_). Recommended:
-   _Listen together_ / _Écouter ensemble_ — a verb says what it does; _Room_
-   and _Salon_ are short but already close to a skin's name.
-2. **Reach.** LAN only (A), LAN + private overlay (B), or the Internet (C,
-   which needs a server). Recommended: B.
-3. **Synchronisation in the first lot that plays audio.** Level 0, 1 or 2.
-   Recommended: 1, with 0 as a participant's fallback and 2 later, unpromised.
-4. **Admission.** Code alone, code and host approval, or approval switchable per
-   session. Recommended: code and approval, switchable, on by default.
-5. **When the host leaves.** The session ends (lot 3), or hosting passes
-   automatically to the longest-connected guest, or only by an explicit
-   _Hand over hosting_ (lot 5). Recommended: ends, with explicit hand-over in
-   lot 5; an automatic hand-over moves the listener to a machine whose owner did
-   not choose to open a port.
-6. **Guests' rights.** Can a guest skip, pause, seek for everyone, reorder,
-   remove others' entries? Recommended: add and remove their own by default; a
-   per-session switch _Everyone controls playback_ for skip / pause / seek;
-   reorder and removing others' entries stay the host's.
-7. **A switch in Settings** that has to be on before _Group session…_ appears,
-   like DLNA and MPD, or the menu entry always present. Recommended: always
-   present; hosting is already the opt-in and opens nothing before it.
-8. **Offline mode.** Stops sessions (this draft, the invariant as written), or a
-   session on the LAN is allowed while offline, as DLNA and MPD answer while
-   offline. Recommended: stops them; a LAN without Internet works with offline
-   mode off.
-9. **History and scrobbles.** Nothing counts (as for detached sessions today),
-   or the owner's own tracks count for the owner. Recommended: the owner's own
-   tracks count and scrobble, nobody else's ever.
-10. **Formats.** Originals only (this draft), or a transcode for Wi-Fi with
-    many guests. Recommended: originals; DSD and share tracks refused at first.
-11. **Building the LAN listener once for RFC-008 and this RFC** (lot 0), which
-    commits the phone link's transport choices — TLS with a pinned self-signed
-    certificate, mDNS, a code exchange that never sends the code (which could
-    also replace the six-digit comparison of RFC-008's typed-code path) —
-    before the phone link is scheduled. Recommended: yes.
+1. **Name**: **WaveSync**, kept as it is in every locale; module `wavesync`.
+2. **Reach**: the LAN and a private overlay (option B of [Decision 1](#decision-1--the-network-reach-the-lan-and-a-private-overlay-if-the-user-has-one)),
+   with the address rules of its table. Listening across the Internet without
+   such an overlay would be a server RFC.
+3. **Synchronisation**: follow the host (level 1); level 0 as a participant's
+   fallback; level 2 later, unpromised.
+4. **Admission**: the code and the host's approval; approval is on by default
+   and can be turned off per session.
+5. **When the host leaves**: the session ends; an explicit _Hand over hosting_
+   comes in lot 5. No automatic hand-over.
+6. **Guests' rights**: add, and remove what they added; a per-session switch
+   _Everyone controls playback_, off by default, for skip, pause and seek;
+   reordering and removing others' entries stay the host's.
+7. **Access**: the _WaveSync…_ entry is always present in the "⋯" menu; no
+   switch in Settings turns the feature on.
+8. **Offline mode** stops WaveSync.
+9. **History, statistics and scrobbles**: only for the track's owner, on the
+   owner's machine.
+10. **Formats**: original files only; DSD and tracks on network shares refused
+    at first.
+11. **The LAN listener is built once**, in lot 0, for RFC-008 and this RFC.
