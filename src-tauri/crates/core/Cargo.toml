@@ -50,6 +50,31 @@ musicbrainz = ["dep:tokio", "tokio/time"]
 # the vendored time-stretch library are what it adds, and the server needs
 # neither.
 playback = ["dep:rubato", "dep:cc"]
+# The LAN listener (`crate::lan`), shared by WaveSync (RFC-010) and the phone
+# link (RFC-008): which peers may connect, TLS with a certificate made on the
+# machine, the code exchange (SPAKE2 bound to the TLS session), the tokens,
+# the WebSocket on top, mDNS. Here rather than in the app so its tests run
+# where the app's test binary does not start (Windows). The server listens on
+# no LAN and leaves it off.
+lan = [
+    "dep:tokio",
+    "tokio/net",
+    "tokio/time",
+    "tokio/io-util",
+    "tokio/sync",
+    "tokio/macros",
+    "dep:tokio-rustls",
+    "dep:tokio-tungstenite",
+    "dep:futures-util",
+    "dep:rcgen",
+    "dep:ring",
+    "dep:mdns-sd",
+    "dep:if-addrs",
+    "dep:socket2",
+    "dep:spake2",
+    "dep:hmac",
+    "dep:sha2",
+]
 plugins = [
     "dep:wasmtime",
     "dep:wasmtime-wasi",
@@ -221,6 +246,24 @@ toml = { version = "1.1", optional = true }
 # without depending on us. Re-uses the same `sha2` codegen the
 # rest of the workspace already pulls in transitively.
 sha2 = { version = "0.11", optional = true }
+# The LAN listener (`lan` feature). TLS over the rustls stack the app already
+# links, with `ring` as its provider (no aws-lc); the WebSocket of the
+# `tokio-tungstenite` the remote source already uses; a certificate generated
+# on the machine, DER only (no `pem`); the CSPRNG of `ring` for codes and
+# tokens; an mDNS daemon with no async runtime and no Avahi over D-Bus (so the
+# Flatpak needs no new permission); SPAKE2 so that the code is never sent and
+# cannot be guessed offline from a recorded exchange, and HMAC-SHA256 for the
+# confirmations that bind it to one TLS session.
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"], optional = true }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"], optional = true }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"], optional = true }
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "ring"], optional = true }
+ring = { version = "0.17", optional = true }
+mdns-sd = { version = "0.22", optional = true }
+if-addrs = { version = "0.15", optional = true }
+socket2 = { version = "0.6", optional = true }
+spake2 = { version = "0.4", optional = true }
+hmac = { version = "0.13", optional = true }
 # Shared plugin contract (manifest schema version + WIT world / permission
 # catalog). The SDK crate doesn't depend on us — it's a flat constants
 # crate both sides import.
@@ -288,3 +331,9 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-uti
 # The enrichment store's tests run the real profile migrations, so a
 # constraint or a foreign key the schema declares is one the tests meet.
 sqlx = { version = "0.9", default-features = false, features = ["macros", "migrate", "sqlite", "runtime-tokio"] }
+
+# Two machines finding and joining each other through `crate::lan`, without
+# the app: `cargo run -p waveflow-core --features lan --example lan_probe`.
+[[example]]
+name = "lan_probe"
+required-features = ["lan"]

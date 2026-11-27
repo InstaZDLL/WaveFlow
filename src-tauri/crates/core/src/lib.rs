@@ -23,6 +23,11 @@ pub mod error;
 pub mod handoff;
 pub mod home_suggestion;
 pub mod inventory;
+// The LAN listener, shared by WaveSync and the phone link; the server listens
+// on no LAN and leaves it off.
+#[cfg(feature = "lan")]
+#[cfg_attr(docsrs, doc(cfg(feature = "lan")))]
+pub mod lan;
 pub mod lyrics;
 pub mod markup;
 pub mod metadata;

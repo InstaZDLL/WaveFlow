@@ -6,7 +6,7 @@
 - **Depends on**: [RFC-005](RFC-005-remote-source-and-sync-v2.md) (the server path, opaque remote identifiers), [RFC-006](RFC-006-deduplicating-the-two-catalogues.md) (content proof is the only proof).
 - **Builds on released versions**: WaveFlow Server **v2.0.0** — every server file and route cited below is read at the tag `v2.0.0` (`dd48a1d`), not a working branch — and QuickPlay **v1.2.0**, whose _Continue in WaveFlow_ ships the `core::handoff` relay in production. The server path below is therefore not hypothetical: it is what a user can install today.
 - **Server-side context**: `waveflow-server` RFC-002 (credentials and scopes), RFC-003 (sync v2), RFC-004 (local/server reconciliation) and **its own RFC-008, _Receiving a file_ — a different document with the same number**, see [the naming trap](#the-rfc-008-naming-trap).
-- **Implementation**: none. Decided on 2026-10-24: the specification is written during 2.0, the construction happens in 2.1, in the order of [the build plan](#build-plan-for-21).
+- **Implementation**: none of the phone side. Decided on 2026-10-24: the specification is written during 2.0, the construction happens in 2.1, in the order of [the build plan](#build-plan-for-21). The desktop listener's foundation — the private-address filter, TLS with a certificate made on the machine, the mDNS advertiser, tokens kept as hashes — exists as `waveflow_core::lan`, built for WaveSync ([RFC-010](RFC-010-wavesync.md) lot 0); its code exchange (SPAKE2 bound to the TLS session) can replace this RFC's six-digit comparison on the typed-code path.
 
 ---
 
