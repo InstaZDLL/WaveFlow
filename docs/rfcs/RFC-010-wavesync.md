@@ -115,12 +115,22 @@ applies gets the next sequence number, and the host broadcasts
 `{seq, op}`. A guest applies ops in order and remembers the last `seq` it
 applied. The ops are few:
 
-- `participant_joined` / `participant_left` / `participant_state` (listening,
-  buffering, away);
-- `entry_added {entry, after}` / `entry_removed` / `entry_moved`;
-- `transport {entry, anchor}` — what plays, from where, and whether it is
+- `participant_joined` / `participant_left` / `participant_state_changed`
+  (listening, buffering, not following, away);
+- `entries_added {entries, position}` / `entry_removed` / `entry_moved`, a
+  position being the end, next, or after an entry that has not played;
+- `transport {cursor, anchor}` — what plays, from where, and whether it is
   playing ([Decision 4](#decision-4--synchronisation-follow-the-host-within-half-a-second));
-- `rights_changed`, `session_ended`.
+  every entry before the cursor counts as played, and the oldest played
+  entries beyond a hundred are dropped by every participant at the same op;
+- `rights_changed`, `ended`.
+
+The host applies each op it makes through the same function the guests apply
+it with, so the two cannot disagree on what an op means. A replica that
+receives op _n + 2_ after _n_ knows it missed one; one whose op does not apply
+knows it diverged; either way it asks for a snapshot, which it checks (cursor in
+bounds, the playing entry where the cursor says, no two entries or participants
+under one id) before believing it.
 
 A request carries a client id; the host answers it with the `seq` that applied
 it or with a refusal (`not_allowed`, `entry_gone`, `queue_full`, …), so a guest's
@@ -352,7 +362,7 @@ and both the host's panel and the guest's join screen show the host
 certificate's fingerprint as four words, for whoever wants to compare them.
 
 **Only what is in the queue is readable.** An entry has an opaque id
-(`ge_` and 128 random bits) minted by the owner when it is added; the owner
+(`wse_` and 128 random bits) minted by the owner when it is added; the owner
 maps it to a track **in memory** and answers a `read` only for an entry the
 session's cursor has not passed: the one playing and those after it. An entry
 the cursor has passed stays listed as played but is no longer readable, and
@@ -389,7 +399,7 @@ skip or control the transport is a setting of the session, off by default
 **Nothing secret reaches the log** ([invariant](../architecture/invariants.md#no-secret-reaches-the-log)).
 The code, the tokens and the invitation link are never logged, and neither is a
 participant's display name or a track's title: a line names a participant by a
-short id and an entry by its `ge_` id. Errors cross to the interface as
+short id and an entry by its `wse_` id. Errors cross to the interface as
 `AppError::shown` with a `ShownKind`
 ([invariant](../architecture/invariants.md#an-error-shown-to-the-user-carries-a-kind)).
 
