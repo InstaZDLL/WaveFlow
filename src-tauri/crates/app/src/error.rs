@@ -257,6 +257,49 @@ error_kinds! {
     /// A cover change asked of a generated smart playlist (Daily Mix, On
     /// Repeat, Release Radar, a themed mix), whose generator owns it.
     GeneratedPlaylistCover,
+    /// Offline mode refused starting or joining a WaveSync session.
+    WavesyncOffline,
+    /// A WaveSync session is already running here.
+    WavesyncAlreadyInSession,
+    /// No WaveSync session is running here.
+    WavesyncNoSession,
+    /// The listener of a hosted session could not start.
+    WavesyncStartFailed,
+    /// The name to show the others is empty.
+    WavesyncNameRequired,
+    /// What was typed is not a WaveSync code.
+    WavesyncInvalidCode,
+    /// What was typed is not an address with a port, nor an invitation.
+    WavesyncInvalidAddress,
+    /// The address is not on the local network (or an allowed private VPN).
+    WavesyncNotPrivate,
+    /// The host does not answer.
+    WavesyncUnreachable,
+    /// The host's certificate is not the one the invitation named.
+    WavesyncFingerprint,
+    /// The code did not match.
+    WavesyncCodeRejected,
+    /// Too many wrong codes from this machine; `seconds` to wait.
+    WavesyncRetryLater,
+    /// The host is not admitting anyone.
+    WavesyncClosed,
+    /// The host drew a new code while this machine was joining.
+    WavesyncCodeExpired,
+    /// The host speaks another version of WaveSync.
+    WavesyncIncompatible,
+    /// The session is full.
+    WavesyncSessionFull,
+    /// The queue is full.
+    WavesyncQueueFull,
+    /// The session does not let this participant do that.
+    WavesyncNotAllowed,
+    /// The entry is no longer in the queue.
+    WavesyncEntryGone,
+    /// None of the tracks asked for can be shared (on a network share, DSD,
+    /// too large, missing).
+    WavesyncNotShareable,
+    /// The host did not answer a request in time.
+    WavesyncNoAnswer,
 }
 
 impl AppError {

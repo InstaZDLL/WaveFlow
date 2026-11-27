@@ -15,6 +15,7 @@ import {
   Tags,
   Trash2,
   User,
+  Users,
 } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
@@ -35,6 +36,8 @@ import { openTagWorkshop } from "../../lib/tagWorkshop";
 import { useTrackClip } from "../../hooks/useTrackClip";
 import { usePlayer } from "../../hooks/usePlayer";
 import { openClipForTrack } from "../../lib/clipPlayer";
+import { addToWaveSync, useWaveSync } from "../../hooks/useWaveSync";
+import { backendErrorText } from "../../lib/backendError";
 
 export interface TrackContextMenuProps {
   point: ContextMenuPoint;
@@ -131,6 +134,10 @@ export function TrackContextMenu({
   // A track on a share: there is no file here to show, and WaveFlow only
   // reads it, so what would write to it is not offered.
   const onShare = isNetworkPath(track.file_path);
+  // Only once the host has let this machine in: before that the queue is
+  // not ours to add to.
+  const { view: wavesyncView } = useWaveSync();
+  const wavesyncLive = wavesyncView?.status === "active";
 
   const showInExplorer = closeAfter(() => {
     revealItemInDir(track.file_path).catch((err) => {
@@ -153,6 +160,20 @@ export function TrackContextMenu({
         label={t("trackActions.addToQueue")}
         onSelect={closeAfter(() => onAddToQueue(track.id))}
       />
+      {/* WaveSync (RFC-010): a library track on this machine, while a
+        session runs. A track on a share is not shared at first. */}
+      {wavesyncLive && !onShare && !isRemoteTrack(track) && (
+        <ContextMenuItem
+          icon={<Users size={14} />}
+          label={t("wavesync.addTo")}
+          onSelect={closeAfter(
+            () =>
+              void addToWaveSync([track.id], t, (err) =>
+                backendErrorText(err, t),
+              ),
+          )}
+        />
+      )}
       <ContextMenuItem
         icon={<Radio size={14} />}
         label={t("trackActions.startRadio")}

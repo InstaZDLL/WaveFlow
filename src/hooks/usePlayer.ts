@@ -37,7 +37,8 @@ export interface PlaybackAlert {
 export type PlaybackState = "idle" | "loading" | "playing" | "paused" | "ended";
 
 /** The three right-edge panels; one of them is up at most. */
-export type RightPanel = "queue" | "nowPlaying" | "lyrics" | "transcript";
+export type RightPanel =
+  "queue" | "nowPlaying" | "lyrics" | "transcript" | "wavesync";
 
 interface PlayerContextValue {
   // UI-only state (not persisted)

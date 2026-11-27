@@ -22,7 +22,11 @@ pub async fn get_offline_mode() -> AppResult<bool> {
 }
 
 #[tauri::command]
-pub async fn set_offline_mode(state: tauri::State<'_, AppState>, enabled: bool) -> AppResult<()> {
+pub async fn set_offline_mode(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
     crate::offline::set(enabled);
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
@@ -36,5 +40,7 @@ pub async fn set_offline_mode(state: tauri::State<'_, AppState>, enabled: bool) 
     .execute(&state.app_db)
     .await?;
     crate::netlib::offline_changed();
+    // A WaveSync session connects out: offline mode ends it (RFC-010).
+    crate::wavesync::offline_changed(&app);
     Ok(())
 }

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   MessageSquareQuote,
   MoreHorizontal,
+  Users,
   Radio,
   RotateCcw,
   RotateCw,
@@ -27,6 +28,11 @@ import { endCornerOrigin } from "../../lib/direction";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
 import { PodcastPlayerMenu } from "../podcasts/PodcastPlayerMenu";
+import {
+  openWaveSyncDialog,
+  useWaveSync,
+  wavesyncActive,
+} from "../../hooks/useWaveSync";
 
 const SLEEP_PRESETS_MIN = [5, 15, 30, 45, 60, 90];
 const SPEED_PRESETS = [0.75, 1.0, 1.25, 1.5, 2.0];
@@ -91,6 +97,8 @@ export function MoreActionsMenu({
   const heardSemitones = isPodcast ? 0 : pitchSemitones;
   const desktopLyrics = useDesktopLyricsStatus();
   const timeshift = useRadioTimeshift();
+  const { view: wavesync } = useWaveSync();
+  const { openRightPanel } = usePlayer();
   const [isOpen, setIsOpen] = useState(false);
   const [customMinutes, setCustomMinutes] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -500,6 +508,32 @@ export function MoreActionsMenu({
                 </form>
               </div>
             )}
+
+            <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+
+            {/* WaveSync (RFC-010): always here, the one way in. A session
+              running opens its panel; otherwise the start / join dialog. */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                if (wavesyncActive(wavesync)) openRightPanel("wavesync");
+                else openWaveSyncDialog();
+              }}
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <span className="flex items-center gap-2">
+                <Users size={14} className="text-zinc-400" />
+                {wavesyncActive(wavesync)
+                  ? "WaveSync"
+                  : t("wavesync.menu.open")}
+              </span>
+              {wavesyncActive(wavesync) && (
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  {t("wavesync.menu.live")}
+                </span>
+              )}
+            </button>
 
             <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
 

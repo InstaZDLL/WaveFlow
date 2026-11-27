@@ -7,6 +7,8 @@ import { NowPlayingPanel } from "../NowPlayingPanel";
 import { LyricsPanel } from "../LyricsPanel";
 import { QueuePanel } from "../QueuePanel";
 import { PodcastTranscriptPanel } from "../../podcasts/PodcastTranscriptPanel";
+import { WaveSyncPanel } from "../../wavesync/WaveSyncPanel";
+import { useWaveSync, wavesyncActive } from "../../../hooks/useWaveSync";
 import { isLocalPodcastTrack } from "../../../lib/playerSources";
 import { forwardArrowKey } from "../../../lib/direction";
 
@@ -42,10 +44,16 @@ export function FluidSidePanel({
   const showsTranscript =
     activeRightPanel === "transcript" ||
     (isLocalPodcastTrack(currentTrack) && activeRightPanel !== "lyrics");
+  // WaveSync's tab, while a session runs (or its panel is the one up: the
+  // end of a session is said there).
+  const { view: wavesync } = useWaveSync();
   const TABS: RightPanel[] = [
     "nowPlaying",
     showsTranscript ? "transcript" : "lyrics",
     "queue",
+    ...(wavesyncActive(wavesync) || activeRightPanel === "wavesync"
+      ? (["wavesync"] as RightPanel[])
+      : []),
   ];
   // One panel for the three tabs: the ids tie each tab to it, and it to
   // the open tab, so a screen reader can walk from one to the other.
@@ -57,6 +65,7 @@ export function FluidSidePanel({
     lyrics: t("lyrics.title"),
     transcript: t("podcasts.transcript.title"),
     queue: t("queue.title"),
+    wavesync: "WaveSync",
   };
 
   // Roving tabs: arrows move, Home / End jump, the focused tab opens.
@@ -144,6 +153,7 @@ export function FluidSidePanel({
             <PodcastTranscriptPanel embedded />
           )}
           {activeRightPanel === "queue" && <QueuePanel embedded />}
+          {activeRightPanel === "wavesync" && <WaveSyncPanel embedded />}
         </div>
       </div>
     </motion.aside>

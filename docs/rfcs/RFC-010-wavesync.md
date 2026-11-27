@@ -5,7 +5,7 @@
 - **Authors**: @InstaZDLL
 - **Depends on**: [RFC-008](RFC-008-phone-link.md) (the LAN listener, its TLS, its private-address filter and its advertiser, none of them built yet), [RFC-006](RFC-006-deduplicating-the-two-catalogues.md) (content proof is the only proof).
 - **Builds on**: `DetachedSession` ([`remote_playback`](../../src-tauri/crates/app/src/remote_playback.rs)), the share reader ([`netlib::reader`](../../src-tauri/crates/app/src/netlib/reader.rs), [`netlib::cache`](../../src-tauri/crates/app/src/netlib/cache.rs)), [`player_actions`](../../src-tauri/crates/app/src/player_actions.rs), the load ordering of [#622](../architecture/invariants.md#every-load-command-carries-its-intent).
-- **Implementation**: in progress, in the order of [the lots](#lots). The product decisions were taken by the maintainer on 2026-11-27 and are listed in [Decisions taken](#decisions-taken).
+- **Implementation**: in progress, in the order of [the lots](#lots): lots 0, 1 and 2 are built ([`wavesync.md`](../features/wavesync.md) says what a build does). The product decisions were taken by the maintainer on 2026-11-27 and are listed in [Decisions taken](#decisions-taken).
 - **Name**: **WaveSync**, a brand name kept as it is in all 17 locales, like WaveFlow. In the code the module is `wavesync` (`waveflow_core::wavesync`, the app's `wavesync/`), never `sync`, which names the server's sync v2 (`remote::`, `sync_v2`) and the removed v1 stub.
 
 ---

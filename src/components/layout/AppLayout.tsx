@@ -54,6 +54,9 @@ import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
 import { QueueToast } from "../common/QueueToast";
 import { RatingNoticeToast } from "../common/RatingNoticeToast";
 import { WriteFailedToast } from "../common/WriteFailedToast";
+import { WaveSyncDialog } from "../wavesync/WaveSyncDialog";
+import { WaveSyncNotice } from "../wavesync/WaveSyncNotice";
+import { WaveSyncPanel } from "../wavesync/WaveSyncPanel";
 import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
@@ -1249,6 +1252,9 @@ export function AppLayout() {
               {!fluidPanel && activeRightPanel === "transcript" && (
                 <PodcastTranscriptPanel />
               )}
+              {!fluidPanel && activeRightPanel === "wavesync" && (
+                <WaveSyncPanel />
+              )}
             </AnimatePresence>
           </div>
 
@@ -1287,6 +1293,8 @@ export function AppLayout() {
         <QueueToast />
         <RatingNoticeToast />
         <WriteFailedToast />
+        <WaveSyncNotice />
+        <WaveSyncDialog />
         <PluginAttentionToast />
         {showOnboarding && (
           <Suspense fallback={null}>

@@ -190,6 +190,8 @@ pub async fn switch_profile(
     // One switch at a time, from the first step to the last, on success
     // and on failure alike. See [`AppState::profile_switch_lock`].
     let _switching = state.profile_switch_lock.clone().lock_owned().await;
+    // A WaveSync session's entries are this profile's tracks: it ends here.
+    crate::wavesync::profile_changing(&app);
 
     let repo = profile_repo(&state);
     let profile = repo
@@ -350,12 +352,14 @@ pub async fn rename_profile(
 /// "logout" flow.
 #[tauri::command]
 pub async fn deactivate_profile(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
 ) -> AppResult<()> {
     // Not in the middle of a switch, which would re-arm watchers on a
     // profile this closes.
     let _switching = state.profile_switch_lock.clone().lock_owned().await;
+    crate::wavesync::profile_changing(&app);
     watcher.unwatch_all();
     state.deactivate_profile().await;
     Ok(())

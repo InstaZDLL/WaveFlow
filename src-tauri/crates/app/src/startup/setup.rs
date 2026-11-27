@@ -109,6 +109,7 @@ pub(crate) fn setup(
         tracing::warn!(%err, "profile pictures: could not be checked against their rows");
     }
     app.manage(desktop_lyrics::DesktopLyricsState::default());
+    app.manage(crate::wavesync::WaveSync::default());
     app.manage(commands::spectrogram::SpectrogramJobs::default());
 
     // Artwork reaches the webview through `convertFileSrc`, which

@@ -28,6 +28,6 @@
 	<string>WaveFlow needs access to read music from network shares and NAS volumes.</string>
 
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>WaveFlow uses the local network to expose the optional DLNA MediaServer and MPD control surface.</string>
+	<string>WaveFlow uses the local network for WaveSync sessions, where you listen together with other WaveFlow apps, and for the optional DLNA MediaServer and MPD control surface.</string>
 </dict>
 </plist>

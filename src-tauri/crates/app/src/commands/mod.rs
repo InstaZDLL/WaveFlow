@@ -83,6 +83,7 @@ pub mod track;
 pub mod track_tags;
 pub mod tray;
 pub mod updater;
+pub mod wavesync;
 pub mod web_radio_catalogue;
 pub mod web_radio_custom;
 pub mod wrapped;

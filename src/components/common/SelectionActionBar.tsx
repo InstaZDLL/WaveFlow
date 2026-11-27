@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, ListPlus, ListEnd, Plus, Trash2, X } from "lucide-react";
+import { Play, ListPlus, ListEnd, Plus, Trash2, Users, X } from "lucide-react";
 import {
   playerAddToQueue,
   playerPlayNext,
@@ -16,6 +16,8 @@ import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { Tooltip } from "./Tooltip";
 import { useCreatePlaylistWithTracks } from "../../hooks/useCreatePlaylistWithTracks";
 import { useAnyModalOpen } from "../../hooks/useModalA11y";
+import { addToWaveSync, useWaveSync } from "../../hooks/useWaveSync";
+import { backendErrorText } from "../../lib/backendError";
 
 export type SelectionContext =
   | { type: "playlist"; playlistId: number }
@@ -51,6 +53,8 @@ export function SelectionActionBar({
   const anyModalOpen = useAnyModalOpen();
 
   const count = trackIds.length;
+  // WaveSync (RFC-010): the selection goes to the session's queue too.
+  const wavesyncLive = useWaveSync().view?.status === "active";
 
   useEffect(() => {
     if (count === 0 || anyModalOpen) return;
@@ -168,6 +172,23 @@ export function SelectionActionBar({
               <ListPlus size={16} />
             </button>
           </Tooltip>
+
+          {wavesyncLive && (
+            <Tooltip label={t("wavesync.addTo")}>
+              <button
+                type="button"
+                onClick={() =>
+                  void addToWaveSync(trackIds, t, (err) =>
+                    backendErrorText(err, t),
+                  )
+                }
+                aria-label={t("wavesync.addTo")}
+                className="p-2 rounded-full text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-800 transition-colors"
+              >
+                <Users size={16} />
+              </button>
+            </Tooltip>
+          )}
 
           <Tooltip label={t("selection.playNext")}>
             <button

@@ -68,6 +68,7 @@ mod sync;
 mod thumbnails;
 mod trash;
 mod watcher;
+mod wavesync;
 mod webview_memory;
 
 use std::sync::atomic::AtomicBool;
@@ -652,6 +653,17 @@ pub fn run() {
             commands::network_library::network_cache_limit_changed,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
+            commands::wavesync::wavesync_get_view,
+            commands::wavesync::wavesync_start,
+            commands::wavesync::wavesync_discover,
+            commands::wavesync::wavesync_join,
+            commands::wavesync::wavesync_leave,
+            commands::wavesync::wavesync_dismiss,
+            commands::wavesync::wavesync_approve,
+            commands::wavesync::wavesync_new_code,
+            commands::wavesync::wavesync_remove_participant,
+            commands::wavesync::wavesync_add,
+            commands::wavesync::wavesync_remove,
             commands::preferences::get_minimize_to_tray,
             commands::preferences::set_minimize_to_tray,
             commands::preferences::get_sort_ignore_articles,

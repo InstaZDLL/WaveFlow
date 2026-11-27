@@ -161,7 +161,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // so we model "which is open" as a single value rather than three
   // booleans — that guarantees mutual exclusion by construction.
   const [activeRightPanel, setActiveRightPanel] = useState<
-    "queue" | "nowPlaying" | "lyrics" | "transcript" | null
+    "queue" | "nowPlaying" | "lyrics" | "transcript" | "wavesync" | null
   >(null);
   const isQueueOpen = activeRightPanel === "queue";
   const isNowPlayingOpen = activeRightPanel === "nowPlaying";
@@ -1119,7 +1119,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // a tab opens its panel whatever is up, and the shell's close button
   // closes whichever it is.
   const openRightPanel = useCallback(
-    (panel: "queue" | "nowPlaying" | "lyrics" | "transcript") =>
+    (panel: "queue" | "nowPlaying" | "lyrics" | "transcript" | "wavesync") =>
       setActiveRightPanel(panel),
     [],
   );
