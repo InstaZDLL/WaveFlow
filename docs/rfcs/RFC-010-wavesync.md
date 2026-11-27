@@ -429,7 +429,9 @@ _Join_ are disabled with the reason, and turning it on during a session ends it
   covers a TCP listener and multicast. The mDNS advertiser is the app's own
   (a pure-Rust responder on UDP 5353 with address reuse, as SSDP coexists with
   other UPnP services), not Avahi over D-Bus, so no `--system-talk-name` is
-  added to the manifest. Coexisting with Avahi on Fedora is measured in lot 0.
+  added to the manifest. Measured in lot 0 on Fedora with Avahi running: both
+  answer on UDP 5353, `avahi-browse` lists the advertisement on IPv4 and
+  IPv6, and a guest of this build finds it and joins (`lan_probe`).
 - **macOS.** `NSLocalNetworkUsageDescription` already exists for DLNA and MPD
   and gets a sentence for sessions in lot 2, when the app itself starts
   advertising. The responder sends and receives multicast on its own sockets
