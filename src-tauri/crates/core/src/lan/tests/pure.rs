@@ -126,11 +126,14 @@ fn one_exchange_at_a_time_per_sender() {
 }
 
 #[test]
-fn an_ipv6_sender_is_its_prefix() {
+fn an_ipv6_sender_is_its_address_not_the_lans_prefix() {
     let mut backoff = Backoff::default();
     backoff.failed(ip("fd00:1:2:3::a"), 0);
-    assert!(backoff.check(ip("fd00:1:2:3::b"), 0).is_err(), "same /64");
-    assert!(backoff.check(ip("fd00:1:2:4::a"), 0).is_ok(), "another /64");
+    assert!(backoff.check(ip("fd00:1:2:3::a"), 0).is_err());
+    assert!(
+        backoff.check(ip("fd00:1:2:3::b"), 0).is_ok(),
+        "another machine on the same LAN prefix is not slowed"
+    );
     backoff.failed(ip("::ffff:10.0.0.5"), 0);
     assert!(
         backoff.check(ip("10.0.0.5"), 0).is_err(),

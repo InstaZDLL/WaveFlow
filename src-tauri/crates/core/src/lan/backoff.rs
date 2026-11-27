@@ -13,8 +13,14 @@ pub const MAX_WAIT_MS: u64 = 5 * 60 * 1_000;
 /// at the price of filling this.
 const MAX_SENDERS: usize = 1_024;
 
-/// Wrong codes per sender. A sender is an IPv4 address, or an IPv6 /64: a
-/// machine picks a new IPv6 address in its prefix whenever it likes.
+/// Wrong codes per sender, a sender being one address (an IPv4 address
+/// carried in IPv6 counts as the IPv4 one).
+///
+/// Not an IPv6 /64: on a LAN every machine shares the network's /64, so one
+/// person typing wrong codes would make every IPv6 guest wait. A machine can
+/// pick new addresses to get fresh attempts; each still costs an exchange on
+/// a 2⁴⁰ code with at most a few dozen at once, and every one is counted on
+/// the host's screen.
 #[derive(Debug, Default)]
 pub struct Backoff {
     senders: HashMap<Sender, Strike>,
@@ -28,7 +34,7 @@ pub struct Backoff {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Sender {
     V4([u8; 4]),
-    V6Prefix([u8; 8]),
+    V6([u8; 16]),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -43,11 +49,7 @@ impl Sender {
             IpAddr::V4(v4) => Sender::V4(v4.octets()),
             IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
                 Some(v4) => Sender::V4(v4.octets()),
-                None => {
-                    let mut prefix = [0u8; 8];
-                    prefix.copy_from_slice(&v6.octets()[..8]);
-                    Sender::V6Prefix(prefix)
-                }
+                None => Sender::V6(v6.octets()),
             },
         }
     }
