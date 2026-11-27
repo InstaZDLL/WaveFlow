@@ -63,8 +63,9 @@ impl Drop for Advertisement {
 pub struct Found {
     /// Its name in the advertisement; the same in a later [`Event::Lost`].
     pub fullname: String,
-    /// Where it listens, IPv4 first. An IPv6 link-local address carries the
-    /// interface it was heard on, without which it cannot be reached.
+    /// Where it listens, loopback last and IPv4 first. An IPv6 link-local
+    /// address carries the interface it was heard on, without which it cannot
+    /// be reached.
     pub addresses: Vec<SocketAddr>,
     /// Its text record. Anybody on the network wrote it: hostile input.
     pub txt: BTreeMap<String, String>,
@@ -117,7 +118,10 @@ impl Browser {
                             other => SocketAddr::new(other.to_ip_addr(), port),
                         })
                         .collect();
-                    addresses.sort_by_key(|a| (a.is_ipv6(), *a));
+                    // A loopback address last: it is the listener's own only when
+                    // the guest runs on the same machine, and otherwise points the
+                    // guest at itself. Then IPv4 first, the most likely to answer.
+                    addresses.sort_by_key(|a| (a.ip().is_loopback(), a.is_ipv6(), *a));
                     let txt = info
                         .get_properties()
                         .iter()
