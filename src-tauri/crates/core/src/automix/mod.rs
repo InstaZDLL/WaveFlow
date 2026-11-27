@@ -33,6 +33,7 @@
 //! then makes the transition it makes without AutoMix.
 
 pub mod harmonic;
+pub mod transition;
 
 /// Beats needed at either end of a track to fit a grid: two bars of 4/4.
 pub const MIN_GRID_BEATS: usize = 8;
