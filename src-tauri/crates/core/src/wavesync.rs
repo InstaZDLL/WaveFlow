@@ -85,6 +85,13 @@ pub const LOG_KEPT: usize = 512;
 /// Longest participant or session name, in characters.
 pub const MAX_NAME_CHARS: usize = 40;
 
+/// A name as the session keeps it: trimmed, without control characters, cut
+/// to [`MAX_NAME_CHARS`]. What the host's approval prompt shows is this, so
+/// the name approved is the name admitted.
+pub fn clean_name(name: &str) -> String {
+    entry::clean(name, MAX_NAME_CHARS)
+}
+
 /// Why the host said no. Sent to the participant whose request it was, so
 /// the button they pressed can say what happened; also the codes a ranged
 /// read fails with ([`frame::ReadFailure`] is the binary half).

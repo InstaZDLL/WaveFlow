@@ -264,12 +264,16 @@ function HostBox({ view }: { view: WaveSyncView }) {
         </div>
       ))}
 
-      {view.wrongCodes > 0 && (
-        <Warning
-          text={t("wavesync.panel.wrongCodes", { count: view.wrongCodes })}
-        />
-      )}
-      {lonely && <Warning text={t("wavesync.panel.firewall")} />}
+      {/* A live region that stays mounted, so a warning that appears
+        (a wrong code, a minute alone) is announced. */}
+      <div role="status" aria-live="polite" className="space-y-3 empty:hidden">
+        {view.wrongCodes > 0 && (
+          <Warning
+            text={t("wavesync.panel.wrongCodes", { count: view.wrongCodes })}
+          />
+        )}
+        {lonely && <Warning text={t("wavesync.panel.firewall")} />}
+      </div>
     </div>
   );
 }
@@ -441,12 +445,15 @@ function QueueRow({
         <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
           {entry.title}
         </p>
-        <p className="truncate text-xs text-zinc-500">
-          {entry.artists.join(", ")}
-          {entry.artists.length > 0 && " · "}
+        {entry.artists.length > 0 && (
+          <p className="truncate text-xs text-zinc-500">
+            {entry.artists.join(", ")}
+          </p>
+        )}
+        <p className="truncate text-[11px] text-zinc-400">
           {by}
+          {note && ` · ${note}`}
         </p>
-        {note && <p className="truncate text-[11px] text-zinc-400">{note}</p>}
       </div>
       <span
         dir="ltr"

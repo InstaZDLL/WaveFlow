@@ -2300,6 +2300,15 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
+/* Four tabs (WaveSync's, while a session runs) in the width of three: a
+   little tighter, and never on two lines. */
+:root[data-layout="fluid"] .fe-panel__tab {
+  white-space: nowrap;
+}
+:root[data-layout="fluid"] .fe-panel__tab.is-compact {
+  padding: 0 0.5rem;
+  font-size: 0.8125rem;
+}
 :root[data-layout="fluid"] .fe-panel__tab:hover {
   color: var(--fe-ink-2);
   background-color: var(--fe-tone-1);

@@ -33,7 +33,13 @@ async fn build(state: &AppState, track_ids: &[i64]) -> AppResult<(Vec<(Entry, i6
     let pool = state.require_profile_pool().await?;
     let mut entries = Vec::new();
     let mut skipped = 0;
-    for &id in track_ids.iter().take(MAX_UPCOMING) {
+    for &id in track_ids {
+        // The cap is on what goes in, not on what was looked at: unshareable
+        // tracks first must not hide shareable ones after them.
+        if entries.len() == MAX_UPCOMING {
+            skipped += 1;
+            continue;
+        }
         let row = sqlx::query(
             r#"
             SELECT t.title, t.file_path, t.duration_ms, t.sample_rate, t.channels,
@@ -65,9 +71,14 @@ async fn build(state: &AppState, track_ids: &[i64]) -> AppResult<(Vec<(Entry, i6
             skipped += 1;
             continue;
         }
-        let Ok(metadata) = tokio::fs::metadata(&path).await else {
-            skipped += 1;
-            continue;
+        // A regular file: a directory that took the indexed path's place has
+        // a size too, and nothing a player can read.
+        let metadata = match tokio::fs::metadata(&path).await {
+            Ok(metadata) if metadata.is_file() => metadata,
+            _ => {
+                skipped += 1;
+                continue;
+            }
         };
         let size = metadata.len();
         let extension = std::path::Path::new(&path)
@@ -138,24 +149,26 @@ async fn build(state: &AppState, track_ids: &[i64]) -> AppResult<(Vec<(Entry, i6
             id,
         ));
     }
-    skipped += track_ids.len().saturating_sub(MAX_UPCOMING);
     Ok((entries, skipped))
 }
 
 impl WaveSync {
-    /// Put `track_ids`, from this library, at the end of the queue.
+    /// Put `track_ids`, from this library, at the end of the queue of the
+    /// session running when the call began.
     pub async fn add(
         &self,
         app: &AppHandle,
         state: &AppState,
         track_ids: &[i64],
     ) -> AppResult<AddOutcome> {
-        if self.lock().session.is_none() {
-            return Err(AppError::shown(
-                ShownKind::WavesyncNoSession,
-                "No WaveSync session is running.",
-            ));
-        }
+        let (generation, hosting) = {
+            let inner = self.lock();
+            match inner.session {
+                Some(Session::Host(_)) => (inner.generation, true),
+                Some(Session::Guest(_)) => (inner.generation, false),
+                None => return Err(no_session()),
+            }
+        };
         let (built, skipped) = build(state, track_ids).await?;
         if built.is_empty() {
             return Err(AppError::shown(
@@ -169,15 +182,16 @@ impl WaveSync {
             entries,
             position: Position::End,
         };
-        let hosting = matches!(self.lock().session, Some(Session::Host(_)));
         if hosting {
             {
                 let mut inner = self.lock();
+                // The session that was asked, still: a profile switch during
+                // the build ends it, and its tracks go nowhere else.
+                if inner.generation != generation {
+                    return Err(no_session());
+                }
                 let Some(Session::Host(side)) = inner.session.as_mut() else {
-                    return Err(AppError::shown(
-                        ShownKind::WavesyncNoSession,
-                        "No WaveSync session is running.",
-                    ));
+                    return Err(no_session());
                 };
                 side.act(action).map_err(super::refusal_error)?;
                 side.own
@@ -185,19 +199,33 @@ impl WaveSync {
             }
             self.emit(app);
         } else {
-            // Recorded before the request, so that the ops answering it find
-            // the entries already known as this machine's.
-            if let Some(Session::Guest(side)) = self.lock().session.as_mut() {
+            // Known as this machine's before the request, so that the ops
+            // answering it find them, and kept while other ops come first.
+            let ids: Vec<EntryId> = built.iter().map(|(entry, _)| entry.id).collect();
+            self.with_guest(generation, |side| {
                 side.own
                     .extend(built.iter().map(|(entry, track)| (entry.id, *track)));
-            }
-            if let Err(e) = self.request(action).await {
-                if let Some(Session::Guest(side)) = self.lock().session.as_mut() {
-                    for (entry, _) in &built {
-                        side.own.remove(&entry.id);
+                side.pending_own.extend(ids.iter().copied());
+            })
+            .ok_or_else(no_session)?;
+            let answered = self.request(generation, action).await;
+            self.with_guest(generation, |side| {
+                for id in &ids {
+                    side.pending_own.remove(id);
+                    if answered.is_err() {
+                        side.own.remove(id);
                     }
                 }
-                return Err(e);
+                // Without an answer, what the ops brought in stays, and the
+                // rest goes.
+                side.prune_own();
+            });
+            if !answered? {
+                self.emit(app);
+                return Err(AppError::shown(
+                    ShownKind::WavesyncNoAnswer,
+                    "The host did not answer.",
+                ));
             }
             self.emit(app);
         }
@@ -213,12 +241,32 @@ impl WaveSync {
                 "That track is no longer in the queue.",
             )
         })?;
-        let hosting = matches!(self.lock().session, Some(Session::Host(_)));
+        let (generation, hosting) = {
+            let inner = self.lock();
+            match inner.session {
+                Some(Session::Host(_)) => (inner.generation, true),
+                Some(Session::Guest(_)) => (inner.generation, false),
+                None => return Err(no_session()),
+            }
+        };
         if hosting {
             return self.host_act(app, Action::Remove { entry });
         }
-        self.request(Action::Remove { entry }).await?;
+        let answered = self.request(generation, Action::Remove { entry }).await?;
         self.emit(app);
+        if !answered {
+            return Err(AppError::shown(
+                ShownKind::WavesyncNoAnswer,
+                "The host did not answer.",
+            ));
+        }
         Ok(())
     }
+}
+
+fn no_session() -> AppError {
+    AppError::shown(
+        ShownKind::WavesyncNoSession,
+        "No WaveSync session is running.",
+    )
 }

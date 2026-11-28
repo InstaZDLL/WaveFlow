@@ -4,11 +4,9 @@ use std::collections::{HashSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
-use super::entry::clean;
 use super::{
     Anchor, Entry, EntryId, Op, Participant, ParticipantId, ParticipantState, Position, Refusal,
-    Rights, Role, Sequenced, SessionState, Snapshot, LOG_KEPT, MAX_NAME_CHARS, MAX_PARTICIPANTS,
-    MAX_UPCOMING,
+    Rights, Role, Sequenced, SessionState, Snapshot, LOG_KEPT, MAX_PARTICIPANTS, MAX_UPCOMING,
 };
 
 /// A restart counts as going back to the start of the track. Earlier
@@ -105,8 +103,8 @@ impl Host {
     /// Open a session named `name`, hosted by `host_name`, at `now_ms` of the
     /// host's clock.
     pub fn new(name: &str, host_name: &str, now_ms: u64) -> Result<Self, Refusal> {
-        let name = clean(name, MAX_NAME_CHARS);
-        let host_name = clean(host_name, MAX_NAME_CHARS);
+        let name = super::clean_name(name);
+        let host_name = super::clean_name(host_name);
         if name.is_empty() || host_name.is_empty() {
             return Err(Refusal::InvalidName);
         }
@@ -156,7 +154,7 @@ impl Host {
     /// app's part). They start from [`Self::snapshot`] taken after this.
     pub fn admit(&mut self, name: &str) -> Result<(ParticipantId, Vec<Sequenced>), Refusal> {
         self.live()?;
-        let name = clean(name, MAX_NAME_CHARS);
+        let name = super::clean_name(name);
         if name.is_empty() {
             return Err(Refusal::InvalidName);
         }

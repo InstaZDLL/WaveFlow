@@ -17,7 +17,7 @@ use waveflow_core::wavesync::wire::{
     check_protocol, decode_guest, GuestMessage, HostMessage, Outcome, WireError,
 };
 use waveflow_core::wavesync::{
-    Action, EntryId, Host, ParticipantId, Refusal, Secret, Sequenced, PROTOCOL_VERSION,
+    clean_name, Action, EntryId, Host, ParticipantId, Refusal, Secret, Sequenced, PROTOCOL_VERSION,
 };
 
 use super::{
@@ -208,6 +208,10 @@ impl WaveSync {
                     "A WaveSync session is already running.",
                 ));
             }
+            // Offline mode may have come on while the listener started: then
+            // nothing is installed, and the listener and the advertisement go
+            // with this scope.
+            refuse_offline()?;
             inner.generation += 1;
             inner.last_end = None;
             inner.session = Some(Session::Host(Box::new(HostSide {
@@ -359,7 +363,9 @@ async fn serve(app: AppHandle, generation: u64, accepted: Accepted) {
     };
     let name = match decode_guest(&first) {
         Ok(GuestMessage::Join { protocol, name }) => match check_protocol(protocol) {
-            Ok(()) => name,
+            // Cleaned here, as the session will keep it, so that the name the
+            // host approves is the name it admits.
+            Ok(()) => clean_name(&name),
             Err(reason) => {
                 let _ = tx.send(text(&HostMessage::Refused { reason }));
                 return;
@@ -372,6 +378,12 @@ async fn serve(app: AppHandle, generation: u64, accepted: Accepted) {
             return;
         }
     };
+    if name.is_empty() {
+        let _ = tx.send(text(&HostMessage::Refused {
+            reason: Refusal::InvalidName,
+        }));
+        return;
+    }
 
     let Some(conn) = ws.with_host(generation, |side| {
         let conn = side.next_conn;

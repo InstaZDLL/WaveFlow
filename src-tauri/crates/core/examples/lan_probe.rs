@@ -17,6 +17,11 @@
 //! the other one line through the connection, checks the line it receives,
 //! and exits; any other outcome is an error. `LAN_PROBE_VPN=1` turns on
 //! _Allow private VPN addresses_ on either side.
+//!
+//! `wsguest <CODE> <ADDR:PORT>` is a WaveSync guest instead, for a session a
+//! WaveFlow app hosts (RFC-010 lot 2): it joins as "Probe", waits to be let
+//! in, adds one entry that names no file, prints the queue as it sees it, and
+//! leaves.
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -48,7 +53,14 @@ async fn main() -> Result<()> {
             let code = args.get(1).ok_or("join <CODE> [ADDR:PORT]")?;
             join(code, args.get(2), vpn).await
         }
-        _ => Err("usage: lan_probe host | join <CODE> [ADDR:PORT]".into()),
+        Some("wsguest") => {
+            let code = args.get(1).ok_or("wsguest <CODE> <ADDR:PORT>")?;
+            let addr = args.get(2).ok_or("wsguest <CODE> <ADDR:PORT>")?;
+            wavesync_guest(code, addr, vpn).await
+        }
+        _ => Err(
+            "usage: lan_probe host | join <CODE> [ADDR:PORT] | wsguest <CODE> <ADDR:PORT>".into(),
+        ),
     }
 }
 
@@ -144,4 +156,116 @@ async fn find(filter: PeerFilter) -> Result<(SocketAddr, Option<Fingerprint>)> {
     .ok()
     .flatten();
     found.ok_or_else(|| "no host found on the network".into())
+}
+
+/// A WaveSync guest of a session a WaveFlow app hosts.
+async fn wavesync_guest(code: &str, addr: &str, vpn: bool) -> Result<()> {
+    use waveflow_core::wavesync::wire::{decode_host, encode, GuestMessage, HostMessage};
+    use waveflow_core::wavesync::{
+        Action, Entry, EntryId, ParticipantId, Position, Replica, PROTOCOL_VERSION,
+    };
+
+    let code = Code::parse(code).ok_or("not a code")?;
+    let addr: SocketAddr = addr.parse()?;
+    let filter = PeerFilter::for_this_machine(vpn);
+    let mut joined = client::join(addr, None, &code, "wavesync", filter).await?;
+    println!("joined {addr}, certificate {}", joined.fingerprint.short());
+    let send = |message: &GuestMessage| Message::text(encode(message));
+    joined
+        .socket
+        .send(send(&GuestMessage::Join {
+            protocol: PROTOCOL_VERSION,
+            name: "Probe".into(),
+        }))
+        .await?;
+    println!("waiting for the host to let us in");
+
+    let mut replica: Option<Replica> = None;
+    let mut added = false;
+    while let Some(frame) = joined.socket.next().await {
+        let Message::Text(text) = frame? else {
+            continue;
+        };
+        match decode_host(text.as_str()).map_err(|e| e.to_string())? {
+            HostMessage::Welcome { you, snapshot, .. } => {
+                let r = Replica::from_snapshot(snapshot).map_err(|e| e.to_string())?;
+                println!(
+                    "let in as {you}: session {:?}, participants {:?}, queue {:?}",
+                    r.state().name(),
+                    r.state()
+                        .participants()
+                        .iter()
+                        .map(|p| p.name.clone())
+                        .collect::<Vec<_>>(),
+                    r.state()
+                        .queue()
+                        .iter()
+                        .map(|e| e.title.clone())
+                        .collect::<Vec<_>>(),
+                );
+                replica = Some(r);
+                let entry = Entry {
+                    id: EntryId::from_bytes(waveflow_core::lan::random()),
+                    owner: ParticipantId(0),
+                    title: "Probe from the other machine".into(),
+                    artists: vec!["lan_probe".into()],
+                    album: None,
+                    duration_ms: 60_000,
+                    codec: "flac".into(),
+                    sample_rate: 44_100,
+                    channels: 2,
+                    size: 1_000_000,
+                    full_hash: None,
+                    gain: None,
+                };
+                joined
+                    .socket
+                    .send(send(&GuestMessage::Request {
+                        req: 1,
+                        action: Action::Add {
+                            entries: vec![entry],
+                            position: Position::End,
+                        },
+                    }))
+                    .await?;
+            }
+            HostMessage::Refused { reason } => return Err(format!("refused: {reason}").into()),
+            HostMessage::Ops { ops } => {
+                let r = replica.as_mut().ok_or("ops before welcome")?;
+                for op in &ops {
+                    r.apply(op).map_err(|e| e.to_string())?;
+                }
+                println!(
+                    "ops {} -> queue {:?}",
+                    ops.len(),
+                    r.state()
+                        .queue()
+                        .iter()
+                        .map(|e| e.title.clone())
+                        .collect::<Vec<_>>()
+                );
+            }
+            HostMessage::Answer { req, outcome } => {
+                println!("answer to {req}: {outcome:?}");
+                if req == 1 && !added {
+                    added = true;
+                    // Time for the host's screen to show the entry.
+                    println!("leaving in 30 s");
+                    tokio::time::sleep(Duration::from_secs(30)).await;
+                    joined
+                        .socket
+                        .send(send(&GuestMessage::Request {
+                            req: 2,
+                            action: Action::Leave,
+                        }))
+                        .await?;
+                } else if req == 2 {
+                    println!("left");
+                    return Ok(());
+                }
+            }
+            other => println!("{other:?}"),
+        }
+    }
+    Err("the host closed the connection".into())
 }

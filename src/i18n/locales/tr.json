@@ -5055,7 +5055,9 @@
       "refused": "Sunucu sizi içeri almadı.",
       "offline": "Çevrimdışı mod açık: oturum sona erdi.",
       "profileChanged": "Başka bir profil etkin: oturum sona erdi.",
-      "diverged": "Oturum sunucuyla uyumunu yitirdi ve sona erdi."
+      "diverged": "Oturum sunucuyla uyumunu yitirdi ve sona erdi.",
+      "incompatible": "Sunucu başka bir WaveSync sürümü kullanıyor.",
+      "full": "Oturum dolu."
     }
   }
 }

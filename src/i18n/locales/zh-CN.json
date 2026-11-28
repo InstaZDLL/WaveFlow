@@ -5049,7 +5049,9 @@
       "refused": "主持人没有让你进入。",
       "offline": "离线模式已开启：会话已结束。",
       "profileChanged": "另一个配置文件已激活：会话已结束。",
-      "diverged": "会话与主持人不同步，已结束。"
+      "diverged": "会话与主持人不同步，已结束。",
+      "incompatible": "主持人使用的是另一个版本的 WaveSync。",
+      "full": "会话已满。"
     }
   }
 }

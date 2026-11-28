@@ -5199,7 +5199,9 @@
       "refused": "L'host non ti ha fatto entrare.",
       "offline": "La modalità offline è attiva: la sessione è terminata.",
       "profileChanged": "È attivo un altro profilo: la sessione è terminata.",
-      "diverged": "La sessione è andata fuori sincrono con l'host ed è terminata."
+      "diverged": "La sessione è andata fuori sincrono con l'host ed è terminata.",
+      "incompatible": "L'host usa un'altra versione di WaveSync.",
+      "full": "La sessione è piena."
     }
   }
 }

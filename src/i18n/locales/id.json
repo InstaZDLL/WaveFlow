@@ -5049,7 +5049,9 @@
       "refused": "Tuan rumah tidak mengizinkan Anda masuk.",
       "offline": "Mode offline aktif: sesi berakhir.",
       "profileChanged": "Profil lain aktif: sesi berakhir.",
-      "diverged": "Sesi tidak lagi selaras dengan tuan rumah dan berakhir."
+      "diverged": "Sesi tidak lagi selaras dengan tuan rumah dan berakhir.",
+      "incompatible": "Tuan rumah memakai versi WaveSync yang lain.",
+      "full": "Sesi sudah penuh."
     }
   }
 }

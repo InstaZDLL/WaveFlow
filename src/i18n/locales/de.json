@@ -5055,7 +5055,9 @@
       "refused": "Der Host hat dich nicht hereingelassen.",
       "offline": "Der Offline-Modus ist an: Die Session ist beendet.",
       "profileChanged": "Ein anderes Profil ist aktiv: Die Session ist beendet.",
-      "diverged": "Die Session ist mit dem Host aus dem Tritt geraten und wurde beendet."
+      "diverged": "Die Session ist mit dem Host aus dem Tritt geraten und wurde beendet.",
+      "incompatible": "Der Host nutzt eine andere Version von WaveSync.",
+      "full": "Die Session ist voll."
     }
   }
 }

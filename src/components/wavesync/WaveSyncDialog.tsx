@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, RefreshCw, Users, Radio as RadioIcon } from "lucide-react";
 
@@ -54,10 +54,15 @@ export function WaveSyncDialog() {
   const [error, setError] = useState<string | null>(null);
 
   const profileName = activeProfile?.name ?? "";
+  // Which opening of the dialog an answer belongs to: one that arrives after
+  // the dialog was closed (and perhaps opened again) changes nothing in it.
+  // The session it may have made shows in the menu and the panel anyway.
+  const opening = useRef(0);
 
   // Fresh fields each time the dialog opens.
   useEffect(() => {
     if (!dialogOpen) return;
+    opening.current += 1;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on open
     setDisplayName(profileName);
     setSessionName(
@@ -70,14 +75,16 @@ export function WaveSyncDialog() {
   }, [dialogOpen, profileName, t]);
 
   const lookAround = useCallback(async () => {
+    const mine = opening.current;
     setLooking(true);
     setError(null);
     try {
-      setFound(await wavesyncDiscover());
+      const sessions = await wavesyncDiscover();
+      if (opening.current === mine) setFound(sessions);
     } catch (err) {
-      setError(backendErrorText(err, t));
+      if (opening.current === mine) setError(backendErrorText(err, t));
     } finally {
-      setLooking(false);
+      if (opening.current === mine) setLooking(false);
     }
   }, [t]);
 
@@ -91,36 +98,32 @@ export function WaveSyncDialog() {
     openRightPanel("wavesync");
   };
 
-  const start = async () => {
+  const run = async (call: () => Promise<unknown>) => {
+    const mine = opening.current;
     setBusy(true);
     setError(null);
     try {
-      await wavesyncStart(sessionName, displayName, approval);
-      done();
+      await call();
+      if (opening.current === mine) done();
     } catch (err) {
-      setError(backendErrorText(err, t));
+      if (opening.current === mine) setError(backendErrorText(err, t));
     } finally {
-      setBusy(false);
+      if (opening.current === mine) setBusy(false);
     }
   };
 
-  const join = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await wavesyncJoin(
+  const start = () =>
+    run(() => wavesyncStart(sessionName, displayName, approval));
+
+  const join = () =>
+    run(() =>
+      wavesyncJoin(
         picked ? picked.address : target,
         picked?.fingerprint ?? null,
         code || null,
         displayName,
-      );
-      done();
-    } catch (err) {
-      setError(backendErrorText(err, t));
-    } finally {
-      setBusy(false);
-    }
-  };
+      ),
+    );
 
   const canStart =
     !busy && displayName.trim() !== "" && sessionName.trim() !== "";

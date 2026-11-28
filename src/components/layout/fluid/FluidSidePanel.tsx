@@ -115,7 +115,9 @@ export function FluidSidePanel({
                   tabIndex={active ? 0 : -1}
                   onClick={() => openRightPanel(id)}
                   onKeyDown={(e) => onTabKey(e, i)}
-                  className={`fe-panel__tab ${active ? "is-active" : ""}`}
+                  className={`fe-panel__tab ${active ? "is-active" : ""} ${
+                    TABS.length > 3 ? "is-compact" : ""
+                  }`}
                 >
                   {labels[id]}
                 </button>

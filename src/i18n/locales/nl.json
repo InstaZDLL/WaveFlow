@@ -5055,7 +5055,9 @@
       "refused": "De host heeft je niet binnengelaten.",
       "offline": "De offlinemodus staat aan: de sessie is beëindigd.",
       "profileChanged": "Er is een ander profiel actief: de sessie is beëindigd.",
-      "diverged": "De sessie raakte uit de pas met de host en is beëindigd."
+      "diverged": "De sessie raakte uit de pas met de host en is beëindigd.",
+      "incompatible": "De host gebruikt een andere versie van WaveSync.",
+      "full": "De sessie is vol."
     }
   }
 }

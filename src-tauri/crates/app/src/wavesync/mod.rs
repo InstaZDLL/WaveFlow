@@ -78,6 +78,10 @@ pub enum EndReason {
     Removed,
     /// The host did not let this participant in.
     Refused,
+    /// The host runs another version of WaveSync.
+    Incompatible,
+    /// The session was full.
+    Full,
     /// Offline mode came on.
     Offline,
     /// Another profile became active.

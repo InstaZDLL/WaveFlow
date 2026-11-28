@@ -5196,7 +5196,9 @@
       "refused": "El anfitrión no te ha dejado entrar.",
       "offline": "El modo sin conexión está activado: la sesión ha terminado.",
       "profileChanged": "Hay otro perfil activo: la sesión ha terminado.",
-      "diverged": "La sesión se ha desincronizado del anfitrión y ha terminado."
+      "diverged": "La sesión se ha desincronizado del anfitrión y ha terminado.",
+      "incompatible": "El anfitrión usa otra versión de WaveSync.",
+      "full": "La sesión está llena."
     }
   }
 }

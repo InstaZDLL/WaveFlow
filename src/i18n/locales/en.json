@@ -5055,7 +5055,9 @@
       "refused": "The host did not let you in.",
       "offline": "Offline mode is on: the session has ended.",
       "profileChanged": "Another profile is active: the session has ended.",
-      "diverged": "The session got out of step with the host and ended."
+      "diverged": "The session got out of step with the host and ended.",
+      "incompatible": "The host runs another version of WaveSync.",
+      "full": "The session is full."
     }
   }
 }

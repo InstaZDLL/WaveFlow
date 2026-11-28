@@ -5196,7 +5196,9 @@
       "refused": "L'hôte ne vous a pas laissé entrer.",
       "offline": "Le mode hors ligne est activé : la session est terminée.",
       "profileChanged": "Un autre profil est actif : la session est terminée.",
-      "diverged": "La session s'est désaccordée de l'hôte et s'est terminée."
+      "diverged": "La session s'est désaccordée de l'hôte et s'est terminée.",
+      "incompatible": "L'hôte utilise une autre version de WaveSync.",
+      "full": "La session est complète."
     }
   }
 }

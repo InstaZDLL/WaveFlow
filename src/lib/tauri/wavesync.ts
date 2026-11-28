@@ -8,6 +8,8 @@ export type WaveSyncEndReason =
   | "hostLeft"
   | "removed"
   | "refused"
+  | "incompatible"
+  | "full"
   | "offline"
   | "profileChanged"
   | "diverged";
