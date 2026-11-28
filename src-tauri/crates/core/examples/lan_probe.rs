@@ -21,7 +21,9 @@
 //! `wsguest <CODE> <ADDR:PORT>` is a WaveSync guest instead, for a session a
 //! WaveFlow app hosts (RFC-010 lot 2): it joins as "Probe", waits to be let
 //! in, adds one entry that names no file, prints the queue as it sees it, and
-//! leaves.
+//! leaves. `wshost` hosts such a session on the core's `Host` alone, for a
+//! WaveFlow app to join as a guest: one guest, admitted without approval,
+//! one entry of the host's in the queue, until the guest leaves.
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -53,13 +55,15 @@ async fn main() -> Result<()> {
             let code = args.get(1).ok_or("join <CODE> [ADDR:PORT]")?;
             join(code, args.get(2), vpn).await
         }
+        Some("wshost") => wavesync_host(vpn).await,
         Some("wsguest") => {
             let code = args.get(1).ok_or("wsguest <CODE> <ADDR:PORT>")?;
             let addr = args.get(2).ok_or("wsguest <CODE> <ADDR:PORT>")?;
             wavesync_guest(code, addr, vpn).await
         }
         _ => Err(
-            "usage: lan_probe host | join <CODE> [ADDR:PORT] | wsguest <CODE> <ADDR:PORT>".into(),
+            "usage: lan_probe host | join <CODE> [ADDR:PORT] | wsguest <CODE> <ADDR:PORT> | wshost"
+                .into(),
         ),
     }
 }
@@ -268,4 +272,137 @@ async fn wavesync_guest(code: &str, addr: &str, vpn: bool) -> Result<()> {
         }
     }
     Err("the host closed the connection".into())
+}
+
+/// A one-guest WaveSync session on the core's `Host`.
+async fn wavesync_host(vpn: bool) -> Result<()> {
+    use waveflow_core::wavesync::wire::{decode_guest, encode, GuestMessage, HostMessage, Outcome};
+    use waveflow_core::wavesync::{
+        Action, Entry, EntryId, Host, ParticipantId, Position, Secret, PROTOCOL_VERSION,
+    };
+
+    let identity = Identity::generate()?;
+    let (listener, mut incoming) = Listener::start(
+        &identity,
+        Config {
+            context: "wavesync".into(),
+            allow_private_vpn: vpn,
+            port: 0,
+            handshake_timeout: HANDSHAKE_TIMEOUT,
+        },
+    )
+    .await?;
+    let code = Code::generate();
+    listener.set_code(Some(code.clone()));
+    let fingerprint = identity.fingerprint().to_string();
+    let _advertised = Advertisement::start(
+        "_wavesync._tcp.local.",
+        listener.port(),
+        &[
+            ("v", "1"),
+            ("fp", fingerprint.as_str()),
+            ("sn", "Fedora probe"),
+            ("hn", "Fedora"),
+        ],
+    )?;
+    let mut host = Host::new("Fedora probe", "Fedora", 0).map_err(|e| e.to_string())?;
+    let me = host.host_id();
+    host.handle(
+        me,
+        Action::Add {
+            entries: vec![Entry {
+                id: EntryId::from_bytes(waveflow_core::lan::random()),
+                owner: ParticipantId(0),
+                title: "A track of the Fedora".into(),
+                artists: vec!["lan_probe".into()],
+                album: None,
+                duration_ms: 120_000,
+                codec: "flac".into(),
+                sample_rate: 44_100,
+                channels: 2,
+                size: 2_000_000,
+                full_hash: None,
+                gain: None,
+            }],
+            position: Position::End,
+        },
+        0,
+    )
+    .map_err(|e| e.to_string())?;
+    println!(
+        "WaveSync host on port {}, code {}, certificate {}",
+        listener.port(),
+        code.grouped(),
+        identity.fingerprint().short()
+    );
+    let started = std::time::Instant::now();
+    while let Some(event) = incoming.recv().await {
+        let Incoming::Accepted(mut accepted) = event else {
+            println!("a wrong code");
+            continue;
+        };
+        if accepted.admission != Admission::Code {
+            continue;
+        }
+        let Some(Ok(Message::Text(first))) = accepted.socket.next().await else {
+            continue;
+        };
+        let Ok(GuestMessage::Join { name, .. }) = decode_guest(first.as_str()) else {
+            continue;
+        };
+        let (guest, _) = host.admit(&name).map_err(|e| e.to_string())?;
+        println!("{} joined from {} as {guest}", name, accepted.peer);
+        let welcome = HostMessage::Welcome {
+            protocol: PROTOCOL_VERSION,
+            you: guest,
+            token: Some(Secret::new(waveflow_core::lan::token::generate("wst_"))),
+            snapshot: host.snapshot(),
+        };
+        accepted
+            .socket
+            .send(Message::text(encode(&welcome)))
+            .await?;
+        while let Some(frame) = accepted.socket.next().await {
+            let Message::Text(text) = frame? else {
+                continue;
+            };
+            let Ok(GuestMessage::Request { req, action }) = decode_guest(text.as_str()) else {
+                continue;
+            };
+            println!("request {req}: {action:?}");
+            let leaving = matches!(action, Action::Leave);
+            let now = started.elapsed().as_millis() as u64;
+            let outcome = match host.handle(guest, action, now) {
+                Ok(ops) => {
+                    if !ops.is_empty() {
+                        accepted
+                            .socket
+                            .send(Message::text(encode(&HostMessage::Ops { ops })))
+                            .await?;
+                    }
+                    Outcome::Applied { seq: host.seq() }
+                }
+                Err(reason) => Outcome::Refused { reason },
+            };
+            println!(
+                "  -> {outcome:?}; queue {:?}",
+                host.state()
+                    .queue()
+                    .iter()
+                    .map(|e| e.title.clone())
+                    .collect::<Vec<_>>()
+            );
+            accepted
+                .socket
+                .send(Message::text(encode(&HostMessage::Answer { req, outcome })))
+                .await?;
+            if leaving {
+                println!("the guest left");
+                return Ok(());
+            }
+        }
+        println!("the guest's connection closed");
+        return Ok(());
+    }
+    Ok(())
 }
