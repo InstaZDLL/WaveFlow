@@ -39,7 +39,12 @@ skin's side panel while a session runs).
   (`192.168.1.20:43399`) or an invitation link
   (`wavesync://192.168.1.20:43399/?fp=<fingerprint>&code=<CODE>`), which the
   host's panel copies. Only an IP literal: a host name would be a DNS lookup
-  nobody asked for. The guest types the code shown on the host's screen, read
+  nobody asked for. A host advertises every address it has, a VPN's and a
+  virtual adapter's included; discovery keeps the one on the subnet of the
+  guest's best interface, in the order DLNA ranks interfaces (measured: a
+  host with a Hyper-V adapter at `10.0.2.1` and its Ethernet at
+  `192.168.50.21` is joined at the latter). The guest types the code shown on
+  the host's screen, read
   without case, dashes and spaces ignored.
 
 Joining runs [the exchange](../architecture/crates.md): the code is never
@@ -93,8 +98,11 @@ interface.
 - **No CSP change**: everything crosses in the backend; the webview invokes
   commands and listens to `wavesync:changed`.
 - **Windows** asks, the first time a session is started, whether WaveFlow may
-  accept connections; on a network classed _Public_, refused connections are
-  silent, hence the hint. **macOS**: `NSLocalNetworkUsageDescription` names
+  accept connections. Closing that prompt without allowing leaves an inbound
+  _Block_ rule for the executable (measured in lot 2: a guest on another
+  machine then times out, and the host sees nothing), as does a network
+  classed _Public_; hence the hint after a minute with nobody in. Two
+  instances on one machine are not affected: the loopback is not filtered. **macOS**: `NSLocalNetworkUsageDescription` names
   WaveSync. **Flatpak**: `--share=network` is enough; the mDNS responder is the
   app's own.
 
