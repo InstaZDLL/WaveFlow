@@ -108,7 +108,9 @@ export function WaveSyncDialog() {
     } catch (err) {
       if (opening.current === mine) setError(backendErrorText(err, t));
     } finally {
-      if (opening.current === mine) setBusy(false);
+      // The request is over whatever opening it belonged to: a dialog
+      // reopened meanwhile must not keep its buttons disabled.
+      setBusy(false);
     }
   };
 

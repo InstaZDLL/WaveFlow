@@ -37,11 +37,16 @@ function set(next: Partial<Store>) {
 function start() {
   if (started) return;
   started = true;
-  void listen<WaveSyncView>(WAVESYNC_CHANGED_EVENT, (event) =>
-    set({ view: event.payload }),
-  );
+  // The first read is older than any event that arrives before it answers.
+  let heard = false;
+  void listen<WaveSyncView>(WAVESYNC_CHANGED_EVENT, (event) => {
+    heard = true;
+    set({ view: event.payload });
+  });
   wavesyncGetView()
-    .then((view) => set({ view }))
+    .then((view) => {
+      if (!heard) set({ view });
+    })
     .catch((err) => console.error("[wavesync] view", err));
 }
 

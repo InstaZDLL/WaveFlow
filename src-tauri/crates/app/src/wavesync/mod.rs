@@ -144,8 +144,11 @@ impl WaveSync {
                 }
                 None => false,
             };
+            // Bumped even with no session: a start or a join still on its way
+            // (the listener starting, the exchange running) installs nothing
+            // once offline mode or a profile switch has come in between.
+            inner.generation += 1;
             if had {
-                inner.generation += 1;
                 inner.last_end = Some(reason);
             }
             had

@@ -154,12 +154,16 @@ impl WaveSync {
         refuse_offline()?;
         let host_name = display_name(host_name)?;
         let name = display_name(name)?;
-        if self.lock().session.is_some() {
-            return Err(AppError::shown(
-                ShownKind::WavesyncAlreadyInSession,
-                "A WaveSync session is already running.",
-            ));
-        }
+        let asked = {
+            let inner = self.lock();
+            if inner.session.is_some() {
+                return Err(AppError::shown(
+                    ShownKind::WavesyncAlreadyInSession,
+                    "A WaveSync session is already running.",
+                ));
+            }
+            inner.generation
+        };
         let start_failed = |e: &dyn std::fmt::Display| {
             tracing::warn!(error = %e, "wavesync: the listener did not start");
             AppError::shown(
@@ -208,10 +212,14 @@ impl WaveSync {
                     "A WaveSync session is already running.",
                 ));
             }
-            // Offline mode may have come on while the listener started: then
-            // nothing is installed, and the listener and the advertisement go
-            // with this scope.
+            // Offline mode may have come on while the listener started, or a
+            // profile switch ended "the session" meanwhile: then nothing is
+            // installed, and the listener and the advertisement go with this
+            // scope.
             refuse_offline()?;
+            if inner.generation != asked {
+                return Err(no_session());
+            }
             inner.generation += 1;
             inner.last_end = None;
             inner.session = Some(Session::Host(Box::new(HostSide {

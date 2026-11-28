@@ -163,9 +163,13 @@ impl WaveSync {
     ) -> AppResult<super::View> {
         refuse_offline()?;
         let name = display_name(name)?;
-        if self.lock().session.is_some() {
-            return Err(already());
-        }
+        let asked = {
+            let inner = self.lock();
+            if inner.session.is_some() {
+                return Err(already());
+            }
+            inner.generation
+        };
         let target = parse_target(target)?;
         let pin = match fingerprint.filter(|f| !f.is_empty()) {
             Some(f) => Some(f.parse::<Fingerprint>().map_err(|_| invalid_address())?),
@@ -193,9 +197,13 @@ impl WaveSync {
             if inner.session.is_some() {
                 return Err(already());
             }
-            // Offline mode may have come on during the exchange: then the
-            // connection goes with this scope.
+            // Offline mode may have come on during the exchange, or a profile
+            // switch ended "the session" meanwhile: then the connection goes
+            // with this scope.
             refuse_offline()?;
+            if inner.generation != asked {
+                return Err(no_session());
+            }
             inner.generation += 1;
             inner.last_end = None;
             inner.session = Some(Session::Guest(Box::new(GuestSide {

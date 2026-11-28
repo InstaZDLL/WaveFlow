@@ -210,14 +210,20 @@ impl WaveSync {
             .ok_or_else(no_session)?;
             let answered = self.request(generation, action).await;
             self.with_guest(generation, |side| {
-                for id in &ids {
-                    side.pending_own.remove(id);
-                    if answered.is_err() {
+                match &answered {
+                    // Applied: its ops came before the answer.
+                    Ok(true) => ids.iter().for_each(|id| {
+                        side.pending_own.remove(id);
+                    }),
+                    // No answer in time: the host may still apply it, and its
+                    // ops then find the entries known as this machine's. A
+                    // pending entry the host never applies costs one map slot.
+                    Ok(false) => {}
+                    Err(_) => ids.iter().for_each(|id| {
+                        side.pending_own.remove(id);
                         side.own.remove(id);
-                    }
+                    }),
                 }
-                // Without an answer, what the ops brought in stays, and the
-                // rest goes.
                 side.prune_own();
             });
             if !answered? {
